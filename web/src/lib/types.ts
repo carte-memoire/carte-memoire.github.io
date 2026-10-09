@@ -4,7 +4,9 @@ export type Zone = 'NTSC-J' | 'NTSC-U' | 'PAL' | 'region_free';
 export type EditionType = 'standard' | 'reissue' | 'collector' | 'demo' | 'promo' | 'bundle';
 export type DatePrecision = 'day' | 'month' | 'year';
 export type ItemStatus = 'owned' | 'wanted';
-export type ItemCondition = 'sealed' | 'very_good' | 'good' | 'fair' | 'poor';
+export type ItemCondition = 'sealed' | 'resealed' | 'like_new' | 'very_good' | 'good' | 'fair' | 'poor';
+export type AcquisitionType = 'new' | 'used' | 'gift' | 'trade';
+export type TradeStatus = 'for_trade' | 'for_sale';
 export type ImageType = 'front' | 'back' | 'spine' | 'disc' | 'manual' | 'screenshot';
 export type UserRole = 'member' | 'moderator' | 'admin';
 export type SubmissionStatus = 'pending' | 'approved' | 'rejected';
@@ -87,6 +89,10 @@ export interface CollectionItem {
   purchase_price: number | null;
   purchase_date: string | null;
   notes: string | null;
+  acquisition: AcquisitionType | null;
+  purchase_place: string | null;
+  has_spine_card: boolean | null;
+  trade_status: TradeStatus | null;
   release: {
     id: number;
     zone: Zone | null;

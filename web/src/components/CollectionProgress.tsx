@@ -47,6 +47,7 @@ export function CollectionProgress({ items }: { items: CollectionItem[] }) {
   const complete = owned.filter((i) => i.has_box && i.has_manual && i.has_media).length;
   const sealed = owned.filter((i) => i.condition === 'sealed').length;
   const spent = owned.reduce((sum, i) => sum + (i.purchase_price ?? 0), 0);
+  const offered = owned.filter((i) => i.trade_status).length;
 
   const catalogLink = (filters: Record<string, string>) => `/catalogue?${new URLSearchParams({ zone, ...filters })}`;
 
@@ -79,8 +80,9 @@ export function CollectionProgress({ items }: { items: CollectionItem[] }) {
       <dl className="progress-stats">
         <div><dt>Exemplaires</dt><dd>{formatNumber(owned.length)}</dd></div>
         <div><dt>Complets</dt><dd>{formatNumber(complete)}</dd></div>
-        <div><dt>Sous blister</dt><dd>{formatNumber(sealed)}</dd></div>
+        <div><dt>Neufs sous blister</dt><dd>{formatNumber(sealed)}</dd></div>
         <div><dt>Recherchés</dt><dd>{formatNumber(main?.wanted ?? 0)}</dd></div>
+        <div><dt>À échanger ou vendre</dt><dd>{formatNumber(offered)}</dd></div>
         <div><dt>Dépensé</dt><dd>{formatPrice(spent)}</dd></div>
       </dl>
 

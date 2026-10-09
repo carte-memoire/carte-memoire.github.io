@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { COLLECTION_FIELDS } from '../lib/queries';
-import { conditionLabel, editionLabel, formatPrice, gamePath, zoneLabel } from '../lib/format';
+import { acquisitionLabel, conditionLabel, editionLabel, formatPrice, gamePath, tradeStatusLabel, zoneLabel } from '../lib/format';
 import { errorMessage } from '../lib/errors';
 import type { CollectionItem, ItemStatus } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
@@ -102,11 +102,15 @@ export function Collection() {
                 <p className="block-badges">
                   <span className={`badge badge-zone badge-${(r.zone ?? 'unknown').toLowerCase()}`}>{zoneLabel(r.zone)}</span>
                   <span className={`badge ${r.edition_type === 'reissue' ? 'badge-platinum' : 'badge-edition'}`}>{editionLabel(r)}</span>
+                  {item.condition && <span className={`badge badge-condition badge-${item.condition}`}>{conditionLabel(item.condition)}</span>}
+                  {item.trade_status && <span className="badge badge-trade">{tradeStatusLabel(item.trade_status)}</span>}
                 </p>
                 {item.status === 'owned' && (
                   <p className="block-meta">
                     {complete ? 'Complet' : [item.has_box && 'Boîte', item.has_manual && 'Notice', item.has_media && 'Disque'].filter(Boolean).join(' + ') || 'Contenu non précisé'}
-                    {item.condition && ` · ${conditionLabel(item.condition)}`}
+                    {item.has_spine_card && ' + spine card'}
+                    {item.acquisition && ` · ${acquisitionLabel(item.acquisition)}`}
+                    {item.purchase_place && ` (${item.purchase_place})`}
                     {item.purchase_price !== null && ` · ${formatPrice(item.purchase_price)}`}
                   </p>
                 )}

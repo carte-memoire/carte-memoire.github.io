@@ -1,4 +1,4 @@
-import type { DatePrecision, EditionType, GenreFamily, ItemCondition, Release, Zone } from './types';
+import type { AcquisitionType, DatePrecision, EditionType, GenreFamily, ItemCondition, Release, TradeStatus, Zone } from './types';
 
 export const ZONES: { value: Zone; label: string }[] = [
   { value: 'PAL', label: 'Europe (PAL)' },
@@ -34,16 +34,39 @@ export function editionLabel(release: Pick<Release, 'edition_type' | 'edition_na
   return EDITION_TYPES.find((e) => e.value === release.edition_type)?.label.split(' (')[0] ?? release.edition_type;
 }
 
-export const CONDITIONS: { value: ItemCondition; label: string }[] = [
-  { value: 'sealed', label: 'Neuf sous blister' },
-  { value: 'very_good', label: 'Très bon état' },
-  { value: 'good', label: 'Bon état' },
-  { value: 'fair', label: 'État moyen' },
-  { value: 'poor', label: 'Mauvais état' },
+// État d'un exemplaire, du meilleur au moins bon (échelle habituelle des collectionneurs)
+export const CONDITIONS: { value: ItemCondition; label: string; hint: string }[] = [
+  { value: 'sealed', label: 'Neuf sous blister', hint: "Blister d'origine, jamais ouvert" },
+  { value: 'resealed', label: 'Reblisté', hint: 'Sous blister, mais refait après coup (moins coté)' },
+  { value: 'like_new', label: 'Comme neuf', hint: "Ouvert, aucune trace d'usure" },
+  { value: 'very_good', label: 'Très bon état', hint: "Légères traces d'usage" },
+  { value: 'good', label: 'Bon état', hint: 'Usure visible, rayures légères' },
+  { value: 'fair', label: 'État moyen', hint: 'Boîte abîmée, disque rayé…' },
+  { value: 'poor', label: 'Mauvais état', hint: 'Fortement abîmé' },
 ];
 
 export function conditionLabel(condition: ItemCondition | null): string {
   return CONDITIONS.find((c) => c.value === condition)?.label ?? '';
+}
+
+export const ACQUISITIONS: { value: AcquisitionType; label: string }[] = [
+  { value: 'new', label: 'Acheté neuf' },
+  { value: 'used', label: "Acheté d'occasion" },
+  { value: 'gift', label: 'Reçu en cadeau' },
+  { value: 'trade', label: 'Obtenu par échange' },
+];
+
+export function acquisitionLabel(value: AcquisitionType | null): string {
+  return ACQUISITIONS.find((a) => a.value === value)?.label ?? '';
+}
+
+export const TRADE_STATUSES: { value: TradeStatus; label: string }[] = [
+  { value: 'for_trade', label: 'À échanger' },
+  { value: 'for_sale', label: 'À vendre' },
+];
+
+export function tradeStatusLabel(value: TradeStatus | null): string {
+  return TRADE_STATUSES.find((t) => t.value === value)?.label ?? '';
 }
 
 export const LANGUAGES: { value: string; label: string }[] = [

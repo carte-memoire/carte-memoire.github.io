@@ -1,10 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { CONDITIONS, zoneOrder } from '../lib/format';
+import { ACQUISITIONS, CONDITIONS, TRADE_STATUSES, zoneOrder } from '../lib/format';
 import { errorMessage } from '../lib/errors';
 import { RELEASE_FIELDS } from '../lib/queries';
-import type { CollectionItem, ItemCondition, ItemStatus, Release, SearchResult } from '../lib/types';
+import type { AcquisitionType, CollectionItem, ItemCondition, ItemStatus, Release, SearchResult, TradeStatus } from '../lib/types';
 import { Dialog } from './Dialog';
 import { GameSearch } from './GameSearch';
 import { Cover } from './Cover';
@@ -118,6 +118,22 @@ function ItemForm({ release, item, onBack, onSaved }: { release: Release; item: 
   const [price, setPrice] = useState(item?.purchase_price?.toString() ?? '');
   const [date, setDate] = useState(item?.purchase_date ?? '');
   const [notes, setNotes] = useState(item?.notes ?? '');
+  const [acquisition, setAcquisition] = useState<AcquisitionType | ''>(item?.acquisition ?? '');
+  const [place, setPlace] = useState(item?.purchase_place ?? '');
+  const [hasSpineCard, setHasSpineCard] = useState(item?.has_spine_card ?? false);
+  const [tradeStatus, setTradeStatus] = useState<TradeStatus | ''>(item?.trade_status ?? '');
+  // La spine card (bande sur la tranche) n'existe que sur les boîtes japonaises
+  const spineCard = release.zone === 'NTSC-J';
+
+  // Sous blister : forcément complet
+  function chooseCondition(value: ItemCondition | '') {
+    setCondition(value);
+    if (value === 'sealed' || value === 'resealed') {
+      setHasBox(true);
+      setHasManual(true);
+      setHasMedia(true);
+    }
+  }
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -139,6 +155,10 @@ function ItemForm({ release, item, onBack, onSaved }: { release: Release; item: 
       has_media: owned ? hasMedia : null,
       purchase_price: owned ? priceValue : null,
       purchase_date: owned && date ? date : null,
+      acquisition: owned && acquisition ? acquisition : null,
+      purchase_place: owned && place.trim() ? place.trim() : null,
+      has_spine_card: owned && spineCard ? hasSpineCard : null,
+      trade_status: owned && tradeStatus ? tradeStatus : null,
       notes: notes.trim() || null,
     };
     const { error } = item
@@ -167,19 +187,30 @@ function ItemForm({ release, item, onBack, onSaved }: { release: Release; item: 
 
       {status === 'owned' && (
         <>
-          <label className="field">
-            <span className="field-label">État</span>
-            <select value={condition} onChange={(e) => setCondition(e.target.value as ItemCondition | '')}>
-              <option value="">Non précisé</option>
-              {CONDITIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-            </select>
-          </label>
+          <PillChoice
+            legend="État"
+            name="condition"
+            value={condition}
+            options={CONDITIONS}
+            onChange={(v) => chooseCondition(v as ItemCondition | '')}
+            hint={CONDITIONS.find((c) => c.value === condition)?.hint}
+          />
           <fieldset className="checks">
             <legend className="field-label">Contenu</legend>
             <label><input type="checkbox" checked={hasBox} onChange={(e) => setHasBox(e.target.checked)} /> Boîte</label>
             <label><input type="checkbox" checked={hasManual} onChange={(e) => setHasManual(e.target.checked)} /> Notice</label>
             <label><input type="checkbox" checked={hasMedia} onChange={(e) => setHasMedia(e.target.checked)} /> Disque</label>
+            {spineCard && (
+              <label title="Bande cartonnée glissée sur la tranche des boîtes japonaises">
+                <input type="checkbox" checked={hasSpineCard} onChange={(e) => setHasSpineCard(e.target.checked)} /> Spine card
+              </label>
+            )}
           </fieldset>
+          <PillChoice legend="Obtenu" name="acquisition" value={acquisition} options={ACQUISITIONS} onChange={(v) => setAcquisition(v as AcquisitionType | '')} />
+          <label className="field">
+            <span className="field-label">Où ?</span>
+            <input value={place} onChange={(e) => setPlace(e.target.value)} placeholder="Brocante, boutique, Leboncoin, eBay…" maxLength={80} />
+          </label>
           <div className="row">
             <label className="field">
               <span className="field-label">Prix d'achat (€)</span>
@@ -191,6 +222,11 @@ function ItemForm({ release, item, onBack, onSaved }: { release: Release; item: 
             </label>
           </div>
         </>
+      )}
+
+      {status === 'owned' && (
+        <PillChoice legend="Cet exemplaire" name="trade" value={tradeStatus} options={TRADE_STATUSES} emptyLabel="Je le garde"
+          onChange={(v) => setTradeStatus(v as TradeStatus | '')} />
       )}
 
       <label className="field">
@@ -206,5 +242,34 @@ function ItemForm({ release, item, onBack, onSaved }: { release: Release; item: 
         </button>
       </div>
     </form>
+  );
+}
+
+// Choix unique en pastilles (plus lisible qu'une liste déroulante) ; « Non précisé » en dernier
+function PillChoice({ legend, name, value, options, onChange, hint, emptyLabel = 'Non précisé' }: {
+  legend: string;
+  name: string;
+  value: string;
+  options: { value: string; label: string; hint?: string }[];
+  onChange: (value: string) => void;
+  hint?: string;
+  emptyLabel?: string;
+}) {
+  const all = [...options, { value: '', label: emptyLabel, hint: undefined }];
+  // « Je le garde » se place en premier : c'est le cas habituel
+  if (emptyLabel !== 'Non précisé') all.unshift(all.pop()!);
+  return (
+    <fieldset className="pill-choice">
+      <legend className="field-label">{legend}</legend>
+      <div className="pills">
+        {all.map((o) => (
+          <label key={o.value || 'none'} className={value === o.value ? 'pill active' : 'pill'} title={o.hint}>
+            <input type="radio" name={name} className="sr-only" checked={value === o.value} onChange={() => onChange(o.value)} />
+            {o.label}
+          </label>
+        ))}
+      </div>
+      {hint && <span className="hint">{hint}</span>}
+    </fieldset>
   );
 }

@@ -67,7 +67,7 @@ Ajouter une console (PS2, NES…) revient à ajouter **une ligne** dans `platfor
 - **RG19** : Une proposition est en attente, acceptée ou refusée. Elle est traitée par 0 ou 1 modérateur, avec un commentaire en cas de refus. Une fois acceptée, son contenu est appliqué au catalogue.
 - **RG20** : Les modérateurs et les admins peuvent modifier le catalogue directement.
 - **RG21** : Un utilisateur a 0 à n exemplaires. Un exemplaire appartient à exactement un utilisateur et correspond à exactement une sortie. Un utilisateur peut avoir **plusieurs exemplaires de la même sortie** (doubles). C'est pour ça que `collection_item` est une entité et non une simple association « possède ».
-- **RG22** : Un exemplaire est soit **possédé**, soit **recherché** (liste de souhaits). Pour un exemplaire possédé, on note la présence de la boîte, de la notice et du support, l'état, le prix et la date d'achat, et des notes.
+- **RG22** : Un exemplaire est soit **possédé**, soit **recherché** (liste de souhaits). Pour un exemplaire possédé, on note la présence de la boîte, de la notice et du support (et de la spine card au Japon), l'état (du « neuf sous blister » au « mauvais état », en distinguant un blister refait), s'il a été acheté neuf ou d'occasion, où, à quel prix et quand, s'il est proposé à l'échange ou à la vente, et des notes. Ces détails n'existent pas pour un exemplaire recherché.
 - **RG23** : Une collection est privée par défaut. L'utilisateur peut la rendre publique.
 - **RG24** : Progression : un jeu est **possédé dans une zone** dès qu'au moins une de ses sorties de cette zone est possédée (Black Label ou Platinum, peu importe ; trois exemplaires comptent pour un jeu). On compte des **jeux**, pas des exemplaires : « 312 jeux PAL sur 1 286 ». Le catalogue et la progression ne regardent que la collection de la personne connectée.
 
@@ -231,10 +231,14 @@ L'e-mail et le mot de passe sont gérés par Supabase Auth et ne sont pas stock�
 | profile_id | → profile | ✔ | | rempli automatiquement avec l'utilisateur connecté |
 | release_id | → release | ✔ | | une sortie possédée par quelqu'un ne peut pas être supprimée |
 | status | liste | ✔ | owned | owned (possédé), wanted (recherché) |
-| condition | liste | | good | sealed, very_good, good, fair, poor |
+| condition | liste | | good | sealed (neuf sous blister d'origine), resealed (reblisté), like_new (comme neuf), very_good, good, fair, poor |
 | has_box / has_manual / has_media | booléens | | true / true / true | « complet » = les trois |
 | purchase_price | décimal | | 15.00 | |
 | purchase_date | date | | | |
+| acquisition | liste | | used | new (acheté neuf), used (d'occasion), gift (cadeau), trade (échange) |
+| purchase_place | texte | | Brocante de Lyon | 80 caractères au plus |
+| has_spine_card | booléen | | true | bande cartonnée sur la tranche (boîtes japonaises) |
+| trade_status | liste | | for_trade | for_trade (à échanger), for_sale (à vendre) ; vide = gardé |
 | notes | texte | | | |
 
 ### `submission`

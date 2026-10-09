@@ -380,6 +380,17 @@ await egal('progression : les jeux classés par famille sont comptés', Promise.
 await egal('un autre membre : rien de possédé', progression(AUTRE, 'PAL').then((p) => [p['zone:PAL'][1], p['zone:all'][1]]), [0, 0]);
 await egal('un visiteur : la progression se calcule, à zéro', progression(null).then((p) => p['zone:all'][1]), 0);
 
+console.log('\nDétails d\'un exemplaire');
+await ok('acheté d\'occasion en brocante, reblisté, avec spine card, à échanger', en(MEMBRE, `
+  insert into public.collection_item (release_id, condition, acquisition, purchase_place, has_spine_card, trade_status)
+  values ($1, 'resealed', 'used', 'Brocante de Lyon', true, 'for_trade')`, [ff7fr]));
+await egal('les états restent dans l\'ordre : blister d\'origine, reblisté, comme neuf, puis les autres',
+  val(`select array_to_string(enum_range(null::public.item_condition), ',') as e`), [{ e: 'sealed,resealed,like_new,very_good,good,fair,poor' }]);
+await ko('un jeu recherché ne peut pas être « à vendre »', en(MEMBRE, `insert into public.collection_item (release_id, status, trade_status) values ($1, 'wanted', 'for_sale')`, [ff7fr]), 'collection_item_owned_details');
+await ko('…ni avoir de lieu d\'achat', en(MEMBRE, `insert into public.collection_item (release_id, status, purchase_place) values ($1, 'wanted', 'eBay')`, [ff7fr]), 'collection_item_owned_details');
+await ko('lieu d\'achat trop long', en(MEMBRE, `insert into public.collection_item (release_id, purchase_place) values ($1, $2)`, [ff7fr, 'x'.repeat(81)]), 'check');
+await ko('lieu d\'achat vide', en(MEMBRE, `insert into public.collection_item (release_id, purchase_place) values ($1, '  ')`, [ff7fr]), 'check');
+
 console.log('\nCohérence du catalogue (imports compris)');
 await egal('chaque jeu importé a au moins une sortie', val(`select count(*)::int as n from public.game g where g.wikidata_id is not null and not exists (select 1 from public.release r where r.game_id = g.id)`), [{ n: 0 }]);
 await egal('chaque date de sortie est cohérente avec sa précision', val(`select count(*)::int as n from public.release_region where (release_date is null) <> (date_precision is null)`), [{ n: 0 }]);

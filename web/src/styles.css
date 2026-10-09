@@ -583,3 +583,20 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
   .wish-button { margin-left: 68px; }
   .catalog-progress { min-width: 0; width: 100%; }
 }
+
+/* ---------- Détails d'un exemplaire ---------- */
+.pill-choice { display: flex; flex-direction: column; gap: 6px; }
+.pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.pill {
+  display: inline-flex; align-items: center; padding: 5px 12px; min-height: 32px; cursor: pointer;
+  font-size: 0.85rem; color: var(--muted); background: var(--bg-2); border: 1px solid var(--line); border-radius: 999px;
+}
+.pill:hover { color: var(--text); border-color: var(--cross); }
+.pill.active { color: #fff; background: #3446b0; border-color: var(--cross); }
+.pill:has(input:focus-visible) { outline: 2px solid var(--triangle); outline-offset: 2px; }
+.badge-condition { color: var(--text); }
+.badge-sealed { color: var(--bg); background: var(--gold); border-color: #f3d77a; }
+.badge-resealed { color: #f1e2ae; border-color: var(--gold); border-style: dashed; }
+.badge-like_new, .badge-very_good { color: #b5f3e1; border-color: var(--triangle); }
+.badge-fair, .badge-poor { color: #ffc3cb; border-color: var(--circle); }
+.badge-trade { color: #ffd6f1; border-color: var(--square); }
