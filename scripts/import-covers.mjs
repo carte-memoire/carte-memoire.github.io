@@ -10,7 +10,9 @@
 // Étapes (depuis le dossier carte-memoire) :
 //   node scripts/import-covers.mjs                → analyse seule, AUCUN téléchargement
 //   node scripts/import-covers.mjs --telecharger  → télécharge, convertit en WebP dans
-//                                                   .covers-import/, et écrit la migration
+//                                                   .covers-import/, et écrit .covers-import/link-covers.sql
+// Puis : envoyer les images dans le stockage, et SEULEMENT ENSUITE lancer link-covers.sql
+// (rejouable : il ne rattache que les images effectivement présentes dans le stockage).
 // =====================================================================
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -219,10 +221,12 @@ rows.sort((a, b) => a[0] - b[0]);
 const now = new Date();
 const stamp = now.toISOString().replace(/\D/g, '').slice(0, 14);
 const lit = (v) => `'${String(v).replaceAll("'", "''")}'`;
-writeFileSync(join(ROOT, 'supabase', 'migrations', `${stamp}_import_covers_libretro.sql`), `-- =====================================================================
--- Carte Mémoire · Jaquettes (recto) importées depuis libretro-thumbnails
--- Fichier GÉNÉRÉ par scripts/import-covers.mjs le ${now.toISOString().slice(0, 10)}.
--- Les images doivent d'abord être envoyées dans le stockage « covers » (voir README).
+writeFileSync(join(ROOT, '.covers-import', 'link-covers.sql'), `-- =====================================================================
+-- Carte Mémoire · Rattachement des jaquettes importées depuis libretro-thumbnails
+-- Fichier GÉNÉRÉ par scripts/import-covers.mjs le ${now.toISOString().slice(0, 10)} (${stamp}).
+-- Ce n'est PAS une migration : à lancer APRÈS l'envoi des images dans le stockage,
+--   npx supabase db query --linked -f .covers-import/link-covers.sql
+-- Rejouable sans risque : seules les images présentes dans le stockage sont rattachées.
 -- Une version qui a déjà une image n'en reçoit pas d'autre.
 -- Les jaquettes appartiennent à leurs éditeurs respectifs.
 -- =====================================================================
@@ -237,4 +241,4 @@ where exists (select 1 from public.release r where r.id = v.release_id)
   and exists (select 1 from storage.objects o where o.bucket_id = 'covers' and o.name = v.path)
 on conflict (path) do nothing;
 `);
-console.log(`\n${done} jaquettes prêtes dans .covers-import/ et migration écrite (${stamp}_import_covers_libretro.sql)`);
+console.log(`\n${done} jaquettes prêtes dans .covers-import/ et .covers-import/link-covers.sql écrit`);
