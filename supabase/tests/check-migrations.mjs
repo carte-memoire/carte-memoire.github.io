@@ -320,6 +320,16 @@ await ok('un admin accepte le résumé', en(ADMIN, `select public.review_submiss
 await egal('le résumé de la communauté remplace celui de Wikipédia (plus de lien source)', val(`select summary, summary_source from public.game where id = $1`, [jeu]), [{ summary: texte, summary_source: null }]);
 await egal('l\'auteur voit sa proposition acceptée, liée au jeu', lignes(en(MEMBRE, `select status, created_game_id from public.submission where id = $1`, [pr])), [{ status: 'approved', created_game_id: jeu }]);
 
+console.log('\nRecherche par code produit');
+const parCode = (q) => lignes(en(null, `select title, matched_code from public.search_games($1)`, [q]));
+await egal('le code exact trouve le jeu, en premier', parCode('SCES-00868').then((r) => r[0]), { title: 'Final Fantasy VII', matched_code: 'SCES-00868' });
+await egal('sans tiret ni majuscules', parCode('sces00868').then((r) => r[0]?.matched_code), 'SCES-00868');
+await egal('avec une espace', parCode('SCES 00868').then((r) => r[0]?.matched_code), 'SCES-00868');
+await egal('le début du code suffit', parCode('SCES-0086').then((r) => r.some((x) => x.matched_code === 'SCES-00868')), true);
+await egal('les chiffres seuls aussi', parCode('00868').then((r) => r.some((x) => x.matched_code === 'SCES-00868')), true);
+await egal('un titre sans chiffre ne cherche pas dans les codes', parCode('sces').then((r) => r.every((x) => x.matched_code === null)), true);
+await egal('une recherche par titre reste inchangée', parCode('final fantasy VII').then((r) => r[0].title), 'Final Fantasy VII');
+
 console.log('\nCohérence du catalogue (imports compris)');
 await egal('chaque jeu importé a au moins une sortie', val(`select count(*)::int as n from public.game g where g.wikidata_id is not null and not exists (select 1 from public.release r where r.game_id = g.id)`), [{ n: 0 }]);
 await egal('chaque date de sortie est cohérente avec sa précision', val(`select count(*)::int as n from public.release_region where (release_date is null) <> (date_precision is null)`), [{ n: 0 }]);

@@ -473,3 +473,6 @@ fieldset.notice { padding: 10px 12px; }
   .facts { grid-template-columns: 1fr; }
   .facts dt { margin-top: 4px; }
 }
+
+/* Code produit trouvé par la recherche */
+.result-code { margin-right: 8px; padding: 0 6px; border-radius: 3px; background: rgba(123, 147, 255, 0.15); color: #c9d3ff; }

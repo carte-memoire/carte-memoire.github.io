@@ -80,7 +80,7 @@ export function Home() {
           platform={platformCode}
           onSelect={(g) => navigate(gamePath(g))}
           autoFocus
-          label={`Rechercher un jeu${current ? ` ${current.name}` : ''} (titre, titre japonais ou européen…)`}
+          label={`Rechercher un jeu${current ? ` ${current.name}` : ''} (titre, titre japonais ou européen, code produit…)`}
         />
       </div>
     </section>

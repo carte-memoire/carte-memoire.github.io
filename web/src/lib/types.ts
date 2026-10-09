@@ -16,6 +16,8 @@ export interface SearchResult {
   matched_title: string;
   release_count: number;
   cover_path: string | null;
+  // Code produit de la version trouvée, si la recherche portait sur un code
+  matched_code: string | null;
 }
 
 export interface Region {

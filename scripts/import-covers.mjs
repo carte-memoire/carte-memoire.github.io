@@ -17,41 +17,17 @@
 
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { ROOT, USER_AGENT, bestMatch, buildIndex, loadPs1Releases, parseName, publicApi, readEnv } from './lib/redump.mjs';
 
-const ROOT = join(import.meta.dirname, '..');
-const USER_AGENT = 'carte-memoire-import/1.0 (projet personnel, import ponctuel)';
 const REPO = 'libretro-thumbnails/Sony_-_PlayStation';
 const download = process.argv.includes('--telecharger');
-
-const env = Object.fromEntries(
-  readFileSync(join(ROOT, 'web', '.env.local'), 'utf8').split('\n').map((l) => l.trim())
-    .filter((l) => l && !l.startsWith('#') && l.includes('='))
-    .map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]),
-);
-const api = (path) => fetch(`${env.VITE_SUPABASE_URL}/rest/v1/${path}`, { headers: { apikey: env.VITE_SUPABASE_PUBLISHABLE_KEY } })
-  .then((r) => { if (!r.ok) throw new Error(`Base : ${r.status} ${path}`); return r.json(); });
-
-// Même idée que public.normalize_name : sans majuscules, accents, espaces ni ponctuation
-const normalize = (s) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/[\s\p{P}\p{S}]+/gu, '');
 
 
 // ---------------------------------------------------------------------
 // 1. Nos versions PS1 sans image
 // ---------------------------------------------------------------------
 console.log('Lecture des versions PS1 de la base…');
-const [ps1] = await api('platform?select=id&short_name=eq.PS1');
-const releases = [];
-for (let offset = 0; ; offset += 1000) {
-  const page = await api(`release?select=id,game_id,zone,local_title,edition_type,image(id),release_region(region(code)),game(title)&platform_id=eq.${ps1.id}&order=id&limit=1000&offset=${offset}`);
-  releases.push(...page);
-  if (page.length < 1000) break;
-}
-// Toutes les façons d'écrire le titre d'un jeu : titre de référence + titres de ses versions
-const keysOfGame = new Map();
-for (const r of releases) {
-  if (!keysOfGame.has(r.game_id)) keysOfGame.set(r.game_id, new Set([normalize(r.game.title)]));
-  keysOfGame.get(r.game_id).add(normalize(r.local_title));
-}
+const { releases, keysOfGame } = await loadPs1Releases(publicApi(readEnv()), 'image(id)');
 const targets = releases.filter((r) => r.image.length === 0 && r.zone && r.edition_type === 'standard');
 console.log(`  ${releases.length} versions PS1, dont ${targets.length} sans image (zone connue, édition standard)`);
 
@@ -64,82 +40,25 @@ const root = await fetch(`https://api.github.com/repos/${REPO}/git/trees/master`
 const sha = root.tree.find((f) => f.path === 'Named_Boxarts').sha;
 const tree = await fetch(`https://api.github.com/repos/${REPO}/git/trees/${sha}`, { headers: { 'User-Agent': USER_AGENT } }).then((r) => r.json());
 
-const PAL = ['Europe', 'France', 'Germany', 'Spain', 'Italy', 'UK', 'Australia', 'Netherlands', 'Sweden', 'Scandinavia', 'Portugal', 'Greece', 'Denmark', 'Finland', 'Norway', 'Belgium', 'Switzerland', 'Austria', 'Poland', 'Russia'];
-const NTSC_U = ['USA', 'Canada', 'Brazil'];
-const NTSC_J = ['Japan', 'Asia', 'Korea', 'Taiwan', 'Hong Kong', 'China'];
-const COUNTRY = { France: 'FR', Germany: 'DE', Spain: 'ES', Italy: 'IT', UK: 'GB', Australia: 'AU', Netherlands: 'NL', Sweden: 'SE', Korea: 'KR' };
-// Pas des jaquettes du jeu vendu en magasin
-const EXCLUDED = /demo|beta|proto|sample|taikenban|otameshi|kiosk|preview|trial|promo|not for resale|review|unl|pirate|hack|program|playable|tech|test|putative|sampler/i;
-
 const covers = [];
 for (const f of tree.tree) {
   if (f.type !== 'blob' || f.mode === '120000' || !f.path.endsWith('.png')) continue; // 120000 = raccourci
-  const name = f.path.slice(0, -4);
-  const tags = [...name.matchAll(/\(([^)]*)\)/g)].map((m) => m[1]);
-  if (tags.some((t) => EXCLUDED.test(t))) continue;
-  let base = name.replace(/\s*\(.*$/, '').replace(/_/g, ' ').trim();
-  // « Legend of Dragoon, The » → « The Legend of Dragoon »
-  const article = /^(.*), (The|A|An)$/.exec(base);
-  if (article) base = `${article[2]} ${article[1]}`;
-  const places = (tags[0] ?? '').split(/,\s*/);
-  const zones = new Set();
-  if (places.some((p) => PAL.includes(p))) zones.add('PAL');
-  if (places.some((p) => NTSC_U.includes(p))) zones.add('NTSC-U');
-  if (places.some((p) => NTSC_J.includes(p))) zones.add('NTSC-J');
-  if (places.includes('World')) ['PAL', 'NTSC-U', 'NTSC-J'].forEach((z) => zones.add(z));
-  if (zones.size === 0) continue;
-  const disc = Number(/Disc (\d+)/.exec(name)?.[1] ?? 0);
-  // Variantes de titre, en secours : « CTR - Crash Team Racing » → « CTR » et « Crash Team Racing »
-  const parts = base.split(' - ');
-  const aliases = parts.length === 2 ? parts.map(normalize).filter((k) => k.length >= 4) : [];
-  covers.push({ file: f.path, size: f.size, key: normalize(base), aliases, zones, places, disc, rev: /Rev \d/.test(name) });
+  const info = parseName(f.path.slice(0, -4)); // démos, prototypes… écartés (null)
+  if (info) covers.push({ ...info, file: f.path, size: f.size });
 }
-const coversByKey = new Map();
-const coversByAlias = new Map();
-for (const c of covers) {
-  if (!coversByKey.has(c.key)) coversByKey.set(c.key, []);
-  coversByKey.get(c.key).push(c);
-  for (const a of c.aliases) {
-    if (!coversByAlias.has(a)) coversByAlias.set(a, []);
-    coversByAlias.get(a).push(c);
-  }
-}
+const index = buildIndex(covers);
 console.log(`  ${covers.length} jaquettes utilisables (démos, prototypes et raccourcis écartés)`);
 
 
 // ---------------------------------------------------------------------
-// 3. Association jaquette ↔ version
+// 3. Association jaquette ↔ version (règles communes : scripts/lib/redump.mjs)
 // ---------------------------------------------------------------------
-// Préférence : le pays exact de la version, puis l'Europe pour le PAL, puis
-// sans numéro de disque ni révision, puis le plus petit numéro de disque.
-function score(cover, release) {
-  const countries = release.release_region.map((rr) => rr.region.code);
-  let s = 0;
-  if (countries.some((c) => cover.places.some((p) => COUNTRY[p] === c))) s += 100;
-  if (release.zone === 'PAL' && cover.places[0] === 'Europe') s += 50;
-  if (release.zone === 'PAL' && cover.places.includes('France')) s += 20; // site en français
-  if (release.zone === 'NTSC-U' && cover.places[0] === 'USA') s += 50;
-  if (release.zone === 'NTSC-J' && cover.places[0] === 'Japan') s += 50;
-  if (cover.places.length === 1) s += 5;
-  if (cover.disc === 0) s += 10; else s -= cover.disc;
-  if (!cover.rev) s += 2;
-  return s;
-}
-
 const matches = [];
 const unmatched = [];
 for (const r of targets) {
-  const keys = [...keysOfGame.get(r.game_id)];
-  let candidates = keys.flatMap((k) => coversByKey.get(k) ?? []).filter((c) => c.zones.has(r.zone));
-  let viaAlias = false;
-  // Pas de titre identique : on essaie les variantes (« CTR - Crash Team Racing »)
-  if (candidates.length === 0) {
-    candidates = keys.flatMap((k) => coversByAlias.get(k) ?? []).filter((c) => c.zones.has(r.zone));
-    viaAlias = candidates.length > 0;
-  }
-  if (candidates.length === 0) { unmatched.push(r); continue; }
-  const best = candidates.sort((a, b) => score(b, r) - score(a, r))[0];
-  matches.push({ release: r, cover: best, viaAlias });
+  const match = bestMatch(r, keysOfGame, index);
+  if (!match) { unmatched.push(r); continue; }
+  matches.push({ release: r, cover: match.entry, viaAlias: match.viaAlias });
 }
 
 const byZone = {};

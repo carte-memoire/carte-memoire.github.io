@@ -58,6 +58,11 @@ export const LANGUAGES: { value: string; label: string }[] = [
   { value: 'ja', label: 'Japonais' },
   { value: 'ko', label: 'Coréen' },
   { value: 'zh', label: 'Chinois' },
+  { value: 'da', label: 'Danois' },
+  { value: 'fi', label: 'Finnois' },
+  { value: 'no', label: 'Norvégien' },
+  { value: 'pl', label: 'Polonais' },
+  { value: 'ru', label: 'Russe' },
 ];
 
 const dayFormat = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
