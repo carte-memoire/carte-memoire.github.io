@@ -12,3 +12,6 @@ supabase/.branches/
 
 # Site compilé
 dist/
+
+# Jaquettes téléchargées avant envoi dans le stockage Supabase
+.covers-import/

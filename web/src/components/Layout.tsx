@@ -64,6 +64,9 @@ export function Layout() {
           <a href="https://en.wikipedia.org/wiki/List_of_PlayStation_(console)_games_(A%E2%80%93L)" target="_blank" rel="noopener noreferrer">Wikipédia</a>{' '}
           et de <a href="https://www.wikidata.org" target="_blank" rel="noopener noreferrer">Wikidata</a>.
         </p>
+        <p className="footer-note">
+          Les jaquettes et visuels des jeux appartiennent à leurs éditeurs respectifs et ne sont pas couverts par la licence du catalogue.
+        </p>
         <p className="footer-note">Site de fans, sans lien avec Sony Interactive Entertainment. « PlayStation » est une marque de Sony.</p>
       </footer>
     </div>

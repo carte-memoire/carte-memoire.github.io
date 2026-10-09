@@ -1,0 +1,9 @@
+{
+  "name": "carte-memoire-scripts",
+  "private": true,
+  "type": "module",
+  "description": "Scripts d'import (Wikidata, Wikipédia, résumés, jaquettes)",
+  "dependencies": {
+    "sharp": "0.35.5"
+  }
+}
