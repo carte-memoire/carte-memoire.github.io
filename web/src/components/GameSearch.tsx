@@ -15,7 +15,7 @@ interface Props {
 }
 
 // Champ de recherche de jeux : interroge la base pendant la frappe (après une courte pause)
-export function GameSearch({ onSelect, placeholder = 'Final Fantasy VII, Crash, Biohazard, SLES-00868…', autoFocus, initialQuery = '', label = 'Rechercher un jeu', platform = null }: Props) {
+export function GameSearch({ onSelect, placeholder = 'Final Fantasy VII, Crash, Biohazard, SCES-00867…', autoFocus, initialQuery = '', label = 'Rechercher un jeu', platform = null }: Props) {
   const [query, setQuery] = useState(initialQuery);
   const { results, loading, error } = useGameSearch(query, 20, platform);
 

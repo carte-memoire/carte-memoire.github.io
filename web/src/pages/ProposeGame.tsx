@@ -84,7 +84,7 @@ export function ProposeGame() {
     if (!zone) problems.push('Choisis la zone.');
     if (!cover && !noCover) problems.push('Ajoute la jaquette, ou coche « Il n\'existe pas de jaquette ».');
     const code = productCode.trim().toUpperCase();
-    if (code && !/^[A-Z0-9][A-Z0-9 ._-]{2,19}$/.test(code)) problems.push('Code produit invalide (exemple : SLES-00868).');
+    if (code && !/^[A-Z0-9][A-Z0-9 ._-]{2,19}$/.test(code)) problems.push('Code produit invalide (exemple : SCES-00867).');
     const date = releaseDate();
     if (date.error) problems.push(date.error);
     if (date.date && !regionCode) problems.push('Indique le pays ou la zone de cette date de sortie.');
@@ -217,7 +217,7 @@ export function ProposeGame() {
         <div className="row">
           <label className="field">
             <span className="field-label">Code produit</span>
-            <input value={productCode} onChange={(e) => setProductCode(e.target.value)} placeholder="SLES-00868" maxLength={20} />
+            <input value={productCode} onChange={(e) => setProductCode(e.target.value)} placeholder="SCES-00867" maxLength={20} />
             <span className="hint">Sur la tranche du boîtier ou le disque.</span>
           </label>
           <label className="field">

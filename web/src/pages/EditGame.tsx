@@ -149,7 +149,7 @@ function ReleaseEditor({ release, onSaved }: { release: Release; onSaved: () => 
     setMessage('');
     const code = productCode.trim().toUpperCase();
     if (!localTitle.trim()) return setError('Le titre est obligatoire.');
-    if (code && !/^[A-Z0-9][A-Z0-9 ._-]{2,19}$/.test(code)) return setError('Code produit invalide (exemple : SLES-00868).');
+    if (code && !/^[A-Z0-9][A-Z0-9 ._-]{2,19}$/.test(code)) return setError('Code produit invalide (exemple : SCES-00867).');
     const count = Number.parseInt(mediaCount, 10);
     const { error } = await supabase.from('release').update({
       local_title: localTitle.trim(),
@@ -241,7 +241,7 @@ function ReleaseEditor({ release, onSaved }: { release: Release; onSaved: () => 
         <div className="row">
           <label className="field">
             <span className="field-label">Code produit</span>
-            <input value={productCode} onChange={(e) => setProductCode(e.target.value)} placeholder="SLES-00868" maxLength={20} />
+            <input value={productCode} onChange={(e) => setProductCode(e.target.value)} placeholder="SCES-00867" maxLength={20} />
           </label>
           <label className="field">
             <span className="field-label">Édition</span>
