@@ -15,7 +15,7 @@
 // (rejouable : il ne rattache que les images effectivement présentes dans le stockage).
 // =====================================================================
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const ROOT = join(import.meta.dirname, '..');
@@ -89,12 +89,20 @@ for (const f of tree.tree) {
   if (places.includes('World')) ['PAL', 'NTSC-U', 'NTSC-J'].forEach((z) => zones.add(z));
   if (zones.size === 0) continue;
   const disc = Number(/Disc (\d+)/.exec(name)?.[1] ?? 0);
-  covers.push({ file: f.path, size: f.size, key: normalize(base), zones, places, disc, rev: /Rev \d/.test(name) });
+  // Variantes de titre, en secours : « CTR - Crash Team Racing » → « CTR » et « Crash Team Racing »
+  const parts = base.split(' - ');
+  const aliases = parts.length === 2 ? parts.map(normalize).filter((k) => k.length >= 4) : [];
+  covers.push({ file: f.path, size: f.size, key: normalize(base), aliases, zones, places, disc, rev: /Rev \d/.test(name) });
 }
 const coversByKey = new Map();
+const coversByAlias = new Map();
 for (const c of covers) {
   if (!coversByKey.has(c.key)) coversByKey.set(c.key, []);
   coversByKey.get(c.key).push(c);
+  for (const a of c.aliases) {
+    if (!coversByAlias.has(a)) coversByAlias.set(a, []);
+    coversByAlias.get(a).push(c);
+  }
 }
 console.log(`  ${covers.length} jaquettes utilisables (démos, prototypes et raccourcis écartés)`);
 
@@ -121,12 +129,17 @@ function score(cover, release) {
 const matches = [];
 const unmatched = [];
 for (const r of targets) {
-  const candidates = [...keysOfGame.get(r.game_id)]
-    .flatMap((k) => coversByKey.get(k) ?? [])
-    .filter((c) => c.zones.has(r.zone));
+  const keys = [...keysOfGame.get(r.game_id)];
+  let candidates = keys.flatMap((k) => coversByKey.get(k) ?? []).filter((c) => c.zones.has(r.zone));
+  let viaAlias = false;
+  // Pas de titre identique : on essaie les variantes (« CTR - Crash Team Racing »)
+  if (candidates.length === 0) {
+    candidates = keys.flatMap((k) => coversByAlias.get(k) ?? []).filter((c) => c.zones.has(r.zone));
+    viaAlias = candidates.length > 0;
+  }
   if (candidates.length === 0) { unmatched.push(r); continue; }
   const best = candidates.sort((a, b) => score(b, r) - score(a, r))[0];
-  matches.push({ release: r, cover: best });
+  matches.push({ release: r, cover: best, viaAlias });
 }
 
 const byZone = {};
@@ -150,6 +163,13 @@ for (const t of ['Final Fantasy VII', 'Crash Bandicoot 2: Cortex Strikes Back', 
     console.log(`  ${t.padEnd(38)} ${m.release.zone.padEnd(7)} « ${m.release.local_title} » ← ${m.cover.file}`);
   }
 }
+const viaAliases = matches.filter((m) => m.viaAlias);
+if (viaAliases.length) {
+  console.log(`\nAssociations par variante de titre (${viaAliases.length}), à vérifier :`);
+  for (const m of viaAliases.filter((_, i) => i % Math.ceil(viaAliases.length / 30) === 0)) {
+    console.log(`  ${m.release.zone.padEnd(7)} « ${m.release.game.title} » ← ${m.cover.file}`);
+  }
+}
 console.log('\nQuelques versions sans correspondance :');
 for (const r of unmatched.filter((_, i) => i % Math.ceil(unmatched.length / 12) === 0).slice(0, 12)) {
   console.log(`  ${r.zone.padEnd(7)} ${r.game.title} / « ${r.local_title} »`);
@@ -164,7 +184,13 @@ if (!download) {
 // 4. Téléchargement et conversion (étape suivante, après accord)
 // ---------------------------------------------------------------------
 const sharp = (await import('sharp')).default;
-const outDir = join(ROOT, '.covers-import', 'releases');
+// Dossier d'envoi : uniquement les images de CE lancement (vidé à chaque fois),
+// pour ne jamais renvoyer des images déjà présentes dans le stockage.
+// Envoi : npx supabase storage cp -r .covers-import/upload/releases ss:///covers ...
+// (« cp -r dossier ss:///covers » crée covers/releases/<id>/front.webp)
+const uploadDir = join(ROOT, '.covers-import', 'upload');
+rmSync(uploadDir, { recursive: true, force: true });
+const outDir = join(uploadDir, 'releases');
 mkdirSync(outDir, { recursive: true });
 let done = 0;
 const rows = [];

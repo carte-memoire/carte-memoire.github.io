@@ -44,7 +44,7 @@ Jaquettes, en trois temps :
 ```bash
 node scripts/import-covers.mjs                 # analyse : combien de versions trouvent leur jaquette
 node scripts/import-covers.mjs --telecharger   # télécharge, convertit en WebP dans .covers-import/
-npx supabase storage cp -r .covers-import/releases ss:///covers/releases --linked --experimental --jobs 8 --content-type image/webp
+npx supabase storage cp -r .covers-import/upload/releases ss:///covers --linked --experimental --jobs 8 --content-type image/webp
 npx supabase db query --linked -f .covers-import/link-covers.sql   # APRÈS l'envoi : rattache les images (rejouable)
 ```
 
