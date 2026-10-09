@@ -143,3 +143,50 @@ export interface Submission {
   created_game_id?: number | null;
   author?: { username: string } | null;
 }
+
+// Familles de genres (RPG, Course…) : filtres du catalogue et progression
+export type GenreFamily =
+  | 'action' | 'adventure' | 'rpg' | 'platform' | 'fighting' | 'shooter' | 'racing' | 'sports'
+  | 'puzzle' | 'strategy' | 'simulation' | 'music' | 'horror' | 'visual_novel' | 'party';
+
+// Filtre « possession » du catalogue
+export type Ownership = 'owned' | 'missing' | 'wanted';
+
+// Une version dans une ligne du catalogue, avec ce que la personne connectée en possède
+export interface CatalogRelease {
+  id: number;
+  local_title: string;
+  product_code: string | null;
+  zone: Zone | null;
+  edition_type: EditionType;
+  edition_name: string | null;
+  platform: { short_name: string };
+  owned: boolean;
+  wanted: boolean;
+  copies: number;
+  owned_item: number | null;
+  wanted_item: number | null;
+}
+
+// Une ligne du catalogue (fonction catalog_games) : un jeu et ses versions
+export interface CatalogRow {
+  id: number;
+  title: string;
+  display_title: string;
+  release_date: string | null;
+  cover_path: string | null;
+  cover_other_zone: boolean;
+  releases: CatalogRelease[];
+  owned: boolean;
+  wanted: boolean;
+  total_count: number;
+}
+
+// Progression (fonction collection_progress) : jeux possédés sur jeux existants
+export interface ProgressRow {
+  scope: 'zone' | 'family';
+  code: string;
+  total: number;
+  owned: number;
+  wanted: number;
+}

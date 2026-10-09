@@ -476,3 +476,110 @@ fieldset.notice { padding: 10px 12px; }
 
 /* Code produit trouvé par la recherche */
 .result-code { margin-right: 8px; padding: 0 6px; border-radius: 3px; background: rgba(123, 147, 255, 0.15); color: #c9d3ff; }
+
+/* ---------- Catalogue à cocher ---------- */
+.catalog-subtitle { color: var(--muted); margin: 0; }
+.catalog-progress { min-width: 280px; display: flex; flex-direction: column; gap: 6px; }
+.catalog-progress p { margin: 0; }
+.catalog-filters { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; }
+.catalog-filters .row > .field { min-width: 140px; }
+.catalog-filters .row > .catalog-search { flex: 2 1 220px; }
+.letters { display: flex; flex-wrap: wrap; gap: 4px; }
+.letter {
+  font: inherit; font-family: var(--pixel); font-size: 0.6rem; min-width: 30px; min-height: 30px; padding: 0 6px;
+  color: var(--muted); background: var(--bg-2); border: 1px solid var(--line); border-radius: 3px; cursor: pointer;
+}
+.letter:hover { color: var(--text); border-color: var(--cross); }
+.letter.active { color: #fff; background: #3446b0; border-color: var(--cross); }
+
+.catalog-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.catalog-row {
+  display: flex; align-items: center; gap: 12px; padding: 8px 12px;
+  background: var(--bg-2); border: 1px solid var(--line); border-left: 4px solid var(--line); border-radius: var(--radius);
+}
+.catalog-row.is-owned { border-left-color: var(--triangle); background: linear-gradient(90deg, rgba(47, 214, 166, 0.09), var(--bg-2) 45%); }
+.catalog-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.catalog-heading { margin: 0; }
+.catalog-title { font-weight: 700; color: var(--text); text-decoration: none; }
+.catalog-title:hover { color: var(--cross); }
+.catalog-releases { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* Une version = une case à cocher en forme de pastille (noire comme un Black Label, argentée pour une réédition) */
+.release-chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 4px; min-height: 30px;
+  font: inherit; font-size: 0.8rem; color: var(--text);
+  background: #0c0c10; border: 1px solid #3a3a46; border-radius: 999px;
+}
+button.release-chip { cursor: pointer; }
+button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
+.release-chip.reissue { background: #2b2f3a; border-color: #8e95a8; }
+.release-chip.owned { border-color: var(--triangle); background: rgba(47, 214, 166, 0.13); }
+.chip-box {
+  width: 20px; height: 20px; flex: none; display: inline-flex; align-items: center; justify-content: center;
+  border: 2px solid var(--muted); border-radius: 3px; font-weight: 700; font-size: 0.8rem; line-height: 1;
+}
+.release-chip.owned .chip-box { border-color: var(--triangle); background: var(--triangle); color: var(--bg); }
+.chip-zone { font-size: 0.7rem; font-weight: 700; color: var(--muted); }
+.chip-code { font-size: 0.75rem; color: var(--muted); }
+.chip-copies { font-weight: 700; color: var(--triangle); }
+
+.wish-button {
+  flex: none; font: inherit; font-size: 0.8rem; padding: 4px 10px; min-height: 30px; cursor: pointer;
+  color: var(--muted); background: none; border: 1px dashed var(--line); border-radius: 999px;
+}
+.wish-button:hover:not(:disabled) { color: var(--square); border-color: var(--square); }
+.wish-button.active { color: var(--square); border-style: solid; border-color: var(--square); background: rgba(255, 134, 217, 0.1); }
+.cover-other-zone { opacity: 0.5; }
+.pagination { display: flex; justify-content: center; align-items: center; gap: 14px; flex-wrap: wrap; }
+.toast .link-button { margin-left: 12px; color: var(--text); }
+.toast-error { color: #ffc3cb; border-color: var(--circle); }
+
+/* ---------- Progression : une carte mémoire de 15 blocs ---------- */
+.memory-bar { display: grid; grid-template-columns: repeat(15, 1fr); gap: 3px; }
+.memory-bar-large { height: 22px; max-width: 420px; }
+.memory-bar-small { height: 9px; gap: 2px; }
+.memory-block { background: #0a0c18; border: 1px solid var(--line); border-radius: 2px; }
+.memory-block.filled {
+  background: linear-gradient(to bottom, #5ce8c1, #1fa982); border-color: #7af0cf;
+  box-shadow: 0 0 6px rgba(47, 214, 166, 0.35);
+}
+.progress-panel { display: flex; flex-direction: column; gap: 14px; }
+.progress-panel h2, .progress-panel h3 { margin: 0; }
+.progress-panel h3 { font-size: 0.95rem; color: var(--muted); }
+.progress-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.zone-switch { display: flex; gap: 4px; flex-wrap: wrap; }
+.zone-option {
+  font: inherit; font-size: 0.8rem; padding: 4px 10px; min-height: 30px; cursor: pointer;
+  color: var(--muted); background: var(--bg-2); border: 1px solid var(--line); border-radius: 999px;
+}
+.zone-option:hover { color: var(--text); border-color: var(--cross); }
+.zone-option.active { color: #fff; background: #3446b0; border-color: var(--cross); }
+.progress-main { display: flex; flex-direction: column; gap: 8px; }
+.progress-main p { margin: 0; }
+.progress-figure { font-size: 1.1rem; }
+.progress-figure strong { font-family: var(--pixel); font-size: 1rem; color: var(--triangle); }
+.progress-stats { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }
+.progress-stats > div { flex: 1 1 110px; padding: 8px 10px; background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius); }
+.progress-stats dt { font-size: 0.75rem; color: var(--muted); }
+.progress-stats dd { margin: 0; font-weight: 700; }
+.family-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.family-row {
+  display: grid; grid-template-columns: 1fr auto; gap: 6px 8px; padding: 8px 10px;
+  color: var(--text); text-decoration: none; background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius);
+}
+.family-row:hover { border-color: var(--cross); color: var(--text); }
+.family-row .memory-bar { grid-column: 1 / -1; }
+.family-count { color: var(--muted); font-size: 0.85rem; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .memory-bar-large .memory-block.filled { animation: pop 320ms ease-out both; }
+  .release-chip, .wish-button, .letter, .zone-option, .family-row { transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease; }
+  .catalog-list > li { animation: fade-in 200ms ease-out both; }
+  .release-chip.owned .chip-box { animation: pop 260ms ease-out both; }
+}
+
+@media (max-width: 640px) {
+  .catalog-row { align-items: flex-start; flex-wrap: wrap; }
+  .wish-button { margin-left: 68px; }
+  .catalog-progress { min-width: 0; width: 100%; }
+}

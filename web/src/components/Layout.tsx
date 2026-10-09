@@ -24,6 +24,7 @@ export function Layout() {
         </Link>
         <nav className="nav" aria-label="Navigation principale">
           <NavLink to="/" end>Rechercher</NavLink>
+          <NavLink to="/catalogue">Catalogue</NavLink>
           <NavLink to="/collection">Ma collection</NavLink>
           <NavLink to="/proposer">Proposer un jeu</NavLink>
           {isModerator && (

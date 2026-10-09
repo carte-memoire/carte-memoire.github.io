@@ -45,6 +45,7 @@ Ajouter une console (PS2, NES…) revient à ajouter **une ligne** dans `platfor
 - **RG03** : Un jeu est une œuvre indépendante de la plateforme. Il a un titre de référence, un résumé et une date de première sortie (toutes plateformes et régions confondues : Tekken est sorti en 1994 en arcade, même si la version PS1 date de 1995). Cette date peut être connue sans savoir dans quelle région le jeu est sorti.
 - **RG04** : Un jeu est développé par 0 à n sociétés (0 = pas encore renseigné). Une société développe 0 à n jeux.
 - **RG05** : Un jeu est classé dans 0 à n genres. Un genre regroupe 0 à n jeux.
+- **RG05bis** : Un genre appartient à 0 ou 1 **famille** (RPG, Course, Sport…), qui sert aux filtres et à la progression : « Tactical RPG » et « Action-RPG » comptent dans la famille RPG. Un genre sans famille est un **thème** (science-fiction, Noël, zombies…).
 - **RG06** : Un jeu fait partie de 0 à n séries (*Crash Bandicoot*, *Final Fantasy*…). Une série regroupe 0 à n jeux.
 - **RG07** : Un jeu a au moins une sortie (1 à n). Une sortie concerne exactement un jeu.
 - **RG08** : Une sortie concerne exactement une plateforme. Une plateforme a 0 à n sorties.
@@ -68,6 +69,7 @@ Ajouter une console (PS2, NES…) revient à ajouter **une ligne** dans `platfor
 - **RG21** : Un utilisateur a 0 à n exemplaires. Un exemplaire appartient à exactement un utilisateur et correspond à exactement une sortie. Un utilisateur peut avoir **plusieurs exemplaires de la même sortie** (doubles). C'est pour ça que `collection_item` est une entité et non une simple association « possède ».
 - **RG22** : Un exemplaire est soit **possédé**, soit **recherché** (liste de souhaits). Pour un exemplaire possédé, on note la présence de la boîte, de la notice et du support, l'état, le prix et la date d'achat, et des notes.
 - **RG23** : Une collection est privée par défaut. L'utilisateur peut la rendre publique.
+- **RG24** : Progression : un jeu est **possédé dans une zone** dès qu'au moins une de ses sorties de cette zone est possédée (Black Label ou Platinum, peu importe ; trois exemplaires comptent pour un jeu). On compte des **jeux**, pas des exemplaires : « 312 jeux PAL sur 1 286 ». Le catalogue et la progression ne regardent que la collection de la personne connectée.
 
 ---
 
@@ -197,6 +199,7 @@ Toutes les tables principales ont aussi `created_at` et, si elles sont modifiabl
 | id | identifiant | ✔ | | |
 | name | texte | ✔ | Jeu de rôle / Final Fantasy | unique pour les genres, pas pour les séries |
 | wikidata_id | texte | | | unique |
+| family | liste | | rpg | genres seulement : grande famille (action, adventure, rpg, platform, fighting, shooter, racing, sports, puzzle, strategy, simulation, music, horror, visual_novel, party). Vide pour un thème (science-fiction, Noël…) |
 
 ### `image`
 

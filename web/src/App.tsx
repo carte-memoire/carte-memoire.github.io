@@ -11,6 +11,7 @@ import { ResetPassword } from './pages/ResetPassword';
 import { MfaChallenge } from './pages/MfaChallenge';
 import { Account } from './pages/Account';
 import { Collection } from './pages/Collection';
+import { Catalog } from './pages/Catalog';
 import { ProposeGame } from './pages/ProposeGame';
 import { MySubmissions } from './pages/MySubmissions';
 import { Moderation } from './pages/Moderation';
@@ -21,6 +22,7 @@ export function App() {
     <Routes>
       <Route element={<Layout />}>
         <Route index element={<Home />} />
+        <Route path="catalogue" element={<Catalog />} />
         <Route path="jeu/:id" element={<GamePage />} />
         <Route path="jeu/:id/modifier" element={<RequireAuth moderator><EditGame /></RequireAuth>} />
         <Route path="connexion" element={<Login />} />

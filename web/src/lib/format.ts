@@ -1,4 +1,4 @@
-import type { DatePrecision, EditionType, ItemCondition, Release, Zone } from './types';
+import type { DatePrecision, EditionType, GenreFamily, ItemCondition, Release, Zone } from './types';
 
 export const ZONES: { value: Zone; label: string }[] = [
   { value: 'PAL', label: 'Europe (PAL)' },
@@ -95,3 +95,42 @@ export function gamePath(game: { id: number; title: string }): string {
   const slug = slugify(game.title);
   return `/jeu/${game.id}${slug ? `-${slug}` : ''}`;
 }
+
+// Familles de genres, dans l'ordre d'affichage des filtres
+export const FAMILIES: { value: GenreFamily; label: string }[] = [
+  { value: 'action', label: 'Action' },
+  { value: 'adventure', label: 'Aventure' },
+  { value: 'fighting', label: 'Combat' },
+  { value: 'racing', label: 'Course' },
+  { value: 'horror', label: 'Horreur' },
+  { value: 'music', label: 'Musique et rythme' },
+  { value: 'party', label: 'Party games et jeux de société' },
+  { value: 'platform', label: 'Plates-formes' },
+  { value: 'puzzle', label: 'Réflexion' },
+  { value: 'rpg', label: 'RPG' },
+  { value: 'simulation', label: 'Simulation' },
+  { value: 'sports', label: 'Sport' },
+  { value: 'strategy', label: 'Stratégie' },
+  { value: 'shooter', label: 'Tir' },
+  { value: 'visual_novel', label: 'Visual novel' },
+];
+
+export function familyLabel(family: string): string {
+  return FAMILIES.find((f) => f.value === family)?.label ?? family;
+}
+
+// Zones proposées par le catalogue et la progression, avec la tournure de phrase
+export const CATALOG_ZONES: { value: Zone; label: string; phrase: string; short: string }[] = [
+  { value: 'PAL', label: 'Europe (PAL)', phrase: 'en Europe (PAL)', short: 'PAL' },
+  { value: 'NTSC-U', label: 'Amérique (NTSC-U)', phrase: 'en Amérique (NTSC-U)', short: 'NTSC-U' },
+  { value: 'NTSC-J', label: 'Japon (NTSC-J)', phrase: 'au Japon (NTSC-J)', short: 'NTSC-J' },
+];
+
+const percentFormat = new Intl.NumberFormat('fr-FR', { style: 'percent', maximumFractionDigits: 1 });
+
+// 312 sur 1 286 → « 24,3 % »
+export function formatPercent(part: number, total: number): string {
+  return percentFormat.format(total ? part / total : 0);
+}
+
+export const formatNumber = new Intl.NumberFormat('fr-FR').format;

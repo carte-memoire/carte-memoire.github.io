@@ -330,6 +330,56 @@ await egal('les chiffres seuls aussi', parCode('00868').then((r) => r.some((x) =
 await egal('un titre sans chiffre ne cherche pas dans les codes', parCode('sces').then((r) => r.every((x) => x.matched_code === null)), true);
 await egal('une recherche par titre reste inchangée', parCode('final fantasy VII').then((r) => r[0].title), 'Final Fantasy VII');
 
+console.log('\nCatalogue à cocher et progression');
+await egal('Tactical RPG et Action-RPG rangés dans la famille RPG', val(`select name, family from public.genre where name in ('RPG', 'Tactical RPG', 'Action-RPG') order by name`),
+  [{ name: 'Action-RPG', family: 'rpg' }, { name: 'RPG', family: 'rpg' }, { name: 'Tactical RPG', family: 'rpg' }]);
+await egal('un thème (science-fiction) n\'a pas de famille', val(`select family from public.genre where name = 'Jeu de science-fiction'`), [{ family: null }]);
+const catalogue = (uid, a = {}) => lignes(en(uid, `
+  select * from public.catalog_games(platform_code => $1, zone_code => $2, first_letter => $3, family_code => $4, release_year => $5,
+                                     ownership => $6, search => $7, sort_by => $8, page_number => $9, page_size => $10)`,
+  [a.console === undefined ? 'PS1' : a.console, a.zone ?? null, a.letter ?? null, a.family ?? null, a.year ?? null,
+   a.ownership ?? null, a.search ?? null, a.sort ?? 'title', a.page ?? 1, a.size ?? 50]));
+const ff7 = (rows) => rows.find((r) => r.id === jeu);
+const sansAccent = (t) => t.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+const totalPal = (await val(`select count(distinct game_id)::int as n from public.release where zone = 'PAL' and platform_id = $1`, [ps1]))[0].n;
+
+const vu = ff7(await catalogue(MEMBRE, { zone: 'PAL', search: 'final fantasy vii' }));
+await egal('le membre voit son FF7 PAL possédé', Promise.resolve(vu && { owned: vu.owned, versions: vu.releases.length }), { owned: true, versions: 2 });
+await egal('…la version Black Label d\'abord, avec ses 3 exemplaires ; la Platinum non cochée',
+  Promise.resolve(vu?.releases.map((r) => ({ edition: r.edition_name ?? r.edition_type, owned: r.owned, copies: r.copies }))),
+  [{ edition: 'standard', owned: true, copies: 3 }, { edition: 'Platinum', owned: false, copies: 0 }]);
+await egal('un visiteur voit le jeu, sans rien de coché', catalogue(null, { zone: 'PAL', search: 'final fantasy vii' }).then((r) => ff7(r)?.owned), false);
+await egal('la collection publique d\'un autre ne compte jamais comme la sienne', catalogue(AUTRE, { zone: 'PAL', search: 'final fantasy vii' }).then((r) => ff7(r)?.owned), false);
+await egal('filtre « possédés » : seulement FF7', catalogue(MEMBRE, { zone: 'PAL', ownership: 'owned' }).then((r) => r.map((x) => x.id)), [jeu]);
+await egal('filtre « manquants » : tout le reste du catalogue PAL', catalogue(MEMBRE, { zone: 'PAL', ownership: 'missing', size: 1 }).then((r) => r[0].total_count), totalPal - 1);
+await egal('sans filtre : un jeu par ligne, autant que de jeux PAL', catalogue(MEMBRE, { zone: 'PAL', size: 1 }).then((r) => r[0].total_count), totalPal);
+await egal('lettre F : uniquement des titres en F', catalogue(null, { zone: 'PAL', letter: 'f' }).then((r) => r.length > 0 && r.every((x) => sansAccent(x.display_title).startsWith('f'))), true);
+await egal('lettre # : uniquement des titres qui commencent par un chiffre', catalogue(null, { zone: 'PAL', letter: '#' }).then((r) => r.length > 0 && r.every((x) => /^[0-9]/.test(sansAccent(x.display_title)))), true);
+await egal('zone Japon : le titre japonais est affiché (Biohazard)', catalogue(null, { zone: 'NTSC-J', search: 'resident evil' }).then((r) => r.some((x) => x.title === 'Resident Evil' && x.display_title !== x.title)), true);
+const page1 = await catalogue(null, { zone: 'PAL', size: 10 });
+const page2 = await catalogue(null, { zone: 'PAL', size: 10, page: 2 });
+await egal('pages de 10, sans chevauchement', Promise.resolve([page1.length, page2.length, page2.some((x) => page1.some((y) => y.id === x.id))]), [10, 10, false]);
+await egal('tri par titre', Promise.resolve(page1.map((x) => sansAccent(x.display_title)).every((t, i, a) => i === 0 || a[i - 1] <= t)), true);
+await egal('année 1997 : uniquement des jeux sortis en 1997', catalogue(null, { zone: 'PAL', year: 1997 }).then((r) => r.length > 0 && r.every((x) => String(x.release_date).includes('1997') || new Date(x.release_date).getUTCFullYear() === 1997)), true);
+await egal('tri par date : du plus ancien au plus récent', catalogue(null, { zone: 'PAL', sort: 'date', size: 100 }).then((r) => r.filter((x) => x.release_date).every((x, i, a) => i === 0 || new Date(a[i - 1].release_date) <= new Date(x.release_date))), true);
+await egal('console inconnue : aucun jeu', catalogue(null, { console: 'XYZ' }).then((r) => r.length), 0);
+await egal('recherche par code produit dans le catalogue', catalogue(null, { zone: 'PAL', search: 'SCES-00868' }).then((r) => r.some((x) => x.id === jeu)), true);
+const rpg = (await val(`select id from public.genre where name = 'Tactical RPG'`))[0].id;
+await ok('FF7 de test classé en Tactical RPG', en(ADMIN, `insert into public.game_genre (game_id, genre_id) values ($1, $2)`, [jeu, rpg]));
+await egal('famille RPG : le Tactical RPG y figure', catalogue(MEMBRE, { zone: 'PAL', family: 'rpg', ownership: 'owned' }).then((r) => r.map((x) => x.id)), [jeu]);
+const unAutrePal = (await val(`select id, game_id from public.release where zone = 'PAL' and game_id <> $1 order by id limit 1`, [jeu]))[0];
+await ok('le membre cherche un autre jeu PAL', en(MEMBRE, `insert into public.collection_item (release_id, status) values ($1, 'wanted')`, [unAutrePal.id]));
+await egal('filtre « recherchés »', catalogue(MEMBRE, { zone: 'PAL', ownership: 'wanted' }).then((r) => r.map((x) => x.id)), [unAutrePal.game_id]);
+
+const progression = (uid, zone = null) => lignes(en(uid, `select scope, code, total, owned, wanted from public.collection_progress('PS1', $1)`, [zone]))
+  .then((rows) => Object.fromEntries(rows.map((r) => [`${r.scope}:${r.code}`, [r.total, r.owned, r.wanted]])));
+const prog = await progression(MEMBRE, 'PAL');
+await egal('progression PAL : 1 jeu possédé (3 exemplaires = 1 jeu), 1 recherché', Promise.resolve(prog['zone:PAL']), [totalPal, 1, 1]);
+await egal('progression RPG (zone PAL) : 1 possédé', Promise.resolve(prog['family:rpg']?.[1]), 1);
+await egal('progression : les jeux classés par famille sont comptés', Promise.resolve(prog['family:known']?.[0] > 0), true);
+await egal('un autre membre : rien de possédé', progression(AUTRE, 'PAL').then((p) => [p['zone:PAL'][1], p['zone:all'][1]]), [0, 0]);
+await egal('un visiteur : la progression se calcule, à zéro', progression(null).then((p) => p['zone:all'][1]), 0);
+
 console.log('\nCohérence du catalogue (imports compris)');
 await egal('chaque jeu importé a au moins une sortie', val(`select count(*)::int as n from public.game g where g.wikidata_id is not null and not exists (select 1 from public.release r where r.game_id = g.id)`), [{ n: 0 }]);
 await egal('chaque date de sortie est cohérente avec sa précision', val(`select count(*)::int as n from public.release_region where (release_date is null) <> (date_precision is null)`), [{ n: 0 }]);

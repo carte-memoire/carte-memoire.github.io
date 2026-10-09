@@ -7,6 +7,7 @@ import { errorMessage } from '../lib/errors';
 import type { CollectionItem, ItemStatus } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
 import { AddToCollection } from '../components/AddToCollection';
+import { CollectionProgress } from '../components/CollectionProgress';
 import { useConfirm } from '../components/Confirm';
 import { Cover } from '../components/Cover';
 import { PsSymbol } from '../components/PsSymbol';
@@ -64,8 +65,13 @@ export function Collection() {
             <Link to="/compte">changer</Link>
           </p>
         </div>
-        <button type="button" className="button button-primary" onClick={() => setDialog({ open: true })}><PsSymbol shape="cross" /> Ajouter un jeu</button>
+        <div className="actions">
+          <Link to="/catalogue" className="button"><PsSymbol shape="square" /> Cocher dans le catalogue</Link>
+          <button type="button" className="button button-primary" onClick={() => setDialog({ open: true })}><PsSymbol shape="cross" /> Ajouter un jeu</button>
+        </div>
       </div>
+
+      {loaded && <CollectionProgress items={items} />}
 
       <div className="tabs" role="tablist">
         <button type="button" role="tab" aria-selected={tab === 'owned'} className={tab === 'owned' ? 'tab active' : 'tab'} onClick={() => setTab('owned')}>
