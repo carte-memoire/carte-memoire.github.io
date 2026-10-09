@@ -10,12 +10,14 @@ interface Props {
   autoFocus?: boolean;
   initialQuery?: string;
   label?: string;
+  // Code de la console (PS1, NES…) pour ne chercher que ses jeux ; null = toutes
+  platform?: string | null;
 }
 
 // Champ de recherche de jeux : interroge la base pendant la frappe (après une courte pause)
-export function GameSearch({ onSelect, placeholder = 'Final Fantasy VII, Crash, Biohazard…', autoFocus, initialQuery = '', label = 'Rechercher un jeu' }: Props) {
+export function GameSearch({ onSelect, placeholder = 'Final Fantasy VII, Crash, Biohazard…', autoFocus, initialQuery = '', label = 'Rechercher un jeu', platform = null }: Props) {
   const [query, setQuery] = useState(initialQuery);
-  const { results, loading, error } = useGameSearch(query);
+  const { results, loading, error } = useGameSearch(query, 20, platform);
 
   return (
     <div className="game-search">
@@ -58,7 +60,7 @@ export function GameSearch({ onSelect, placeholder = 'Final Fantasy VII, Crash, 
   );
 }
 
-export function useGameSearch(query: string, max = 20) {
+export function useGameSearch(query: string, max = 20, platform: string | null = null) {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -72,7 +74,7 @@ export function useGameSearch(query: string, max = 20) {
     let cancelled = false;
     setLoading(true);
     const timer = setTimeout(async () => {
-      const { data, error } = await supabase.rpc('search_games', { search: q, max_results: max });
+      const { data, error } = await supabase.rpc('search_games', { search: q, max_results: max, platform_code: platform });
       if (cancelled) return;
       setLoading(false);
       setError(error ? 'La recherche a échoué.' : '');
@@ -82,7 +84,7 @@ export function useGameSearch(query: string, max = 20) {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [query, max]);
+  }, [query, max, platform]);
 
   return { results, loading, error };
 }

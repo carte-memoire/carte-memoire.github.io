@@ -1,9 +1,19 @@
+import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { supabase } from '../lib/supabase';
 
 export function Layout() {
-  const { session, profile, signOut } = useAuth();
+  const { session, profile, signOut, isModerator } = useAuth();
   const location = useLocation();
+  const [pending, setPending] = useState(0);
+
+  // Modérateurs : nombre de propositions en attente, rafraîchi à chaque page
+  useEffect(() => {
+    if (!isModerator) return;
+    supabase.from('submission').select('id', { count: 'exact', head: true }).eq('status', 'pending')
+      .then(({ count }) => setPending(count ?? 0));
+  }, [isModerator, location.pathname]);
 
   return (
     <div className="app">
@@ -16,6 +26,11 @@ export function Layout() {
           <NavLink to="/" end>Rechercher</NavLink>
           <NavLink to="/collection">Ma collection</NavLink>
           <NavLink to="/proposer">Proposer un jeu</NavLink>
+          {isModerator && (
+            <NavLink to="/moderation">
+              Modération{pending > 0 && <span className="count-badge" aria-label={`${pending} en attente`}>{pending}</span>}
+            </NavLink>
+          )}
         </nav>
         <div className="account">
           {session ? (

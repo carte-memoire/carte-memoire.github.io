@@ -20,7 +20,7 @@ export function MySubmissions() {
   const load = useCallback(async () => {
     const { data, error } = await supabase
       .from('submission')
-      .select('id, action, target, data, sources, status, review_note, created_at')
+      .select('id, action, target, data, sources, status, review_note, created_at, created_game_id')
       .order('created_at', { ascending: false });
     if (error) setError(errorMessage(error));
     setItems((data as Submission[]) ?? []);
@@ -62,6 +62,9 @@ export function MySubmissions() {
               </span>
               <span className="actions">
                 <span className={`badge ${STATUS[s.status].className}`}>{STATUS[s.status].label}</span>
+                {s.status === 'approved' && s.created_game_id && (
+                  <Link to={`/jeu/${s.created_game_id}`} className="button button-small">Voir le jeu</Link>
+                )}
                 {s.status === 'pending' && (
                   <button type="button" className="button button-small button-danger" onClick={() => withdraw(s)}>Retirer</button>
                 )}

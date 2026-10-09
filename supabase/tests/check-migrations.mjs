@@ -101,7 +101,7 @@ await egal('pseudos générés', val(`select username from public.profile order 
 await db.query(`update public.profile set role = 'admin' where id = $1`, [ADMIN]);
 
 console.log('\nDonnées de référence');
-await egal('PS1 présente avec ses 6 champs spécifiques', val(`select short_name, jsonb_array_length(spec_fields) as n from public.platform`), [{ short_name: 'PS1', n: 6 }]);
+await egal('PS1 présente avec ses 6 champs spécifiques', val(`select short_name, jsonb_array_length(spec_fields) as n from public.platform where short_name = 'PS1'`), [{ short_name: 'PS1', n: 6 }]);
 await egal('France rangée dans Europe, dans Monde', val(`select z.code as zone, w.code as world from public.region c join public.region z on z.id = c.parent_id join public.region w on w.id = z.parent_id where c.code = 'FR'`), [{ zone: 'europe', world: 'world' }]);
 await egal('39 régions', val(`select count(*)::int as n from public.region`), [{ n: 39 }]);
 
@@ -242,6 +242,71 @@ await egal('la date manquante est récupérée', val(`select extract(year from f
 const autreQid = (await en(ADMIN, `insert into public.game (title, wikidata_id) values ('Jeu Fusion', 'Q999999992') returning id`)).rows[0].id;
 await en(ADMIN, `insert into public.release (game_id, platform_id, local_title) values ($1, $2, 'Jeu Fusion')`, [autreQid, ps1]);
 await ko('deux identifiants Wikidata différents : fusion refusée', en(ADMIN, `select public.merge_games($1, $2)`, [garde, autreQid]), 'identifiants Wikidata différents');
+
+console.log('\nModération');
+const soumettre = async (data, target = 'game') => (await en(MEMBRE, `insert into public.submission (action, target, data, sources) values ('create', $2, $1::jsonb, 'test') returning id`, [JSON.stringify(data), target])).rows[0].id;
+const traiter = (uid, id, approve, note = null, cover = null, attach = null, aal) => en(uid, `select public.review_submission($1, $2, $3, $4, $5) as r`, [id, approve, note, cover, attach], aal);
+const versionPAL = { platform_id: Number(ps1), zone: 'PAL', local_title: 'Mon Jeu Perdu', product_code: 'sles-01234', edition_type: 'standard', languages: ['fr', 'en'], region_code: 'FR', release_date: '1999-03-01', date_precision: 'month', publisher_name: 'Éditeur Inconnu', developer_name: 'Studio Fantôme' };
+
+const p1 = await soumettre({ game: { title: 'Mon Jeu Perdu' }, release: versionPAL, no_cover: true });
+await ko('un membre ne peut pas traiter une proposition', traiter(MEMBRE, p1, true), 'Seuls les modérateurs');
+await ko('un visiteur non plus', en(null, `select public.review_submission($1, true)`, [p1]), 'permission denied');
+await ko('un admin sans double authentification non plus', traiter(ADMIN, p1, true, null, null, null, 'aal1'), 'Seuls les modérateurs');
+const r1 = await ok('un admin accepte un nouveau jeu', traiter(ADMIN, p1, true));
+const cree = r1.rows[0].r;
+await egal('le jeu est créé avec sa première sortie', val(`select title, first_release_date::text as d, first_release_precision as p from public.game where id = $1`, [cree.game_id]), [{ title: 'Mon Jeu Perdu', d: '1999-03-01', p: 'month' }]);
+await egal('la version est créée (code produit en majuscules)', val(`select zone, local_title, product_code, languages from public.release where id = $1`, [cree.release_id]), [{ zone: 'PAL', local_title: 'Mon Jeu Perdu', product_code: 'SLES-01234', languages: ['fr', 'en'] }]);
+await egal('…avec sa date en France', val(`select rg.code, rr.release_date::text as d from public.release_region rr join public.region rg on rg.id = rr.region_id where rr.release_id = $1`, [cree.release_id]), [{ code: 'FR', d: '1999-03-01' }]);
+await egal('…son éditeur et son développeur (sociétés créées)', val(`select (select c.name from public.release_company rc join public.company c on c.id = rc.company_id where rc.release_id = $1) as editeur, (select c.name from public.game_developer gd join public.company c on c.id = gd.company_id where gd.game_id = $2) as dev`, [cree.release_id, cree.game_id]), [{ editeur: 'Éditeur Inconnu', dev: 'Studio Fantôme' }]);
+await egal('l\'auteur voit sa proposition acceptée et le jeu créé', lignes(en(MEMBRE, `select status, created_game_id from public.submission where id = $1`, [p1])), [{ status: 'approved', created_game_id: cree.game_id }]);
+await ko('une proposition déjà traitée ne peut pas l\'être deux fois', traiter(ADMIN, p1, false, 'non'), 'déjà été traitée');
+
+const p2 = await soumettre({ game: { title: 'Doublon Volontaire' }, release: { ...versionPAL, publisher_name: 'Éditeur Inconnu' }, no_cover: true });
+await ko('refuser sans motif : impossible', traiter(ADMIN, p2, false), 'motif');
+await ok('refuser avec un motif', traiter(ADMIN, p2, false, 'Ce jeu existe déjà'));
+await egal('l\'auteur voit le refus et son motif', lignes(en(MEMBRE, `select status, review_note from public.submission where id = $1`, [p2])), [{ status: 'rejected', review_note: 'Ce jeu existe déjà' }]);
+
+const p3 = await soumettre({ game: { title: 'Mon Jeu Perdu (titre US)' }, release: { ...versionPAL, zone: 'NTSC-U', region_code: 'US', local_title: 'My Lost Game' }, no_cover: true });
+const r3 = (await ok('rattacher un « nouveau jeu » à un jeu existant', traiter(ADMIN, p3, true, null, null, cree.game_id))).rows[0].r;
+await egal('…aucun jeu en plus, une version en plus', val(`select count(*)::int as n from public.release where game_id = $1`, [cree.game_id]), [{ n: 2 }]);
+await egal('…le même éditeur est réutilisé (pas de doublon de société)', val(`select count(*)::int as n from public.company where name_key = public.normalize_name('Éditeur Inconnu')`), [{ n: 1 }]);
+
+const p4 = await soumettre({ game_id: cree.game_id, release: { ...versionPAL, edition_type: 'reissue', edition_name: 'Platinum', region_code: '' }, cover_path: monImage }, 'release');
+await ko('accepter sans avoir copié la jaquette : refusé', traiter(ADMIN, p4, true), 'copiée');
+await ok('le modérateur copie la jaquette dans les jaquettes publiques', en(ADMIN, `insert into storage.objects (bucket_id, name) values ('covers', 'submissions/test.webp')`));
+const r4 = (await ok('…puis accepte la nouvelle version', traiter(ADMIN, p4, true, null, 'submissions/test.webp'))).rows[0].r;
+await egal('la jaquette est rattachée à la version (recto)', val(`select type, path from public.image where release_id = $1`, [r4.release_id]), [{ type: 'front', path: 'submissions/test.webp' }]);
+await egal('…et sort dans la recherche', lignes(en(null, `select cover_path from public.search_games('mon jeu perdu') where id = $1`, [cree.game_id])), [{ cover_path: 'submissions/test.webp' }]);
+await ko('des données trop volumineuses sont refusées', en(MEMBRE, `insert into public.submission (action, target, data) values ('create', 'game', $1::jsonb)`, [JSON.stringify({ game: { title: 'x'.repeat(40000) }, no_cover: true })]), 'submission_data_size');
+
+console.log('\nConsoles');
+await egal('32 consoles déclarées', val(`select count(*)::int as n from public.platform`), [{ n: 32 }]);
+await egal('chaque console a son constructeur et son identifiant Wikidata', val(`select count(*)::int as n from public.platform where manufacturer_id is null or wikidata_id is null`), [{ n: 0 }]);
+await egal('pas de constructeur en double', val(`select count(*)::int as n from public.possible_duplicate_company where name_key in ('nintendo', 'sega', 'microsoft', 'nec')`), [{ n: 0 }]);
+const consoles = await lignes(en(null, `select short_name, manufacturer, game_count from public.list_platforms()`));
+await egal('la liste des consoles est publique, avec le nombre de jeux', consoles.find((c) => c.short_name === 'PS1').game_count > 4000 && consoles.find((c) => c.short_name === 'NES').game_count === 0, true);
+await egal('…rangée par constructeur', consoles.find((c) => c.short_name === 'NSW2').manufacturer, 'Nintendo');
+const filtre = (q, c) => lignes(en(null, `select title from public.search_games($1, 20, $2)`, [q, c]));
+await egal('recherche limitée à la PS1 : FF7 trouvé', filtre('final fantasy vii', 'PS1').then((r) => r[0]?.title), 'Final Fantasy VII');
+await egal('recherche limitée à la NES : aucun jeu pour l\'instant', filtre('final fantasy', 'NES').then((r) => r.length), 0);
+await egal('console inconnue : aucun résultat', filtre('final fantasy', 'ZZZ').then((r) => r.length), 0);
+await egal('sans console : toutes', filtre('final fantasy vii', null).then((r) => r.length > 0), true);
+
+console.log('\nDoublons : fusion forcée et faux positifs');
+const gA = (await en(ADMIN, `insert into public.game (title, wikidata_id) values ('Jeu Doublon Wikidata', 'Q999999993') returning id`)).rows[0].id;
+const gB = (await en(ADMIN, `insert into public.game (title, wikidata_id) values ('JEU DOUBLON WIKIDATA', 'Q999999994') returning id`)).rows[0].id;
+await en(ADMIN, `insert into public.release (game_id, platform_id, local_title, zone) values ($1, $2, 'A', 'PAL'), ($3, $2, 'B', 'NTSC-J')`, [gA, ps1, gB]);
+await ko('identifiants Wikidata différents : refus sans « force »', en(ADMIN, `select public.merge_games($1, $2)`, [gA, gB]), 'identifiants Wikidata différents');
+await ok('avec « force » : fusion acceptée', en(ADMIN, `select public.merge_games($1, $2, true)`, [gA, gB]));
+await egal('la fiche gardée a ses deux versions et garde son identifiant', val(`select g.wikidata_id, (select count(*)::int from public.release r where r.game_id = g.id) as n from public.game g where g.id = $1`, [gA]), [{ wikidata_id: 'Q999999993', n: 2 }]);
+const gC = (await en(ADMIN, `insert into public.game (title) values ('Homonyme Volontaire') returning id`)).rows[0].id;
+const gD = (await en(ADMIN, `insert into public.game (title) values ('Homonyme volontaire !') returning id`)).rows[0].id;
+await egal('deux homonymes apparaissent dans les doublons possibles', lignes(en(ADMIN, `select total from public.possible_duplicate_game where title_key = 'homonymevolontaire'`)), [{ total: 2 }]);
+await ko('un membre ne peut pas les marquer « pas des doublons »', en(MEMBRE, `insert into public.dismissed_duplicate (title_key, game_ids) values ('homonymevolontaire', $1)`, [[gC, gD]]), 'row-level security');
+await ok('un admin les marque « pas des doublons »', en(ADMIN, `insert into public.dismissed_duplicate (title_key, game_ids) values ('homonymevolontaire', $1)`, [[gC, gD]]));
+await egal('…ils disparaissent de la liste', lignes(en(ADMIN, `select count(*)::int as n from public.possible_duplicate_game where title_key = 'homonymevolontaire'`)), [{ n: 0 }]);
+await en(ADMIN, `insert into public.game (title) values ('HOMONYME-VOLONTAIRE') returning id`);
+await egal('…mais reviennent si un troisième jeu du même nom arrive', lignes(en(ADMIN, `select total from public.possible_duplicate_game where title_key = 'homonymevolontaire'`)), [{ total: 3 }]);
 
 console.log('\nCohérence du catalogue (imports compris)');
 await egal('chaque jeu importé a au moins une sortie', val(`select count(*)::int as n from public.game g where g.wikidata_id is not null and not exists (select 1 from public.release r where r.game_id = g.id)`), [{ n: 0 }]);

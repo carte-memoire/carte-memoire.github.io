@@ -13,6 +13,7 @@ import { Account } from './pages/Account';
 import { Collection } from './pages/Collection';
 import { ProposeGame } from './pages/ProposeGame';
 import { MySubmissions } from './pages/MySubmissions';
+import { Moderation } from './pages/Moderation';
 import { NotFound } from './pages/NotFound';
 
 export function App() {
@@ -31,6 +32,7 @@ export function App() {
         <Route path="collection" element={<RequireAuth><Collection /></RequireAuth>} />
         <Route path="proposer" element={<RequireAuth><ProposeGame /></RequireAuth>} />
         <Route path="mes-propositions" element={<RequireAuth><MySubmissions /></RequireAuth>} />
+        <Route path="moderation" element={<RequireAuth moderator><Moderation /></RequireAuth>} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

@@ -32,6 +32,14 @@ export interface Platform {
   short_name: string;
 }
 
+// Console avec son constructeur et son nombre de jeux (fonction list_platforms)
+export interface PlatformInfo extends Platform {
+  manufacturer: string | null;
+  generation: number | null;
+  type: 'home' | 'handheld' | 'hybrid';
+  game_count: number;
+}
+
 export interface ReleaseImage {
   id: number;
   type: ImageType;
@@ -127,4 +135,6 @@ export interface Submission {
   status: SubmissionStatus;
   review_note: string | null;
   created_at: string;
+  created_game_id?: number | null;
+  author?: { username: string } | null;
 }

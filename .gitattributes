@@ -1,0 +1,5 @@
+# Fins de ligne Unix dans le dépôt (évite les avertissements LF/CRLF sous Windows)
+* text=auto eol=lf
+*.png binary
+*.webp binary
+*.woff2 binary

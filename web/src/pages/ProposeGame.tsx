@@ -4,7 +4,8 @@ import { supabase } from '../lib/supabase';
 import { EDITION_TYPES, gamePath, LANGUAGES, yearOf, ZONES } from '../lib/format';
 import { errorMessage } from '../lib/errors';
 import { ACCEPT_ATTRIBUTE, prepareCover } from '../lib/images';
-import type { DatePrecision, EditionType, Platform, Region, ReleaseProposal, Zone } from '../lib/types';
+import type { DatePrecision, EditionType, Region, ReleaseProposal, Zone } from '../lib/types';
+import { groupByManufacturer, usePlatforms } from '../lib/usePlatforms';
 import { useAuth } from '../auth/AuthContext';
 import { useGameSearch } from '../components/GameSearch';
 import { PsSymbol } from '../components/PsSymbol';
@@ -15,7 +16,7 @@ export function ProposeGame() {
   const { session } = useAuth();
   const [params] = useSearchParams();
   const [existingGame, setExistingGame] = useState<{ id: number; title: string } | null>(null);
-  const [platforms, setPlatforms] = useState<Platform[]>([]);
+  const platforms = usePlatforms();
   const [regions, setRegions] = useState<Region[]>([]);
 
   const [title, setTitle] = useState('');
@@ -41,13 +42,13 @@ export function ProposeGame() {
   const [done, setDone] = useState(false);
 
   useEffect(() => {
-    supabase.from('platform').select('id, name, short_name').order('id').then(({ data }) => {
-      const list = (data as Platform[]) ?? [];
-      setPlatforms(list);
-      if (list.length === 1) setPlatformId(list[0].id);
-    });
     supabase.from('region').select('id, code, name, type, parent_id').order('name').then(({ data }) => setRegions((data as Region[]) ?? []));
   }, []);
+
+  // PlayStation présélectionnée (la seule console qui a des jeux pour l'instant)
+  useEffect(() => {
+    if (platformId === '' && platforms.length) setPlatformId(platforms.find((p) => p.short_name === 'PS1')?.id ?? '');
+  }, [platforms, platformId]);
 
   useEffect(() => {
     const id = Number.parseInt(params.get('jeu') ?? '', 10);
@@ -191,7 +192,11 @@ export function ProposeGame() {
             <span className="field-label">Console *</span>
             <select value={platformId} onChange={(e) => setPlatformId(e.target.value ? Number(e.target.value) : '')} required>
               <option value="">Choisir…</option>
-              {platforms.map((p) => <option key={p.id} value={p.id}>{p.name} ({p.short_name})</option>)}
+              {groupByManufacturer(platforms).map(([maker, list]) => (
+                <optgroup key={maker} label={maker}>
+                  {list.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </optgroup>
+              ))}
             </select>
           </label>
           <label className="field">
