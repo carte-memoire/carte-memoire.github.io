@@ -1,5 +1,5 @@
 // =====================================================================
-// Carte Mémoire · Codes produits (SLES-00868…) depuis Redump
+// Carte Mémoire · Codes produits (SCES-00867…) depuis Redump
 //
 // Redump recense chaque disque PS1 à partir de disques réels vérifiés, avec
 // le code imprimé dessus. Source : le fichier « Sony - PlayStation.dat » de
@@ -46,7 +46,7 @@ if (!res.ok) throw new Error(`Fichier Redump : ${res.status}`);
 const dat = await res.text();
 const version = /version "([^"]+)"/.exec(dat)?.[1] ?? 'inconnue';
 
-// Une entrée par disque ; on garde, par nom, le code au format standard (SLES-00868)
+// Une entrée par disque ; on garde, par nom, le code au format standard (SCES-00867)
 const discs = new Map(); // nom → { ...infos, serial }
 for (const block of dat.split(/\ngame \(/).slice(1)) {
   const name = /name "([^"]+)"/.exec(block)?.[1];
