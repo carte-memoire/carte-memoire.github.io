@@ -1,0 +1,79 @@
+import { useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
+import { errorMessage } from '../lib/errors';
+import { PasswordRules, passwordIsValid } from '../components/PasswordRules';
+
+const USERNAME = /^[A-Za-z0-9_-]{3,30}$/;
+
+export function Signup() {
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (!USERNAME.test(username)) return setError('Pseudo : 3 à 30 caractères, lettres, chiffres, « _ » ou « - ».');
+    if (!passwordIsValid(password)) return setError('Le mot de passe ne respecte pas toutes les règles.');
+    if (password !== confirm) return setError('Les deux mots de passe ne sont pas identiques.');
+    setBusy(true);
+    setError('');
+    const { error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+      options: {
+        data: { username },
+        emailRedirectTo: `${window.location.origin}/connexion?confirme=1`,
+      },
+    });
+    setBusy(false);
+    if (error) return setError(errorMessage(error));
+    // Même message que l'adresse ait déjà un compte ou non : on ne révèle pas qui est inscrit
+    setSent(true);
+  }
+
+  if (sent) {
+    return (
+      <section className="panel narrow">
+        <h1>Vérifie ta boîte mail</h1>
+        <p>Si cette adresse n'a pas encore de compte, un lien de confirmation vient de t'être envoyé (valable 30 minutes).</p>
+        <p className="muted small">Pense à regarder dans les indésirables.</p>
+        <Link to="/connexion" className="button">○ Retour à la connexion</Link>
+      </section>
+    );
+  }
+
+  return (
+    <section className="panel narrow">
+      <h1>Créer un compte</h1>
+      <form onSubmit={submit} className="form">
+        <label className="field">
+          <span className="field-label">Pseudo</span>
+          <input autoComplete="nickname" required value={username} onChange={(e) => setUsername(e.target.value)} maxLength={30} />
+          <span className="hint">Visible par les autres. 3 à 30 caractères : lettres, chiffres, « _ » ou « - ».</span>
+        </label>
+        <label className="field">
+          <span className="field-label">Adresse e-mail</span>
+          <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} maxLength={254} />
+          <span className="hint">Jamais affichée : elle sert uniquement à te connecter.</span>
+        </label>
+        <label className="field">
+          <span className="field-label">Mot de passe</span>
+          <input type="password" autoComplete="new-password" required value={password} onChange={(e) => setPassword(e.target.value)} maxLength={128} />
+        </label>
+        <PasswordRules password={password} />
+        <label className="field">
+          <span className="field-label">Confirmer le mot de passe</span>
+          <input type="password" autoComplete="new-password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} maxLength={128} />
+        </label>
+        {error && <p className="error" role="alert">{error}</p>}
+        <button type="submit" className="button button-primary button-block" disabled={busy}>✕ Créer mon compte</button>
+        <p className="muted small">Une fois connecté, tu pourras ajouter une passkey et la double authentification dans « Mon compte ».</p>
+      </form>
+    </section>
+  );
+}

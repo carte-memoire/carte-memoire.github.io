@@ -1,0 +1,29 @@
+// Messages d'erreur compréhensibles, sans dévoiler de détails techniques.
+// (Pour la connexion, le message reste volontairement vague : il ne doit pas
+// révéler si une adresse e-mail possède un compte.)
+
+const AUTH_MESSAGES: Record<string, string> = {
+  invalid_credentials: 'E-mail ou mot de passe incorrect.',
+  email_not_confirmed: "Ton adresse e-mail n'est pas encore confirmée : clique sur le lien reçu par e-mail.",
+  weak_password: 'Mot de passe trop faible : 12 caractères minimum, avec minuscules, majuscules, chiffres et symboles.',
+  same_password: "Le nouveau mot de passe doit être différent de l'ancien.",
+  over_email_send_rate_limit: "Trop d'e-mails envoyés : réessaie dans quelques minutes.",
+  over_request_rate_limit: 'Trop de tentatives : réessaie dans quelques minutes.',
+  mfa_verification_failed: 'Code incorrect ou expiré.',
+  mfa_challenge_expired: 'Code expiré : demande-en un nouveau.',
+  reauthentication_needed: 'Pour des raisons de sécurité, confirme ton identité avec le code reçu par e-mail.',
+  reauthentication_not_valid: 'Code de confirmation incorrect ou expiré.',
+  session_not_found: 'Ta session a expiré : reconnecte-toi.',
+  insufficient_aal: 'Cette action demande la double authentification.',
+  webauthn_challenge_expired: 'Délai dépassé : réessaie.',
+};
+
+export function errorMessage(error: unknown): string {
+  if (!error) return '';
+  const e = error as { code?: string; message?: string; name?: string };
+  if (e.code && AUTH_MESSAGES[e.code]) return AUTH_MESSAGES[e.code];
+  if (e.name === 'NotAllowedError' || e.code === 'ERROR_CEREMONY_ABORTED') return 'Opération annulée.';
+  if (e.message?.includes('row-level security')) return "Tu n'as pas les droits pour cette action (ou la double authentification est requise).";
+  if (e.message?.includes('Failed to fetch')) return 'Connexion impossible : vérifie ta connexion internet.';
+  return e.message ?? 'Une erreur est survenue.';
+}

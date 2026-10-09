@@ -1,0 +1,14 @@
+# Dépendances
+node_modules/
+
+# Secrets (clés Supabase, mot de passe de la base…)
+.env
+.env.*
+!.env.example
+
+# Fichiers temporaires de la CLI Supabase
+supabase/.temp/
+supabase/.branches/
+
+# Site compilé
+dist/
