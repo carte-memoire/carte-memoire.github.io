@@ -31,6 +31,9 @@ export function Home() {
   }, [selected]);
 
   function choose(value: string) {
+    // On mémorise AVANT de changer l'adresse : pour la PlayStation, l'adresse ne
+    // porte plus de console et c'est la valeur mémorisée qui est relue.
+    try { localStorage.setItem(STORAGE_KEY, value); } catch { /* stockage indisponible : sans importance */ }
     setParams(value === DEFAULT_PLATFORM ? {} : { console: value }, { replace: true });
   }
 

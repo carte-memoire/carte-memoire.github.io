@@ -22,7 +22,8 @@ export function usePlatforms(): PlatformInfo[] {
   return platforms;
 }
 
-// Regroupement par constructeur, pour des <optgroup>
+// Regroupement par constructeur, pour des <optgroup> : ceux qui ont le plus de
+// jeux d'abord (Sony tant que la base ne contient que la PS1), puis par nom
 export function groupByManufacturer(platforms: PlatformInfo[]): [string, PlatformInfo[]][] {
   const groups = new Map<string, PlatformInfo[]>();
   for (const p of platforms) {
@@ -30,5 +31,6 @@ export function groupByManufacturer(platforms: PlatformInfo[]): [string, Platfor
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(p);
   }
-  return [...groups];
+  const total = (list: PlatformInfo[]) => list.reduce((n, p) => n + p.game_count, 0);
+  return [...groups].sort(([a, la], [b, lb]) => total(lb) - total(la) || a.localeCompare(b, 'fr'));
 }

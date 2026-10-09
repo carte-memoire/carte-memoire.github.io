@@ -1,0 +1,12 @@
+{
+  "name": "carte-memoire-db-tests",
+  "private": true,
+  "type": "module",
+  "description": "Tests des migrations, contraintes et règles de sécurité, sur une base PostgreSQL embarquée (PGlite)",
+  "scripts": {
+    "test": "node check-migrations.mjs ../migrations"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.3.16"
+  }
+}

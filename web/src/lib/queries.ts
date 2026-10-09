@@ -8,7 +8,7 @@ export const RELEASE_FIELDS = `
 `;
 
 export const GAME_FIELDS = `
-  id, title, summary, first_release_date, first_release_precision,
+  id, title, summary, summary_source, first_release_date, first_release_precision,
   game_developer(company(name)),
   game_genre(genre(name)),
   release(${RELEASE_FIELDS})

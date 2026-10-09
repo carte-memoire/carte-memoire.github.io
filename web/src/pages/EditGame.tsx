@@ -75,9 +75,13 @@ function GameForm({ game, onSaved }: { game: Game; onSaved: () => void }) {
     if (!title.trim()) return setError('Le titre est obligatoire.');
     // Conventions de la base : « mois » → le 1er du mois, « année » → le 1er janvier
     const normalized = !date ? null : precision === 'year' ? `${date.slice(0, 4)}-01-01` : precision === 'month' ? `${date.slice(0, 7)}-01` : date;
+    // Un résumé modifié n'est plus celui de Wikipédia : on retire le lien source
+    const newSummary = summary.trim() || null;
+    const summaryChanged = newSummary !== (game.summary?.trim() || null);
     const { error } = await supabase.from('game').update({
       title: title.trim(),
-      summary: summary.trim() || null,
+      summary: newSummary,
+      summary_source: summaryChanged || !newSummary ? null : game.summary_source,
       first_release_date: normalized,
       first_release_precision: normalized ? precision : null,
     }).eq('id', game.id);
@@ -96,7 +100,13 @@ function GameForm({ game, onSaved }: { game: Game; onSaved: () => void }) {
       </label>
       <label className="field">
         <span className="field-label">Résumé</span>
-        <textarea value={summary} onChange={(e) => setSummary(e.target.value)} rows={4} maxLength={3000} />
+        <textarea value={summary} onChange={(e) => setSummary(e.target.value)} rows={6} maxLength={3000} />
+        {game.summary_source && (
+          <span className="hint">
+            Texte actuel extrait de <a href={game.summary_source} target="_blank" rel="noopener noreferrer">Wikipédia</a>.
+            Le modifier en fait un texte de la communauté : le lien vers Wikipédia sera retiré.
+          </span>
+        )}
       </label>
       <div className="row">
         <label className="field">

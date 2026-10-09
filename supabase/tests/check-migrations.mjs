@@ -2,7 +2,7 @@
 // les migrations s'appliquent, les contraintes refusent les données invalides,
 // et les règles de sécurité laissent passer (ou bloquent) les bonnes personnes.
 // Usage : node check-migrations.mjs <dossier des migrations>
-// (sera branché sur `npm test` à l'étape 4, quand le projet aura son package.json)
+// Ou simplement, depuis ce dossier : npm test
 import { PGlite } from '@electric-sql/pglite';
 import { unaccent } from '@electric-sql/pglite/contrib/unaccent';
 import { pg_trgm } from '@electric-sql/pglite/contrib/pg_trgm';
@@ -307,6 +307,18 @@ await ok('un admin les marque « pas des doublons »', en(ADMIN, `insert into pu
 await egal('…ils disparaissent de la liste', lignes(en(ADMIN, `select count(*)::int as n from public.possible_duplicate_game where title_key = 'homonymevolontaire'`)), [{ n: 0 }]);
 await en(ADMIN, `insert into public.game (title) values ('HOMONYME-VOLONTAIRE') returning id`);
 await egal('…mais reviennent si un troisième jeu du même nom arrive', lignes(en(ADMIN, `select total from public.possible_duplicate_game where title_key = 'homonymevolontaire'`)), [{ total: 3 }]);
+
+console.log('\nRésumés');
+await ok('un résumé Wikipédia avec son lien', en(ADMIN, `update public.game set summary = 'Un RPG culte.', summary_source = 'https://fr.wikipedia.org/wiki/Final_Fantasy_VII' where id = $1`, [jeu]));
+await ko('une source qui n\'est pas Wikipédia en français : refusée', en(ADMIN, `update public.game set summary_source = 'https://exemple.com/' where id = $1`, [jeu]), 'game_summary_source_check');
+await ko('une source sans résumé : refusée', en(ADMIN, `update public.game set summary = null where id = $1`, [jeu]), 'game_summary_source_needs_summary');
+await ko('un résumé proposé trop court : refusé', en(MEMBRE, `insert into public.submission (action, target, target_id, data) values ('update', 'game', $1, '{"summary": "Trop court"}')`, [jeu]), 'submission_summary_text');
+const texte = 'Cloud Strife, ancien membre du SOLDAT, rejoint le groupe AVALANCHE pour sauver la planète.';
+const pr = (await ok('un membre propose un résumé', en(MEMBRE, `insert into public.submission (action, target, target_id, data, sources) values ('update', 'game', $1, $2::jsonb, 'j''ai fini le jeu') returning id`, [jeu, JSON.stringify({ summary: texte })]))).rows[0].id;
+await ko('un membre ne peut pas l\'accepter lui-même', en(MEMBRE, `select public.review_submission($1, true)`, [pr]), 'Seuls les modérateurs');
+await ok('un admin accepte le résumé', en(ADMIN, `select public.review_submission($1, true)`, [pr]));
+await egal('le résumé de la communauté remplace celui de Wikipédia (plus de lien source)', val(`select summary, summary_source from public.game where id = $1`, [jeu]), [{ summary: texte, summary_source: null }]);
+await egal('l\'auteur voit sa proposition acceptée, liée au jeu', lignes(en(MEMBRE, `select status, created_game_id from public.submission where id = $1`, [pr])), [{ status: 'approved', created_game_id: jeu }]);
 
 console.log('\nCohérence du catalogue (imports compris)');
 await egal('chaque jeu importé a au moins une sortie', val(`select count(*)::int as n from public.game g where g.wikidata_id is not null and not exists (select 1 from public.release r where r.game_id = g.id)`), [{ n: 0 }]);

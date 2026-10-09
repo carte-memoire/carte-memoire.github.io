@@ -67,6 +67,7 @@ export interface Game {
   id: number;
   title: string;
   summary: string | null;
+  summary_source: string | null;
   first_release_date: string | null;
   first_release_precision: DatePrecision | null;
   game_developer: { company: { name: string } }[];
@@ -130,7 +131,9 @@ export interface Submission {
     release?: ReleaseProposal;
     cover_path?: string;
     no_cover?: boolean;
+    summary?: string;
   };
+  target_id?: number | null;
   sources: string | null;
   status: SubmissionStatus;
   review_note: string | null;

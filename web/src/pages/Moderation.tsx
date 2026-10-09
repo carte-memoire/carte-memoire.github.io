@@ -58,7 +58,7 @@ function SubmissionQueue({ onCount }: { onCount: (n: number) => void }) {
   const load = useCallback(async () => {
     const { data, error } = await supabase
       .from('submission')
-      .select('id, action, target, data, sources, status, review_note, created_at, author:author_id(username)')
+      .select('id, action, target, target_id, data, sources, status, review_note, created_at, author:author_id(username)')
       .eq('status', 'pending')
       .order('created_at', { ascending: true });
     if (error) setError(errorMessage(error));
@@ -71,7 +71,7 @@ function SubmissionQueue({ onCount }: { onCount: (n: number) => void }) {
   useEffect(() => { load(); }, [load]);
 
   function finished(s: Submission, result: { approved: boolean; gameId?: number }) {
-    const name = s.data.game?.title ?? s.data.release?.local_title ?? 'Proposition';
+    const name = s.data.game?.title ?? s.data.release?.local_title ?? (s.data.summary ? 'Résumé' : 'Proposition');
     setDone((d) => [{ text: `${name} : ${result.approved ? 'ajouté au catalogue' : 'refusé'}`, gameId: result.gameId }, ...d].slice(0, 5));
     load();
   }
@@ -85,7 +85,9 @@ function SubmissionQueue({ onCount }: { onCount: (n: number) => void }) {
       ))}
       {error && <p className="error">{error}</p>}
       {loaded && items.length === 0 && <p className="panel empty">Aucune proposition en attente. <PsSymbol shape="triangle" /></p>}
-      {items.map((s) => <SubmissionCard key={s.id} submission={s} onDone={(r) => finished(s, r)} />)}
+      {items.map((s) => s.action === 'update' && s.target === 'game'
+        ? <SummaryCard key={s.id} submission={s} onDone={(r) => finished(s, r)} />
+        : <SubmissionCard key={s.id} submission={s} onDone={(r) => finished(s, r)} />)}
     </div>
   );
 }
@@ -216,6 +218,64 @@ function SubmissionCard({ submission: s, onDone }: { submission: Submission; onD
           <PsSymbol shape="cross" /> {attachTo ? 'Accepter (version du jeu choisi)' : 'Accepter'}
         </button>
         <button type="button" className="button button-danger" onClick={reject} disabled={busy}>
+          <PsSymbol shape="circle" /> Refuser
+        </button>
+      </div>
+    </article>
+  );
+}
+
+// Proposition de résumé : l'actuel et le proposé côte à côte
+function SummaryCard({ submission: s, onDone }: { submission: Submission; onDone: (r: { approved: boolean; gameId?: number }) => void }) {
+  const [game, setGame] = useState<{ id: number; title: string; summary: string | null; summary_source: string | null } | null>(null);
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!s.target_id) return;
+    supabase.from('game').select('id, title, summary, summary_source').eq('id', s.target_id).maybeSingle().then(({ data }) => setGame(data));
+  }, [s.target_id]);
+
+  async function review(approve: boolean) {
+    if (!approve && !note.trim()) return setError("Indique le motif du refus : il sera affiché à l'auteur.");
+    setBusy(true);
+    setError('');
+    const { data, error } = await supabase.rpc('review_submission', { submission_id: s.id, approve, note: note.trim() || null });
+    if (error) {
+      setBusy(false);
+      return setError(errorMessage(error));
+    }
+    onDone({ approved: approve, gameId: approve ? (data as { game_id: number }).game_id : undefined });
+  }
+
+  return (
+    <article className="panel submission-card">
+      <p className="muted small">
+        Résumé · proposé par <strong>{s.author?.username ?? 'compte supprimé'}</strong> le {new Date(s.created_at).toLocaleDateString('fr-FR')}
+      </p>
+      <h2>{game ? <Link to={gamePath(game)} target="_blank" rel="noopener">{game.title}</Link> : '…'}</h2>
+      <div className="summary-compare">
+        <div>
+          <p className="field-label">Résumé actuel{game?.summary_source ? ' (Wikipédia)' : ''}</p>
+          <p className="summary muted">{game?.summary ?? 'Aucun résumé pour le moment.'}</p>
+        </div>
+        <div>
+          <p className="field-label">Résumé proposé</p>
+          <p className="summary">{s.data.summary}</p>
+        </div>
+      </div>
+      {s.sources && <p className="block-notes">Sources : {s.sources}</p>}
+      <label className="field">
+        <span className="field-label">Commentaire (obligatoire pour un refus, visible par l'auteur)</span>
+        <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} maxLength={2000} />
+      </label>
+      {error && <p className="error" role="alert">{error}</p>}
+      <div className="actions">
+        <button type="button" className="button button-primary" onClick={() => review(true)} disabled={busy}>
+          <PsSymbol shape="cross" /> Accepter ce résumé
+        </button>
+        <button type="button" className="button button-danger" onClick={() => review(false)} disabled={busy}>
           <PsSymbol shape="circle" /> Refuser
         </button>
       </div>

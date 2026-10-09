@@ -280,6 +280,11 @@ ul.error { padding-left: 28px; }
 .facts dt { color: var(--muted); }
 .facts dd { margin: 0; }
 .summary { white-space: pre-line; }
+.summary-block { margin: 0 0 14px; }
+.summary-block .summary { margin: 0 0 6px; }
+.summary-source { margin: 0; font-size: 0.8rem; color: var(--muted); }
+.summary-compare { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.summary-compare .summary { margin: 4px 0 0; padding: 10px 12px; background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius); }
 .release-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
 .release-card { display: flex; gap: 16px; padding: 14px; }
 .release-body { flex: 1; min-width: 0; }

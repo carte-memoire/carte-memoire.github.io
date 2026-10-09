@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useState, type FormEvent } from 'react';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { errorMessage } from '../lib/errors';
+import { Dialog } from '../components/Dialog';
 import { GAME_FIELDS } from '../lib/queries';
 import { editionLabel, formatDate, LANGUAGES, zoneLabel, zoneOrder } from '../lib/format';
 import type { Game, Release } from '../lib/types';
@@ -12,9 +14,11 @@ export function GamePage() {
   const { id } = useParams();
   const gameId = Number.parseInt(id ?? '', 10);
   const navigate = useNavigate();
+  const location = useLocation();
   const { session, isModerator } = useAuth();
   const [game, setGame] = useState<Game | null>(null);
   const [state, setState] = useState<'loading' | 'ok' | 'missing'>('loading');
+  const [proposeSummary, setProposeSummary] = useState(false);
 
   useEffect(() => {
     if (!Number.isInteger(gameId)) return setState('missing');
@@ -47,11 +51,27 @@ export function GamePage() {
             {game.game_developer.length > 0 && (<><dt>Développement</dt><dd>{game.game_developer.map((d) => d.company.name).join(', ')}</dd></>)}
             {game.game_genre.length > 0 && (<><dt>Genres</dt><dd>{game.game_genre.map((g) => g.genre.name).join(', ')}</dd></>)}
           </dl>
-          {game.summary && <p className="summary">{game.summary}</p>}
+          {game.summary && (
+            <div className="summary-block">
+              <p className="summary">{game.summary}</p>
+              {game.summary_source && (
+                <p className="summary-source">
+                  Résumé extrait de Wikipédia (licence{' '}
+                  <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.fr" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a>)
+                  {' · '}
+                  <a href={game.summary_source} target="_blank" rel="noopener noreferrer">lire l'article</a>
+                </p>
+              )}
+            </div>
+          )}
           <div className="actions">
             <Link to={`/proposer?jeu=${game.id}`} className="button"><PsSymbol shape="square" /> Proposer une version manquante</Link>
+            <button type="button" className="button" onClick={() => (session ? setProposeSummary(true) : navigate(`/connexion?next=${encodeURIComponent(location.pathname)}`))}>
+              <PsSymbol shape="circle" /> {game.summary ? 'Proposer un meilleur résumé' : 'Proposer un résumé'}
+            </button>
             {isModerator && <Link to={`/jeu/${game.id}/modifier`} className="button button-primary"><PsSymbol shape="triangle" /> Modifier ce jeu</Link>}
           </div>
+          <SummaryProposal open={proposeSummary} onClose={() => setProposeSummary(false)} game={game} />
         </div>
       </header>
 
@@ -86,5 +106,68 @@ export function GamePage() {
         ))}
       </ul>
     </article>
+  );
+}
+
+// Proposer un résumé écrit par soi-même (validé ensuite par un modérateur)
+function SummaryProposal({ open, onClose, game }: { open: boolean; onClose: () => void; game: Game }) {
+  const [text, setText] = useState('');
+  const [sources, setSources] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
+  const length = text.trim().length;
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (length < 20) return setError('Le résumé doit faire au moins 20 caractères.');
+    setBusy(true);
+    setError('');
+    const { error } = await supabase.from('submission').insert({
+      action: 'update',
+      target: 'game',
+      target_id: game.id,
+      data: { summary: text.trim() },
+      sources: sources.trim() || null,
+    });
+    setBusy(false);
+    if (error) return setError(errorMessage(error));
+    setSent(true);
+  }
+
+  function close() {
+    onClose();
+    setTimeout(() => { setSent(false); setText(''); setSources(''); setError(''); }, 250);
+  }
+
+  return (
+    <Dialog open={open} onClose={close} title={`Résumé de « ${game.title} »`}>
+      {sent ? (
+        <>
+          <p className="success">Merci ! Ton résumé sera publié après validation par un modérateur.</p>
+          <div className="actions"><button type="button" className="button" onClick={close}><PsSymbol shape="circle" /> Fermer</button></div>
+        </>
+      ) : (
+        <form onSubmit={submit} className="form">
+          <p className="muted small">
+            Écris avec tes propres mots : pas de copier-coller d'un autre site (droits d'auteur).
+            {game.summary_source && ' Une fois validé, ton texte remplacera celui de Wikipédia.'}
+          </p>
+          <label className="field">
+            <span className="field-label">Résumé ({length} / 3000 caractères)</span>
+            <textarea value={text} onChange={(e) => setText(e.target.value)} rows={8} maxLength={3000} required autoFocus />
+          </label>
+          <label className="field">
+            <span className="field-label">Sources (facultatif)</span>
+            <input value={sources} onChange={(e) => setSources(e.target.value)} maxLength={1000} placeholder="J'ai fini le jeu, notice du jeu…" />
+          </label>
+          {error && <p className="error" role="alert">{error}</p>}
+          <div className="actions">
+            <button type="button" className="button" onClick={close}><PsSymbol shape="circle" /> Annuler</button>
+            <button type="submit" className="button button-primary" disabled={busy || length < 20}><PsSymbol shape="cross" /> Envoyer</button>
+          </div>
+        </form>
+      )}
+    </Dialog>
   );
 }

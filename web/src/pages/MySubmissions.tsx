@@ -16,16 +16,24 @@ const STATUS: Record<Submission['status'], { label: string; className: string }>
 export function MySubmissions() {
   const confirm = useConfirm();
   const [items, setItems] = useState<Submission[]>([]);
+  const [titles, setTitles] = useState<Map<number, string>>(new Map());
   const [error, setError] = useState('');
   const [loaded, setLoaded] = useState(false);
 
   const load = useCallback(async () => {
     const { data, error } = await supabase
       .from('submission')
-      .select('id, action, target, data, sources, status, review_note, created_at, created_game_id')
+      .select('id, action, target, target_id, data, sources, status, review_note, created_at, created_game_id')
       .order('created_at', { ascending: false });
     if (error) setError(errorMessage(error));
-    setItems((data as Submission[]) ?? []);
+    const list = (data as Submission[]) ?? [];
+    // Titres des jeux concernés par une proposition de résumé ou une nouvelle version
+    const ids = [...new Set(list.map((s) => s.target_id ?? s.data.game_id).filter((id): id is number => typeof id === 'number'))];
+    if (ids.length) {
+      const { data: games } = await supabase.from('game').select('id, title').in('id', ids);
+      setTitles(new Map((games ?? []).map((g) => [g.id as number, g.title as string])));
+    }
+    setItems(list);
     setLoaded(true);
   }, []);
 
@@ -49,13 +57,15 @@ export function MySubmissions() {
       {loaded && items.length === 0 && <p className="panel empty">Aucune proposition pour le moment.</p>}
       <ul className="plain-list">
         {items.map((s) => {
-          const name = s.data.game?.title ?? s.data.release?.local_title ?? 'Proposition';
+          const isSummary = s.action === 'update' && s.target === 'game';
+          const gameTitle = titles.get((s.target_id ?? s.data.game_id) as number);
+          const name = s.data.game?.title ?? gameTitle ?? s.data.release?.local_title ?? 'Proposition';
           return (
             <li key={s.id} className="panel list-row">
               <span>
                 <strong>{name}</strong>{' '}
                 <span className="muted small">
-                  {s.target === 'release' ? 'nouvelle version' : 'nouveau jeu'}
+                  {isSummary ? 'résumé' : s.target === 'release' ? 'nouvelle version' : 'nouveau jeu'}
                   {s.data.release?.zone !== undefined && ` · ${zoneLabel(s.data.release.zone)}`}
                   {' · '}{new Date(s.created_at).toLocaleDateString('fr-FR')}
                   {s.data.no_cover && ' · sans jaquette'}
