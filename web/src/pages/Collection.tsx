@@ -7,11 +7,13 @@ import { errorMessage } from '../lib/errors';
 import type { CollectionItem, ItemStatus } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
 import { AddToCollection } from '../components/AddToCollection';
+import { useConfirm } from '../components/Confirm';
 import { Cover } from '../components/Cover';
 import { PsSymbol } from '../components/PsSymbol';
 
 export function Collection() {
   const { session, profile } = useAuth();
+  const confirm = useConfirm();
   const [params, setParams] = useSearchParams();
   const [items, setItems] = useState<CollectionItem[]>([]);
   const [tab, setTab] = useState<ItemStatus>('owned');
@@ -42,7 +44,7 @@ export function Collection() {
   }, [params, setParams]);
 
   async function remove(item: CollectionItem) {
-    if (!window.confirm(`Retirer « ${item.release.local_title} » de ta collection ?`)) return;
+    if (!(await confirm({ title: 'Retirer de ma collection', message: `Retirer « ${item.release.local_title} » de ta collection ?`, confirmLabel: 'Retirer', danger: true }))) return;
     const { error } = await supabase.from('collection_item').delete().eq('id', item.id);
     if (error) return setError(errorMessage(error));
     await load();

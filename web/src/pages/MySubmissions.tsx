@@ -5,6 +5,7 @@ import { errorMessage } from '../lib/errors';
 import { zoneLabel } from '../lib/format';
 import type { Submission } from '../lib/types';
 import { PsSymbol } from '../components/PsSymbol';
+import { useConfirm } from '../components/Confirm';
 
 const STATUS: Record<Submission['status'], { label: string; className: string }> = {
   pending: { label: 'En attente', className: 'badge-todo' },
@@ -13,6 +14,7 @@ const STATUS: Record<Submission['status'], { label: string; className: string }>
 };
 
 export function MySubmissions() {
+  const confirm = useConfirm();
   const [items, setItems] = useState<Submission[]>([]);
   const [error, setError] = useState('');
   const [loaded, setLoaded] = useState(false);
@@ -30,7 +32,7 @@ export function MySubmissions() {
   useEffect(() => { load(); }, [load]);
 
   async function withdraw(s: Submission) {
-    if (!window.confirm('Retirer cette proposition ?')) return;
+    if (!(await confirm({ title: 'Retirer la proposition', message: 'Elle ne sera pas examinée par les modérateurs.', confirmLabel: 'Retirer', danger: true }))) return;
     const { error } = await supabase.from('submission').delete().eq('id', s.id);
     if (error) return setError(errorMessage(error));
     if (s.data.cover_path) await supabase.storage.from('submission-images').remove([s.data.cover_path]);

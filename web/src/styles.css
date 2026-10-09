@@ -343,6 +343,19 @@ fieldset.notice { padding: 10px 12px; }
 .duplicate-card { display: flex; gap: 12px; padding: 10px; background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius); }
 .duplicate-card p { margin: 2px 0 6px; }
 
+.is-busy { opacity: 0.6; pointer-events: none; }
+.confirm-message p { margin: 0 0 8px; }
+.toast {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 50;
+  max-width: calc(100vw - 32px); margin: 0; padding: 12px 18px;
+  background: var(--panel-2); color: #b5f3e1; border: 2px solid var(--triangle); border-radius: var(--radius);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .toast { animation: toast-in 220ms ease-out; }
+}
+@keyframes toast-in { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
 /* ---------- Fenêtre modale ---------- */
 .dialog {
   width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 48px);

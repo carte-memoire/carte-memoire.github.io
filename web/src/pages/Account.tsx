@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { useAuth } from '../auth/AuthContext';
 import { PasswordRules, passwordIsValid } from '../components/PasswordRules';
+import { useConfirm } from '../components/Confirm';
 import { PsSymbol } from '../components/PsSymbol';
 
 export function Account() {
@@ -76,6 +77,7 @@ function ProfileSection() {
 interface PasskeyItem { id: string; friendly_name?: string; created_at: string; last_used_at?: string }
 
 function PasskeySection() {
+  const confirm = useConfirm();
   const [passkeys, setPasskeys] = useState<PasskeyItem[]>([]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -99,7 +101,7 @@ function PasskeySection() {
   }
 
   async function remove(id: string) {
-    if (!window.confirm('Supprimer cette passkey ? Tu ne pourras plus te connecter avec.')) return;
+    if (!(await confirm({ title: 'Supprimer la passkey', message: 'Tu ne pourras plus te connecter avec cette passkey.', confirmLabel: 'Supprimer', danger: true }))) return;
     const { error } = await supabase.auth.passkey.delete({ passkeyId: id });
     if (error) return setError(errorMessage(error));
     await load();
@@ -133,6 +135,7 @@ function PasskeySection() {
 }
 
 function TotpSection() {
+  const confirm = useConfirm();
   const { refresh, aal } = useAuth();
   const [factors, setFactors] = useState<{ id: string; friendly_name?: string }[]>([]);
   const [enrolling, setEnrolling] = useState<{ id: string; qr: string; secret: string } | null>(null);
@@ -158,7 +161,7 @@ function TotpSection() {
     setEnrolling({ id: data.id, qr: data.totp.qr_code, secret: data.totp.secret });
   }
 
-  async function confirm(e: FormEvent) {
+  async function confirmEnrollment(e: FormEvent) {
     e.preventDefault();
     if (!enrolling) return;
     const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId: enrolling.id, code: code.trim() });
@@ -170,7 +173,7 @@ function TotpSection() {
   }
 
   async function disable(id: string) {
-    if (!window.confirm('Désactiver la double authentification ? Ton compte sera moins protégé.')) return;
+    if (!(await confirm({ title: 'Désactiver la double authentification', message: 'Ton compte sera moins protégé. Si tu es modérateur, tu ne pourras plus modifier le catalogue.', confirmLabel: 'Désactiver', danger: true }))) return;
     const { error } = await supabase.auth.mfa.unenroll({ factorId: id });
     if (error) return setError(errorMessage(error));
     await supabase.auth.refreshSession();
@@ -198,7 +201,7 @@ function TotpSection() {
           ))}
         </>
       ) : enrolling ? (
-        <form onSubmit={confirm} className="form">
+        <form onSubmit={confirmEnrollment} className="form">
           <ol className="steps">
             <li>Scanne ce QR code avec ton application :</li>
           </ol>

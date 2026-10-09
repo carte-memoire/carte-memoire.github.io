@@ -9,6 +9,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useGameSearch } from '../components/GameSearch';
 import { Cover } from '../components/Cover';
 import { PsSymbol } from '../components/PsSymbol';
+import { useConfirm } from '../components/Confirm';
 
 type Tab = 'submissions' | 'duplicates';
 
@@ -263,25 +264,51 @@ function DuplicateList({ onCount }: { onCount: (n: number) => void }) {
 
   useEffect(() => { load(); }, [load]);
 
+  const confirm = useConfirm();
+  // Erreur affichée DANS le groupe concerné (et pas seulement en haut de page)
+  const [groupError, setGroupError] = useState<{ key: string; text: string } | null>(null);
+  const [toast, setToast] = useState('');
+
+  function notify(text: string) {
+    setToast(text);
+    setTimeout(() => setToast((t) => (t === text ? '' : t)), 4000);
+  }
+
   async function keep(group: DuplicateGroup, keepId: number) {
     setBusyKey(group.title_key);
-    setError('');
+    setGroupError(null);
+    const kept = games.get(keepId);
+    let merged = 0;
     try {
       for (const other of group.game_ids.filter((id) => id !== keepId)) {
         let { error } = await supabase.rpc('merge_games', { keep_id: keepId, duplicate_id: other, force: false });
         if (error?.message.includes('identifiants Wikidata différents')) {
-          const a = games.get(keepId), b = games.get(other);
-          const ok = window.confirm(
-            `« ${a?.title} » (${a?.wikidata_id}) et « ${b?.title} » (${b?.wikidata_id}) ont des fiches Wikidata différentes.\n\n` +
-            'Ce sont souvent deux jeux distincts (un original et son remake…), mais Wikidata a aussi des doublons.\n\nFusionner quand même ?');
+          const b = games.get(other);
+          const ok = await confirm({
+            title: 'Fiches Wikidata différentes',
+            message: (
+              <>
+                <p>
+                  « {kept?.title} » ({kept?.wikidata_id}) et « {b?.title} » ({b?.wikidata_id}) ont chacun leur fiche Wikidata.
+                </p>
+                <p className="muted">
+                  Ce sont souvent deux jeux distincts (un original et son remake…), mais Wikidata a aussi des doublons.
+                  Vérifie avec les liens Wikidata en cas de doute. La fiche gardée conserve son identifiant.
+                </p>
+              </>
+            ),
+            confirmLabel: 'Fusionner quand même',
+          });
           if (!ok) continue;
           ({ error } = await supabase.rpc('merge_games', { keep_id: keepId, duplicate_id: other, force: true }));
         }
         if (error) throw error;
+        merged++;
       }
+      if (merged > 0) notify(`« ${kept?.title} » : ${merged + 1} fiches fusionnées en une.`);
       await load();
     } catch (err) {
-      setError(errorMessage(err));
+      setGroupError({ key: group.title_key, text: errorMessage(err) });
     } finally {
       setBusyKey('');
     }
@@ -289,11 +316,12 @@ function DuplicateList({ onCount }: { onCount: (n: number) => void }) {
 
   async function dismiss(group: DuplicateGroup) {
     setBusyKey(group.title_key);
-    setError('');
+    setGroupError(null);
     await supabase.from('dismissed_duplicate').delete().eq('title_key', group.title_key);
     const { error } = await supabase.from('dismissed_duplicate').insert({ title_key: group.title_key, game_ids: group.game_ids });
     setBusyKey('');
-    if (error) return setError(errorMessage(error));
+    if (error) return setGroupError({ key: group.title_key, text: errorMessage(error) });
+    notify(`« ${group.titles[0]} » : marqué comme « pas des doublons ».`);
     await load();
   }
 
@@ -306,17 +334,20 @@ function DuplicateList({ onCount }: { onCount: (n: number) => void }) {
       {error && <p className="error" role="alert">{error}</p>}
       {loaded && groups.length === 0 && <p className="panel empty">Aucun doublon possible. <PsSymbol shape="triangle" /></p>}
       {groups.map((group) => (
-        <article key={group.title_key} className="panel">
+        <article key={group.title_key} className={`panel${busyKey === group.title_key ? ' is-busy' : ''}`}>
           <div className="duplicate-row">
             {group.game_ids.map((id) => <DuplicateCard key={id} game={games.get(id)} disabled={!!busyKey} onKeep={() => keep(group, id)} />)}
           </div>
+          {groupError?.key === group.title_key && <p className="error" role="alert">{groupError.text}</p>}
           <div className="actions">
             <button type="button" className="button button-small" onClick={() => dismiss(group)} disabled={!!busyKey}>
               <PsSymbol shape="circle" /> Ce ne sont pas des doublons
             </button>
+            {busyKey === group.title_key && <span className="muted small">Fusion en cours…</span>}
           </div>
         </article>
       ))}
+      {toast && <p className="toast" role="status">{toast}</p>}
     </div>
   );
 }

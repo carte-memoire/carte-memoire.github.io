@@ -8,6 +8,7 @@ import { ACCEPT_ATTRIBUTE, prepareCover } from '../lib/images';
 import type { DatePrecision, EditionType, Game, ImageType, Release, Zone } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
 import { Cover } from '../components/Cover';
+import { useConfirm } from '../components/Confirm';
 import { PsSymbol } from '../components/PsSymbol';
 
 const IMAGE_TYPES: { value: ImageType; label: string }[] = [
@@ -120,6 +121,7 @@ function GameForm({ game, onSaved }: { game: Game; onSaved: () => void }) {
 
 function ReleaseEditor({ release, onSaved }: { release: Release; onSaved: () => void }) {
   const { session } = useAuth();
+  const confirm = useConfirm();
   const [localTitle, setLocalTitle] = useState(release.local_title);
   const [zone, setZone] = useState<Zone | ''>(release.zone ?? '');
   const [productCode, setProductCode] = useState(release.product_code ?? '');
@@ -179,7 +181,7 @@ function ReleaseEditor({ release, onSaved }: { release: Release; onSaved: () => 
   }
 
   async function removeImage(imageId: number, path: string) {
-    if (!window.confirm('Supprimer cette image ?')) return;
+    if (!(await confirm({ title: "Supprimer l'image", message: 'Cette image sera définitivement retirée du site.', confirmLabel: 'Supprimer', danger: true }))) return;
     const { error } = await supabase.from('image').delete().eq('id', imageId);
     if (error) return setError(errorMessage(error));
     await supabase.storage.from('covers').remove([path]);
