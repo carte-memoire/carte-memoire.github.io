@@ -24,6 +24,7 @@ export function errorMessage(error: unknown): string {
   if (e.code && AUTH_MESSAGES[e.code]) return AUTH_MESSAGES[e.code];
   if (e.name === 'NotAllowedError' || e.code === 'ERROR_CEREMONY_ABORTED') return 'Opération annulée.';
   if (e.message?.includes('row-level security')) return "Tu n'as pas les droits pour cette action (ou la double authentification est requise).";
+  if (e.message?.toLowerCase().includes('passkeys are disabled')) return "Les passkeys ne sont pas encore activées sur le serveur (tableau de bord Supabase → Authentication → Passkeys).";
   if (e.message?.includes('Failed to fetch')) return 'Connexion impossible : vérifie ta connexion internet.';
   return e.message ?? 'Une erreur est survenue.';
 }

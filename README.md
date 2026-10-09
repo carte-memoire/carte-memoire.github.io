@@ -40,7 +40,7 @@ Tests de la base (migrations, contraintes, règles de sécurité) : `supabase/te
 | Images | Formats et poids limités par le stockage, chacun n'écrit que dans son dossier, images ré-encodées dans le navigateur (métadonnées GPS supprimées) |
 | Navigateur | Politique de sécurité du contenu (CSP) sur le site publié, aucun HTML injecté, liens externes en `noopener` |
 
-À faire avant d'ouvrir le site au public : serveur d'e-mails dédié (SMTP), CAPTCHA (Cloudflare Turnstile), adresse de production dans `config.toml` (redirections et passkeys).
+À faire avant d'ouvrir le site au public : serveur d'e-mails dédié (SMTP), CAPTCHA (Cloudflare Turnstile), adresse de production dans `config.toml` (redirections) et dans le tableau de bord Supabase → Authentication → Passkeys (les réglages de passkeys ne passent pas par `config push`).
 
 ## Licence des données
 

@@ -188,6 +188,9 @@ password_requirements = "lower_upper_letters_digits_symbols"
 
 # Configure passkey sign-ins.
 # Carte Mémoire : connexion sans mot de passe par passkey (empreinte, visage, Windows Hello…).
+# ATTENTION : `supabase config push` n'envoie PAS ces réglages au projet en ligne (fonction en bêta).
+# Sur le projet hébergé, ils se règlent dans le tableau de bord : Authentication → Passkeys
+# (Relying Party ID = localhost, origine = http://localhost:5173 en développement).
 [auth.passkey]
 enabled = true
 
