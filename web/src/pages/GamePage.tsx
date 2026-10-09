@@ -6,6 +6,7 @@ import { editionLabel, formatDate, LANGUAGES, zoneLabel, zoneOrder } from '../li
 import type { Game, Release } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
 import { Cover } from '../components/Cover';
+import { PsSymbol } from '../components/PsSymbol';
 
 export function GamePage() {
   const { id } = useParams();
@@ -25,7 +26,7 @@ export function GamePage() {
   }, [gameId]);
 
   if (state === 'loading') return <p className="loading">Lecture de la carte mémoire…</p>;
-  if (state === 'missing' || !game) return <section className="panel"><h1>Jeu introuvable</h1><Link to="/">○ Retour à la recherche</Link></section>;
+  if (state === 'missing' || !game) return <section className="panel"><h1>Jeu introuvable</h1><Link to="/"><PsSymbol shape="circle" /> Retour à la recherche</Link></section>;
 
   const releases = [...game.release].sort((a, b) => zoneOrder(a.zone) - zoneOrder(b.zone) || a.id - b.id);
   const heroImages = releases.find((r) => r.zone === 'PAL' && r.image.length)?.image ?? releases.find((r) => r.image.length)?.image ?? [];
@@ -48,8 +49,8 @@ export function GamePage() {
           </dl>
           {game.summary && <p className="summary">{game.summary}</p>}
           <div className="actions">
-            <Link to={`/proposer?jeu=${game.id}`} className="button">□ Proposer une version manquante</Link>
-            {isModerator && <Link to={`/jeu/${game.id}/modifier`} className="button button-primary">△ Modifier ce jeu</Link>}
+            <Link to={`/proposer?jeu=${game.id}`} className="button"><PsSymbol shape="square" /> Proposer une version manquante</Link>
+            {isModerator && <Link to={`/jeu/${game.id}/modifier`} className="button button-primary"><PsSymbol shape="triangle" /> Modifier ce jeu</Link>}
           </div>
         </div>
       </header>
@@ -79,7 +80,7 @@ export function GamePage() {
                 )}
                 {r.media_count && r.media_count > 1 && (<><dt>Disques</dt><dd>{r.media_count}</dd></>)}
               </dl>
-              <button type="button" className="button button-small button-primary" onClick={() => addToCollection(r)}>✕ Ajouter à ma collection</button>
+              <button type="button" className="button button-small button-primary" onClick={() => addToCollection(r)}><PsSymbol shape="cross" /> Ajouter à ma collection</button>
             </div>
           </li>
         ))}

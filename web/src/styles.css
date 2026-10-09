@@ -218,7 +218,7 @@ ul.error { padding-left: 28px; }
   text-shadow: 3px 3px 0 #000, 0 0 24px rgba(123, 147, 255, 0.45);
 }
 .hero-subtitle { color: var(--muted); margin: 0.6em 0; }
-.buttons-legend { display: flex; justify-content: center; gap: 14px; font-size: 1.5rem; margin: 0; }
+.buttons-legend { display: flex; justify-content: center; margin: 0; }
 .ps-triangle { color: var(--triangle); }
 .ps-circle { color: var(--circle); }
 .ps-cross { color: var(--cross); }
@@ -343,6 +343,69 @@ ul.error { padding-left: 28px; }
 }
 .dialog-head h2 { margin: 0; font-size: 1.05rem; }
 .dialog-body { padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+
+/* ---------- Symboles de la manette (SVG, tous de la même taille) ---------- */
+.ps-symbol { width: 1em; height: 1em; flex: none; vertical-align: -0.15em; }
+.buttons-legend { font-size: 1.6rem; gap: 16px; }
+.cover-empty .ps-symbol { stroke-width: 1.6; }
+
+/* ---------- Animations ----------
+   Discrètes, et coupées pour les personnes qui ont demandé moins
+   d'animations dans leur système (réglage d'accessibilité). */
+@keyframes fade-up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes boot-title {
+  0% { opacity: 0; letter-spacing: 0.4em; filter: blur(4px); }
+  60% { opacity: 1; filter: blur(0); }
+  100% { opacity: 1; letter-spacing: 0.04em; }
+}
+@keyframes boot-glow {
+  0%, 100% { text-shadow: 3px 3px 0 #000, 0 0 24px rgba(123, 147, 255, 0.45); }
+  50% { text-shadow: 3px 3px 0 #000, 0 0 40px rgba(123, 147, 255, 0.85); }
+}
+@keyframes pop {
+  0% { opacity: 0; transform: scale(0.2); }
+  70% { opacity: 1; transform: scale(1.18); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes hop { 0%, 100% { transform: none; } 40% { transform: translateY(-4px) scale(1.08); } }
+@keyframes dialog-in { from { opacity: 0; transform: translateY(10px) scale(0.98); } to { opacity: 1; transform: none; } }
+@keyframes blink { 50% { opacity: 0; } }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Changement de page */
+  .main > * { animation: fade-up 280ms ease-out both; }
+
+  /* Démarrage façon PS1 : le titre se pose, puis les quatre symboles apparaissent */
+  .hero-title { animation: boot-title 900ms cubic-bezier(0.2, 0.7, 0.2, 1) both, boot-glow 1.6s ease-in-out 900ms 1; }
+  .hero-subtitle { animation: fade-in 500ms ease-out 500ms both; }
+  .buttons-legend .ps-symbol { animation: pop 420ms cubic-bezier(0.3, 1.4, 0.5, 1) both; }
+  .buttons-legend .ps-symbol:nth-child(1) { animation-delay: 700ms; }
+  .buttons-legend .ps-symbol:nth-child(2) { animation-delay: 820ms; }
+  .buttons-legend .ps-symbol:nth-child(3) { animation-delay: 940ms; }
+  .buttons-legend .ps-symbol:nth-child(4) { animation-delay: 1060ms; }
+  .buttons-legend .ps-symbol:hover { animation: hop 400ms ease-out; }
+
+  /* Listes qui arrivent en cascade */
+  .result-list > li, .choice-list > li, .memory-card > li, .release-list > li { animation: fade-up 260ms ease-out both; }
+  .result-list > li:nth-child(2), .choice-list > li:nth-child(2), .memory-card > li:nth-child(2), .release-list > li:nth-child(2) { animation-delay: 40ms; }
+  .result-list > li:nth-child(3), .choice-list > li:nth-child(3), .memory-card > li:nth-child(3), .release-list > li:nth-child(3) { animation-delay: 80ms; }
+  .result-list > li:nth-child(4), .choice-list > li:nth-child(4), .memory-card > li:nth-child(4), .release-list > li:nth-child(4) { animation-delay: 120ms; }
+  .result-list > li:nth-child(5), .choice-list > li:nth-child(5), .memory-card > li:nth-child(5), .release-list > li:nth-child(5) { animation-delay: 160ms; }
+  .result-list > li:nth-child(n + 6), .choice-list > li:nth-child(n + 6), .memory-card > li:nth-child(n + 6), .release-list > li:nth-child(n + 6) { animation-delay: 200ms; }
+
+  /* Survol : on soulève légèrement */
+  .result, .choice, .block, .button { transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease, filter 150ms ease; }
+  .result:hover, .choice:hover, .block:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(123, 147, 255, 0.25); }
+  .button:hover:not(:disabled) { transform: translateY(-1px); }
+  .button:active:not(:disabled) { transform: translateY(1px); }
+
+  /* Jaquettes, fenêtres, chargement */
+  .cover img { animation: fade-in 300ms ease-out both; }
+  .dialog[open] { animation: dialog-in 200ms ease-out; }
+  .dialog[open]::backdrop { animation: fade-in 200ms ease-out; }
+  .loading::after { content: '▌'; margin-left: 4px; animation: blink 1s steps(1) infinite; }
+}
 
 /* ---------- Petits écrans ---------- */
 @media (max-width: 640px) {

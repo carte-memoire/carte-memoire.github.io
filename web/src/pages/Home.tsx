@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { GameSearch } from '../components/GameSearch';
 import { gamePath } from '../lib/format';
+import { PsSymbol } from '../components/PsSymbol';
 
 export function Home() {
   const navigate = useNavigate();
@@ -10,8 +11,8 @@ export function Home() {
         <h1 className="hero-title">Carte Mémoire</h1>
         <p className="hero-subtitle">Tous les jeux PlayStation, version par version. Et ta collection.</p>
         <p className="buttons-legend" aria-hidden="true">
-          <span className="ps-triangle">△</span><span className="ps-circle">○</span>
-          <span className="ps-cross">✕</span><span className="ps-square">□</span>
+          <PsSymbol shape="triangle" colored /><PsSymbol shape="circle" colored />
+          <PsSymbol shape="cross" colored /><PsSymbol shape="square" colored />
         </p>
       </div>
       <div className="panel">

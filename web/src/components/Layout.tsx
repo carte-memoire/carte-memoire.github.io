@@ -1,8 +1,9 @@
-import { Link, NavLink, Outlet } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 
 export function Layout() {
   const { session, profile, signOut } = useAuth();
+  const location = useLocation();
 
   return (
     <div className="app">
@@ -35,7 +36,8 @@ export function Layout() {
         </div>
       </header>
 
-      <main className="main">
+      {/* La clé change avec la page : l'animation d'arrivée se rejoue à chaque navigation */}
+      <main className="main" key={location.pathname}>
         <Outlet />
       </main>
 

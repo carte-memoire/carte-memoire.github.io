@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { useAuth } from '../auth/AuthContext';
 import { safeNext } from '../auth/RequireAuth';
+import { PsSymbol } from '../components/PsSymbol';
 
 // Deuxième étape de connexion : code à 6 chiffres de l'application d'authentification
 export function MfaChallenge() {
@@ -60,7 +61,7 @@ export function MfaChallenge() {
           />
         </label>
         {error && <p className="error" role="alert">{error}</p>}
-        <button type="submit" className="button button-primary button-block" disabled={busy || code.length !== 6}>✕ Valider</button>
+        <button type="submit" className="button button-primary button-block" disabled={busy || code.length !== 6}><PsSymbol shape="cross" /> Valider</button>
       </form>
       <p className="small center">
         <button type="button" className="link-button" onClick={() => signOut()}>Annuler et se déconnecter</button>

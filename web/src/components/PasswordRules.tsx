@@ -1,3 +1,4 @@
+import { PsSymbol } from './PsSymbol';
 // Règles de mot de passe : les mêmes que celles imposées par Supabase (config.toml).
 // L'affichage aide l'utilisateur ; c'est le serveur qui fait foi.
 
@@ -18,7 +19,7 @@ export function PasswordRules({ password }: { password: string }) {
         const ok = r.test(password);
         return (
           <li key={r.label} className={ok ? 'rule-ok' : 'rule-todo'}>
-            <span aria-hidden="true">{ok ? '△' : '○'}</span> {r.label}
+            <PsSymbol shape={ok ? 'triangle' : 'circle'} /> {r.label}
             <span className="sr-only">{ok ? ' : respecté' : ' : à faire'}</span>
           </li>
         );

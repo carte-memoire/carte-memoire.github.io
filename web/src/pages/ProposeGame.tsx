@@ -7,6 +7,7 @@ import { ACCEPT_ATTRIBUTE, prepareCover } from '../lib/images';
 import type { DatePrecision, EditionType, Platform, Region, ReleaseProposal, Zone } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
 import { useGameSearch } from '../components/GameSearch';
+import { PsSymbol } from '../components/PsSymbol';
 
 // Proposer un jeu absent de la base, ou une version manquante d'un jeu existant
 // (/proposer?jeu=12). La proposition est vérifiée par un modérateur avant publication.
@@ -143,7 +144,7 @@ export function ProposeGame() {
         <p>Ta proposition est enregistrée. Un modérateur va la vérifier avant de l'ajouter au catalogue.</p>
         <div className="actions">
           <Link to="/mes-propositions" className="button">Voir mes propositions</Link>
-          <button type="button" className="button button-primary" onClick={() => window.location.reload()}>✕ Proposer autre chose</button>
+          <button type="button" className="button button-primary" onClick={() => window.location.reload()}><PsSymbol shape="cross" /> Proposer autre chose</button>
         </div>
       </section>
     );
@@ -284,7 +285,7 @@ export function ProposeGame() {
           <legend className="field-label">Jaquette *</legend>
           <div className="cover-picker">
             <div className={`cover cover-medium${noCover ? ' cover-disabled' : ''}`}>
-              {preview ? <img src={preview} alt="Aperçu de la jaquette" /> : <span className="cover-empty" aria-hidden="true">□</span>}
+              {preview ? <img src={preview} alt="Aperçu de la jaquette" /> : <span className="cover-empty" aria-hidden="true"><PsSymbol shape="square" /></span>}
             </div>
             <div className="stack">
               <label className="field">
@@ -311,7 +312,7 @@ export function ProposeGame() {
           <ul className="error" role="alert">{errors.map((m) => <li key={m}>{m}</li>)}</ul>
         )}
         <button type="submit" className="button button-primary" disabled={busy}>
-          ✕ {busy ? 'Sauvegarde en cours… Ne retirez pas la carte mémoire' : 'Envoyer ma proposition'}
+          <PsSymbol shape="cross" /> {busy ? 'Sauvegarde en cours… Ne retirez pas la carte mémoire' : 'Envoyer ma proposition'}
         </button>
       </form>
     </section>

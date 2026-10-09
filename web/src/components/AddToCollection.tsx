@@ -9,6 +9,7 @@ import { Dialog } from './Dialog';
 import { GameSearch } from './GameSearch';
 import { Cover } from './Cover';
 import { ReleaseSummary } from './ReleaseSummary';
+import { PsSymbol } from './PsSymbol';
 
 interface Props {
   open: boolean;
@@ -96,7 +97,7 @@ export function AddToCollection({ open, onClose, onSaved, initialReleaseId, edit
             Ta version n'est pas dans la liste ?{' '}
             <Link to={`/proposer?jeu=${game.id}`} onClick={onClose}>Propose cette version</Link>.
           </p>
-          <button type="button" className="button" onClick={() => setStep('search')}>○ Retour</button>
+          <button type="button" className="button" onClick={() => setStep('search')}><PsSymbol shape="circle" /> Retour</button>
         </>
       )}
 
@@ -199,9 +200,9 @@ function ItemForm({ release, item, onBack, onSaved }: { release: Release; item: 
 
       {error && <p className="error">{error}</p>}
       <div className="actions">
-        {onBack && <button type="button" className="button" onClick={onBack}>○ Retour</button>}
+        {onBack && <button type="button" className="button" onClick={onBack}><PsSymbol shape="circle" /> Retour</button>}
         <button type="submit" className="button button-primary" disabled={saving}>
-          ✕ {saving ? 'Sauvegarde en cours… Ne retirez pas la carte mémoire' : item ? 'Enregistrer' : 'Ajouter à ma collection'}
+          <PsSymbol shape="cross" /> {saving ? 'Sauvegarde en cours… Ne retirez pas la carte mémoire' : item ? 'Enregistrer' : 'Ajouter à ma collection'}
         </button>
       </div>
     </form>

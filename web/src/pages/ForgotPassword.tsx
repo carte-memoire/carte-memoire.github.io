@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
+import { PsSymbol } from '../components/PsSymbol';
 
 export function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -33,10 +34,10 @@ export function ForgotPassword() {
             <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} maxLength={254} />
           </label>
           {error && <p className="error" role="alert">{error}</p>}
-          <button type="submit" className="button button-primary button-block" disabled={busy}>✕ Recevoir un lien</button>
+          <button type="submit" className="button button-primary button-block" disabled={busy}><PsSymbol shape="cross" /> Recevoir un lien</button>
         </form>
       )}
-      <p className="small center"><Link to="/connexion">○ Retour à la connexion</Link></p>
+      <p className="small center"><Link to="/connexion"><PsSymbol shape="circle" /> Retour à la connexion</Link></p>
     </section>
   );
 }

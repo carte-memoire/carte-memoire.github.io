@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { useAuth } from '../auth/AuthContext';
 import { PasswordRules, passwordIsValid } from '../components/PasswordRules';
+import { PsSymbol } from '../components/PsSymbol';
 
 // Page ouverte depuis le lien « mot de passe oublié » : le lien a déjà ouvert
 // une session temporaire, il ne reste qu'à choisir le nouveau mot de passe.
@@ -21,7 +22,7 @@ export function ResetPassword() {
       <section className="panel narrow">
         <h1>Lien invalide ou expiré</h1>
         <p>Demande un nouveau lien de réinitialisation.</p>
-        <Link to="/mot-de-passe-oublie" className="button">✕ Nouveau lien</Link>
+        <Link to="/mot-de-passe-oublie" className="button"><PsSymbol shape="cross" /> Nouveau lien</Link>
       </section>
     );
   }
@@ -56,7 +57,7 @@ export function ResetPassword() {
           <input type="password" autoComplete="new-password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} maxLength={128} />
         </label>
         {error && <p className="error" role="alert">{error}</p>}
-        <button type="submit" className="button button-primary button-block" disabled={busy}>✕ Enregistrer</button>
+        <button type="submit" className="button button-primary button-block" disabled={busy}><PsSymbol shape="cross" /> Enregistrer</button>
       </form>
     </section>
   );

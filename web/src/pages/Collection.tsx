@@ -8,6 +8,7 @@ import type { CollectionItem, ItemStatus } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
 import { AddToCollection } from '../components/AddToCollection';
 import { Cover } from '../components/Cover';
+import { PsSymbol } from '../components/PsSymbol';
 
 export function Collection() {
   const { session, profile } = useAuth();
@@ -61,7 +62,7 @@ export function Collection() {
             <Link to="/compte">changer</Link>
           </p>
         </div>
-        <button type="button" className="button button-primary" onClick={() => setDialog({ open: true })}>✕ Ajouter un jeu</button>
+        <button type="button" className="button button-primary" onClick={() => setDialog({ open: true })}><PsSymbol shape="cross" /> Ajouter un jeu</button>
       </div>
 
       <div className="tabs" role="tablist">
@@ -77,7 +78,7 @@ export function Collection() {
       {loaded && shown.length === 0 && (
         <div className="panel empty">
           <p>{tab === 'owned' ? 'Aucun jeu pour le moment : ta carte mémoire est vide !' : 'Aucun jeu dans ta liste de recherche.'}</p>
-          <button type="button" className="button button-primary" onClick={() => setDialog({ open: true })}>✕ Ajouter un jeu</button>
+          <button type="button" className="button button-primary" onClick={() => setDialog({ open: true })}><PsSymbol shape="cross" /> Ajouter un jeu</button>
         </div>
       )}
 
@@ -103,7 +104,7 @@ export function Collection() {
                 )}
                 {item.notes && <p className="block-notes">{item.notes}</p>}
                 <div className="block-actions">
-                  <button type="button" className="button button-small" onClick={() => setDialog({ open: true, item })}>△ Modifier</button>
+                  <button type="button" className="button button-small" onClick={() => setDialog({ open: true, item })}><PsSymbol shape="triangle" /> Modifier</button>
                   <button type="button" className="button button-small button-danger" onClick={() => remove(item)}>Retirer</button>
                 </div>
               </div>

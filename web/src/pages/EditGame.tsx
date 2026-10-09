@@ -8,6 +8,7 @@ import { ACCEPT_ATTRIBUTE, prepareCover } from '../lib/images';
 import type { DatePrecision, EditionType, Game, ImageType, Release, Zone } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
 import { Cover } from '../components/Cover';
+import { PsSymbol } from '../components/PsSymbol';
 
 const IMAGE_TYPES: { value: ImageType; label: string }[] = [
   { value: 'front', label: 'Recto' },
@@ -44,7 +45,7 @@ export function EditGame() {
     <section className="stack">
       <div className="page-head">
         <h1>Modifier « {game.title} »</h1>
-        <Link to={gamePath(game)} className="button">○ Retour à la fiche</Link>
+        <Link to={gamePath(game)} className="button"><PsSymbol shape="circle" /> Retour à la fiche</Link>
       </div>
       {aal.current !== 'aal2' && (
         <p className="warning">
@@ -112,7 +113,7 @@ function GameForm({ game, onSaved }: { game: Game; onSaved: () => void }) {
       </div>
       {message && <p className="success">{message}</p>}
       {error && <p className="error" role="alert">{error}</p>}
-      <button type="submit" className="button button-primary">✕ Enregistrer le jeu</button>
+      <button type="submit" className="button button-primary"><PsSymbol shape="cross" /> Enregistrer le jeu</button>
     </form>
   );
 }
@@ -204,7 +205,7 @@ function ReleaseEditor({ release, onSaved }: { release: Release; onSaved: () => 
             {IMAGE_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
           <label className="button button-small">
-            {busy ? 'Envoi…' : '□ Ajouter une image'}
+            {busy ? 'Envoi…' : <><PsSymbol shape="square" /> Ajouter une image</>}
             <input type="file" accept={ACCEPT_ATTRIBUTE} className="sr-only" disabled={busy}
               onChange={(e) => { uploadImage(e.target.files?.[0]); e.target.value = ''; }} />
           </label>
@@ -257,7 +258,7 @@ function ReleaseEditor({ release, onSaved }: { release: Release; onSaved: () => 
         </fieldset>
         {message && <p className="success">{message}</p>}
         {error && <p className="error" role="alert">{error}</p>}
-        <button type="submit" className="button button-primary">✕ Enregistrer cette version</button>
+        <button type="submit" className="button button-primary"><PsSymbol shape="cross" /> Enregistrer cette version</button>
       </form>
     </div>
   );

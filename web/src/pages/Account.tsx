@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { useAuth } from '../auth/AuthContext';
 import { PasswordRules, passwordIsValid } from '../components/PasswordRules';
+import { PsSymbol } from '../components/PsSymbol';
 
 export function Account() {
   const { profile, isModerator, aal } = useAuth();
@@ -60,7 +61,7 @@ function ProfileSection() {
           <span className="field-label">Pseudo</span>
           <input value={username} onChange={(e) => setUsername(e.target.value)} maxLength={30} />
         </label>
-        <button type="submit" className="button">✕ Enregistrer</button>
+        <button type="submit" className="button"><PsSymbol shape="cross" /> Enregistrer</button>
       </form>
       <label className="switch">
         <input type="checkbox" checked={profile?.public_collection ?? false} onChange={(e) => togglePublic(e.target.checked)} />
@@ -125,7 +126,7 @@ function PasskeySection() {
           ))}
         </ul>
       )}
-      {supported && <button type="button" className="button button-primary" onClick={add} disabled={busy}>△ Ajouter une passkey</button>}
+      {supported && <button type="button" className="button button-primary" onClick={add} disabled={busy}><PsSymbol shape="triangle" /> Ajouter une passkey</button>}
       {error && <p className="error" role="alert">{error}</p>}
     </div>
   );
@@ -209,12 +210,12 @@ function TotpSection() {
               value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} />
           </label>
           <div className="actions">
-            <button type="button" className="button" onClick={() => setEnrolling(null)}>○ Annuler</button>
-            <button type="submit" className="button button-primary" disabled={code.length !== 6}>✕ Activer</button>
+            <button type="button" className="button" onClick={() => setEnrolling(null)}><PsSymbol shape="circle" /> Annuler</button>
+            <button type="submit" className="button button-primary" disabled={code.length !== 6}><PsSymbol shape="cross" /> Activer</button>
           </div>
         </form>
       ) : (
-        <button type="button" className="button button-primary" onClick={start}>△ Activer la double authentification</button>
+        <button type="button" className="button button-primary" onClick={start}><PsSymbol shape="triangle" /> Activer la double authentification</button>
       )}
       {error && <p className="error" role="alert">{error}</p>}
     </div>
@@ -271,8 +272,8 @@ function PasswordSection() {
             <input type="password" autoComplete="new-password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} maxLength={128} />
           </label>
           <div className="actions">
-            <button type="button" className="button" onClick={() => setStep('idle')}>○ Annuler</button>
-            <button type="submit" className="button button-primary">✕ Changer</button>
+            <button type="button" className="button" onClick={() => setStep('idle')}><PsSymbol shape="circle" /> Annuler</button>
+            <button type="submit" className="button button-primary"><PsSymbol shape="cross" /> Changer</button>
           </div>
         </form>
       )}

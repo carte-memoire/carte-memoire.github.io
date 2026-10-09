@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
+import { PsSymbol } from './PsSymbol';
 
 // Fenêtre modale accessible, basée sur l'élément <dialog> du navigateur
 // (Échap pour fermer, focus gardé dans la fenêtre).
@@ -16,7 +17,7 @@ export function Dialog({ open, onClose, title, children }: { open: boolean; onCl
     <dialog ref={ref} className="dialog" onClose={onClose} aria-labelledby="dialog-title">
       <div className="dialog-head">
         <h2 id="dialog-title">{title}</h2>
-        <button type="button" className="icon-button" onClick={onClose} aria-label="Fermer">○</button>
+        <button type="button" className="icon-button" onClick={onClose} aria-label="Fermer"><PsSymbol shape="circle" /></button>
       </div>
       <div className="dialog-body">{open && children}</div>
     </dialog>

@@ -1,5 +1,6 @@
 import { coverUrl } from '../lib/supabase';
 import type { ReleaseImage } from '../lib/types';
+import { PsSymbol } from './PsSymbol';
 
 // Jaquette (recto) d'une sortie, ou boîtier vide « pas encore de jaquette »
 export function Cover({ images, title, size = 'medium' }: { images: ReleaseImage[]; title: string; size?: 'small' | 'medium' | 'large' }) {
@@ -10,7 +11,7 @@ export function Cover({ images, title, size = 'medium' }: { images: ReleaseImage
         <img src={coverUrl(front.path)} alt={`Jaquette de ${title}`} loading="lazy" />
       ) : (
         <span className="cover-empty" aria-label="Pas encore de jaquette">
-          <span aria-hidden="true">□</span>
+          <span aria-hidden="true"><PsSymbol shape="square" /></span>
         </span>
       )}
     </div>

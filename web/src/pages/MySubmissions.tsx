@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { zoneLabel } from '../lib/format';
 import type { Submission } from '../lib/types';
+import { PsSymbol } from '../components/PsSymbol';
 
 const STATUS: Record<Submission['status'], { label: string; className: string }> = {
   pending: { label: 'En attente', className: 'badge-todo' },
@@ -40,7 +41,7 @@ export function MySubmissions() {
     <section className="stack">
       <div className="page-head">
         <h1>Mes propositions</h1>
-        <Link to="/proposer" className="button button-primary">✕ Proposer un jeu</Link>
+        <Link to="/proposer" className="button button-primary"><PsSymbol shape="cross" /> Proposer un jeu</Link>
       </div>
       {error && <p className="error">{error}</p>}
       {loaded && items.length === 0 && <p className="panel empty">Aucune proposition pour le moment.</p>}

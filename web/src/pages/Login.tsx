@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { safeNext } from '../auth/RequireAuth';
+import { PsSymbol } from '../components/PsSymbol';
 
 export function Login() {
   const navigate = useNavigate();
@@ -51,7 +52,7 @@ export function Login() {
       {passkeysSupported && (
         <>
           <button type="button" className="button button-primary button-block" onClick={signInWithPasskey} disabled={busy}>
-            △ Se connecter avec une passkey
+            <PsSymbol shape="triangle" /> Se connecter avec une passkey
           </button>
           <p className="muted small center">Empreinte, visage, Windows Hello ou clé de sécurité : la méthode la plus sûre.</p>
           <p className="separator"><span>ou</span></p>
@@ -68,7 +69,7 @@ export function Login() {
           <input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} maxLength={128} />
         </label>
         {error && <p className="error" role="alert">{error}</p>}
-        <button type="submit" className="button button-block" disabled={busy}>✕ Se connecter</button>
+        <button type="submit" className="button button-block" disabled={busy}><PsSymbol shape="cross" /> Se connecter</button>
       </form>
 
       <p className="small center">

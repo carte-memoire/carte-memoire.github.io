@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { PasswordRules, passwordIsValid } from '../components/PasswordRules';
+import { PsSymbol } from '../components/PsSymbol';
 
 const USERNAME = /^[A-Za-z0-9_-]{3,30}$/;
 
@@ -42,7 +43,7 @@ export function Signup() {
         <h1>Vérifie ta boîte mail</h1>
         <p>Si cette adresse n'a pas encore de compte, un lien de confirmation vient de t'être envoyé (valable 30 minutes).</p>
         <p className="muted small">Pense à regarder dans les indésirables.</p>
-        <Link to="/connexion" className="button">○ Retour à la connexion</Link>
+        <Link to="/connexion" className="button"><PsSymbol shape="circle" /> Retour à la connexion</Link>
       </section>
     );
   }
@@ -71,7 +72,7 @@ export function Signup() {
           <input type="password" autoComplete="new-password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} maxLength={128} />
         </label>
         {error && <p className="error" role="alert">{error}</p>}
-        <button type="submit" className="button button-primary button-block" disabled={busy}>✕ Créer mon compte</button>
+        <button type="submit" className="button button-primary button-block" disabled={busy}><PsSymbol shape="cross" /> Créer mon compte</button>
         <p className="muted small">Une fois connecté, tu pourras ajouter une passkey et la double authentification dans « Mon compte ».</p>
       </form>
     </section>
