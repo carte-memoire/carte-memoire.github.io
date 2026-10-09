@@ -166,21 +166,55 @@ const outDir = join(ROOT, '.covers-import', 'releases');
 mkdirSync(outDir, { recursive: true });
 let done = 0;
 const rows = [];
-for (const m of matches) {
-  const target = join(outDir, `${m.release.id}`, 'front.webp');
+const failures = [];
+// Une même image peut servir à plusieurs versions : on recopie le WebP déjà converti
+const converted = new Map(); // fichier source → WebP produit
+
+async function fetchPng(file) {
+  const url = `https://raw.githubusercontent.com/${REPO}/master/Named_Boxarts/${encodeURIComponent(file)}`;
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT } });
+    if (res.ok) return Buffer.from(await res.arrayBuffer());
+    if (![429, 500, 502, 503, 504].includes(res.status)) throw new Error(`${res.status}`);
+    await new Promise((r) => setTimeout(r, attempt * 15000)); // GitHub demande de ralentir
+  }
+  throw new Error('serveur indisponible');
+}
+
+async function processMatch(m) {
+  const dir = join(outDir, `${m.release.id}`);
+  const target = join(dir, 'front.webp');
+  if (!existsSync(target)) {
+    mkdirSync(dir, { recursive: true });
+    if (converted.has(m.cover.file)) {
+      writeFileSync(target, readFileSync(converted.get(m.cover.file)));
+    } else {
+      // sharp vérifie que c'est bien une image avant de la convertir (rien d'autre n'est accepté)
+      const webp = await sharp(await fetchPng(m.cover.file), { failOn: 'error' })
+        .resize({ width: 800, height: 800, fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 80 })
+        .toBuffer();
+      writeFileSync(target, webp);
+    }
+  }
+  converted.set(m.cover.file, target);
   rows.push([m.release.id, `releases/${m.release.id}/front.webp`]);
-  if (existsSync(target)) { done++; continue; }
-  const url = `https://raw.githubusercontent.com/${REPO}/master/Named_Boxarts/${encodeURIComponent(m.cover.file)}`;
-  const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT } });
-  if (!res.ok) { console.log(`  échec ${res.status} : ${m.cover.file}`); rows.pop(); continue; }
-  const webp = await sharp(Buffer.from(await res.arrayBuffer()))
-    .resize({ width: 800, height: 800, fit: 'inside', withoutEnlargement: true })
-    .webp({ quality: 80 })
-    .toBuffer();
-  mkdirSync(join(outDir, `${m.release.id}`), { recursive: true });
-  writeFileSync(target, webp);
   if (++done % 200 === 0) console.log(`  ${done} / ${matches.length}`);
 }
+
+// 4 téléchargements en parallèle
+const queue = [...matches];
+await Promise.all(Array.from({ length: 4 }, async () => {
+  for (let m = queue.shift(); m; m = queue.shift()) {
+    try {
+      await processMatch(m);
+    } catch (err) {
+      failures.push(`${m.cover.file} : ${err.message}`);
+    }
+  }
+}));
+if (failures.length) console.log(`  ${failures.length} échecs, par exemple :\n    ${failures.slice(0, 5).join('\n    ')}`);
+rows.sort((a, b) => a[0] - b[0]);
 
 const now = new Date();
 const stamp = now.toISOString().replace(/\D/g, '').slice(0, 14);

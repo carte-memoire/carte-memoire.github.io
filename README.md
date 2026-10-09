@@ -28,6 +28,26 @@ npx supabase config push      # l'envoie, après confirmation
 
 Tests de la base (migrations, contraintes, règles de sécurité) : `supabase/tests/check-migrations.mjs`.
 
+## Imports de données
+
+Scripts dans `scripts/` (dépendances : `cd scripts && npm install`). Chacun écrit une migration SQL dans `supabase/migrations/`, à envoyer avec `npx supabase db push`.
+
+| Script | Source | Contenu |
+|---|---|---|
+| `import-wikidata.mjs` | Wikidata (CC0) | Jeux PS1, développeurs, genres, séries, dates |
+| `import-wikipedia.mjs` | Wikipédia EN (CC BY-SA) | Liste complète des jeux PS1, versions par région, éditeurs |
+| `import-summaries.mjs` | Wikipédia FR (CC BY-SA) | Résumés (introduction des articles), avec lien source |
+| `import-covers.mjs` | libretro-thumbnails | Jaquettes (recto) |
+
+Jaquettes, en trois temps :
+
+```bash
+node scripts/import-covers.mjs                 # analyse : combien de versions trouvent leur jaquette
+node scripts/import-covers.mjs --telecharger   # télécharge, convertit en WebP dans .covers-import/, écrit la migration
+npx supabase storage cp -r .covers-import/releases ss:///covers/releases --linked --experimental --jobs 8 --content-type image/webp
+npx supabase db push                           # rattache les images envoyées à leurs versions
+```
+
 ## Sécurité
 
 | Couche | Mesure |
