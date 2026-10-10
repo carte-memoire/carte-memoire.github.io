@@ -71,6 +71,10 @@ Ajouter une console (PS2, NES…) revient à ajouter **une ligne** dans `platfor
 - **RG23** : Une collection est privée par défaut. L'utilisateur peut la rendre publique.
 - **RG24** : Progression : un jeu est **possédé dans une zone** dès qu'au moins une de ses sorties de cette zone est possédée (Black Label ou Platinum, peu importe ; trois exemplaires comptent pour un jeu). On compte des **jeux**, pas des exemplaires : « 312 jeux PAL sur 1 286 ». Le catalogue et la progression ne regardent que la collection de la personne connectée.
 - **RG25** : Une collection s'exporte en CSV (toutes les colonnes, identifiant de version compris) et s'importe depuis un CSV. À l'import, chaque ligne est rattachée à une sortie par son identifiant, sinon son code produit, sinon son titre exact ; la zone et l'édition départagent. Les lignes douteuses (Black Label ou Platinum avec le même code…) sont à vérifier par la personne avant l'ajout, et les sorties déjà possédées sont ignorées par défaut pour ne pas créer de doubles.
+- **RG26** : Un modérateur peut supprimer un jeu ou une version, sauf si un membre l'a dans sa collection (possédé ou recherché) : pour un doublon, on fusionne. Une version unique ne se supprime pas seule. Chaque suppression est notée dans un journal (`catalog_deletion`).
+- **RG27** : Les caractéristiques d'une version (blocs de carte mémoire, manette analogique, vibrations…) sont celles prévues par sa console (`platform.spec_fields`) ; la base refuse toute autre clé ou valeur. « Non précisé » (absent) n'est pas « Non ».
+- **RG28** : Un membre peut signaler une erreur sur un jeu ou une version (20 signalements par jour au plus). Un modérateur la classe « corrigée » ou « rejetée », avec un mot visible par l'auteur.
+- **RG29** : Toute modification du catalogue faite par une personne connectée (jeu, version, genre d'un jeu, image) est notée dans l'historique (`catalog_change`) avec son auteur et les valeurs avant et après. Un modérateur peut annuler une modification simple si rien n'a changé depuis ; l'annulation est notée à son tour.
 
 ---
 

@@ -10,6 +10,7 @@ import type { Game, Release } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
 import { Cover } from '../components/Cover';
 import { PsSymbol } from '../components/PsSymbol';
+import { ReportDialog } from '../components/ReportDialog';
 
 export function GamePage() {
   const { id } = useParams();
@@ -20,6 +21,7 @@ export function GamePage() {
   const [game, setGame] = useState<Game | null>(null);
   const [state, setState] = useState<'loading' | 'ok' | 'missing'>('loading');
   const [proposeSummary, setProposeSummary] = useState(false);
+  const [reporting, setReporting] = useState(false);
 
   useEffect(() => {
     if (!Number.isInteger(gameId)) return setState('missing');
@@ -85,9 +87,13 @@ export function GamePage() {
             <button type="button" className="button" onClick={() => (session ? setProposeSummary(true) : navigate(`/connexion?next=${encodeURIComponent(location.pathname)}`))}>
               <PsSymbol shape="circle" /> {game.summary ? 'Proposer un meilleur résumé' : 'Proposer un résumé'}
             </button>
+            <button type="button" className="button" onClick={() => (session ? setReporting(true) : navigate(`/connexion?next=${encodeURIComponent(location.pathname)}`))}>
+              <PsSymbol shape="circle" /> Signaler une erreur
+            </button>
             {isModerator && <Link to={`/jeu/${game.id}/modifier`} className="button button-primary"><PsSymbol shape="triangle" /> Modifier ce jeu</Link>}
           </div>
           <SummaryProposal open={proposeSummary} onClose={() => setProposeSummary(false)} game={game} />
+          <ReportDialog open={reporting} onClose={() => setReporting(false)} game={game} />
         </div>
       </header>
 

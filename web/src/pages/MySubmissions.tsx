@@ -2,8 +2,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
-import { zoneLabel } from '../lib/format';
-import type { Submission } from '../lib/types';
+import { formatDateTime, gamePath, reportKindLabel, zoneLabel } from '../lib/format';
+import type { Report, Submission } from '../lib/types';
+import { useAuth } from '../auth/AuthContext';
 import { PsSymbol } from '../components/PsSymbol';
 import { useConfirm } from '../components/Confirm';
 
@@ -19,6 +20,16 @@ export function MySubmissions() {
   const [titles, setTitles] = useState<Map<number, string>>(new Map());
   const [error, setError] = useState('');
   const [loaded, setLoaded] = useState(false);
+  const { session } = useAuth();
+  const [reports, setReports] = useState<Report[]>([]);
+
+  // Mes signalements d'erreurs (un modérateur voit tous les signalements : on filtre sur l'auteur)
+  useEffect(() => {
+    if (!session) return;
+    supabase.from('report').select('id, game_id, release_id, kind, message, status, review_note, created_at, reviewed_at, game:game_id(id, title)')
+      .eq('author_id', session.user.id).order('created_at', { ascending: false }).limit(100)
+      .then(({ data }) => setReports((data as unknown as Report[]) ?? []));
+  }, [session]);
 
   const load = useCallback(async () => {
     const { data, error } = await supabase
@@ -85,6 +96,26 @@ export function MySubmissions() {
           );
         })}
       </ul>
+      {reports.length > 0 && (
+        <>
+          <h2>Mes signalements</h2>
+          <ul className="plain-list">
+            {reports.map((r) => (
+              <li key={r.id} className="panel list-row">
+                <span>
+                  <strong>{r.game ? <Link to={gamePath(r.game)}>{r.game.title}</Link> : 'Jeu supprimé'}</strong>{' '}
+                  <span className="muted small">{reportKindLabel(r.kind)} · {formatDateTime(r.created_at)}</span>
+                  <span className="block-notes">{r.message}</span>
+                  {r.review_note && <span className="block-notes">Modération : {r.review_note}</span>}
+                </span>
+                <span className={`badge ${r.status === 'open' ? 'badge-todo' : r.status === 'resolved' ? 'badge-ok' : 'badge-ko'}`}>
+                  {r.status === 'open' ? 'En attente' : r.status === 'resolved' ? 'Corrigé' : 'Rejeté'}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </section>
   );
 }

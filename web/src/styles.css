@@ -708,3 +708,12 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 
 /* ---------- Caractéristiques d'une version ---------- */
 .specs-editor { display: flex; flex-direction: column; gap: 10px; padding: 12px; border: 1px dashed var(--line); border-radius: var(--radius); }
+
+/* ---------- Signalements et historique ---------- */
+.report-message { margin: 0; white-space: pre-line; padding: 10px 12px; background: var(--bg-2); border-left: 3px solid var(--gold); border-radius: var(--radius); }
+.history-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.history-item { padding: 10px 12px; background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius); display: flex; flex-direction: column; gap: 4px; }
+.history-item.is-undone { opacity: 0.6; }
+.history-item p { margin: 0; }
+.history-details { margin: 0; padding-left: 18px; font-size: 0.85rem; color: var(--muted); overflow-wrap: anywhere; }
+.history-item .link-button { align-self: flex-start; font-size: 0.85rem; }

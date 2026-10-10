@@ -467,6 +467,49 @@ await ko('périphérique inconnu : refusé', specs({ peripherals: ['kinect'] }),
 await ok('tout effacer reste possible', specs({}));
 await egal('libretro : Ape Escape (USA, SCUS-94423) compatible analogique et vibrations', val(`select specs ->> 'analog' as a, specs ->> 'vibration' as v from public.release where product_code = 'SCUS-94423'`), [{ a: 'compatible', v: 'true' }]);
 
+console.log('\nSignalements d\'erreurs');
+const SIMPLE = '00000000-0000-0000-0000-00000000000d'; // membre ordinaire (AUTRE est modérateur depuis « Rôles »)
+await db.query(`insert into auth.users (id) values ($1)`, [SIMPLE]);
+const signaler = (uid, gameId, message, extra = {}) => en(uid, `insert into public.report (game_id, release_id, kind, message) values ($1, $2, $3, $4) returning id`,
+  [gameId, extra.release ?? null, extra.kind ?? 'genre', message]);
+const rapport = (await ok('un membre signale une erreur de genre', signaler(MEMBRE, jeu, 'Ce jeu est un RPG, pas un jeu de course.'))).rows[0].id;
+await ko('message trop court : refusé', signaler(MEMBRE, jeu, 'Faux'), 'check');
+await ko('version d\'un autre jeu : refusée', signaler(MEMBRE, jeu, 'La version indiquée est fausse.', { release: unAutrePal.id }), 'foreign key');
+await ko('un membre ne choisit pas le statut', en(MEMBRE, `insert into public.report (game_id, kind, message, status) values ($1, 'other', 'Un message assez long', 'resolved')`, [jeu]), 'permission denied');
+await ko('un visiteur ne peut pas signaler', signaler(null, jeu, 'Un message assez long.'), 'permission denied');
+// L'une après l'autre : en() change l'identité de l'unique connexion de test
+const vuParAuteur = (await lignes(en(MEMBRE, `select count(*)::int as n from public.report`)))[0].n;
+const vuParAutre = (await lignes(en(SIMPLE, `select count(*)::int as n from public.report`)))[0].n;
+await egal('l\'auteur voit son signalement, un autre membre non', Promise.resolve([vuParAuteur, vuParAutre]), [1, 0]);
+await ko('un membre ne traite pas un signalement', en(MEMBRE, `select public.review_report($1, true)`, [rapport]), 'Seuls les modérateurs');
+await ok('un admin le classe « corrigé », avec un mot', en(ADMIN, `select public.review_report($1, true, 'Merci, corrigé !')`, [rapport]));
+await egal('…l\'auteur voit la réponse', lignes(en(MEMBRE, `select status, review_note from public.report where id = $1`, [rapport])), [{ status: 'resolved', review_note: 'Merci, corrigé !' }]);
+await ko('…et il ne se traite pas deux fois', en(ADMIN, `select public.review_report($1, false)`, [rapport]), 'déjà traité');
+for (let i = 0; i < 19; i++) await signaler(SIMPLE, jeu, `Signalement numéro ${i} pour le test.`);
+await ok('20 signalements dans la journée : acceptés', signaler(SIMPLE, jeu, 'Signalement numéro 20 pour le test.'));
+await ko('le 21e : refusé (anti-abus)', signaler(SIMPLE, jeu, 'Signalement numéro 21 pour le test.'), '20 signalements');
+
+console.log('\nHistorique des modifications');
+await egal('les imports (migrations) ne sont pas dans l\'historique', val(`select count(*)::int as n from public.catalog_change where changed_by is null`), [{ n: 0 }]);
+const hist = (await en(ADMIN, `insert into public.game (title) values ('Jeu Historique') returning id`)).rows[0].id;
+await ok('un admin renomme le jeu', en(ADMIN, `update public.game set title = 'Jeu Historique (corrigé)' where id = $1`, [hist]));
+const changement = await val(`select id, action, old_values, new_values, changed_by from public.catalog_change where table_name = 'game' and row_key = $1 and action = 'update'`, [String(hist)]);
+await egal('…noté : seulement le titre, avant et après, avec l\'auteur', Promise.resolve(changement.map((c) => [c.action, c.old_values, c.new_values, c.changed_by])),
+  [['update', { title: 'Jeu Historique' }, { title: 'Jeu Historique (corrigé)' }, ADMIN]]);
+await egal('un membre ne lit pas l\'historique', lignes(en(MEMBRE, `select count(*)::int as n from public.catalog_change`)), [{ n: 0 }]);
+await ko('un membre n\'annule pas', en(MEMBRE, `select public.undo_catalog_change($1)`, [changement[0].id]), 'Seuls les modérateurs');
+await ok('un admin annule le renommage', en(ADMIN, `select public.undo_catalog_change($1)`, [changement[0].id]));
+await egal('…le titre est rétabli', val(`select title from public.game where id = $1`, [hist]), [{ title: 'Jeu Historique' }]);
+await ko('…et on n\'annule pas deux fois', en(ADMIN, `select public.undo_catalog_change($1)`, [changement[0].id]), 'déjà été annulée');
+await en(ADMIN, `update public.game set title = 'Titre A' where id = $1`, [hist]);
+const versA = (await val(`select max(id) as id from public.catalog_change where table_name = 'game' and row_key = $1`, [String(hist)]))[0].id;
+await en(ADMIN, `update public.game set title = 'Titre B' where id = $1`, [hist]);
+await ko('annuler une modification écrasée depuis : refusé', en(ADMIN, `select public.undo_catalog_change($1)`, [versA]), 'modifiés depuis');
+await en(ADMIN, `insert into public.game_genre (game_id, genre_id) select $1, id from public.genre where name = 'RPG'`, [hist]);
+const ajoutGenre = (await val(`select max(id) as id from public.catalog_change where table_name = 'game_genre' and game_id = $1`, [hist]))[0].id;
+await ok('annuler l\'ajout d\'un genre', en(ADMIN, `select public.undo_catalog_change($1)`, [ajoutGenre]));
+await egal('…le genre est retiré', val(`select count(*)::int as n from public.game_genre where game_id = $1`, [hist]), [{ n: 0 }]);
+
 console.log('\nCohérence du catalogue (imports compris)');
 await egal('chaque jeu importé a au moins une sortie', val(`select count(*)::int as n from public.game g where g.wikidata_id is not null and not exists (select 1 from public.release r where r.game_id = g.id)`), [{ n: 0 }]);
 await egal('chaque date de sortie est cohérente avec sa précision', val(`select count(*)::int as n from public.release_region where (release_date is null) <> (date_precision is null)`), [{ n: 0 }]);

@@ -215,3 +215,34 @@ export interface ProgressRow {
   owned: number;
   wanted: number;
 }
+
+// Erreur signalée par un membre (table report)
+export type ReportKind = 'genre' | 'title' | 'release' | 'cover' | 'duplicate' | 'other';
+export interface Report {
+  id: number;
+  game_id: number;
+  release_id: number | null;
+  kind: ReportKind;
+  message: string;
+  status: 'open' | 'resolved' | 'rejected';
+  review_note: string | null;
+  created_at: string;
+  reviewed_at: string | null;
+  author?: { username: string } | null;
+  game?: { id: number; title: string } | null;
+}
+
+// Une modification du catalogue (table catalog_change)
+export interface CatalogChange {
+  id: number;
+  table_name: 'game' | 'release' | 'game_genre' | 'image';
+  row_key: string;
+  game_id: number | null;
+  action: 'insert' | 'update' | 'delete';
+  old_values: Record<string, unknown> | null;
+  new_values: Record<string, unknown> | null;
+  changed_at: string;
+  undone_at: string | null;
+  author?: { username: string } | null;
+  undoer?: { username: string } | null;
+}

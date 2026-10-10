@@ -9,6 +9,7 @@ import type { DatePrecision, EditionType, Game, GenreInfo, ImageType, Release, S
 import { useAuth } from '../auth/AuthContext';
 import { Combobox } from '../components/Combobox';
 import { GameSearch } from '../components/GameSearch';
+import { HistoryList } from '../components/HistoryList';
 import { Dialog } from '../components/Dialog';
 import { Cover } from '../components/Cover';
 import { useConfirm } from '../components/Confirm';
@@ -73,6 +74,10 @@ export function EditGame() {
       {releases.map((r) => (
         <ReleaseEditor key={r.id} release={r} onSaved={load} canDelete={releases.length > 1} possibleDuplicate={isEmptyTwin(r, releases)} />
       ))}
+      <section className="panel stack">
+        <h2>Historique</h2>
+        <HistoryList gameId={game.id} onUndone={load} refresh={game} />
+      </section>
       <MergeGame game={game} onMerged={load} />
       <DeleteGame game={game} onDeleted={() => setDeleted(game.title)} />
     </section>

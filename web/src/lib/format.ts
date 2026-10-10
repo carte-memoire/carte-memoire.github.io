@@ -1,4 +1,4 @@
-import type { AcquisitionType, DatePrecision, EditionType, GenreFamily, ItemCondition, Release, TradeStatus, Zone } from './types';
+import type { AcquisitionType, DatePrecision, EditionType, GenreFamily, ItemCondition, Release, ReportKind, TradeStatus, Zone } from './types';
 
 export const ZONES: { value: Zone; label: string }[] = [
   { value: 'PAL', label: 'Europe (PAL)' },
@@ -162,3 +162,19 @@ export const formatNumber = new Intl.NumberFormat('fr-FR').format;
 export function searchKey(text: string): string {
   return text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
 }
+
+export const REPORT_KINDS: { value: ReportKind; label: string }[] = [
+  { value: 'genre', label: 'Genre' },
+  { value: 'title', label: 'Titre' },
+  { value: 'release', label: 'Version (code produit, zone, édition…)' },
+  { value: 'cover', label: 'Jaquette' },
+  { value: 'duplicate', label: 'Doublon (le jeu existe deux fois)' },
+  { value: 'other', label: 'Autre' },
+];
+
+export function reportKindLabel(kind: string): string {
+  return REPORT_KINDS.find((k) => k.value === kind)?.label.split(' (')[0] ?? kind;
+}
+
+const dateTimeFormat = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' });
+export const formatDateTime = (iso: string) => dateTimeFormat.format(new Date(iso));
