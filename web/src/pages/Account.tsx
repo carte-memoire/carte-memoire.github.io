@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { useAuth } from '../auth/AuthContext';
@@ -302,8 +302,7 @@ function SessionsSection() {
 
 // Droit à l'effacement (RGPD) : la personne supprime elle-même son compte
 function DeleteAccountSection() {
-  const { session, signOut } = useAuth();
-  const navigate = useNavigate();
+  const { session } = useAuth();
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState('');
   const [busy, setBusy] = useState(false);
@@ -322,8 +321,10 @@ function DeleteAccountSection() {
       setBusy(false);
       return setError(errorMessage(error));
     }
-    await signOut().catch(() => undefined);
-    navigate('/', { replace: true, state: { accountDeleted: true } });
+    // Rechargement complet vers l'accueil : une simple navigation pouvait être devancée par
+    // la redirection des pages réservées (session fermée → « Connexion »), et le message perdu
+    await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined);
+    window.location.replace('/?compte=supprime');
   }
 
   return (

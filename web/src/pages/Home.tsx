@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { GameSearch } from '../components/GameSearch';
 import { PlatformSelect } from '../components/PlatformSelect';
 import { PsSymbol } from '../components/PsSymbol';
@@ -9,10 +9,10 @@ import { useKnownPlatform, usePlatforms } from '../lib/usePlatforms';
 
 export function Home() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const accountDeleted = Boolean((location.state as { accountDeleted?: boolean } | null)?.accountDeleted);
   const platforms = usePlatforms();
   const [params, setParams] = useSearchParams();
+  // Arrivée après « Supprimer mon compte » (rechargement complet, voir Account.tsx)
+  const accountDeleted = params.get('compte') === 'supprime';
   const selected = useKnownPlatform(params.get('console') ?? rememberedPlatform());
   const current = platforms.find((p) => p.short_name === selected);
   const platformCode = selected === ALL_PLATFORMS ? null : selected;
