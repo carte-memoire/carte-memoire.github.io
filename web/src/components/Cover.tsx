@@ -13,8 +13,8 @@ export function Cover({ images, title, size = 'medium', standIn }: {
   const front = images.find((i) => i.type === 'front');
   if (!front && standIn) {
     return (
-      <div className={`cover cover-${size} cover-stand-in`} title={`Jaquette de la version d'origine, en attendant celle de l'édition ${standIn.label}`}>
-        <img src={coverUrl(standIn.path)} alt={`Jaquette de la version d'origine de ${title}`} loading="lazy" />
+      <div className={`cover cover-${size} cover-stand-in`} title={`Jaquette d'une autre version du jeu, en attendant celle de cette version (${standIn.label})`}>
+        <img src={coverUrl(standIn.path)} alt={`Jaquette d'une autre version de ${title}`} loading="lazy" />
         <span className="cover-ribbon">{standIn.label}</span>
       </div>
     );

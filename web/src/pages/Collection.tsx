@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { COLLECTION_FIELDS } from '../lib/queries';
-import type { StandIn } from '../lib/images';
+import { standInFor, type CoverSource, type StandIn } from '../lib/images';
 import {
   acquisitionLabel, CATALOG_ZONES, CONDITIONS, conditionLabel, editionLabel, formatNumber, formatPrice, gamePath,
   searchKey, TRADE_STATUSES, tradeStatusLabel, zoneLabel,
@@ -73,8 +73,8 @@ export function Collection() {
   const confirm = useConfirm();
   const [params, setParams] = useSearchParams();
   const [items, setItems] = useState<CollectionItem[]>([]);
-  // Recto de la version d'origine des rééditions sans jaquette (id de l'origine → image)
-  const [originCovers, setOriginCovers] = useState<Map<number, string>>(new Map());
+  // Versions des jeux dont l'exemplaire n'a pas de jaquette (id du jeu → versions avec recto)
+  const [siblings, setSiblings] = useState<Map<number, CoverSource[]>>(new Map());
   const [dialog, setDialog] = useState<{ open: boolean; releaseId?: number | null; item?: CollectionItem | null }>({ open: false });
   const [error, setError] = useState('');
   const [loaded, setLoaded] = useState(false);
@@ -107,8 +107,7 @@ export function Collection() {
   }
 
   function standInOf(item: CollectionItem): StandIn | null {
-    const path = item.release.reissue_of ? originCovers.get(item.release.reissue_of) : undefined;
-    return path ? { path, label: item.release.edition_name ?? 'Réédition' } : null;
+    return standInFor(item.release, siblings.get(item.release.game.id) ?? []);
   }
 
   function chooseView(value: CollectionView) {
@@ -139,16 +138,19 @@ export function Collection() {
     setItems(all);
     setLoaded(true);
 
-    const origins = [...new Set(all.map((i) => i.release)
-      .filter((r) => r.reissue_of && !r.image.some((im) => im.type === 'front'))
-      .map((r) => r.reissue_of!))];
-    const covers = new Map<number, string>();
-    for (let i = 0; i < origins.length; i += 200) {
-      const { data } = await supabase.from('image').select('release_id, path')
-        .eq('type', 'front').in('release_id', origins.slice(i, i + 200)).order('id');
-      for (const row of data ?? []) if (!covers.has(row.release_id)) covers.set(row.release_id, row.path);
+    const games = [...new Set(all.map((i) => i.release)
+      .filter((r) => !r.image.some((im) => im.type === 'front'))
+      .map((r) => r.game.id))];
+    const found = new Map<number, CoverSource[]>();
+    for (let i = 0; i < games.length; i += 200) {
+      const { data } = await supabase.from('release')
+        .select('id, game_id, zone, edition_type, image!inner(id, type, path)')
+        .eq('image.type', 'front').in('game_id', games.slice(i, i + 200)).order('id');
+      for (const row of (data ?? []) as (CoverSource & { game_id: number })[]) {
+        found.set(row.game_id, [...(found.get(row.game_id) ?? []), row]);
+      }
     }
-    setOriginCovers(covers);
+    setSiblings(found);
   }, [session]);
 
   useEffect(() => { load(); }, [load]);

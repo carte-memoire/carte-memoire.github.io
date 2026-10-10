@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
-import type { ImageType, ReleaseImage } from './types';
+import type { EditionType, ImageType, ReleaseImage, Zone } from './types';
+import { LANGUAGES } from './format';
 
 // Préparation d'une jaquette avant envoi :
 // - vérifie le format et le poids ;
@@ -70,19 +71,59 @@ export function imageFromClipboard(data: DataTransfer | null): File | null {
   return null;
 }
 
-// Jaquette « en attendant » : pour une réédition (Platinum…) sans recto, celui de la
-// version d'origine, barré d'un bandeau qui dit que ce n'est pas la vraie.
+// ---------------------------------------------------------------------
+// Jaquette « en attendant » : une version sans recto (Platinum, version française,
+// allemande…) affiche celui d'une autre version du même jeu, sous un encart qui dit
+// laquelle on regarde vraiment (« Platinum », « Français », « Platinum · Français »…).
+// ---------------------------------------------------------------------
 export interface StandIn {
   path: string;
   label: string;
 }
 
-// Celle d'une réédition sans recto, d'après les versions du jeu déjà chargées
-export function standInFor(
-  release: { image: ReleaseImage[]; reissue_of: number | null; edition_name: string | null },
-  origins: { id: number; image: ReleaseImage[] }[],
-): StandIn | null {
-  if (!release.reissue_of || release.image.some((i) => i.type === 'front')) return null;
-  const front = origins.find((o) => o.id === release.reissue_of)?.image.find((i) => i.type === 'front');
-  return front ? { path: front.path, label: release.edition_name ?? 'Réédition' } : null;
+// Une autre version du même jeu, dont on peut emprunter le recto
+export interface CoverSource {
+  id: number;
+  zone: Zone | null;
+  edition_type: EditionType;
+  image: ReleaseImage[];
+}
+
+interface ReleaseWithoutCover extends CoverSource {
+  edition_name: string | null;
+  reissue_of: number | null;
+  languages: string[];
+}
+
+const front = (r: { image: ReleaseImage[] }) => r.image.find((i) => i.type === 'front');
+
+// Le recto à emprunter, par ordre de préférence : la version d'origine d'une réédition ;
+// une version standard de la même zone ; la version européenne (PAL) ; n'importe laquelle
+export function standInFor(release: ReleaseWithoutCover, siblings: CoverSource[]): StandIn | null {
+  if (front(release)) return null;
+  const others = siblings.filter((s) => s.id !== release.id && front(s));
+  const pick = others.find((s) => s.id === release.reissue_of)
+    ?? others.find((s) => s.zone === release.zone && s.edition_type === 'standard')
+    ?? others.find((s) => s.zone === 'PAL' && s.edition_type === 'standard')
+    ?? others.find((s) => s.zone === release.zone)
+    ?? others.find((s) => s.zone === 'PAL')
+    ?? others[0];
+  if (!pick) return null;
+  // Jaquette d'une autre zone (américaine sur une version européenne…) : on le dit
+  const parts = standInParts(release);
+  if (pick.zone && pick.zone !== release.zone) parts.push(`jaquette ${ZONE_SHORT[pick.zone]}`);
+  return { path: front(pick)!.path, label: parts.join(' · ') || 'Autre version' };
+}
+
+const ZONE_SHORT: Record<Zone, string> = { PAL: 'EU', 'NTSC-U': 'US', 'NTSC-J': 'JP', region_free: 'toutes zones' };
+
+// L'encart : l'édition (sauf la standard) et la langue (« Français », ou « EN · FR · DE »)
+function standInParts(release: ReleaseWithoutCover): string[] {
+  const parts: string[] = [];
+  if (release.edition_type !== 'standard') parts.push(release.edition_name ?? (release.edition_type === 'reissue' ? 'Réédition' : 'Autre édition'));
+  const languages = release.languages ?? [];
+  if (languages.length === 1) parts.push(LANGUAGES.find((l) => l.value === languages[0])?.label ?? languages[0].toUpperCase());
+  else if (languages.length >= 2 && languages.length <= 3) parts.push(languages.map((l) => l.toUpperCase()).join(' · '));
+  else if (languages.length > 3) parts.push('Multilingue');
+  return parts;
 }

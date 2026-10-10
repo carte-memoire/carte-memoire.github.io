@@ -120,6 +120,7 @@ export interface CollectionItem {
     edition_name: string | null;
     product_code: string | null;
     reissue_of: number | null;
+    languages: string[];
     platform: { short_name: string };
     image: ReleaseImage[];
     game: { id: number; title: string; first_release_date: string | null };

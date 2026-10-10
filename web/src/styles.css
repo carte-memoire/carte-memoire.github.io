@@ -283,7 +283,7 @@ ul.error { padding-left: 28px; }
   position: absolute; top: 0; left: 0; right: 0; padding: 2px 4px;
   background: linear-gradient(180deg, #f4f6fa, #b4bac8); color: #1b1d26;
   font-size: 0.62rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; text-align: center;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); line-height: 1.25;
 }
 .cover-large .cover-ribbon { font-size: 0.8rem; padding: 4px 6px; }
 
