@@ -71,7 +71,10 @@ export function Catalog() {
 
   // Change des filtres dans l'adresse ; par défaut on revient à la page 1
   function update(changes: Record<string, string | null>, { keepPage = false, replace = false } = {}) {
-    const next = new URLSearchParams(params);
+    // On part de l'adresse réelle du navigateur, à jour immédiatement : `params` n'est
+    // mis à jour qu'au rendu suivant, et deux changements rapprochés (zone puis tri)
+    // partiraient sinon tous deux de l'ancienne adresse, effaçant le premier.
+    const next = new URLSearchParams(window.location.search);
     for (const [key, value] of Object.entries(changes)) {
       if (value === null || value === '') next.delete(key);
       else next.set(key, value);
@@ -96,9 +99,9 @@ export function Catalog() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // Champ « filtrer » : l'adresse n'est mise à jour qu'après une courte pause de frappe
+  // Champ « filtrer » : il garde sa propre valeur (rien ne la réécrit pendant la frappe),
+  // et l'adresse n'est mise à jour qu'après une courte pause
   const [text, setText] = useState(query);
-  useEffect(() => { setText((t) => (t.trim() === query ? t : query)); }, [query]);
   useEffect(() => {
     if (text.trim() === query) return;
     const timer = setTimeout(() => update({ q: text.trim() || null }, { replace: true }), 300);
@@ -282,7 +285,7 @@ export function Catalog() {
           {rows === null ? 'Lecture du catalogue…' : `${formatNumber(total)} jeu${total > 1 ? 'x' : ''}${pages > 1 ? ` · page ${page} sur ${pages}` : ''}`}
         </p>
         {filtered && (
-          <button type="button" className="link-button" onClick={() => setParams(new URLSearchParams([...params].filter(([k]) => k === 'console' || k === 'zone')))}>
+          <button type="button" className="link-button" onClick={() => { setText(''); setParams(new URLSearchParams([...params].filter(([k]) => k === 'console' || k === 'zone'))); }}>
             Effacer les filtres
           </button>
         )}

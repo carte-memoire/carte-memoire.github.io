@@ -73,11 +73,13 @@ export function Collection() {
   const [error, setError] = useState('');
   const [loaded, setLoaded] = useState(false);
   const [view, setView] = useState<CollectionView>(rememberedCollectionView);
+  // Le champ de recherche garde sa propre valeur : relue depuis l'adresse, elle
+  // pourrait revenir en arrière pendant la frappe (l'adresse suit avec un léger décalage)
+  const [text, setText] = useState(() => params.get('q') ?? '');
 
   // Onglet, recherche, filtres et tri : dans l'adresse, pour les retrouver
   // en revenant d'une fiche de jeu
   const tab: ItemStatus = params.get('onglet') === 'recherches' ? 'wanted' : 'owned';
-  const query = params.get('q') ?? '';
   const zone = params.get('zone') ?? '';
   const condition = params.get('etat') ?? '';
   const content = (CONTENTS.some((c) => c.value === params.get('contenu')) ? params.get('contenu') : '') as Content | '';
@@ -86,7 +88,10 @@ export function Collection() {
   const sort: Sort = SORTS.some((s) => s.value === sortParam && (tab === 'owned' || !s.ownedOnly)) ? sortParam! : 'recent';
 
   function update(changes: Record<string, string | null>) {
-    const next = new URLSearchParams(params);
+    // On part de l'adresse réelle du navigateur, à jour immédiatement : `params` n'est
+    // mis à jour qu'au rendu suivant, et deux changements rapprochés (zone puis tri)
+    // partiraient sinon tous deux de l'ancienne adresse, effaçant le premier.
+    const next = new URLSearchParams(window.location.search);
     for (const [key, value] of Object.entries(changes)) {
       if (value === null || value === '') next.delete(key);
       else next.set(key, value);
@@ -145,7 +150,7 @@ export function Collection() {
   const wanted = items.filter((i) => i.status === 'wanted');
 
   const shown = useMemo(() => {
-    const key = searchKey(query);
+    const key = searchKey(text);
     const list = (tab === 'owned' ? owned : wanted).filter((item) => {
       const r = item.release;
       if (key && ![r.local_title, r.game.title, r.product_code ?? ''].some((t) => searchKey(t).includes(key))) return false;
@@ -158,10 +163,10 @@ export function Collection() {
     });
     const compare = COMPARE[sort];
     return compare ? [...list].sort(compare) : list;
-  }, [items, tab, query, zone, condition, content, offer, sort]);
+  }, [items, tab, text, zone, condition, content, offer, sort]);
 
   const total = tab === 'owned' ? owned.length : wanted.length;
-  const filtered = Boolean(query || zone || (tab === 'owned' && (condition || content || offer)));
+  const filtered = Boolean(text || zone || (tab === 'owned' && (condition || content || offer)));
 
   return (
     <section className="stack">
@@ -197,7 +202,7 @@ export function Collection() {
           <div className="row">
             <label className="field catalog-search">
               <span className="field-label">Rechercher</span>
-              <input type="search" value={query} onChange={(e) => update({ q: e.target.value })} placeholder="Titre ou code produit" maxLength={120} autoComplete="off" />
+              <input type="search" value={text} onChange={(e) => { setText(e.target.value); update({ q: e.target.value }); }} placeholder="Titre ou code produit" maxLength={120} autoComplete="off" />
             </label>
             <label className="field">
               <span className="field-label">Zone</span>
@@ -243,7 +248,7 @@ export function Collection() {
             <p className="muted small" aria-live="polite">
               {filtered ? `${formatNumber(shown.length)} sur ${formatNumber(total)}` : formatNumber(total)} {noun(tab, total)}
               {filtered && (
-                <> · <button type="button" className="link-button" onClick={() => update({ q: null, zone: null, etat: null, contenu: null, echange: null })}>effacer les filtres</button></>
+                <> · <button type="button" className="link-button" onClick={() => { setText(''); update({ q: null, zone: null, etat: null, contenu: null, echange: null }); }}>effacer les filtres</button></>
               )}
             </p>
             <div className="view-switch" role="group" aria-label="Affichage">
