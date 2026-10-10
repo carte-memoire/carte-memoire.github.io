@@ -2,9 +2,19 @@ import { Suspense, useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { supabase } from '../lib/supabase';
+import { useConfirm } from './Confirm';
 
 export function Layout() {
   const { session, profile, signOut, isModerator } = useAuth();
+  const confirm = useConfirm();
+
+  async function confirmSignOut() {
+    if (await confirm({
+      title: 'Se déconnecter',
+      message: 'Tu devras te reconnecter pour retrouver ta collection (mot de passe ou passkey, et ton code si la double authentification est activée).',
+      confirmLabel: 'Se déconnecter',
+    })) await signOut();
+  }
   const location = useLocation();
   const [pending, setPending] = useState(0);
 
@@ -40,7 +50,7 @@ export function Layout() {
               <div className="account-menu-panel">
                 <Link to="/compte">Mon compte et sécurité</Link>
                 <Link to="/mes-propositions">Mes propositions</Link>
-                <button type="button" className="link-button" onClick={() => signOut()}>Se déconnecter</button>
+                <button type="button" className="link-button" onClick={confirmSignOut}>Se déconnecter</button>
               </div>
             </details>
           ) : (

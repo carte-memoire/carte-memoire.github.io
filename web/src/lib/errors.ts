@@ -10,6 +10,7 @@ const AUTH_MESSAGES: Record<string, string> = {
   over_email_send_rate_limit: "Trop d'e-mails envoyés : réessaie dans quelques minutes.",
   over_request_rate_limit: 'Trop de tentatives : réessaie dans quelques minutes.',
   mfa_verification_failed: 'Code incorrect ou expiré.',
+  otp_expired: 'Code incorrect ou expiré : vérifie-le, ou renvoie l\'e-mail pour en recevoir un nouveau.',
   mfa_challenge_expired: 'Code expiré : demande-en un nouveau.',
   reauthentication_needed: 'Pour des raisons de sécurité, confirme ton identité avec le code reçu par e-mail.',
   reauthentication_not_valid: 'Code de confirmation incorrect ou expiré.',

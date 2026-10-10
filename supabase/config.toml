@@ -240,7 +240,8 @@ secure_password_change = true
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
 max_frequency = "60s"
 # Number of characters used in the email OTP.
-otp_length = 8
+# Carte Mémoire : codes à 6 chiffres (inscription, mot de passe oublié, confirmation).
+otp_length = 6
 # Number of seconds before the email OTP expires (defaults to 1 hour).
 # Carte Mémoire : liens et codes reçus par e-mail valables 30 minutes.
 otp_expiry = 1800
@@ -255,16 +256,54 @@ otp_expiry = 1800
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
-# Uncomment to customize email template
-# [auth.email.template.invite]
-# subject = "You have been invited"
-# content_path = "./supabase/templates/invite.html"
+# Carte Mémoire : e-mails en français, aux couleurs du site, générés par
+# scripts/build-email-templates.mjs (les sujets sont à garder identiques dans les deux fichiers).
+[auth.email.template.confirmation]
+subject = "Confirme ton adresse e-mail · Carte Mémoire"
+content_path = "./supabase/templates/confirmation.html"
 
-# Uncomment to customize notification email template
-# [auth.email.notification.password_changed]
-# enabled = true
-# subject = "Your password has been changed"
-# content_path = "./supabase/templates/password_changed_notification.html"
+[auth.email.template.recovery]
+subject = "Ton code pour changer de mot de passe · Carte Mémoire"
+content_path = "./supabase/templates/recovery.html"
+
+[auth.email.template.reauthentication]
+subject = "Ton code de confirmation · Carte Mémoire"
+content_path = "./supabase/templates/reauthentication.html"
+
+[auth.email.template.email_change]
+subject = "Confirme ta nouvelle adresse e-mail · Carte Mémoire"
+content_path = "./supabase/templates/email_change.html"
+
+[auth.email.template.magic_link]
+subject = "Ton lien de connexion · Carte Mémoire"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.email.template.invite]
+subject = "Tu es invité sur Carte Mémoire"
+content_path = "./supabase/templates/invite.html"
+
+
+# Carte Mémoire : e-mails de sécurité, pour prévenir la personne d'un changement sur son compte
+[auth.email.notification.password_changed]
+enabled = true
+subject = "Ton mot de passe a été changé · Carte Mémoire"
+content_path = "./supabase/templates/password_changed.html"
+
+[auth.email.notification.email_changed]
+enabled = true
+subject = "Ton adresse e-mail a été changée · Carte Mémoire"
+content_path = "./supabase/templates/email_changed.html"
+
+[auth.email.notification.mfa_factor_enrolled]
+enabled = true
+subject = "Double authentification activée · Carte Mémoire"
+content_path = "./supabase/templates/mfa_factor_enrolled.html"
+
+[auth.email.notification.mfa_factor_unenrolled]
+enabled = true
+subject = "Double authentification désactivée · Carte Mémoire"
+content_path = "./supabase/templates/mfa_factor_unenrolled.html"
+
 
 [auth.sms]
 # Allow/disallow new user signups via SMS to your project.

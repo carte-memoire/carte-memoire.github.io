@@ -5,6 +5,7 @@ import { errorMessage } from '../lib/errors';
 import { useAuth } from '../auth/AuthContext';
 import { safeNext } from '../auth/RequireAuth';
 import { PsSymbol } from '../components/PsSymbol';
+import { CodeInput } from '../components/CodeInput';
 
 // Deuxième étape de connexion : code à 6 chiffres de l'application d'authentification
 export function MfaChallenge() {
@@ -26,12 +27,11 @@ export function MfaChallenge() {
     });
   }, [loading, session, navigate, next]);
 
-  async function submit(e: FormEvent) {
-    e.preventDefault();
-    if (!factorId) return;
+  async function verify(value: string) {
+    if (!factorId || busy) return;
     setBusy(true);
     setError('');
-    const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId, code: code.trim() });
+    const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId, code: value });
     setBusy(false);
     if (error) {
       setCode('');
@@ -41,25 +41,17 @@ export function MfaChallenge() {
     navigate(next, { replace: true });
   }
 
+  function submit(e: FormEvent) {
+    e.preventDefault();
+    verify(code);
+  }
+
   return (
     <section className="panel narrow">
       <h1>Double authentification</h1>
       <p>Saisis le code à 6 chiffres affiché par ton application d'authentification.</p>
       <form onSubmit={submit} className="form">
-        <label className="field">
-          <span className="field-label">Code</span>
-          <input
-            className="code-input"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            pattern="[0-9]{6}"
-            maxLength={6}
-            required
-            autoFocus
-            value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-          />
-        </label>
+        <CodeInput label="Code de l'application d'authentification" value={code} onChange={setCode} onComplete={verify} disabled={busy} autoFocus />
         {error && <p className="error" role="alert">{error}</p>}
         <button type="submit" className="button button-primary button-block" disabled={busy || code.length !== 6}><PsSymbol shape="cross" /> Valider</button>
       </form>

@@ -5,6 +5,7 @@ import { errorMessage } from '../lib/errors';
 import { useAuth } from '../auth/AuthContext';
 import { PasswordRules, passwordIsValid } from '../components/PasswordRules';
 import { useConfirm } from '../components/Confirm';
+import { CodeInput } from '../components/CodeInput';
 import { PsSymbol } from '../components/PsSymbol';
 import { Dialog } from '../components/Dialog';
 
@@ -164,15 +165,22 @@ function TotpSection() {
     setEnrolling({ id: data.id, qr: data.totp.qr_code, secret: data.totp.secret });
   }
 
-  async function confirmEnrollment(e: FormEvent) {
-    e.preventDefault();
+  async function verifyEnrollment(value: string) {
     if (!enrolling) return;
-    const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId: enrolling.id, code: code.trim() });
-    if (error) return setError(errorMessage(error));
+    const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId: enrolling.id, code: value });
+    if (error) {
+      setCode('');
+      return setError(errorMessage(error));
+    }
     setEnrolling(null);
     setCode('');
     await load();
     await refresh();
+  }
+
+  function confirmEnrollment(e: FormEvent) {
+    e.preventDefault();
+    verifyEnrollment(code);
   }
 
   async function disable(id: string) {
@@ -210,11 +218,10 @@ function TotpSection() {
           </ol>
           <img className="qr" src={enrolling.qr} alt="QR code de configuration de la double authentification" width={180} height={180} />
           <p className="small">Ou saisis cette clé à la main : <code className="secret">{enrolling.secret}</code></p>
-          <label className="field">
+          <div className="field">
             <span className="field-label">Puis entre le code affiché par l'application</span>
-            <input className="code-input" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required
-              value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} />
-          </label>
+            <CodeInput label="Code affiché par l'application" value={code} onChange={setCode} onComplete={verifyEnrollment} />
+          </div>
           <div className="actions">
             <button type="button" className="button" onClick={() => setEnrolling(null)}><PsSymbol shape="circle" /> Annuler</button>
             <button type="submit" className="button button-primary" disabled={code.length !== 6}><PsSymbol shape="cross" /> Activer</button>
@@ -263,11 +270,10 @@ function PasswordSection() {
         <button type="button" className="button" onClick={sendCode}>Changer mon mot de passe</button>
       ) : (
         <form onSubmit={submit} className="form">
-          <label className="field">
-            <span className="field-label">Code reçu par e-mail</span>
-            <input className="code-input" inputMode="numeric" autoComplete="one-time-code" maxLength={8} required
-              value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} />
-          </label>
+          <div className="field">
+            <span className="field-label">Code à 6 chiffres reçu par e-mail</span>
+            <CodeInput label="Code à 6 chiffres reçu par e-mail" value={code} onChange={setCode} />
+          </div>
           <label className="field">
             <span className="field-label">Nouveau mot de passe</span>
             <input type="password" autoComplete="new-password" required value={password} onChange={(e) => setPassword(e.target.value)} maxLength={128} />
@@ -291,11 +297,21 @@ function PasswordSection() {
 
 function SessionsSection() {
   const { signOut } = useAuth();
+  const confirm = useConfirm();
+
+  async function signOutEverywhere() {
+    if (await confirm({
+      title: 'Se déconnecter de tous les appareils',
+      message: 'Toutes les sessions ouvertes (ordinateurs, téléphones…) seront fermées, celle-ci comprise. Utile si tu as oublié de te déconnecter quelque part, ou en cas de doute.',
+      confirmLabel: 'Tout déconnecter',
+      danger: true,
+    })) await signOut(true);
+  }
   return (
     <div className="panel">
       <h2>Sessions</h2>
       <p className="muted">Un doute sur un appareil (ordinateur partagé, téléphone perdu) ? Déconnecte-les tous d'un coup.</p>
-      <button type="button" className="button button-danger" onClick={() => signOut(true)}>Se déconnecter de tous les appareils</button>
+      <button type="button" className="button button-danger" onClick={signOutEverywhere}>Se déconnecter de tous les appareils</button>
     </div>
   );
 }

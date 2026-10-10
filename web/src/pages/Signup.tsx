@@ -1,14 +1,18 @@
 import { useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { PasswordRules, passwordIsValid } from '../components/PasswordRules';
 import { PsSymbol } from '../components/PsSymbol';
+import { EmailCodeForm } from '../components/EmailCodeForm';
+import { useAuth } from '../auth/AuthContext';
 import { TERMS_VERSION } from './Legal';
 
 const USERNAME = /^[A-Za-z0-9_-]{3,30}$/;
 
 export function Signup() {
+  const navigate = useNavigate();
+  const { refresh } = useAuth();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -45,9 +49,17 @@ export function Signup() {
     return (
       <section className="panel narrow">
         <h1>Vérifie ta boîte mail</h1>
-        <p>Si cette adresse n'a pas encore de compte, un lien de confirmation vient de t'être envoyé (valable 30 minutes).</p>
-        <p className="muted small">Pense à regarder dans les indésirables.</p>
-        <Link to="/connexion" className="button"><PsSymbol shape="circle" /> Retour à la connexion</Link>
+        <p>
+          Si <strong>{email.trim()}</strong> n'a pas encore de compte, un e-mail vient de t'être envoyé, avec un code à
+          6 chiffres et un lien de confirmation (valables 30 minutes).
+        </p>
+        <EmailCodeForm
+          email={email.trim()}
+          type="email"
+          onVerified={async () => { await refresh(); navigate('/collection', { replace: true }); }}
+          onResend={() => supabase.auth.resend({ type: 'signup', email: email.trim(), options: { emailRedirectTo: `${window.location.origin}/connexion?confirme=1` } })}
+        />
+        <p className="small center"><Link to="/connexion"><PsSymbol shape="circle" /> Retour à la connexion</Link></p>
       </section>
     );
   }
