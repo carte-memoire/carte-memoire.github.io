@@ -590,6 +590,7 @@ function ReleaseEditor({ release, onSaved, canDelete, possibleDuplicate }: { rel
         {error && <p className="error" role="alert">{error}</p>}
         <div className="actions">
           <button type="submit" className="button button-primary"><PsSymbol shape="cross" /> Enregistrer cette version</button>
+          {canDelete && <MoveRelease release={release} onMoved={onSaved} />}
           {canDelete && <button type="button" className="button button-small button-danger" onClick={removeRelease}>Supprimer cette version</button>}
         </div>
       </form>
@@ -653,5 +654,36 @@ function SpecsEditor({ fields, value, onChange }: { fields: SpecField[]; value: 
         );
       })}
     </fieldset>
+  );
+}
+
+// Version rattachée au mauvais jeu : on la déplace (les exemplaires des membres suivent)
+function MoveRelease({ release, onMoved }: { release: Release; onMoved: () => void }) {
+  const confirm = useConfirm();
+  const [open, setOpen] = useState(false);
+  const [error, setError] = useState('');
+
+  async function move(target: SearchResult) {
+    setError('');
+    if (target.id === release.game_id) return setError('Cette version appartient déjà à ce jeu.');
+    if (!(await confirm({
+      title: 'Déplacer cette version',
+      message: `« ${release.local_title} » (${zoneLabel(release.zone)}) rejoindra « ${target.title} », avec ses images, ses dates et les exemplaires des membres.`,
+      confirmLabel: 'Déplacer',
+    }))) return;
+    const { error } = await supabase.rpc('move_release', { target_release: release.id, to_game: target.id });
+    if (error) return setError(errorMessage(error));
+    setOpen(false);
+    onMoved();
+  }
+
+  return (
+    <>
+      <button type="button" className="button button-small" onClick={() => { setOpen(true); setError(''); }}>Déplacer vers un autre jeu…</button>
+      <Dialog open={open} onClose={() => setOpen(false)} title={`Déplacer « ${release.local_title} »`}>
+        <GameSearch onSelect={move} autoFocus label="Vers quel jeu ? (titre ou code produit)" />
+        {error && <p className="error" role="alert">{error}</p>}
+      </Dialog>
+    </>
   );
 }

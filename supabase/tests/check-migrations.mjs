@@ -510,6 +510,20 @@ const ajoutGenre = (await val(`select max(id) as id from public.catalog_change w
 await ok('annuler l\'ajout d\'un genre', en(ADMIN, `select public.undo_catalog_change($1)`, [ajoutGenre]));
 await egal('…le genre est retiré', val(`select count(*)::int as n from public.game_genre where game_id = $1`, [hist]), [{ n: 0 }]);
 
+console.log('\nDéplacer une version vers un autre jeu');
+const jeuA = (await en(ADMIN, `insert into public.game (title) values ('Jeu Mal Rangé') returning id`)).rows[0].id;
+const jeuB = (await en(ADMIN, `insert into public.game (title) values ('Jeu Bon Endroit') returning id`)).rows[0].id;
+const [bonne, egaree] = (await en(ADMIN, `insert into public.release (game_id, platform_id, local_title, zone) values ($1, $2, 'Jeu Mal Rangé', 'PAL'), ($1, $2, 'Version Égarée', 'NTSC-J') returning id`, [jeuA, ps1])).rows.map((r) => r.id);
+const platEgaree = (await en(ADMIN, `insert into public.release (game_id, platform_id, reissue_of, local_title, zone, edition_type, edition_name) values ($1, $2, $3, 'Version Égarée', 'NTSC-J', 'reissue', 'The Best') returning id`, [jeuA, ps1, egaree])).rows[0].id;
+await en(MEMBRE, `insert into public.collection_item (release_id) values ($1)`, [egaree]);
+await ko('un membre ne déplace pas une version', en(MEMBRE, `select public.move_release($1, $2)`, [egaree, jeuB]), 'Seuls les modérateurs');
+await ok('un admin déplace la version égarée vers le bon jeu', en(ADMIN, `select public.move_release($1, $2)`, [egaree, jeuB]));
+await egal('…elle est sous le bon jeu, et l\'exemplaire du membre l\'a suivie', val(`select r.game_id, (select count(*)::int from public.collection_item c where c.release_id = r.id) as n from public.release r where r.id = $1`, [egaree]), [{ game_id: jeuB, n: 1 }]);
+await egal('…la réédition restée sur l\'ancien jeu n\'y est plus rattachée', val(`select reissue_of from public.release where id = $1`, [platEgaree]), [{ reissue_of: null }]);
+await egal('…le déplacement est dans l\'historique', val(`select old_values, new_values from public.catalog_change where table_name = 'release' and row_key = $1 and action = 'update' order by id desc limit 1`, [String(egaree)]).then((r) => r[0] && [r[0].old_values.game_id, r[0].new_values.game_id]), [jeuA, jeuB]);
+await ko('la dernière version d\'un jeu ne se déplace pas', en(ADMIN, `select public.move_release($1, $2)`, [egaree, jeuA]), 'seule version');
+void bonne;
+
 console.log('\nVersions nationales PAL et rééditions (Redump)');
 await egal('FF7 Allemagne (SCES-00869) : version PAL créée, rattachée à l\'Allemagne, 3 disques',
   val(`select r.zone, r.media_count, rg.code from public.release r join public.release_region rr on rr.release_id = r.id join public.region rg on rg.id = rr.region_id where r.product_code = 'SCES-00869'`),
@@ -517,11 +531,11 @@ await egal('FF7 Allemagne (SCES-00869) : version PAL créée, rattachée à l\'A
 await egal('FF7 : France, Allemagne et Espagne créées une seule fois chacune', val(`select product_code, count(*)::int as n from public.release where product_code in ('SCES-00868', 'SCES-00869', 'SCES-00900') group by 1 order by 1`),
   [{ product_code: 'SCES-00868', n: 1 }, { product_code: 'SCES-00869', n: 1 }, { product_code: 'SCES-00900', n: 1 }]);
 // Codes en double dans un jeu : SCES-99868 et SLES-01234 sont les jeux de test (Platinum au même
-// code que la version normale, voulu) ; les 4 autres ont été recopiés sur des versions nationales
-// par le premier import des codes (à corriger à la main). L'import Redump n'en ajoute aucun.
+// code que la version normale, voulu) ; SLES-01433 : All Star Tennis '99, un seul disque européen pour
+// deux boîtes (« Yannick Noah »). Les codes recopiés par erreur sont corrigés (fix_copied_codes).
 await egal('codes en double dans un jeu : seulement les cas connus d\'avant l\'import Redump',
   val(`select string_agg(distinct product_code, ',' order by product_code) as c from (select game_id, product_code from public.release where product_code is not null group by 1, 2 having count(*) > 1) x`),
-  [{ c: 'SCES-00798,SCES-99868,SLES-01234,SLES-01273,SLES-01433,SLES-03775' }]);
+  [{ c: 'SCES-99868,SLES-01234,SLES-01433' }]);
 
 console.log('\nCohérence du catalogue (imports compris)');
 await egal('chaque jeu importé a au moins une sortie', val(`select count(*)::int as n from public.game g where g.wikidata_id is not null and not exists (select 1 from public.release r where r.game_id = g.id)`), [{ n: 0 }]);
