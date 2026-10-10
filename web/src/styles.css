@@ -324,10 +324,16 @@ ul.error { padding-left: 28px; }
 .release-badges, .block-badges { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 8px; }
 
 /* ---------- Collection : les « blocs » de la carte mémoire ---------- */
-.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
+/* Onglets : jamais sur deux lignes. Le texte et les marges se resserrent avec la largeur
+   de l'écran (clamp) ; s'ils ne tiennent toujours pas (téléphone), la barre défile */
+.tabs {
+  display: flex; gap: clamp(0px, 0.4vw, 4px); border-bottom: 1px solid var(--line);
+  overflow-x: auto; overflow-y: hidden; scrollbar-width: thin;
+}
 .tab {
-  font: inherit; color: var(--muted); background: none; cursor: pointer;
-  border: 0; border-bottom: 3px solid transparent; padding: 8px 14px;
+  flex: none; white-space: nowrap;
+  font: inherit; font-size: clamp(0.8rem, 0.68rem + 0.4vw, 1rem); color: var(--muted); background: none; cursor: pointer;
+  border: 0; border-bottom: 3px solid transparent; padding: 8px clamp(7px, 1.1vw, 14px);
 }
 .tab.active { color: var(--text); border-bottom-color: var(--triangle); }
 .memory-card {
