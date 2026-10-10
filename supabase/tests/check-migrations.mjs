@@ -524,6 +524,26 @@ await egal('…le déplacement est dans l\'historique', val(`select old_values, 
 await ko('la dernière version d\'un jeu ne se déplace pas', en(ADMIN, `select public.move_release($1, $2)`, [egaree, jeuA]), 'seule version');
 void bonne;
 
+console.log('\nSupprimer son compte (RGPD)');
+const PARTANT = '00000000-0000-0000-0000-00000000000e';
+await db.query(`insert into auth.users (id, raw_user_meta_data) values ($1, '{"username":"Partant"}')`, [PARTANT]);
+await en(PARTANT, `insert into public.collection_item (release_id) values ($1)`, [ff7fr]);
+await en(PARTANT, `insert into public.submission (action, target, data) values ('create', 'game', '{"game": {"title": "Proposition En Attente"}, "no_cover": true}')`);
+const rapportPartant = (await en(PARTANT, `insert into public.report (game_id, kind, message) values ($1, 'title', 'Le titre comporte une faute.') returning id`, [jeu])).rows[0].id;
+await ko('confirmation mal tapée : refusé', en(PARTANT, `select public.delete_my_account('supprimer')`), 'SUPPRIMER');
+await ko('un visiteur ne peut pas appeler la fonction', en(null, `select public.delete_my_account('SUPPRIMER')`), 'permission denied');
+await ko('le dernier admin ne peut pas partir', en(ADMIN, `select public.delete_my_account('SUPPRIMER')`), 'dernier admin');
+await db.query(`insert into auth.mfa_factors (user_id, status) values ($1, 'verified')`, [PARTANT]);
+await ko('double authentification activée mais pas validée : refusé', en(PARTANT, `select public.delete_my_account('SUPPRIMER')`), 'double authentification');
+await ok('le membre supprime son compte (session validée)', en(PARTANT, `select public.delete_my_account('SUPPRIMER')`, [], 'aal2'));
+await egal('…compte, profil, collection et proposition en attente effacés', val(`select
+    (select count(*)::int from auth.users where id = $1) as compte,
+    (select count(*)::int from public.profile where id = $1) as profil,
+    (select count(*)::int from public.collection_item where profile_id = $1) as collection,
+    (select count(*)::int from public.submission where data -> 'game' ->> 'title' = 'Proposition En Attente') as proposition`, [PARTANT]),
+  [{ compte: 0, profil: 0, collection: 0, proposition: 0 }]);
+await egal('…son signalement reste, sans auteur', val(`select author_id from public.report where id = $1`, [rapportPartant]), [{ author_id: null }]);
+
 console.log('\nVersions nationales PAL et rééditions (Redump)');
 await egal('FF7 Allemagne (SCES-00869) : version PAL créée, rattachée à l\'Allemagne, 3 disques',
   val(`select r.zone, r.media_count, rg.code from public.release r join public.release_region rr on rr.release_id = r.id join public.region rg on rg.id = rr.region_id where r.product_code = 'SCES-00869'`),

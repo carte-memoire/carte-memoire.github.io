@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { useAuth } from '../auth/AuthContext';
 import { PasswordRules, passwordIsValid } from '../components/PasswordRules';
 import { useConfirm } from '../components/Confirm';
 import { PsSymbol } from '../components/PsSymbol';
+import { Dialog } from '../components/Dialog';
 
 export function Account() {
   const { profile, isModerator, aal } = useAuth();
@@ -24,6 +26,7 @@ export function Account() {
       <TotpSection />
       <PasswordSection />
       <SessionsSection />
+      <DeleteAccountSection />
     </section>
   );
 }
@@ -294,5 +297,60 @@ function SessionsSection() {
       <p className="muted">Un doute sur un appareil (ordinateur partagé, téléphone perdu) ? Déconnecte-les tous d'un coup.</p>
       <button type="button" className="button button-danger" onClick={() => signOut(true)}>Se déconnecter de tous les appareils</button>
     </div>
+  );
+}
+
+// Droit à l'effacement (RGPD) : la personne supprime elle-même son compte
+function DeleteAccountSection() {
+  const { session, signOut } = useAuth();
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const [typed, setTyped] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  async function remove(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError('');
+    // Images envoyées avec des propositions (dossier personnel du stockage)
+    const folder = session!.user.id;
+    const { data: files } = await supabase.storage.from('submission-images').list(folder, { limit: 1000 });
+    if (files?.length) await supabase.storage.from('submission-images').remove(files.map((f) => `${folder}/${f.name}`));
+    const { error } = await supabase.rpc('delete_my_account', { confirmation: typed.trim() });
+    if (error) {
+      setBusy(false);
+      return setError(errorMessage(error));
+    }
+    await signOut().catch(() => undefined);
+    navigate('/', { replace: true, state: { accountDeleted: true } });
+  }
+
+  return (
+    <section className="panel danger-zone">
+      <h2>Supprimer mon compte</h2>
+      <p className="muted">
+        Ton compte, ton profil et ta collection seront effacés définitivement, ainsi que tes passkeys et ta double
+        authentification. Tes propositions déjà traitées, tes signalements et tes modifications du catalogue restent, sans
+        ton nom (« compte supprimé »). Pense à <Link to="/collection">exporter ta collection</Link> avant.
+      </p>
+      <button type="button" className="button button-danger" onClick={() => { setOpen(true); setTyped(''); setError(''); }}>Supprimer mon compte…</button>
+      <Dialog open={open} onClose={() => setOpen(false)} title="Supprimer mon compte">
+        <form onSubmit={remove} className="form">
+          <p className="warning">Suppression <strong>définitive</strong> : impossible de revenir en arrière.</p>
+          <label className="field">
+            <span className="field-label">Pour confirmer, tape SUPPRIMER</span>
+            <input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" data-autofocus="" />
+          </label>
+          {error && <p className="error" role="alert">{error}</p>}
+          <div className="actions">
+            <button type="button" className="button" onClick={() => setOpen(false)}><PsSymbol shape="circle" /> Annuler</button>
+            <button type="submit" className="button button-danger" disabled={busy || typed.trim() !== 'SUPPRIMER'}>
+              {busy ? 'Suppression…' : 'Supprimer définitivement'}
+            </button>
+          </div>
+        </form>
+      </Dialog>
+    </section>
   );
 }

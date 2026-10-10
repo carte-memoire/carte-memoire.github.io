@@ -718,3 +718,8 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .history-item p { margin: 0; }
 .history-details { margin: 0; padding-left: 18px; font-size: 0.85rem; color: var(--muted); overflow-wrap: anywhere; }
 .history-item .link-button { align-self: flex-start; font-size: 0.85rem; }
+
+/* ---------- Pages légales ---------- */
+.legal { max-width: 780px; margin: 0 auto; }
+.legal h2 { font-size: 1.1rem; margin-top: 1.4em; }
+.legal p, .legal li { line-height: 1.6; }

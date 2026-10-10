@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { GameSearch } from '../components/GameSearch';
 import { PlatformSelect } from '../components/PlatformSelect';
 import { PsSymbol } from '../components/PsSymbol';
@@ -9,6 +9,8 @@ import { usePlatforms } from '../lib/usePlatforms';
 
 export function Home() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const accountDeleted = Boolean((location.state as { accountDeleted?: boolean } | null)?.accountDeleted);
   const platforms = usePlatforms();
   const [params, setParams] = useSearchParams();
   const selected = params.get('console') ?? rememberedPlatform();
@@ -36,6 +38,8 @@ export function Home() {
           <PsSymbol shape="cross" colored /><PsSymbol shape="square" colored />
         </p>
       </div>
+
+      {accountDeleted && <p className="success center">Ton compte a bien été supprimé. Merci d'être passé par Carte Mémoire !</p>}
 
       {current && current.game_count === 0 && (
         <p className="notice center">

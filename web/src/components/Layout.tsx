@@ -72,6 +72,9 @@ export function Layout() {
           Les jaquettes et visuels des jeux appartiennent à leurs éditeurs respectifs et ne sont pas couverts par la licence du catalogue.
         </p>
         <p className="footer-note">Site de fans, sans lien avec Sony Interactive Entertainment. « PlayStation » est une marque de Sony.</p>
+        <p className="footer-note">
+          <Link to="/mentions-legales">Mentions légales</Link> · <Link to="/confidentialite">Confidentialité</Link>
+        </p>
       </footer>
     </div>
   );
