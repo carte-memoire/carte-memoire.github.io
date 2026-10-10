@@ -622,6 +622,23 @@ await ko('un membre ne peut pas changer une date', en(MEMBRE, `insert into publi
 await ko('« novembre 1998 » doit être enregistré au 1er du mois', en(ADMIN, `update public.release_region set release_date = '1998-11-15', date_precision = 'month' where release_id = $1 and region_id = $2`, [ff7platinum, france]), 'check');
 await ok('nettoyage de la date de test', en(ADMIN, `delete from public.release_region where release_id = $1 and region_id = $2`, [ff7platinum, france]));
 
+console.log('\nStudios mal rattachés à l\'import (correction)');
+const studiosDe = (title) => val(`select string_agg(c.name || coalesce(' (' || c.country || ')', ''), ', ' order by c.name) as s
+  from public.game g join public.game_developer gd on gd.game_id = g.id join public.company c on c.id = gd.company_id where g.title = $1`, [title]).then((r) => r[0].s);
+await egal('Re-Volt : Acclaim Studios London (déjà connu, britannique), et non une liste Wikipédia', studiosDe('Re-Volt'), 'Acclaim Studios London (GB)');
+await egal('Mortal Kombat II : Midway et Probe Entertainment', studiosDe('Mortal Kombat II'), 'Midway Games (US), Probe Entertainment');
+await egal('Tenchu : un seul Acquire, le vrai (Japon), plus le jeu de société', studiosDe('Tenchu: Stealth Assassins'), 'Acquire (JP)');
+await egal('Tintin: Destination Adventure : Infogrames et Runecraft, et non « Runic magic »', studiosDe('Tintin: Destination Adventure'), 'Infogrames (FR), Runecraft (GB)');
+// Des homonymes distincts dans Wikidata existent (Atari, Inc. de 1972 et de 1993…) ; pas un
+// studio sans lien à côté d'un autre du même nom (comme le faux « Acquire » à côté du vrai)
+await egal('pas de studio en double du même nom (hors homonymes distincts dans Wikidata)', val(`select string_agg(name_key, ', ') as d from (
+  select c.name_key from public.company c where exists (select 1 from public.game_developer gd where gd.company_id = c.id)
+  group by c.name_key having count(*) > 1 and count(*) > count(distinct c.wikidata_id)) x`), [{ d: null }]);
+await egal('Nightmare Creatures : Kalisto, studio français → origine France', val(`select public.origin(g) as o from public.game g where g.title = 'Nightmare Creatures'`), [{ o: 'FR' }]);
+await egal('plus aucun studio au nom de liste Wikipédia', val(`select count(*)::int as n from public.company where name ilike 'list of %'`), [{ n: 0 }]);
+await egal('plus de « rail transport in Malawi » (ni son faux pays)', val(`select count(*)::int as n from public.company where name = 'rail transport in Malawi' or country = 'MW'`), [{ n: 0 }]);
+await egal('le faux lien Wikidata de Kalisto (un groupe pirate) est retiré', val(`select count(*)::int as n from public.company where wikidata_id = 'Q6353182'`), [{ n: 0 }]);
+
 console.log('\nCohérence du catalogue (imports compris)');
 await egal('chaque jeu importé a au moins une sortie', val(`select count(*)::int as n from public.game g where g.wikidata_id is not null and not exists (select 1 from public.release r where r.game_id = g.id)`), [{ n: 0 }]);
 await egal('chaque date de sortie est cohérente avec sa précision', val(`select count(*)::int as n from public.release_region where (release_date is null) <> (date_precision is null)`), [{ n: 0 }]);
