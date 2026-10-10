@@ -6,7 +6,8 @@
 #   2. le site est compilé avec l'adresse et la clé PUBLIQUE de Supabase,
 #      lues dans les variables du dépôt (Settings → Secrets and variables →
 #      Actions → Variables) : VITE_SUPABASE_URL et VITE_SUPABASE_PUBLISHABLE_KEY
-#      (rangées par erreur dans « Secrets », elles sont lues aussi) ;
+#      (rangées par erreur dans « Secrets », elles sont lues aussi), et l'adresse de
+#      contact des pages légales : VITE_CONTACT_EMAIL ;
 #   3. il est publié sur https://carte-memoire.github.io
 # =====================================================================
 
@@ -91,6 +92,8 @@ jobs:
       # quand même le site, qui affiche la bonne page
       - name: Compiler
         working-directory: web
+        env:
+          VITE_CONTACT_EMAIL: ${{ vars.VITE_CONTACT_EMAIL }}
         run: |
           npm run build
           cp dist/index.html dist/404.html

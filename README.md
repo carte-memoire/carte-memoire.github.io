@@ -26,7 +26,9 @@ Réglages, une fois pour toutes, dans le dépôt GitHub :
 
 - **Settings → Pages** : *Source* = **GitHub Actions** ;
 - **Settings → Secrets and variables → Actions → Variables** : `VITE_SUPABASE_URL` et `VITE_SUPABASE_PUBLISHABLE_KEY`
-  (les valeurs de `web/.env.local` : uniquement la clé PUBLIQUE, le workflow refuse toute autre clé).
+  (les valeurs de `web/.env.local` : uniquement la clé PUBLIQUE, le workflow refuse toute autre clé), et
+  `VITE_CONTACT_EMAIL`, l'adresse de contact des pages légales (gardée hors du code : en changer ne laisse pas
+  l'ancienne dans l'historique public).
 
 Côté Supabase : `npx supabase config push` envoie l'adresse du site (redirections des e-mails) ; les passkeys se
 règlent dans le tableau de bord (Authentication → Passkeys : `carte-memoire.github.io`).

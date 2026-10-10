@@ -4,8 +4,10 @@ import { Link } from 'react-router-dom';
 // L'éditeur est un particulier, à titre non professionnel : il peut rester sous pseudonyme
 // (LCEN, art. 6, III, 2), ses hébergeurs pouvant l'identifier.
 const PUBLISHER = 'Nameho';
-// Adresse de contact (droits sur les données, contenus illicites, retrait d'une image)
-const CONTACT_EMAIL = '';
+// Adresse de contact (droits sur les données, contenus illicites, retrait d'une image).
+// Lue dans les réglages (web/.env.local, et la variable du dépôt GitHub pour le site publié),
+// et non écrite ici : changer d'adresse ne la laisse pas dans l'historique public du code.
+const CONTACT_EMAIL: string = import.meta.env.VITE_CONTACT_EMAIL ?? '';
 // Version des conditions d'utilisation, enregistrée avec chaque inscription
 export const TERMS_VERSION = '2026-10-10';
 
