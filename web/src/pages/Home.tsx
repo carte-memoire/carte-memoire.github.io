@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 import { GameSearch } from '../components/GameSearch';
 import { PlatformSelect } from '../components/PlatformSelect';
 import { PsSymbol } from '../components/PsSymbol';
-import { gamePath } from '../lib/format';
+import { formatNumber, gamePath } from '../lib/format';
 import { ALL_PLATFORMS, DEFAULT_PLATFORM, rememberPlatform, rememberedPlatform } from '../lib/preferences';
 import { usePlatforms } from '../lib/usePlatforms';
 
@@ -16,6 +16,8 @@ export function Home() {
   const selected = params.get('console') ?? rememberedPlatform();
   const current = platforms.find((p) => p.short_name === selected);
   const platformCode = selected === ALL_PLATFORMS ? null : selected;
+  // Nombre de jeux de la console choisie (ou de toutes), dès que la liste des consoles est lue
+  const gameCount = platformCode ? current?.game_count : platforms.reduce((n, p) => n + p.game_count, 0);
 
   useEffect(() => { rememberPlatform(selected); }, [selected]);
 
@@ -31,7 +33,8 @@ export function Home() {
       <div className="hero">
         <h1 className="hero-title">Carte Mémoire</h1>
         <p className="hero-subtitle">
-          Tous les jeux <PlatformSelect value={selected} onChange={choose} />, version par version. Et ta collection.
+          {gameCount ? `Les ${formatNumber(gameCount)} jeux` : 'Les jeux'}{platformCode ? ' de la' : ''}{' '}
+          <PlatformSelect value={selected} onChange={choose} />, version par version. Et ta collection.
         </p>
         <p className="buttons-legend" aria-hidden="true">
           <PsSymbol shape="triangle" colored /><PsSymbol shape="circle" colored />

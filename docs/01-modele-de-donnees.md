@@ -75,6 +75,7 @@ Ajouter une console (PS2, NES…) revient à ajouter **une ligne** dans `platfor
 - **RG27** : Les caractéristiques d'une version (blocs de carte mémoire, manette analogique, vibrations…) sont celles prévues par sa console (`platform.spec_fields`) ; la base refuse toute autre clé ou valeur. « Non précisé » (absent) n'est pas « Non ».
 - **RG28** : Un membre peut signaler une erreur sur un jeu ou une version (20 signalements par jour au plus). Un modérateur la classe « corrigée » ou « rejetée », avec un mot visible par l'auteur.
 - **RG29** : Toute modification du catalogue faite par une personne connectée (jeu, version, genre d'un jeu, image) est notée dans l'historique (`catalog_change`) avec son auteur et les valeurs avant et après. Un modérateur peut annuler une modification simple si rien n'a changé depuis ; l'annulation est notée à son tour.
+- **RG30** : L'origine d'un jeu est le pays de son studio de développement : celle choisie par un modérateur (ou importée de Wikidata), sinon celle de ses studios s'ils sont tous connus et du même pays, sinon inconnue. Un JRPG est un jeu de la famille RPG d'origine japonaise ; un RPG occidental, d'une autre origine connue.
 
 ---
 

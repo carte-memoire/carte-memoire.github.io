@@ -210,7 +210,8 @@ export interface CatalogRow {
 
 // Progression (fonction collection_progress) : jeux possédés sur jeux existants
 export interface ProgressRow {
-  scope: 'zone' | 'family';
+  // origin : décompte des jeux de la zone par origine (japan, other, unknown)
+  scope: 'zone' | 'family' | 'origin';
   code: string;
   total: number;
   owned: number;

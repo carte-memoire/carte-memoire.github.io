@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { Dialog } from '../components/Dialog';
 import { GAME_FIELDS } from '../lib/queries';
-import { editionLabel, familyLabel, formatDate, LANGUAGES, zoneLabel, zoneOrder } from '../lib/format';
+import { countryName, editionLabel, familyLabel, formatDate, LANGUAGES, zoneLabel, zoneOrder } from '../lib/format';
 import { describeSpecs } from '../lib/specs';
 import type { Game, Release } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
@@ -23,6 +23,8 @@ export function GamePage() {
   const [state, setState] = useState<'loading' | 'ok' | 'missing'>('loading');
   const [proposeSummary, setProposeSummary] = useState(false);
   const [reporting, setReporting] = useState(false);
+  // Pays du studio (champ calculé par la base), lu à part : la fiche s'affiche même sans lui
+  const [origin, setOrigin] = useState<string | null>(null);
 
   useEffect(() => {
     if (!Number.isInteger(gameId)) return setState('missing');
@@ -31,6 +33,8 @@ export function GamePage() {
       setGame(data as unknown as Game);
       setState('ok');
     });
+    supabase.from('game').select('origin').eq('id', gameId).maybeSingle()
+      .then(({ data }) => setOrigin((data as { origin: string | null } | null)?.origin ?? null));
   }, [gameId]);
 
   if (state === 'loading') return <p className="loading">Lecture de la carte mémoire…</p>;
@@ -57,6 +61,17 @@ export function GamePage() {
           <dl className="facts">
             {game.first_release_date && (<><dt>Première sortie</dt><dd>{formatDate(game.first_release_date, game.first_release_precision)}</dd></>)}
             {game.game_developer.length > 0 && (<><dt>Développement</dt><dd>{game.game_developer.map((d) => d.company.name).join(', ')}</dd></>)}
+            {origin && (
+              <>
+                <dt>Origine</dt>
+                <dd>
+                  {countryName(origin)}
+                  {origin === 'JP' && families.includes('rpg') && (
+                    <> <Link to="/catalogue?genre=rpg&origine=japon" className="badge badge-family">JRPG</Link></>
+                  )}
+                </dd>
+              </>
+            )}
             {families.length > 0 && (
               <>
                 <dt>Genre</dt>

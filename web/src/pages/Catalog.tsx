@@ -2,7 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { COLLECTION_FIELDS } from '../lib/queries';
-import { CATALOG_ZONES, FAMILIES, editionLabel, familyLabel, formatNumber, formatPercent, gamePath, yearOf, zoneOrder } from '../lib/format';
+import {
+  CATALOG_ZONES, FAMILIES, ORIGINS, editionLabel, familyOriginLabel, formatNumber, formatPercent, gamePath, originFromParam, originParam,
+  yearOf, zoneOrder,
+} from '../lib/format';
 import { errorMessage } from '../lib/errors';
 import { ALL_PLATFORMS, ALL_ZONES, DEFAULT_PLATFORM, rememberPlatform, rememberZone, rememberedPlatform, rememberedZone } from '../lib/preferences';
 import type { CatalogRelease, CatalogRow, CollectionItem, GenreFamily, Ownership, ProgressRow, Zone } from '../lib/types';
@@ -43,6 +46,8 @@ export function Catalog() {
   const letter = letterParam && LETTERS.includes(letterParam) ? letterParam : null;
   const familyParam = params.get('genre');
   const family = FAMILIES.some((f) => f.value === familyParam) ? (familyParam as GenreFamily) : null;
+  // Origine du studio : avec la famille RPG, « japon » donne les JRPG
+  const origin = originFromParam(params.get('origine'));
   const year = Number.parseInt(params.get('annee') ?? '', 10) || null;
   const ownershipParam = params.get('possession');
   const ownership = session && OWNERSHIP.some((o) => o.value === ownershipParam) ? (ownershipParam as Ownership) : null;
@@ -123,6 +128,7 @@ export function Catalog() {
       sort_by: sort,
       page_number: page,
       page_size: PAGE_SIZE,
+      ...(origin ? { origin_filter: origin } : {}),
     }).then(({ data, error }) => {
       if (!active) return;
       setLoading(false);
@@ -130,16 +136,16 @@ export function Catalog() {
       setRows((data as CatalogRow[]) ?? []);
     });
     return () => { active = false; };
-  }, [platformCode, zoneCode, letter, family, year, ownership, query, sort, page, version, userId]);
+  }, [platformCode, zoneCode, letter, family, origin, year, ownership, query, sort, page, version, userId]);
 
   // La progression de la personne connectée (zone choisie, et genre s'il est filtré)
   useEffect(() => {
     if (!userId) return setProgress([]);
     let active = true;
-    supabase.rpc('collection_progress', { platform_code: platformCode, zone_code: zoneCode })
+    supabase.rpc('collection_progress', { platform_code: platformCode, zone_code: zoneCode, ...(origin ? { origin_filter: origin } : {}) })
       .then(({ data }) => { if (active) setProgress((data as ProgressRow[]) ?? []); });
     return () => { active = false; };
-  }, [platformCode, zoneCode, version, userId]);
+  }, [platformCode, zoneCode, origin, version, userId]);
 
   useEffect(() => () => clearTimeout(toastTimer.current), []);
 
@@ -194,7 +200,11 @@ export function Catalog() {
   const zoneInfo = CATALOG_ZONES.find((z) => z.value === zoneCode);
   const zoneProgress = progress.find((p) => p.scope === 'zone' && p.code === (zoneCode ?? 'all'));
   const familyProgress = family ? progress.find((p) => p.scope === 'family' && p.code === family) : null;
-  const filtered = Boolean(letter || family || year || ownership || query);
+  const filtered = Boolean(letter || family || origin || year || ownership || query);
+  // Avec le filtre d'origine : combien de jeux de la zone ont une origine connue
+  const originRows = progress.filter((p) => p.scope === 'origin');
+  const unknownOrigin = originRows.find((p) => p.code === 'unknown')?.total ?? 0;
+  const allOrigins = originRows.reduce((n, p) => n + p.total, 0);
   const next = encodeURIComponent(location.pathname + location.search);
 
   return (
@@ -209,12 +219,13 @@ export function Catalog() {
         {zoneProgress && (
           <div className="catalog-progress">
             <p>
-              <strong>{formatNumber(zoneProgress.owned)}</strong> / {formatNumber(zoneProgress.total)} jeux{zoneInfo ? ` ${zoneInfo.short}` : ''} dans ta collection
+              <strong>{formatNumber(zoneProgress.owned)}</strong> / {formatNumber(zoneProgress.total)} jeux{zoneInfo ? ` ${zoneInfo.short}` : ''}
+              {origin && ` (${ORIGINS.find((o) => o.value === origin)!.adjective})`} dans ta collection
               <span className="muted"> · {formatPercent(zoneProgress.owned, zoneProgress.total)}</span>
             </p>
             <MemoryBar owned={zoneProgress.owned} total={zoneProgress.total} label="Ta progression" />
             {familyProgress && (
-              <p className="small muted">{familyLabel(familyProgress.code)} : {formatNumber(familyProgress.owned)} / {formatNumber(familyProgress.total)}</p>
+              <p className="small muted">{familyOriginLabel(familyProgress.code, origin)} : {formatNumber(familyProgress.owned)} / {formatNumber(familyProgress.total)}</p>
             )}
           </div>
         )}
@@ -242,6 +253,17 @@ export function Catalog() {
             <select value={family ?? ''} onChange={(e) => update({ genre: e.target.value || null })}>
               <option value="">Tous les genres</option>
               {FAMILIES.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
+            </select>
+          </label>
+          <label className="field">
+            <span className="field-label">Origine du studio</span>
+            <select value={originParam(origin) ?? ''} onChange={(e) => update({ origine: e.target.value || null })}>
+              <option value="">Toutes</option>
+              {ORIGINS.map((o) => (
+                <option key={o.value} value={o.param}>
+                  {o.label}{family === 'rpg' ? (o.value === 'japan' ? ' (JRPG)' : ' (RPG occidentaux)') : ''}
+                </option>
+              ))}
             </select>
           </label>
           <label className="field">
@@ -290,6 +312,13 @@ export function Catalog() {
           </button>
         )}
       </div>
+
+      {origin && unknownOrigin > 0 && (
+        <p className="hint">
+          Origine connue pour {formatNumber(allOrigins - unknownOrigin)} jeux sur {formatNumber(allOrigins)} : les {formatNumber(unknownOrigin)} autres
+          n'apparaissent pas avec ce filtre. Elle se déduit du pays des studios, et se complète au fil des fiches.
+        </p>
+      )}
 
       {error && <p className="error">{error}</p>}
 

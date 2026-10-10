@@ -18,3 +18,4 @@ dist/
 .genres-import/
 exports/
 .redump-import/
+.origins-import/

@@ -142,6 +142,34 @@ export function familyLabel(family: string): string {
   return FAMILIES.find((f) => f.value === family)?.label ?? family;
 }
 
+// Origine d'un jeu : le pays de son studio de développement (fonction origin de la base).
+// Filtre du catalogue et de la progression : studios japonais, ou d'un autre pays.
+export type Origin = 'japan' | 'other';
+export const ORIGINS: { value: Origin; param: string; label: string; adjective: string }[] = [
+  { value: 'japan', param: 'japon', label: 'Japon', adjective: 'studios japonais' },
+  { value: 'other', param: 'hors-japon', label: 'Hors Japon', adjective: 'hors Japon' },
+];
+
+export function originFromParam(param: string | null): Origin | null {
+  return ORIGINS.find((o) => o.param === param)?.value ?? null;
+}
+
+export function originParam(origin: Origin | null): string | null {
+  return ORIGINS.find((o) => o.value === origin)?.param ?? null;
+}
+
+// « JRPG », « RPG occidentaux », « Combat · studios japonais »…
+export function familyOriginLabel(family: string, origin: Origin | null): string {
+  if (!origin) return familyLabel(family);
+  if (family === 'rpg') return origin === 'japan' ? 'JRPG' : 'RPG occidentaux';
+  return `${familyLabel(family)} · ${ORIGINS.find((o) => o.value === origin)!.adjective}`;
+}
+
+const regionNames = new Intl.DisplayNames('fr', { type: 'region' });
+export function countryName(code: string): string {
+  try { return regionNames.of(code) ?? code; } catch { return code; }
+}
+
 // Zones proposées par le catalogue et la progression, avec la tournure de phrase
 export const CATALOG_ZONES: { value: Zone; label: string; phrase: string; short: string }[] = [
   { value: 'PAL', label: 'Europe (PAL)', phrase: 'en Europe (PAL)', short: 'PAL' },

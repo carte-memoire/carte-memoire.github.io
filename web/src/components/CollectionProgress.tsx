@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { CATALOG_ZONES, familyLabel, formatNumber, formatPercent, formatPrice } from '../lib/format';
+import {
+  CATALOG_ZONES, ORIGINS, familyOriginLabel, formatNumber, formatPercent, formatPrice, originParam, type Origin,
+} from '../lib/format';
 import { ALL_PLATFORMS, ALL_ZONES, rememberZone, rememberedPlatform, rememberedZone } from '../lib/preferences';
 import type { CollectionItem, ProgressRow, Zone } from '../lib/types';
 import { MemoryBar } from './MemoryBar';
@@ -19,6 +21,9 @@ export function CollectionProgress({ items }: { items: CollectionItem[] }) {
   const [zone, setZone] = useState(initialZone);
   const zoneCode = zone === ALL_ZONES ? null : (zone as Zone);
   const [rows, setRows] = useState<ProgressRow[]>([]);
+  // Genres d'une seule origine (studios japonais : les RPG deviennent les JRPG)
+  const [origin, setOrigin] = useState<Origin | null>(null);
+  const [originRows, setOriginRows] = useState<ProgressRow[]>([]);
 
   // Relue quand la collection change (ajout, retrait…)
   useEffect(() => {
@@ -28,6 +33,14 @@ export function CollectionProgress({ items }: { items: CollectionItem[] }) {
     return () => { active = false; };
   }, [platformCode, zoneCode, items]);
 
+  useEffect(() => {
+    if (!origin) return setOriginRows([]);
+    let active = true;
+    supabase.rpc('collection_progress', { platform_code: platformCode, zone_code: zoneCode, origin_filter: origin })
+      .then(({ data }) => { if (active) setOriginRows((data as ProgressRow[]) ?? []); });
+    return () => { active = false; };
+  }, [platformCode, zoneCode, origin, items]);
+
   function choose(value: string) {
     rememberZone(value);
     setZone(value);
@@ -35,9 +48,10 @@ export function CollectionProgress({ items }: { items: CollectionItem[] }) {
 
   const main = rows.find((r) => r.scope === 'zone' && r.code === (zoneCode ?? 'all'));
   const known = rows.find((r) => r.scope === 'family' && r.code === 'known');
-  const families = rows
+  const families = (origin ? originRows : rows)
     .filter((r) => r.scope === 'family' && r.code !== 'known' && r.total > 0)
-    .sort((a, b) => b.total - a.total || familyLabel(a.code).localeCompare(familyLabel(b.code), 'fr'));
+    .sort((a, b) => b.total - a.total || familyOriginLabel(a.code, origin).localeCompare(familyOriginLabel(b.code, origin), 'fr'));
+  const unknownOrigin = rows.find((r) => r.scope === 'origin' && r.code === 'unknown');
   const zoneInfo = CATALOG_ZONES.find((z) => z.value === zoneCode);
 
   // Exemplaires de la même sélection (console et zone)
@@ -86,23 +100,38 @@ export function CollectionProgress({ items }: { items: CollectionItem[] }) {
         <div><dt>Dépensé</dt><dd>{formatPrice(spent)}</dd></div>
       </dl>
 
-      {families.length > 0 && (
+      {(families.length > 0 || origin) && (
         <>
-          <h3>Par genre</h3>
+          <div className="progress-head">
+            <h3>Par genre</h3>
+            <div className="zone-switch" role="group" aria-label="Origine du studio">
+              {[{ value: null, label: 'Toutes origines' }, ...ORIGINS.map((o) => ({ value: o.value, label: o.label }))].map((o) => (
+                <button key={o.label} type="button" className={origin === o.value ? 'zone-option active' : 'zone-option'} aria-pressed={origin === o.value} onClick={() => setOrigin(o.value)}>
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <ul className="family-list">
             {families.map((f) => (
               <li key={f.code}>
-                <Link to={catalogLink({ genre: f.code })} className="family-row">
-                  <span className="family-name">{familyLabel(f.code)}</span>
+                <Link to={catalogLink({ genre: f.code, ...(origin ? { origine: originParam(origin)! } : {}) })} className="family-row">
+                  <span className="family-name">{familyOriginLabel(f.code, origin)}</span>
                   <span className="family-count">{formatNumber(f.owned)} / {formatNumber(f.total)}</span>
-                  <MemoryBar size="small" owned={f.owned} total={f.total} label={`${familyLabel(f.code)} : jeux possédés`} />
+                  <MemoryBar size="small" owned={f.owned} total={f.total} label={`${familyOriginLabel(f.code, origin)} : jeux possédés`} />
                 </Link>
               </li>
             ))}
           </ul>
-          {known && main && (
+          {known && main && !origin && (
             <p className="hint">
               Genre connu pour {formatNumber(known.total)} jeux sur {formatNumber(main.total)} : les totaux par genre grandiront à mesure que la base se complète.
+            </p>
+          )}
+          {origin && unknownOrigin && main && (
+            <p className="hint">
+              Origine du studio connue pour {formatNumber(main.total - unknownOrigin.total)} jeux sur {formatNumber(main.total)} : elle se déduit
+              du pays des studios et se complète au fil des fiches.
             </p>
           )}
         </>

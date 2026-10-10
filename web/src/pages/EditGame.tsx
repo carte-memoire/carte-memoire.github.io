@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { GAME_FIELDS } from '../lib/queries';
-import { EDITION_TYPES, familyLabel, gamePath, LANGUAGES, slugify, ZONES, zoneLabel, zoneOrder } from '../lib/format';
+import { countryName, EDITION_TYPES, familyLabel, gamePath, LANGUAGES, slugify, ZONES, zoneLabel, zoneOrder } from '../lib/format';
 import { errorMessage } from '../lib/errors';
 import { ACCEPT_ATTRIBUTE, imageFromClipboard, uploadReleaseImage } from '../lib/images';
 import type { DatePrecision, EditionType, Game, GenreInfo, ImageType, Release, SearchResult, SpecField, Zone } from '../lib/types';
@@ -70,6 +70,7 @@ export function EditGame() {
       )}
       <GameForm game={game} onSaved={load} />
       <GenreEditor key={`${game.game_genre.map((g) => g.genre.id).join()}-${game.genres_reviewed}`} game={game} onSaved={load} />
+      <OriginEditor gameId={game.id} onSaved={load} />
       <h2>Versions</h2>
       {releases.map((r) => (
         <ReleaseEditor key={r.id} release={r} onSaved={load} canDelete={releases.length > 1} possibleDuplicate={isEmptyTwin(r, releases)} />
@@ -81,6 +82,78 @@ export function EditGame() {
       <MergeGame game={game} onMerged={load} />
       <DeleteGame game={game} onDeleted={() => setDeleted(game.title)} />
     </section>
+  );
+}
+
+// Pays proposés pour l'origine : le Japon d'abord, puis les autres par ordre alphabétique
+const ORIGIN_COUNTRIES = ['JP', ...['US', 'GB', 'FR', 'DE', 'CA', 'AU', 'KR', 'TW', 'CN', 'HK', 'ES', 'IT', 'NL', 'BE', 'SE', 'DK', 'NO', 'FI',
+  'AT', 'CH', 'CZ', 'HU', 'PL', 'RU', 'TR', 'IL', 'BR', 'NZ', 'IE'].sort((a, b) => countryName(a).localeCompare(countryName(b), 'fr'))];
+
+interface OriginInfo {
+  origin_country: string | null;
+  origin: string | null;
+  game_developer: { company: { name: string; country: string | null } }[];
+}
+
+// Origine du jeu (pays du studio) : déduite des studios s'ils sont tous du même pays connu,
+// sinon à choisir ici (coproduction, studio inconnu, ou cas particulier). Avec la famille
+// RPG, le Japon range le jeu parmi les JRPG.
+function OriginEditor({ gameId, onSaved }: { gameId: number; onSaved: () => void }) {
+  const [info, setInfo] = useState<OriginInfo | null>(null);
+  const [choice, setChoice] = useState('');
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+
+  const load = useCallback(async () => {
+    const { data } = await supabase.from('game').select('origin_country, origin, game_developer(company(name, country))').eq('id', gameId).maybeSingle();
+    setInfo((data as OriginInfo | null) ?? null);
+    setChoice((data as OriginInfo | null)?.origin_country ?? '');
+  }, [gameId]);
+
+  useEffect(() => { load(); }, [load]);
+  if (!info) return null;
+
+  const studios = info.game_developer.map((d) => d.company);
+  const countries = [...new Set(studios.map((c) => c.country))];
+  const deduced = studios.length > 0 && countries.length === 1 && countries[0] ? countries[0] : null;
+  const why = studios.length === 0 ? 'aucun studio connu'
+    : countries.includes(null) ? "pays d'un studio inconnu"
+    : 'studios de plusieurs pays';
+
+  async function save(e: FormEvent) {
+    e.preventDefault();
+    setMessage('');
+    const { error } = await supabase.from('game').update({ origin_country: choice || null }).eq('id', gameId);
+    if (error) return setError(errorMessage(error));
+    setError('');
+    setMessage('Origine enregistrée.');
+    await load();
+    onSaved();
+  }
+
+  return (
+    <form onSubmit={save} className="form panel">
+      <h2>Origine</h2>
+      <p className="muted">
+        Le pays du studio de développement. Avec la famille RPG, « Japon » range le jeu parmi les JRPG ; un autre pays, parmi les RPG occidentaux.
+      </p>
+      <p className="small">
+        Studios : {studios.length ? studios.map((c) => `${c.name} (${c.country ? countryName(c.country) : 'pays inconnu'})`).join(', ') : 'aucun'}.
+        {' '}Origine actuelle : <strong>{info.origin ? countryName(info.origin) : 'inconnue'}</strong>.
+      </p>
+      <label className="field">
+        <span className="field-label">Origine</span>
+        <select value={choice} onChange={(e) => setChoice(e.target.value)}>
+          <option value="">{deduced ? `Déduite des studios : ${countryName(deduced)}` : `Déduite des studios : inconnue (${why})`}</option>
+          {ORIGIN_COUNTRIES.map((c) => <option key={c} value={c}>{countryName(c)}</option>)}
+        </select>
+      </label>
+      {error && <p className="error" role="alert">{error}</p>}
+      {message && <p className="success">{message}</p>}
+      <div className="actions">
+        <button type="submit" className="button button-primary" disabled={choice === (info.origin_country ?? '')}><PsSymbol shape="cross" /> Enregistrer</button>
+      </div>
+    </form>
   );
 }
 

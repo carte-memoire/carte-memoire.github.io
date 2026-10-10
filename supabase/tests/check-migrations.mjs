@@ -348,9 +348,10 @@ await ok('un modérateur (admin en double authentification) le peut', en(ADMIN, 
 await ok('…et marque le jeu comme revu', en(ADMIN, `update public.game set genres_reviewed = true where id = $1`, [autreJeu]));
 const catalogue = (uid, a = {}) => lignes(en(uid, `
   select * from public.catalog_games(platform_code => $1, zone_code => $2, first_letter => $3, family_code => $4, release_year => $5,
-                                     ownership => $6, search => $7, sort_by => $8, page_number => $9, page_size => $10)`,
+                                     ownership => $6, search => $7, sort_by => $8, page_number => $9, page_size => $10,
+                                     origin_filter => $11)`,
   [a.console === undefined ? 'PS1' : a.console, a.zone ?? null, a.letter ?? null, a.family ?? null, a.year ?? null,
-   a.ownership ?? null, a.search ?? null, a.sort ?? 'title', a.page ?? 1, a.size ?? 50]));
+   a.ownership ?? null, a.search ?? null, a.sort ?? 'title', a.page ?? 1, a.size ?? 50, a.origin ?? null]));
 const ff7 = (rows) => rows.find((r) => r.id === jeu);
 const sansAccent = (t) => t.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 const totalPal = (await val(`select count(distinct game_id)::int as n from public.release where zone = 'PAL' and platform_id = $1`, [ps1]))[0].n;
@@ -383,7 +384,7 @@ const unAutrePal = (await val(`select id, game_id from public.release where zone
 await ok('le membre cherche un autre jeu PAL', en(MEMBRE, `insert into public.collection_item (release_id, status) values ($1, 'wanted')`, [unAutrePal.id]));
 await egal('filtre « recherchés »', catalogue(MEMBRE, { zone: 'PAL', ownership: 'wanted' }).then((r) => r.map((x) => x.id)), [unAutrePal.game_id]);
 
-const progression = (uid, zone = null) => lignes(en(uid, `select scope, code, total, owned, wanted from public.collection_progress('PS1', $1)`, [zone]))
+const progression = (uid, zone = null, origin = null) => lignes(en(uid, `select scope, code, total, owned, wanted from public.collection_progress('PS1', $1, $2)`, [zone, origin]))
   .then((rows) => Object.fromEntries(rows.map((r) => [`${r.scope}:${r.code}`, [r.total, r.owned, r.wanted]])));
 const prog = await progression(MEMBRE, 'PAL');
 await egal('progression PAL : 1 jeu possédé (3 exemplaires = 1 jeu), 1 recherché', Promise.resolve(prog['zone:PAL']), [totalPal, 1, 1]);
@@ -392,6 +393,38 @@ await egal('…et Stratégie aussi : un Tactical RPG compte dans ses deux famill
 await egal('progression : les jeux classés par famille sont comptés', Promise.resolve(prog['family:known']?.[0] > 0), true);
 await egal('un autre membre : rien de possédé', progression(AUTRE, 'PAL').then((p) => [p['zone:PAL'][1], p['zone:all'][1]]), [0, 0]);
 await egal('un visiteur : la progression se calcule, à zéro', progression(null).then((p) => p['zone:all'][1]), 0);
+
+console.log('\nOrigine des jeux (JRPG = RPG + Japon)');
+const origine = (id) => val(`select public.origin(g) as o from public.game g where g.id = $1`, [id]).then((r) => r[0].o);
+const studio = async (name, country) => (await en(ADMIN, `insert into public.company (name, country) values ($1, $2) returning id`, [name, country])).rows[0].id;
+await egal('FF7 de test, sans studio : origine inconnue', origine(jeu), null);
+const studioJp = await studio('Studio Test Tokyo', 'JP');
+await ok('un studio japonais développe le FF7 de test', en(ADMIN, `insert into public.game_developer (game_id, company_id) values ($1, $2)`, [jeu, studioJp]));
+await egal('…origine déduite du studio : Japon', origine(jeu), 'JP');
+await egal("lisible par l'API comme un champ du jeu", lignes(en(null, `select g.origin from public.game g where g.id = $1`, [jeu])), [{ origin: 'JP' }]);
+await egal('catalogue RPG + Japon (JRPG) : FF7 y est', catalogue(MEMBRE, { zone: 'PAL', family: 'rpg', ownership: 'owned', origin: 'japan' }).then((r) => r.map((x) => x.id)), [jeu]);
+await egal('RPG hors Japon : pas FF7', catalogue(MEMBRE, { zone: 'PAL', family: 'rpg', ownership: 'owned', origin: 'other' }).then((r) => r.length), 0);
+await egal('progression JRPG (PAL) : 1 possédé', progression(MEMBRE, 'PAL', 'japan').then((p) => p['family:rpg']?.[1]), 1);
+await egal('progression hors Japon : aucun RPG possédé', progression(MEMBRE, 'PAL', 'other').then((p) => p['family:rpg']?.[1] ?? 0), 0);
+await egal('origines Japon + hors Japon + inconnue = tous les jeux PAL', progression(MEMBRE, 'PAL').then((p) =>
+  ['japan', 'other', 'unknown'].reduce((n, o) => n + (p[`origin:${o}`]?.[0] ?? 0), 0)), totalPal);
+await egal('filtre Japon : le total de la zone est celui des jeux japonais', progression(MEMBRE, 'PAL', 'japan').then((p) => p['zone:PAL'][0] === p['origin:japan'][0]), true);
+const studioInconnu = await studio('Studio Test Sans Pays', null);
+await ok('un second studio, de pays inconnu', en(ADMIN, `insert into public.game_developer (game_id, company_id) values ($1, $2)`, [jeu, studioInconnu]));
+await egal('…origine inconnue : on ne devine pas', origine(jeu), null);
+await ok('son pays est renseigné : États-Unis', en(ADMIN, `update public.company set country = 'US' where id = $1`, [studioInconnu]));
+await egal('…coproduction Japon / États-Unis : reste à trancher', origine(jeu), null);
+await ok('un modérateur tranche : Japon', en(ADMIN, `update public.game set origin_country = 'JP' where id = $1`, [jeu]));
+await egal("…le choix du modérateur l'emporte", origine(jeu), 'JP');
+await ok("un membre tente de changer l'origine…", en(MEMBRE, `update public.game set origin_country = 'US' where id = $1`, [jeu]));
+await egal('…sans effet (réservé aux modérateurs)', origine(jeu), 'JP');
+await ko('code pays mal écrit : refusé', en(ADMIN, `update public.game set origin_country = 'Japon' where id = $1`, [jeu]), 'origin_country');
+const origineDe = (title) => val(`select public.origin(g) as o from public.game g where g.title = $1`, [title]).then((r) => r.map((x) => x.o));
+await egal('import Wikidata : Diablo vient des États-Unis', origineDe('Diablo'), ['US']);
+await egal('…Darkstone, de France', origineDe('Darkstone'), ['FR']);
+await egal('…un développeur indépendant prend sa nationalité (Chris Sawyer)', val(`select country from public.company where name = 'Chris Sawyer'`), [{ country: 'GB' }]);
+await ok('nettoyage', en(ADMIN, `update public.game set origin_country = null where id = $1;`, [jeu]));
+await ok('…des studios de test', en(ADMIN, `delete from public.game_developer where game_id = $1`, [jeu]));
 
 console.log('\nGenres déduits du titre et file des jeux sans genre');
 const genresDuTitre = (title) => val(`select string_agg(ge.name, ', ' order by ge.name) as g from public.game g join public.game_genre gg on gg.game_id = g.id join public.genre ge on ge.id = gg.genre_id where g.title = $1`, [title]).then((r) => r[0].g);
