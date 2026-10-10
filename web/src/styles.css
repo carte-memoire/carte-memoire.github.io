@@ -691,3 +691,8 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .queue-precise { max-width: 420px; }
 .pills button.pill { font: inherit; font-size: 0.85rem; }
 .pill:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ---------- Zone dangereuse (suppression) ---------- */
+.danger-zone { border-color: #8f2536 #3a0d14 #3a0d14 #8f2536; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.danger-zone h2 { color: #ffc3cb; margin: 0; }
+.danger-zone p { margin: 0; }

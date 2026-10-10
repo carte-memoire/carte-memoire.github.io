@@ -434,6 +434,27 @@ await egal('une ligne introuvable n\'apparaît pas, les autres gardent leur num�
 await ko('plus de 2 000 lignes : refusé', retrouve(Array.from({ length: 2001 }, () => ({ code: 'SCES-00868' }))), '2 000 lignes');
 await ko('un visiteur ne peut pas l\'utiliser', retrouve([{ code: 'SCES-00868' }], null), 'permission denied');
 
+console.log('\nSuppression d\'un jeu ou d\'une version');
+await ko('un membre ne peut pas supprimer un jeu', en(MEMBRE, `select public.delete_game($1)`, [jeu]), 'Seuls les modérateurs');
+await ko('un admin sans double authentification non plus', en(ADMIN, `select public.delete_game($1)`, [jeu], 'aal1'), 'Seuls les modérateurs');
+await ko('un visiteur ne peut même pas appeler la fonction', en(null, `select public.delete_game($1)`, [jeu]), 'permission denied');
+await ko('jeu présent dans la collection d\'un membre : refusé', en(ADMIN, `select public.delete_game($1)`, [jeu]), 'membre(s)');
+await ko('…version possédée : refusée aussi', en(ADMIN, `select public.delete_release($1)`, [ff7fr]), 'membre(s)');
+const jetable = (await en(ADMIN, `insert into public.game (title) values ('Jeu À Supprimer') returning id`)).rows[0].id;
+const [v1, v2] = (await en(ADMIN, `insert into public.release (game_id, platform_id, local_title, zone) values ($1, $2, 'Jeu À Supprimer', 'PAL'), ($1, $2, 'Jeu À Supprimer JP', 'NTSC-J') returning id`, [jetable, ps1])).rows.map((r) => r.id);
+await en(ADMIN, `insert into public.image (release_id, type, path) values ($1, 'front', 'releases/test/a.webp'), ($2, 'front', 'releases/test/b.webp')`, [v1, v2]);
+await en(ADMIN, `insert into public.game_genre (game_id, genre_id) select $1, id from public.genre where name = 'RPG'`, [jetable]);
+const propSuppr = (await en(MEMBRE, `insert into public.submission (action, target, target_id, data) values ('update', 'game', $1, $2::jsonb) returning id`, [jetable, JSON.stringify({ summary: 'Un résumé assez long pour être accepté par la base.' })])).rows[0].id;
+await egal('supprimer une version renvoie ses jaquettes (à effacer du stockage)', lignes(en(ADMIN, `select public.delete_release($1, 'Version en double') as p`, [v2])).then((r) => r[0].p), ['releases/test/b.webp']);
+await ko('la dernière version ne se supprime pas seule', en(ADMIN, `select public.delete_release($1)`, [v1]), 'seule version');
+await egal('supprimer le jeu renvoie les jaquettes restantes', lignes(en(ADMIN, `select public.delete_game($1, 'Jeu inexistant') as p`, [jetable])).then((r) => r[0].p), ['releases/test/a.webp']);
+await egal('…le jeu, ses versions, images et genres ont disparu', val(`select (select count(*)::int from public.game where id = $1) as g, (select count(*)::int from public.release where game_id = $1) as r, (select count(*)::int from public.image where path like 'releases/test/%') as i, (select count(*)::int from public.game_genre where game_id = $1) as gg`, [jetable]), [{ g: 0, r: 0, i: 0, gg: 0 }]);
+await egal('…la proposition en attente est refusée, avec un motif', val(`select status, review_note from public.submission where id = $1`, [propSuppr]), [{ status: 'rejected', review_note: 'Jeu supprimé du catalogue.' }]);
+await egal('journal : la version puis le jeu, avec le motif et l\'auteur', lignes(en(ADMIN, `select kind, title, reason, deleted_by from public.catalog_deletion order by id`)),
+  [{ kind: 'release', title: 'Jeu À Supprimer JP', reason: 'Version en double', deleted_by: ADMIN }, { kind: 'game', title: 'Jeu À Supprimer', reason: 'Jeu inexistant', deleted_by: ADMIN }]);
+await egal('un membre ne lit pas le journal', lignes(en(MEMBRE, `select count(*)::int as n from public.catalog_deletion`)), [{ n: 0 }]);
+await ko('personne n\'écrit directement dans le journal', en(ADMIN, `insert into public.catalog_deletion (kind, object_id, title) values ('game', 1, 'x')`), 'permission denied');
+
 console.log('\nCohérence du catalogue (imports compris)');
 await egal('chaque jeu importé a au moins une sortie', val(`select count(*)::int as n from public.game g where g.wikidata_id is not null and not exists (select 1 from public.release r where r.game_id = g.id)`), [{ n: 0 }]);
 await egal('chaque date de sortie est cohérente avec sa précision', val(`select count(*)::int as n from public.release_region where (release_date is null) <> (date_precision is null)`), [{ n: 0 }]);

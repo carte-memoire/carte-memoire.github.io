@@ -8,6 +8,7 @@ import { ACCEPT_ATTRIBUTE, prepareCover } from '../lib/images';
 import type { DatePrecision, EditionType, Game, GenreInfo, ImageType, Release, Zone } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
 import { Combobox } from '../components/Combobox';
+import { Dialog } from '../components/Dialog';
 import { Cover } from '../components/Cover';
 import { useConfirm } from '../components/Confirm';
 import { PsSymbol } from '../components/PsSymbol';
@@ -29,6 +30,7 @@ export function EditGame() {
   const { aal } = useAuth();
   const [game, setGame] = useState<Game | null>(null);
   const [missing, setMissing] = useState(false);
+  const [deleted, setDeleted] = useState('');
 
   const load = useCallback(async () => {
     const { data } = await supabase.from('game').select(GAME_FIELDS).eq('id', gameId).maybeSingle();
@@ -38,6 +40,15 @@ export function EditGame() {
 
   useEffect(() => { load(); }, [load]);
 
+  if (deleted) {
+    return (
+      <section className="panel stack">
+        <h1>Jeu supprimé</h1>
+        <p className="success">« {deleted} » a été supprimé du catalogue. La suppression est notée dans le journal.</p>
+        <p><Link to="/" className="button"><PsSymbol shape="circle" /> Retour à la recherche</Link></p>
+      </section>
+    );
+  }
   if (missing) return <section className="panel"><h1>Jeu introuvable</h1></section>;
   if (!game) return <p className="loading">Lecture de la carte mémoire…</p>;
 
@@ -58,7 +69,8 @@ export function EditGame() {
       <GameForm game={game} onSaved={load} />
       <GenreEditor key={`${game.game_genre.map((g) => g.genre.id).join()}-${game.genres_reviewed}`} game={game} onSaved={load} />
       <h2>Versions</h2>
-      {releases.map((r) => <ReleaseEditor key={r.id} release={r} onSaved={load} />)}
+      {releases.map((r) => <ReleaseEditor key={r.id} release={r} onSaved={load} canDelete={releases.length > 1} />)}
+      <DeleteGame game={game} onDeleted={() => setDeleted(game.title)} />
     </section>
   );
 }
@@ -213,7 +225,71 @@ function GenreEditor({ game, onSaved }: { game: Game; onSaved: () => void }) {
   );
 }
 
-function ReleaseEditor({ release, onSaved }: { release: Release; onSaved: () => void }) {
+// Efface du stockage les jaquettes d'un jeu ou d'une version supprimés
+async function removeCovers(paths: string[] | null) {
+  for (let i = 0; i < (paths?.length ?? 0); i += 100) {
+    await supabase.storage.from('covers').remove(paths!.slice(i, i + 100));
+  }
+}
+
+// Zone dangereuse : suppression définitive, avec le titre à retaper pour confirmer
+function DeleteGame({ game, onDeleted }: { game: Game; onDeleted: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [typed, setTyped] = useState('');
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const images = game.release.reduce((n, r) => n + r.image.length, 0);
+
+  async function remove(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError('');
+    const { data, error } = await supabase.rpc('delete_game', { target_game: game.id, reason: reason.trim() || null });
+    if (error) {
+      setBusy(false);
+      return setError(errorMessage(error));
+    }
+    await removeCovers(data as string[]);
+    onDeleted();
+  }
+
+  return (
+    <section className="panel danger-zone">
+      <h2>Zone dangereuse</h2>
+      <p className="muted">
+        Supprimer ce jeu efface aussi ses {game.release.length} version{game.release.length > 1 ? 's' : ''} et {images} image{images > 1 ? 's' : ''}.
+        C'est impossible si un membre l'a dans sa collection : pour un doublon, utilise plutôt la fusion (Modération → Doublons).
+      </p>
+      <button type="button" className="button button-danger" onClick={() => { setOpen(true); setTyped(''); setError(''); }}>Supprimer ce jeu…</button>
+      <Dialog open={open} onClose={() => setOpen(false)} title="Supprimer ce jeu">
+        <form onSubmit={remove} className="form">
+          <p className="warning">
+            Suppression <strong>définitive</strong> de « {game.title} », de ses versions, dates, images et genres.
+            Elle sera notée dans le journal des suppressions.
+          </p>
+          <label className="field">
+            <span className="field-label">Motif (facultatif)</span>
+            <input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={500} placeholder="Jeu inexistant, doublon sans exemplaire…" />
+          </label>
+          <label className="field">
+            <span className="field-label">Pour confirmer, tape le titre exact : {game.title}</span>
+            <input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" />
+          </label>
+          {error && <p className="error" role="alert">{error}</p>}
+          <div className="actions">
+            <button type="button" className="button" onClick={() => setOpen(false)}><PsSymbol shape="circle" /> Annuler</button>
+            <button type="submit" className="button button-danger" disabled={busy || typed.trim() !== game.title.trim()}>
+              {busy ? 'Suppression…' : 'Supprimer définitivement'}
+            </button>
+          </div>
+        </form>
+      </Dialog>
+    </section>
+  );
+}
+
+function ReleaseEditor({ release, onSaved, canDelete }: { release: Release; onSaved: () => void; canDelete: boolean }) {
   const { session } = useAuth();
   const confirm = useConfirm();
   const [localTitle, setLocalTitle] = useState(release.local_title);
@@ -272,6 +348,19 @@ function ReleaseEditor({ release, onSaved }: { release: Release; onSaved: () => 
     } finally {
       setBusy(false);
     }
+  }
+
+  async function removeRelease() {
+    if (!(await confirm({
+      title: 'Supprimer cette version',
+      message: `« ${release.local_title} » (${zoneLabel(release.zone)}) sera définitivement supprimée, avec ses ${release.image.length} image(s). C'est impossible si un membre l'a dans sa collection.`,
+      confirmLabel: 'Supprimer',
+      danger: true,
+    }))) return;
+    const { data, error } = await supabase.rpc('delete_release', { target_release: release.id });
+    if (error) return setError(errorMessage(error));
+    await removeCovers(data as string[]);
+    onSaved();
   }
 
   async function removeImage(imageId: number, path: string) {
@@ -354,7 +443,10 @@ function ReleaseEditor({ release, onSaved }: { release: Release; onSaved: () => 
         </fieldset>
         {message && <p className="success">{message}</p>}
         {error && <p className="error" role="alert">{error}</p>}
-        <button type="submit" className="button button-primary"><PsSymbol shape="cross" /> Enregistrer cette version</button>
+        <div className="actions">
+          <button type="submit" className="button button-primary"><PsSymbol shape="cross" /> Enregistrer cette version</button>
+          {canDelete && <button type="button" className="button button-small button-danger" onClick={removeRelease}>Supprimer cette version</button>}
+        </div>
       </form>
     </div>
   );
