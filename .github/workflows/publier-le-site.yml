@@ -5,7 +5,8 @@
 #   1. les tests de la base (migrations, règles de sécurité) doivent passer ;
 #   2. le site est compilé avec l'adresse et la clé PUBLIQUE de Supabase,
 #      lues dans les variables du dépôt (Settings → Secrets and variables →
-#      Actions → Variables) : VITE_SUPABASE_URL et VITE_SUPABASE_PUBLISHABLE_KEY ;
+#      Actions → Variables) : VITE_SUPABASE_URL et VITE_SUPABASE_PUBLISHABLE_KEY
+#      (rangées par erreur dans « Secrets », elles sont lues aussi) ;
 #   3. il est publié sur https://carte-memoire.github.io
 # =====================================================================
 
@@ -31,10 +32,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -51,25 +52,34 @@ jobs:
     needs: tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    env:
-      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
-      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
-      # Garde-fou : le site part chez tous les visiteurs, la clé doit être la clé PUBLIQUE
+      # Garde-fou : le site part chez tous les visiteurs, la clé doit être la clé PUBLIQUE.
+      # Espaces, guillemets et « / » final recopiés par mégarde sont retirés ; les valeurs
+      # nettoyées servent ensuite à la compilation.
       - name: Vérifier les réglages
+        env:
+          RAW_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
+          RAW_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
         run: |
-          case "$VITE_SUPABASE_URL" in
+          url=$(printf '%s' "$RAW_URL" | tr -d '[:space:]"' | sed 's#/*$##')
+          key=$(printf '%s' "$RAW_KEY" | tr -d '[:space:]"')
+          where="Settings → Secrets and variables → Actions → onglet Variables"
+          [ -n "$url" ] || { echo "::error::Variable VITE_SUPABASE_URL absente : crée-la dans $where"; exit 1; }
+          [ -n "$key" ] || { echo "::error::Variable VITE_SUPABASE_PUBLISHABLE_KEY absente : crée-la dans $where"; exit 1; }
+          case "$url" in
             https://*.supabase.co) ;;
-            *) echo "::error::Variable VITE_SUPABASE_URL absente ou invalide (Settings → Secrets and variables → Actions → Variables)"; exit 1 ;;
+            *) echo "::error::VITE_SUPABASE_URL vaut « $url » : attendu https://xxxx.supabase.co"; exit 1 ;;
           esac
-          case "$VITE_SUPABASE_PUBLISHABLE_KEY" in
+          case "$key" in
             sb_publishable_*) ;;
             *) echo "::error::VITE_SUPABASE_PUBLISHABLE_KEY doit être la clé PUBLIQUE (sb_publishable_…), jamais la clé secrète"; exit 1 ;;
           esac
-      - uses: actions/setup-node@v4
+          echo "VITE_SUPABASE_URL=$url" >> "$GITHUB_ENV"
+          echo "VITE_SUPABASE_PUBLISHABLE_KEY=$key" >> "$GITHUB_ENV"
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -84,7 +94,7 @@ jobs:
         run: |
           npm run build
           cp dist/index.html dist/404.html
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v4
         with:
           path: web/dist
 
