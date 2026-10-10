@@ -16,6 +16,21 @@ cp .env.example .env.local   # puis y mettre l'adresse et la clé PUBLIQUE du pr
 npm run dev                  # http://localhost:5173
 ```
 
+## Site publié
+
+https://carte-memoire.github.io — publié par GitHub Pages à chaque envoi sur `main`
+(workflow [`.github/workflows/publier-le-site.yml`](.github/workflows/publier-le-site.yml)) : les tests de la base
+doivent passer, puis le site est compilé et mis en ligne.
+
+Réglages, une fois pour toutes, dans le dépôt GitHub :
+
+- **Settings → Pages** : *Source* = **GitHub Actions** ;
+- **Settings → Secrets and variables → Actions → Variables** : `VITE_SUPABASE_URL` et `VITE_SUPABASE_PUBLISHABLE_KEY`
+  (les valeurs de `web/.env.local` : uniquement la clé PUBLIQUE, le workflow refuse toute autre clé).
+
+Côté Supabase : `npx supabase config push` envoie l'adresse du site (redirections des e-mails) ; les passkeys se
+règlent dans le tableau de bord (Authentication → Passkeys : `carte-memoire.github.io`).
+
 ## Base de données
 
 Toute la structure est dans `supabase/migrations/`, appliquée dans l'ordre :

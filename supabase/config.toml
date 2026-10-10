@@ -157,11 +157,12 @@ max_indexes = 5
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
-site_url = "http://localhost:5173"
+# Carte Mémoire : le site publié ; le développement en local reste autorisé ci-dessous.
+site_url = "https://carte-memoire.github.io"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["http://localhost:5173/**"]
+additional_redirect_urls = ["https://carte-memoire.github.io/**", "http://localhost:5173/**"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
@@ -190,17 +191,17 @@ password_requirements = "lower_upper_letters_digits_symbols"
 # Carte Mémoire : connexion sans mot de passe par passkey (empreinte, visage, Windows Hello…).
 # ATTENTION : `supabase config push` n'envoie PAS ces réglages au projet en ligne (fonction en bêta).
 # Sur le projet hébergé, ils se règlent dans le tableau de bord : Authentication → Passkeys
-# (Relying Party ID = localhost, origine = http://localhost:5173 en développement).
+# (Relying Party ID = carte-memoire.github.io, origine = https://carte-memoire.github.io).
 [auth.passkey]
 enabled = true
 
 # Configure WebAuthn relying party settings (required when passkey is enabled).
-# Une passkey est liée à un nom de domaine : en production, remplacer rp_id et
-# rp_origins par l'adresse du site (les passkeys créées sur localhost n'y marcheront pas).
+# Une passkey est liée à un nom de domaine : celles du site publié ne marchent pas sur
+# localhost (et inversement). En développement, on se connecte par mot de passe.
 [auth.webauthn]
 rp_display_name = "Carte Mémoire"
-rp_id = "localhost"
-rp_origins = ["http://localhost:5173"]
+rp_id = "carte-memoire.github.io"
+rp_origins = ["https://carte-memoire.github.io"]
 
 [auth.rate_limit]
 # Number of emails that can be sent per hour. Requires auth.email.smtp to be enabled.

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 
-// Pages légales. Les passages [à compléter] dépendent de l'éditeur du site et de
-// l'hébergeur choisi : à remplir avant la mise en ligne.
+// Pages légales. Les passages [à compléter] dépendent de l'éditeur du site :
+// à remplir avant d'annoncer le site.
 
 export function LegalNotice() {
   return (
@@ -16,7 +16,10 @@ export function LegalNotice() {
       <p>Directeur de la publication : [à compléter].</p>
 
       <h2>Hébergement</h2>
-      <p>Site : [à compléter selon l'hébergeur choisi : nom, adresse et téléphone].</p>
+      <p>
+        Site : GitHub, Inc. (service GitHub Pages), 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, États-Unis ;
+        téléphone : +1 877 448 4820 (<a href="https://github.com" target="_blank" rel="noopener noreferrer">github.com</a>).
+      </p>
       <p>
         Base de données, comptes et images : Supabase Inc. (<a href="https://supabase.com" target="_blank" rel="noopener noreferrer">supabase.com</a>),
         sur des serveurs Amazon Web Services situés à Paris (région eu-west-3).
@@ -70,8 +73,8 @@ export function Privacy() {
           construire le catalogue collaboratif et garder un historique des changements.
         </li>
         <li>
-          <strong>Données techniques</strong> : journaux de connexion tenus par notre hébergeur (adresse IP, date). Pour la
-          sécurité.
+          <strong>Données techniques</strong> : journaux de connexion tenus par nos hébergeurs (adresse IP, date) : GitHub pour
+          les pages du site, Supabase pour la base de données. Pour la sécurité.
         </li>
       </ul>
       <p>
@@ -81,9 +84,10 @@ export function Privacy() {
 
       <h2>Qui y a accès ?</h2>
       <p>
-        Toi ; les modérateurs pour les propositions, signalements et l'historique (jamais ta collection privée) ; et notre
-        hébergeur Supabase, qui stocke les données sur des serveurs situés à Paris. Supabase Inc. étant une société américaine,
-        elle s'engage par contrat (clauses contractuelles types de la Commission européenne) à protéger ces données.
+        Toi ; les modérateurs pour les propositions, signalements et l'historique (jamais ta collection privée) ; et nos
+        hébergeurs : Supabase, qui stocke les données sur des serveurs situés à Paris, et GitHub, qui sert les pages du site
+        et garde l'adresse IP des visiteurs dans ses journaux de sécurité. Ces deux sociétés étant américaines, elles
+        s'engagent par contrat (clauses contractuelles types de la Commission européenne) à protéger ces données.
       </p>
 
       <h2>Combien de temps ?</h2>

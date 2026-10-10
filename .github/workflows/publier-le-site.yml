@@ -1,0 +1,104 @@
+# =====================================================================
+# Carte Mémoire · Publication du site sur GitHub Pages
+#
+# À chaque envoi sur main (ou à la demande, onglet Actions → « Run workflow ») :
+#   1. les tests de la base (migrations, règles de sécurité) doivent passer ;
+#   2. le site est compilé avec l'adresse et la clé PUBLIQUE de Supabase,
+#      lues dans les variables du dépôt (Settings → Secrets and variables →
+#      Actions → Variables) : VITE_SUPABASE_URL et VITE_SUPABASE_PUBLISHABLE_KEY ;
+#   3. il est publié sur https://carte-memoire.github.io
+# =====================================================================
+
+name: Publier le site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Par défaut, rien d'autre que la lecture du code
+permissions:
+  contents: read
+
+# Une seule publication à la fois ; celle en cours va jusqu'au bout
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  tests:
+    name: Tests de la base
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: supabase/tests/package-lock.json
+      - name: Installer
+        working-directory: supabase/tests
+        run: npm ci
+      - name: Lancer les tests
+        working-directory: supabase/tests
+        run: npm test
+
+  build:
+    name: Compiler le site
+    needs: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      # Garde-fou : le site part chez tous les visiteurs, la clé doit être la clé PUBLIQUE
+      - name: Vérifier les réglages
+        run: |
+          case "$VITE_SUPABASE_URL" in
+            https://*.supabase.co) ;;
+            *) echo "::error::Variable VITE_SUPABASE_URL absente ou invalide (Settings → Secrets and variables → Actions → Variables)"; exit 1 ;;
+          esac
+          case "$VITE_SUPABASE_PUBLISHABLE_KEY" in
+            sb_publishable_*) ;;
+            *) echo "::error::VITE_SUPABASE_PUBLISHABLE_KEY doit être la clé PUBLIQUE (sb_publishable_…), jamais la clé secrète"; exit 1 ;;
+          esac
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Installer
+        working-directory: web
+        run: npm ci
+      # 404.html = index.html : une adresse comme /jeu/42 ouverte directement charge
+      # quand même le site, qui affiche la bonne page
+      - name: Compiler
+        working-directory: web
+        run: |
+          npm run build
+          cp dist/index.html dist/404.html
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist
+
+  deploy:
+    name: Publier
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
