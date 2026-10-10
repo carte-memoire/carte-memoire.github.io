@@ -26,6 +26,19 @@ export const rememberPlatform = (value: string) => write(PLATFORM_KEY, value);
 export const rememberedZone = () => read(ZONE_KEY, DEFAULT_ZONE);
 export const rememberZone = (value: string) => write(ZONE_KEY, value);
 
+// Session ouverte par un lien « mot de passe oublié » (le temps de cet onglet) : seule
+// elle donne accès à la page « nouveau mot de passe » sans code reçu par e-mail
+const RECOVERY_KEY = 'carte-memoire:recuperation';
+export function markRecovery(active: boolean) {
+  try {
+    if (active) sessionStorage.setItem(RECOVERY_KEY, '1');
+    else sessionStorage.removeItem(RECOVERY_KEY);
+  } catch { /* stockage indisponible : la page renverra vers « Mon compte » */ }
+}
+export function inRecovery(): boolean {
+  try { return sessionStorage.getItem(RECOVERY_KEY) === '1'; } catch { return false; }
+}
+
 const COLLECTION_VIEW_KEY = 'carte-memoire:vue-collection';
 export type CollectionView = 'list' | 'grid';
 export const rememberedCollectionView = (): CollectionView => (read(COLLECTION_VIEW_KEY, 'list') === 'grid' ? 'grid' : 'list');

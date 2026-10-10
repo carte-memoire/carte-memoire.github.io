@@ -5,6 +5,7 @@ import { errorMessage } from '../lib/errors';
 import { useAuth } from '../auth/AuthContext';
 import { PasswordRules, passwordIsValid } from '../components/PasswordRules';
 import { PsSymbol } from '../components/PsSymbol';
+import { inRecovery, markRecovery } from '../lib/preferences';
 
 // Page ouverte depuis le lien « mot de passe oublié » : le lien a déjà ouvert
 // une session temporaire, il ne reste qu'à choisir le nouveau mot de passe.
@@ -21,12 +22,28 @@ export function ResetPassword() {
     return (
       <section className="panel narrow">
         <h1>Lien invalide ou expiré</h1>
+        <p>
+          Le lien a peut-être déjà servi, ou expiré (il est valable 30 minutes). Par sécurité, il doit aussi être ouvert
+          dans le navigateur où tu as fait la demande : sur un autre appareil ou dans un autre navigateur, il ne marche pas.
+        </p>
         <p>Demande un nouveau lien de réinitialisation.</p>
         <Link to="/mot-de-passe-oublie" className="button"><PsSymbol shape="cross" /> Nouveau lien</Link>
       </section>
     );
   }
   if (needsMfa) return <Navigate to="/connexion/verification?next=/reinitialiser" replace />;
+  // Connecté normalement (pas par un lien « mot de passe oublié ») : on passe par « Mon compte »,
+  // qui demande un code reçu par e-mail. Sinon, quelqu'un devant un ordinateur resté connecté
+  // pourrait changer le mot de passe et s'approprier le compte.
+  if (!inRecovery()) {
+    return (
+      <section className="panel narrow">
+        <h1>Changer de mot de passe</h1>
+        <p>Tu es déjà connecté : change ton mot de passe dans « Mon compte », avec un code envoyé par e-mail.</p>
+        <Link to="/compte" className="button"><PsSymbol shape="cross" /> Mon compte</Link>
+      </section>
+    );
+  }
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -40,6 +57,7 @@ export function ResetPassword() {
     }
     // Par sécurité, toutes les autres sessions ouvertes sont fermées
     await supabase.auth.signOut({ scope: 'others' });
+    markRecovery(false);
     navigate('/collection', { replace: true });
   }
 

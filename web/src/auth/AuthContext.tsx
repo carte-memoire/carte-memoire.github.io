@@ -3,6 +3,7 @@ import type { Session } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { Profile } from '../lib/types';
+import { markRecovery } from '../lib/preferences';
 
 type Aal = 'aal1' | 'aal2' | null;
 
@@ -51,7 +52,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Ne pas appeler Supabase directement dans ce rappel (risque de blocage) : on diffère
       setTimeout(() => {
         load(s);
-        if (event === 'PASSWORD_RECOVERY') navigate('/reinitialiser');
+        if (event === 'PASSWORD_RECOVERY') {
+          markRecovery(true);
+          navigate('/reinitialiser');
+        }
+        if (event === 'SIGNED_OUT') markRecovery(false);
       }, 0);
     });
     return () => listener.subscription.unsubscribe();
