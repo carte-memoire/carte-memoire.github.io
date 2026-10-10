@@ -66,7 +66,7 @@ for (const d of discs) {
   seen.add(k);
   const own = releasesByGame.get(gameId) ?? [];
   const zone = d.zones.has('PAL') ? 'PAL' : d.zones.has('NTSC-U') ? 'NTSC-U' : 'NTSC-J';
-  const row = { gameId, title: titleOf.get(gameId), disc: d.name, serial: d.serial, zone, places: d.places.join(', '), special: d.special, d };
+  const row = { gameId, title: titleOf.get(gameId), disc: d.name, serial: d.serial, zone, places: d.places.join(', '), special: d.special, d, viaAlias: !gamesByKey.has(d.key) };
   if (own.some((r) => r.product_code === d.serial)) { result.existing.push(row); continue; }
   const empty = own.filter((r) => r.zone === zone && !r.product_code && (d.special ? r.edition_type !== 'standard' : r.edition_type === 'standard'));
   if (empty.length === 1) { result.fillCode.push({ ...row, release: empty[0].local_title }); continue; }
@@ -162,6 +162,25 @@ for (const row of [...result.national, ...result.reissue]) {
     media: mediaOf(d), country, reissueOf: d.special && standard.length === 1 ? standard[0].id : null,
   });
 }
+// Mode --zones : seulement les versions d'une zone où le jeu n'a encore AUCUNE version
+// (« NASCAR 98 » sans version européenne), titre exact (pas de variante), hors éditions
+// spéciales. Les autres « même zone, autre code » (révisions « Rev 1 », rééditions
+// japonaises non marquées SLPS-91xxx, correspondances douteuses) restent à relire.
+const zonesMode = process.argv.includes('--zones');
+if (zonesMode) {
+  updates.length = 0;
+  inserts.length = 0;
+  for (const row of result.other) {
+    const { d } = row;
+    if (row.viaAlias || d.special) continue;
+    if ((releasesByGame.get(row.gameId) ?? []).some((r) => r.zone === row.zone)) continue;
+    inserts.push({
+      gameId: row.gameId, gameTitle: row.title, localTitle: displayTitle(d.name), zone: row.zone, editionType: 'standard',
+      editionName: null, code: row.serial, languages: d.languages.filter((l) => /^[a-z]{2}$/.test(l)),
+      media: mediaOf(d), country: COUNTRY[d.places[0]] ?? null, reissueOf: null,
+    });
+  }
+}
 console.log(`\nÀ écrire : ${updates.length} codes corrigés ou complétés, ${inserts.length} nouvelles versions`);
 
 const lit = (v) => (v === null || v === undefined ? 'null' : `'${String(v).replaceAll("'", "''")}'`);
@@ -173,15 +192,23 @@ const clock = now.toISOString().replace(/\D/g, '').slice(0, 14);
 const stamp = clock > latest ? clock : String(BigInt(latest) + 100n);
 const updateValues = updates.map((u) => `(${u.id}, ${lit(u.localTitle)}, ${lit(u.oldCode)}, ${lit(u.code)})`);
 const insertValues = inserts.map((n) => `(${n.gameId}, ${lit(n.gameTitle)}, ${lit(n.localTitle)}, ${lit(n.zone)}, ${lit(n.editionType)}, ${lit(n.editionName)}, ${lit(n.code)}, ${arr(n.languages)}, ${n.media ?? 'null'}, ${lit(n.country)}, ${n.reissueOf ?? 'null'})`);
-writeFileSync(join(ROOT, 'supabase', 'migrations', `${stamp}_import_versions_redump.sql`), [
+const fileName = `${stamp}_import_versions_redump${zonesMode ? '_zones' : ''}.sql`;
+writeFileSync(join(ROOT, 'supabase', 'migrations', fileName), [
   '-- =====================================================================',
-  '-- Carte Mémoire · Versions nationales PAL et rééditions depuis Redump',
-  `-- Fichier GÉNÉRÉ par scripts/import-versions-redump.mjs le ${now.toISOString().slice(0, 10)}.`,
+  zonesMode
+    ? '-- Carte Mémoire · Versions d\'une zone où le jeu n\'en avait aucune, depuis Redump'
+    : '-- Carte Mémoire · Versions nationales PAL et rééditions depuis Redump',
+  `-- Fichier GÉNÉRÉ par scripts/import-versions-redump.mjs${zonesMode ? ' --zones' : ''} le ${now.toISOString().slice(0, 10)}.`,
   '-- Source : Redump (http://redump.org), via libretro-database.',
   '--',
-  `-- ${updates.length} versions existantes reçoivent leur vrai code (une version nationale`,
-  '-- déjà présente, comme « Les Chevaliers de Baphomet », portait le code européen),',
-  `-- ${inserts.length} versions sont créées (France, Allemagne… ; The Best, PSone Books…).`,
+  ...(zonesMode ? [
+    `-- ${inserts.length} versions créées (« NASCAR 98 » en Europe, « Zoop » au Japon…) : titre exact,`,
+    '-- zone absente du jeu jusqu\'ici, édition standard.',
+  ] : [
+    `-- ${updates.length} versions existantes reçoivent leur vrai code (une version nationale`,
+    '-- déjà présente, comme « Les Chevaliers de Baphomet », portait le code européen),',
+    `-- ${inserts.length} versions sont créées (France, Allemagne… ; The Best, PSone Books…).`,
+  ]),
   '-- Garde-fous : titre de la version ou du jeu identique, code jamais en double',
   '-- dans un même jeu, réédition rattachée seulement à une version du même jeu.',
   '-- =====================================================================',
@@ -232,4 +259,4 @@ writeFileSync(join(ROOT, 'supabase', 'migrations', `${stamp}_import_versions_red
   'drop table redump_update;',
   '',
 ].join('\n'));
-console.log(`Migration écrite : supabase/migrations/${stamp}_import_versions_redump.sql`);
+console.log(`Migration écrite : supabase/migrations/${fileName}`);
