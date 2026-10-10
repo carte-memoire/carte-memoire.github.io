@@ -331,9 +331,21 @@ await egal('un titre sans chiffre ne cherche pas dans les codes', parCode('sces'
 await egal('une recherche par titre reste inchangée', parCode('final fantasy VII').then((r) => r[0].title), 'Final Fantasy VII');
 
 console.log('\nCatalogue à cocher et progression');
-await egal('Tactical RPG et Action-RPG rangés dans la famille RPG', val(`select name, family from public.genre where name in ('RPG', 'Tactical RPG', 'Action-RPG') order by name`),
-  [{ name: 'Action-RPG', family: 'rpg' }, { name: 'RPG', family: 'rpg' }, { name: 'Tactical RPG', family: 'rpg' }]);
-await egal('un thème (science-fiction) n\'a pas de famille', val(`select family from public.genre where name = 'Jeu de science-fiction'`), [{ family: null }]);
+await egal('Action-RPG compte en RPG et en Action, Tactical RPG en RPG et en Stratégie', val(`select name, array_to_string(families, ',') as f from public.genre where name in ('RPG', 'Tactical RPG', 'Action-RPG') order by name`),
+  [{ name: 'Action-RPG', f: 'rpg,action' }, { name: 'RPG', f: 'rpg' }, { name: 'Tactical RPG', f: 'rpg,strategy' }]);
+await egal('un thème (science-fiction) n\'a pas de famille', val(`select cardinality(families) as n from public.genre where name = 'Jeu de science-fiction'`), [{ n: 0 }]);
+
+// Genres d'un jeu importé, par son identifiant Wikidata
+const genresDe = (qid) => val(`select string_agg(ge.name, ', ' order by ge.name) as g from public.game g join public.game_genre gg on gg.game_id = g.id join public.genre ge on ge.id = gg.genre_id where g.wikidata_id = $1`, [qid]).then((r) => r[0].g);
+await egal('Wikipédia : Tintin: Destination Adventure n\'est plus un RPG', genresDe('Q3024607'), "Jeu d'aventure");
+await egal('Wikipédia : Dragon Valor, Action-RPG et plates-formes', genresDe('Q3715070'), 'Action-RPG, Jeu de plates-formes');
+await egal('Wikipédia dit « Sport » : WWF SmackDown! garde « Jeu de catch », plus précis', genresDe('Q2655866').then((g) => g?.includes('Jeu de catch') && g.includes('Jeu de sport')), true);
+await egal('les thèmes (science-fiction, Noël…) restent en place',
+  val(`select count(*)::int as n from public.game_genre gg join public.genre ge on ge.id = gg.genre_id where cardinality(ge.families) = 0`).then((r) => r[0].n > 200), true);
+await egal('genres_reviewed : faux par défaut', val(`select bool_or(genres_reviewed) as r from public.game`), [{ r: false }]);
+await ko('un membre ne peut pas changer les genres d\'un jeu', en(MEMBRE, `insert into public.game_genre (game_id, genre_id) values ($1, (select id from public.genre where name = 'RPG'))`, [autreJeu]), 'row-level security');
+await ok('un modérateur (admin en double authentification) le peut', en(ADMIN, `insert into public.game_genre (game_id, genre_id) values ($1, (select id from public.genre where name = 'Jeu de stratégie'))`, [autreJeu]));
+await ok('…et marque le jeu comme revu', en(ADMIN, `update public.game set genres_reviewed = true where id = $1`, [autreJeu]));
 const catalogue = (uid, a = {}) => lignes(en(uid, `
   select * from public.catalog_games(platform_code => $1, zone_code => $2, first_letter => $3, family_code => $4, release_year => $5,
                                      ownership => $6, search => $7, sort_by => $8, page_number => $9, page_size => $10)`,
@@ -376,6 +388,7 @@ const progression = (uid, zone = null) => lignes(en(uid, `select scope, code, to
 const prog = await progression(MEMBRE, 'PAL');
 await egal('progression PAL : 1 jeu possédé (3 exemplaires = 1 jeu), 1 recherché', Promise.resolve(prog['zone:PAL']), [totalPal, 1, 1]);
 await egal('progression RPG (zone PAL) : 1 possédé', Promise.resolve(prog['family:rpg']?.[1]), 1);
+await egal('…et Stratégie aussi : un Tactical RPG compte dans ses deux familles', Promise.resolve(prog['family:strategy']?.[1]), 1);
 await egal('progression : les jeux classés par famille sont comptés', Promise.resolve(prog['family:known']?.[0] > 0), true);
 await egal('un autre membre : rien de possédé', progression(AUTRE, 'PAL').then((p) => [p['zone:PAL'][1], p['zone:all'][1]]), [0, 0]);
 await egal('un visiteur : la progression se calcule, à zéro', progression(null).then((p) => p['zone:all'][1]), 0);

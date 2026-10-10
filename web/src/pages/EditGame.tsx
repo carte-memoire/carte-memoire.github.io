@@ -2,10 +2,10 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { GAME_FIELDS } from '../lib/queries';
-import { EDITION_TYPES, gamePath, LANGUAGES, ZONES, zoneLabel, zoneOrder } from '../lib/format';
+import { EDITION_TYPES, FAMILIES, familyLabel, gamePath, LANGUAGES, ZONES, zoneLabel, zoneOrder } from '../lib/format';
 import { errorMessage } from '../lib/errors';
 import { ACCEPT_ATTRIBUTE, prepareCover } from '../lib/images';
-import type { DatePrecision, EditionType, Game, ImageType, Release, Zone } from '../lib/types';
+import type { DatePrecision, EditionType, Game, GenreInfo, ImageType, Release, Zone } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
 import { Cover } from '../components/Cover';
 import { useConfirm } from '../components/Confirm';
@@ -55,6 +55,7 @@ export function EditGame() {
         </p>
       )}
       <GameForm game={game} onSaved={load} />
+      <GenreEditor key={`${game.game_genre.map((g) => g.genre.id).join()}-${game.genres_reviewed}`} game={game} onSaved={load} />
       <h2>Versions</h2>
       {releases.map((r) => <ReleaseEditor key={r.id} release={r} onSaved={load} />)}
     </section>
@@ -126,6 +127,93 @@ function GameForm({ game, onSaved }: { game: Game; onSaved: () => void }) {
       {error && <p className="error" role="alert">{error}</p>}
       <button type="submit" className="button button-primary"><PsSymbol shape="cross" /> Enregistrer le jeu</button>
     </form>
+  );
+}
+
+// Genres du jeu. Enregistrer marque le jeu « revu » : les imports automatiques
+// (Wikipédia…) ne toucheront plus à ses genres.
+function GenreEditor({ game, onSaved }: { game: Game; onSaved: () => void }) {
+  const initial = game.game_genre.map((g) => g.genre);
+  const [all, setAll] = useState<GenreInfo[]>([]);
+  const [selected, setSelected] = useState<GenreInfo[]>(initial);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    supabase.from('genre').select('id, name, families').order('name').then(({ data }) => setAll((data as GenreInfo[]) ?? []));
+  }, []);
+
+  const chosen = new Set(selected.map((g) => g.id));
+  const families = [...new Set(selected.flatMap((g) => g.families))];
+  const changed = selected.length !== initial.length || initial.some((g) => !chosen.has(g.id));
+  // Liste d'ajout : par famille principale, puis les thèmes
+  const groups = [
+    ...FAMILIES.map((f) => ({ label: f.label, genres: all.filter((g) => g.families[0] === f.value && !chosen.has(g.id)) })),
+    { label: 'Thèmes (sans famille)', genres: all.filter((g) => g.families.length === 0 && !chosen.has(g.id)) },
+  ].filter((group) => group.genres.length > 0);
+
+  async function save() {
+    setSaving(true);
+    setMessage('');
+    setError('');
+    const before = new Set(initial.map((g) => g.id));
+    const removed = initial.filter((g) => !chosen.has(g.id)).map((g) => g.id);
+    const added = selected.filter((g) => !before.has(g.id)).map((g) => ({ game_id: game.id, genre_id: g.id }));
+    try {
+      if (removed.length) {
+        const { error } = await supabase.from('game_genre').delete().eq('game_id', game.id).in('genre_id', removed);
+        if (error) throw error;
+      }
+      if (added.length) {
+        const { error } = await supabase.from('game_genre').insert(added);
+        if (error) throw error;
+      }
+      const { error } = await supabase.from('game').update({ genres_reviewed: true }).eq('id', game.id);
+      if (error) throw error;
+      setMessage("Genres enregistrés. Le jeu est marqué « revu » : les imports automatiques n'y toucheront plus.");
+      onSaved();
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section className="form panel">
+      <h2>Genres</h2>
+      <p className="hint">
+        Familles : {families.length ? families.map(familyLabel).join(', ') : 'aucune'}.{' '}
+        {game.genres_reviewed ? 'Genres déjà revus par un modérateur.' : "Pas encore revus : enregistrer (même sans changement) confirme qu'ils sont justes."}
+      </p>
+      <ul className="genre-chips">
+        {selected.map((g) => (
+          <li key={g.id} className={g.families.length ? 'genre-chip' : 'genre-chip is-theme'}>
+            {g.name}
+            <span className="muted small">{g.families.length ? g.families.map(familyLabel).join(' + ') : 'thème'}</span>
+            <button type="button" className="icon-button" aria-label={`Retirer ${g.name}`} onClick={() => setSelected(selected.filter((x) => x.id !== g.id))}>✕</button>
+          </li>
+        ))}
+        {selected.length === 0 && <li className="muted">Aucun genre.</li>}
+      </ul>
+      <label className="field">
+        <span className="field-label">Ajouter un genre</span>
+        <select value="" onChange={(e) => { const g = all.find((x) => x.id === Number(e.target.value)); if (g) setSelected([...selected, g]); }}>
+          <option value="">Choisir…</option>
+          {groups.map((group) => (
+            <optgroup key={group.label} label={group.label}>
+              {group.genres.map((g) => <option key={g.id} value={g.id}>{g.name}{g.families.length > 1 ? ` (${g.families.map(familyLabel).join(' + ')})` : ''}</option>)}
+            </optgroup>
+          ))}
+        </select>
+      </label>
+      {message && <p className="success">{message}</p>}
+      {error && <p className="error" role="alert">{error}</p>}
+      <button type="button" className="button button-primary" onClick={save} disabled={saving || (!changed && game.genres_reviewed)}>
+        <PsSymbol shape="cross" /> {changed ? 'Enregistrer les genres' : 'Confirmer : les genres sont justes'}
+      </button>
+    </section>
   );
 }
 

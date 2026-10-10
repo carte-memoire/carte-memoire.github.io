@@ -655,3 +655,15 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
   .import-row { grid-template-columns: auto 3em minmax(0, 1fr); }
   .import-target { grid-column: 2 / -1; }
 }
+
+/* ---------- Genres : familles sur la fiche, édition par les modérateurs ---------- */
+.family-tags { display: inline-flex; flex-wrap: wrap; gap: 4px; vertical-align: middle; }
+.badge-family { color: #b5f3e1; border-color: var(--triangle); text-decoration: none; }
+.badge-family:hover { color: var(--text); background: rgba(47, 214, 166, 0.15); }
+.genre-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.genre-chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 2px 4px 2px 12px; min-height: 32px;
+  background: var(--bg-2); border: 1px solid var(--triangle); border-radius: 999px; font-size: 0.85rem;
+}
+.genre-chip.is-theme { border-color: var(--line); border-style: dashed; }
+.genre-chip .icon-button { font-size: 0.9rem; padding: 2px 6px; }

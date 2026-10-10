@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { Dialog } from '../components/Dialog';
 import { GAME_FIELDS } from '../lib/queries';
-import { editionLabel, formatDate, LANGUAGES, zoneLabel, zoneOrder } from '../lib/format';
+import { editionLabel, familyLabel, formatDate, LANGUAGES, zoneLabel, zoneOrder } from '../lib/format';
 import type { Game, Release } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
 import { Cover } from '../components/Cover';
@@ -34,6 +34,10 @@ export function GamePage() {
 
   const releases = [...game.release].sort((a, b) => zoneOrder(a.zone) - zoneOrder(b.zone) || a.id - b.id);
   const heroImages = releases.find((r) => r.zone === 'PAL' && r.image.length)?.image ?? releases.find((r) => r.image.length)?.image ?? [];
+  // Genres (avec leurs familles, cliquables vers le catalogue) et thèmes (sans famille)
+  const genres = game.game_genre.map((g) => g.genre).filter((g) => g.families.length > 0);
+  const themes = game.game_genre.map((g) => g.genre).filter((g) => g.families.length === 0);
+  const families = [...new Set(genres.flatMap((g) => g.families))];
 
   function addToCollection(release: Release) {
     const target = `/collection?ajouter=${release.id}`;
@@ -49,7 +53,18 @@ export function GamePage() {
           <dl className="facts">
             {game.first_release_date && (<><dt>Première sortie</dt><dd>{formatDate(game.first_release_date, game.first_release_precision)}</dd></>)}
             {game.game_developer.length > 0 && (<><dt>Développement</dt><dd>{game.game_developer.map((d) => d.company.name).join(', ')}</dd></>)}
-            {game.game_genre.length > 0 && (<><dt>Genres</dt><dd>{game.game_genre.map((g) => g.genre.name).join(', ')}</dd></>)}
+            {families.length > 0 && (
+              <>
+                <dt>Genre</dt>
+                <dd>
+                  <span className="family-tags">
+                    {families.map((f) => <Link key={f} to={`/catalogue?genre=${f}`} className="badge badge-family">{familyLabel(f)}</Link>)}
+                  </span>
+                  <span className="muted small"> {genres.map((g) => g.name).join(', ')}</span>
+                </dd>
+              </>
+            )}
+            {themes.length > 0 && (<><dt>Thèmes</dt><dd>{themes.map((g) => g.name).join(', ')}</dd></>)}
           </dl>
           {game.summary && (
             <div className="summary-block">

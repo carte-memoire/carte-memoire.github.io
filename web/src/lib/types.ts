@@ -75,8 +75,16 @@ export interface Game {
   first_release_date: string | null;
   first_release_precision: DatePrecision | null;
   game_developer: { company: { name: string } }[];
-  game_genre: { genre: { name: string } }[];
+  genres_reviewed: boolean;
+  game_genre: { genre: GenreInfo }[];
   release: Release[];
+}
+
+// Un genre (« Action-RPG ») et ses familles (RPG, Action) ; sans famille, c'est un thème
+export interface GenreInfo {
+  id: number;
+  name: string;
+  families: GenreFamily[];
 }
 
 export interface CollectionItem {
