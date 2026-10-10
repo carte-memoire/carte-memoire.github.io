@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { GAME_FIELDS } from '../lib/queries';
-import { EDITION_TYPES, familyLabel, gamePath, LANGUAGES, ZONES, zoneLabel, zoneOrder } from '../lib/format';
+import { EDITION_TYPES, familyLabel, gamePath, LANGUAGES, slugify, ZONES, zoneLabel, zoneOrder } from '../lib/format';
 import { errorMessage } from '../lib/errors';
 import { ACCEPT_ATTRIBUTE, prepareCover } from '../lib/images';
 import type { DatePrecision, EditionType, Game, GenreInfo, ImageType, Release, SearchResult, SpecField, Zone } from '../lib/types';
@@ -497,6 +497,25 @@ function ReleaseEditor({ release, onSaved, canDelete, possibleDuplicate }: { rel
     onSaved();
   }
 
+  // Récupère le fichier tel qu'il est stocké (WebP), sous un nom lisible :
+  // « final-fantasy-vii-pal-recto.webp ». Un lien direct ne suffit pas : le stockage
+  // est sur un autre domaine, le navigateur ouvrirait l'image au lieu de l'enregistrer.
+  async function downloadImage(path: string, type: ImageType) {
+    setError('');
+    const { data, error } = await supabase.storage.from('covers').download(path);
+    if (error || !data) return setError(errorMessage(error) || 'Téléchargement impossible.');
+    const label = IMAGE_TYPES.find((t) => t.value === type)?.label ?? type;
+    const extension = path.split('.').pop() ?? 'webp';
+    const url = URL.createObjectURL(data);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${slugify(`${release.local_title} ${release.zone ?? ''} ${label}`)}.${extension}`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
   async function removeImage(imageId: number, path: string) {
     if (!(await confirm({ title: "Supprimer l'image", message: 'Cette image sera définitivement retirée du site.', confirmLabel: 'Supprimer', danger: true }))) return;
     const { error } = await supabase.from('image').delete().eq('id', imageId);
@@ -523,6 +542,7 @@ function ReleaseEditor({ release, onSaved, canDelete, possibleDuplicate }: { rel
             <Cover images={[{ ...img, type: 'front' }]} title={release.local_title} size="small" />
             <figcaption>
               {IMAGE_TYPES.find((t) => t.value === img.type)?.label}
+              <button type="button" className="link-button" onClick={() => downloadImage(img.path, img.type)}>Télécharger</button>
               <button type="button" className="link-button danger" onClick={() => removeImage(img.id, img.path)}>Supprimer</button>
             </figcaption>
           </figure>
