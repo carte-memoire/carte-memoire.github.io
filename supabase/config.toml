@@ -256,54 +256,56 @@ otp_expiry = 1800
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
+# EN ATTENTE DU SMTP DÉDIÉ : Supabase refuse de modifier les e-mails d'un projet gratuit
+# qui utilise son service d'envoi par défaut. Une fois le SMTP configuré (tableau de bord →
+# Authentication → Emails → SMTP Settings), retirer les « # » ci-dessous, puis config push.
 # Carte Mémoire : e-mails en français, aux couleurs du site, générés par
 # scripts/build-email-templates.mjs (les sujets sont à garder identiques dans les deux fichiers).
-[auth.email.template.confirmation]
-subject = "Confirme ton adresse e-mail · Carte Mémoire"
-content_path = "./supabase/templates/confirmation.html"
+# [auth.email.template.confirmation]
+# subject = "Confirme ton adresse e-mail · Carte Mémoire"
+# content_path = "./supabase/templates/confirmation.html"
 
-[auth.email.template.recovery]
-subject = "Ton code pour changer de mot de passe · Carte Mémoire"
-content_path = "./supabase/templates/recovery.html"
+# [auth.email.template.recovery]
+# subject = "Ton code pour changer de mot de passe · Carte Mémoire"
+# content_path = "./supabase/templates/recovery.html"
 
-[auth.email.template.reauthentication]
-subject = "Ton code de confirmation · Carte Mémoire"
-content_path = "./supabase/templates/reauthentication.html"
+# [auth.email.template.reauthentication]
+# subject = "Ton code de confirmation · Carte Mémoire"
+# content_path = "./supabase/templates/reauthentication.html"
 
-[auth.email.template.email_change]
-subject = "Confirme ta nouvelle adresse e-mail · Carte Mémoire"
-content_path = "./supabase/templates/email_change.html"
+# [auth.email.template.email_change]
+# subject = "Confirme ta nouvelle adresse e-mail · Carte Mémoire"
+# content_path = "./supabase/templates/email_change.html"
 
-[auth.email.template.magic_link]
-subject = "Ton lien de connexion · Carte Mémoire"
-content_path = "./supabase/templates/magic_link.html"
+# [auth.email.template.magic_link]
+# subject = "Ton lien de connexion · Carte Mémoire"
+# content_path = "./supabase/templates/magic_link.html"
 
-[auth.email.template.invite]
-subject = "Tu es invité sur Carte Mémoire"
-content_path = "./supabase/templates/invite.html"
+# [auth.email.template.invite]
+# subject = "Tu es invité sur Carte Mémoire"
+# content_path = "./supabase/templates/invite.html"
 
 
 # Carte Mémoire : e-mails de sécurité, pour prévenir la personne d'un changement sur son compte
-[auth.email.notification.password_changed]
-enabled = true
-subject = "Ton mot de passe a été changé · Carte Mémoire"
-content_path = "./supabase/templates/password_changed.html"
+# [auth.email.notification.password_changed]
+# enabled = true
+# subject = "Ton mot de passe a été changé · Carte Mémoire"
+# content_path = "./supabase/templates/password_changed.html"
 
-[auth.email.notification.email_changed]
-enabled = true
-subject = "Ton adresse e-mail a été changée · Carte Mémoire"
-content_path = "./supabase/templates/email_changed.html"
+# [auth.email.notification.email_changed]
+# enabled = true
+# subject = "Ton adresse e-mail a été changée · Carte Mémoire"
+# content_path = "./supabase/templates/email_changed.html"
 
-[auth.email.notification.mfa_factor_enrolled]
-enabled = true
-subject = "Double authentification activée · Carte Mémoire"
-content_path = "./supabase/templates/mfa_factor_enrolled.html"
+# [auth.email.notification.mfa_factor_enrolled]
+# enabled = true
+# subject = "Double authentification activée · Carte Mémoire"
+# content_path = "./supabase/templates/mfa_factor_enrolled.html"
 
-[auth.email.notification.mfa_factor_unenrolled]
-enabled = true
-subject = "Double authentification désactivée · Carte Mémoire"
-content_path = "./supabase/templates/mfa_factor_unenrolled.html"
-
+# [auth.email.notification.mfa_factor_unenrolled]
+# enabled = true
+# subject = "Double authentification désactivée · Carte Mémoire"
+# content_path = "./supabase/templates/mfa_factor_unenrolled.html"
 
 [auth.sms]
 # Allow/disallow new user signups via SMS to your project.

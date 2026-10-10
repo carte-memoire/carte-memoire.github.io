@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { EMAIL_CODES, supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { PasswordRules, passwordIsValid } from '../components/PasswordRules';
 import { PsSymbol } from '../components/PsSymbol';
@@ -50,8 +50,9 @@ export function Signup() {
       <section className="panel narrow">
         <h1>Vérifie ta boîte mail</h1>
         <p>
-          Si <strong>{email.trim()}</strong> n'a pas encore de compte, un e-mail vient de t'être envoyé, avec un code à
-          6 chiffres et un lien de confirmation (valables 30 minutes).
+          Si <strong>{email.trim()}</strong> n'a pas encore de compte, un e-mail vient de t'être envoyé
+          {EMAIL_CODES ? ', avec un code à 6 chiffres et un lien de confirmation (valables 30 minutes).'
+            : ' : clique sur son lien pour confirmer ton adresse (valable 30 minutes).'}
         </p>
         <EmailCodeForm
           email={email.trim()}

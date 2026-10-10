@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { EMAIL_CODES, supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { markRecovery } from '../lib/preferences';
 import { useAuth } from '../auth/AuthContext';
@@ -42,11 +42,12 @@ export function ForgotPassword() {
       {sent ? (
         <>
           <p>
-            Si un compte existe avec <strong>{email.trim()}</strong>, un e-mail vient d'être envoyé, avec un code à 6 chiffres
-            et un lien (valables 30 minutes).
+            Si un compte existe avec <strong>{email.trim()}</strong>, un e-mail vient d'être envoyé
+            {EMAIL_CODES ? ', avec un code à 6 chiffres et un lien (valables 30 minutes).' : ', avec un lien valable 30 minutes.'}
           </p>
           <p className="muted small">
-            Le code marche depuis n'importe quel appareil ; le lien, seulement dans ce navigateur-ci.
+            {EMAIL_CODES ? "Le code marche depuis n'importe quel appareil ; le lien, seulement dans ce navigateur-ci."
+              : 'Ouvre le lien dans ce navigateur-ci : par sécurité, il ne marche pas ailleurs.'}
           </p>
           <EmailCodeForm email={email.trim()} type="recovery" onVerified={verified} onResend={send} />
         </>
@@ -57,7 +58,7 @@ export function ForgotPassword() {
             <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} maxLength={254} />
           </label>
           {error && <p className="error" role="alert">{error}</p>}
-          <button type="submit" className="button button-primary button-block" disabled={busy}><PsSymbol shape="cross" /> Recevoir un code</button>
+          <button type="submit" className="button button-primary button-block" disabled={busy}><PsSymbol shape="cross" /> {EMAIL_CODES ? 'Recevoir un code' : 'Recevoir un lien'}</button>
         </form>
       )}
       <p className="small center"><Link to="/connexion"><PsSymbol shape="circle" /> Retour à la connexion</Link></p>

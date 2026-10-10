@@ -18,6 +18,11 @@ export const supabase = createClient(url, publishableKey, {
   },
 });
 
+// Les e-mails d'inscription et de mot de passe oublié contiennent-ils un code à 6 chiffres ?
+// Seulement avec nos modèles d'e-mails (supabase/templates), que Supabase n'accepte qu'avec
+// un service d'envoi dédié (SMTP). D'ici là : lien seul, et pas de champ pour le code.
+export const EMAIL_CODES = false;
+
 // Adresse publique d'une jaquette validée
 export function coverUrl(path: string): string {
   return supabase.storage.from('covers').getPublicUrl(path).data.publicUrl;

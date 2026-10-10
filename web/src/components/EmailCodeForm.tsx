@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { supabase } from '../lib/supabase';
+import { EMAIL_CODES, supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { PsSymbol } from './PsSymbol';
 import { CodeInput } from './CodeInput';
@@ -52,6 +52,26 @@ export function EmailCodeForm({ email, type, onVerified, onResend }: {
     setWait(60);
   }
 
+  const resendLine = (
+    <p className="muted small center">
+      Rien reçu ? Regarde dans les indésirables, ou{' '}
+      <button type="button" className="link-button" disabled={wait > 0} onClick={resend}>
+        renvoie l'e-mail{wait > 0 ? ` (dans ${wait} s)` : ''}
+      </button>.
+    </p>
+  );
+
+  // E-mails sans code (service d'envoi par défaut) : seulement « renvoyer »
+  if (!EMAIL_CODES) {
+    return (
+      <div className="form">
+        {error && <p className="error" role="alert">{error}</p>}
+        {resent && <p className="success">Nouvel e-mail envoyé.</p>}
+        {resendLine}
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={submit} className="form">
       <div className="field">
@@ -63,12 +83,7 @@ export function EmailCodeForm({ email, type, onVerified, onResend }: {
       <button type="submit" className="button button-primary button-block" disabled={busy || code.length !== 6}>
         <PsSymbol shape="cross" /> {busy ? 'Vérification…' : 'Valider le code'}
       </button>
-      <p className="muted small center">
-        Rien reçu ? Regarde dans les indésirables, ou{' '}
-        <button type="button" className="link-button" disabled={wait > 0} onClick={resend}>
-          renvoie l'e-mail{wait > 0 ? ` (dans ${wait} s)` : ''}
-        </button>.
-      </p>
+      {resendLine}
     </form>
   );
 }

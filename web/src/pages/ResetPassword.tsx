@@ -26,8 +26,8 @@ export function ResetPassword() {
           Le lien a peut-être déjà servi, ou expiré (il est valable 30 minutes). Par sécurité, il doit aussi être ouvert
           dans le navigateur où tu as fait la demande : sur un autre appareil ou dans un autre navigateur, il ne marche pas.
         </p>
-        <p>Le plus simple : demande un nouvel e-mail et recopie son code à 6 chiffres, qui marche sur n'importe quel appareil.</p>
-        <Link to="/mot-de-passe-oublie" className="button"><PsSymbol shape="cross" /> Recevoir un code</Link>
+        <p>Demande un nouvel e-mail, et ouvre son lien dans le navigateur de la demande.</p>
+        <Link to="/mot-de-passe-oublie" className="button"><PsSymbol shape="cross" /> Nouvel e-mail</Link>
       </section>
     );
   }
