@@ -10,16 +10,18 @@ import { useGameSearch } from '../components/GameSearch';
 import { Cover } from '../components/Cover';
 import { PsSymbol } from '../components/PsSymbol';
 import { useConfirm } from '../components/Confirm';
+import { GenreQueue } from '../components/GenreQueue';
 
-type Tab = 'submissions' | 'duplicates';
+type Tab = 'submissions' | 'duplicates' | 'genres';
 
 export function Moderation() {
   const { aal } = useAuth();
   const [tab, setTab] = useState<Tab>('submissions');
-  const [counts, setCounts] = useState({ submissions: 0, duplicates: 0 });
+  const [counts, setCounts] = useState({ submissions: 0, duplicates: 0, genres: 0 });
   // Fonctions stables : sinon chaque affichage relancerait le chargement des listes
   const countSubmissions = useCallback((n: number) => setCounts((c) => ({ ...c, submissions: n })), []);
   const countDuplicates = useCallback((n: number) => setCounts((c) => ({ ...c, duplicates: n })), []);
+  const countGenres = useCallback((n: number) => setCounts((c) => ({ ...c, genres: n })), []);
 
   return (
     <section className="stack">
@@ -37,10 +39,14 @@ export function Moderation() {
         <button type="button" role="tab" aria-selected={tab === 'duplicates'} className={tab === 'duplicates' ? 'tab active' : 'tab'} onClick={() => setTab('duplicates')}>
           Doublons possibles ({counts.duplicates})
         </button>
+        <button type="button" role="tab" aria-selected={tab === 'genres'} className={tab === 'genres' ? 'tab active' : 'tab'} onClick={() => setTab('genres')}>
+          Jeux sans genre ({counts.genres})
+        </button>
       </div>
-      {/* Les deux onglets restent montés pour garder leurs compteurs à jour */}
+      {/* Les onglets restent montés pour garder leurs compteurs à jour */}
       <div hidden={tab !== 'submissions'}><SubmissionQueue onCount={countSubmissions} /></div>
       <div hidden={tab !== 'duplicates'}><DuplicateList onCount={countDuplicates} /></div>
+      <div hidden={tab !== 'genres'}><GenreQueue onCount={countGenres} /></div>
     </section>
   );
 }

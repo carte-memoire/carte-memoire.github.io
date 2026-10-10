@@ -393,6 +393,18 @@ await egal('progression : les jeux classés par famille sont comptés', Promise.
 await egal('un autre membre : rien de possédé', progression(AUTRE, 'PAL').then((p) => [p['zone:PAL'][1], p['zone:all'][1]]), [0, 0]);
 await egal('un visiteur : la progression se calcule, à zéro', progression(null).then((p) => p['zone:all'][1]), 0);
 
+console.log('\nGenres déduits du titre et file des jeux sans genre');
+const genresDuTitre = (title) => val(`select string_agg(ge.name, ', ' order by ge.name) as g from public.game g join public.game_genre gg on gg.game_id = g.id join public.genre ge on ge.id = gg.genre_id where g.title = $1`, [title]).then((r) => r[0].g);
+await egal('nouveau genre « Pachinko et pachislot », famille Société', val(`select array_to_string(families, ',') as f from public.genre where name = 'Pachinko et pachislot'`), [{ f: 'party' }]);
+await egal('Hissatsu Pachi-Slot Station : pachinko et pachislot', genresDuTitre('Hissatsu Pachi-Slot Station'), 'Pachinko et pachislot');
+await egal('Minna no Shogi: Jokyuuhen : shogi', genresDuTitre('Minna no Shogi: Jokyuuhen'), 'Shogi video game');
+await egal('Cross Romance: Koi to Mahjong to Hanafuda to : mahjong ET cartes', genresDuTitre('Cross Romance: Koi to Mahjong to Hanafuda to'), 'Jeu de cartes, Jeu de mah-jong');
+await egal('cas ambigu écarté : Tennis no Oujisama: Sweat & Tears reste sans genre', genresDuTitre('Tennis no Oujisama: Sweat & Tears'), null);
+const file = (q, uid = MEMBRE) => lignes(en(uid, `select title, total_count from public.games_without_genre('PS1', null, $1, 1, 100)`, [q]));
+await egal('file des jeux sans genre : le cas ambigu y est', file('tennis no oujisama').then((r) => r.map((x) => x.title)), ['Tennis no Oujisama: Sweat & Tears']);
+await egal('…mais plus les jeux classés par leur titre', file('hissatsu pachi').then((r) => r.length), 0);
+await ko('un visiteur ne peut pas lire la file', file('a', null), 'permission denied');
+
 console.log('\nDétails d\'un exemplaire');
 await ok('acheté d\'occasion en brocante, reblisté, avec spine card, à échanger', en(MEMBRE, `
   insert into public.collection_item (release_id, condition, acquisition, purchase_place, has_spine_card, trade_status)

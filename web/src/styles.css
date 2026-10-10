@@ -681,3 +681,13 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .combobox-detail { color: var(--muted); font-size: 0.8rem; white-space: nowrap; }
 .combobox-option.active .combobox-detail { color: #d6dcff; }
 .combobox-empty { padding: 7px 10px; color: var(--muted); }
+
+/* ---------- Modération : jeux sans genre ---------- */
+.queue-list { gap: 10px; }
+.queue-card { display: flex; gap: 14px; align-items: flex-start; padding: 14px 16px; }
+.queue-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.queue-body p { margin: 0; }
+.queue-title { font-weight: 700; }
+.queue-precise { max-width: 420px; }
+.pills button.pill { font: inherit; font-size: 0.85rem; }
+.pill:disabled { opacity: 0.5; cursor: not-allowed; }
