@@ -376,6 +376,10 @@ await egal('tri par titre', Promise.resolve(page1.map((x) => sansAccent(x.displa
 await egal('année 1997 : uniquement des jeux sortis en 1997', catalogue(null, { zone: 'PAL', year: 1997 }).then((r) => r.length > 0 && r.every((x) => String(x.release_date).includes('1997') || new Date(x.release_date).getUTCFullYear() === 1997)), true);
 await egal('tri par date : du plus ancien au plus récent', catalogue(null, { zone: 'PAL', sort: 'date', size: 100 }).then((r) => r.filter((x) => x.release_date).every((x, i, a) => i === 0 || new Date(a[i - 1].release_date) <= new Date(x.release_date))), true);
 await egal('console inconnue : aucun jeu', catalogue(null, { console: 'XYZ' }).then((r) => r.length), 0);
+await egal("date inconnue en PAL : celle d'une autre zone PS1 (1995), pas celle de la borne d'arcade (1992, Viewpoint)",
+  catalogue(null, { zone: 'PAL', search: 'viewpoint' }).then((r) => r.filter((x) => x.title === 'Viewpoint').map((x) => new Date(x.release_date).getUTCFullYear())), [1995]);
+await egal('tri par date en PAL : aucune date avant le lancement de la PS1', catalogue(null, { zone: 'PAL', sort: 'date', size: 20 })
+  .then((r) => r.every((x) => !x.release_date || new Date(x.release_date) >= new Date('1994-12-03'))), true);
 await egal('recherche par code produit dans le catalogue', catalogue(null, { zone: 'PAL', search: 'SCES-99868' }).then((r) => r.some((x) => x.id === jeu)), true);
 const rpg = (await val(`select id from public.genre where name = 'Tactical RPG'`))[0].id;
 await ok('FF7 de test classé en Tactical RPG', en(ADMIN, `insert into public.game_genre (game_id, genre_id) values ($1, $2)`, [jeu, rpg]));
@@ -603,6 +607,20 @@ await en(ADMIN, `insert into public.image (release_id, type, path) values ($1, '
 await egal('jaquette ajoutée : la Platinum quitte la file', sansJaquette(['reissue', 'SCES-99868']).then((r) => r.length), 0);
 await ko('un visiteur ne peut pas lire la file', sansJaquette([null, null], null), 'permission denied');
 await en(ADMIN, `delete from public.image where path like 'test/ff7-%'`);
+
+console.log('\nDates de sortie (correction de Strider, historique)');
+await egal('Strider prend les dates de Strider 2, vendu avec lui (Japon : 24 février 2000, et non 2006)',
+  val(`select r.zone::text as zone, rg.code, rr.release_date::text as d from public.release r join public.game g on g.id = r.game_id
+       join public.release_region rr on rr.release_id = r.id join public.region rg on rg.id = rr.region_id where g.title = 'Strider' order by 1`),
+  [{ zone: 'NTSC-J', code: 'JP', d: '2000-02-24' }, { zone: 'NTSC-U', code: 'north-america', d: '2000-07-29' }, { zone: 'PAL', code: 'europe', d: '2000-12-15' }]);
+const france = (await val(`select id from public.region where code = 'FR'`))[0].id;
+await ok('un modérateur ajoute une date de sortie (Platinum de test, France)', en(ADMIN, `insert into public.release_region (release_id, region_id, release_date, date_precision) values ($1, $2, '1998-11-01', 'month')`, [ff7platinum, france]));
+await ok('…la corrige', en(ADMIN, `update public.release_region set release_date = '1998-12-01' where release_id = $1 and region_id = $2`, [ff7platinum, france]));
+await egal("…les deux modifications sont dans l'historique du jeu", val(`select action, new_values ->> 'release_date' as d from public.catalog_change where table_name = 'release_region' and game_id = $1 and row_key = $2 order by id`, [jeu, `${ff7platinum}:${france}`]),
+  [{ action: 'insert', d: '1998-11-01' }, { action: 'update', d: '1998-12-01' }]);
+await ko('un membre ne peut pas changer une date', en(MEMBRE, `insert into public.release_region (release_id, region_id, release_date, date_precision) values ($1, (select id from public.region where code = 'DE'), '1999-01-01', 'year')`, [ff7platinum]), 'row-level security');
+await ko('« novembre 1998 » doit être enregistré au 1er du mois', en(ADMIN, `update public.release_region set release_date = '1998-11-15', date_precision = 'month' where release_id = $1 and region_id = $2`, [ff7platinum, france]), 'check');
+await ok('nettoyage de la date de test', en(ADMIN, `delete from public.release_region where release_id = $1 and region_id = $2`, [ff7platinum, france]));
 
 console.log('\nCohérence du catalogue (imports compris)');
 await egal('chaque jeu importé a au moins une sortie', val(`select count(*)::int as n from public.game g where g.wikidata_id is not null and not exists (select 1 from public.release r where r.game_id = g.id)`), [{ n: 0 }]);

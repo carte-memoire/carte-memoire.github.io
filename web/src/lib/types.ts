@@ -63,7 +63,7 @@ export interface Release {
   reissue_of: number | null;
   platform: { id: number; short_name: string; spec_fields?: SpecField[] };
   specs?: Record<string, unknown>;
-  release_region: { release_date: string | null; date_precision: DatePrecision | null; region: { code: string; name: string } }[];
+  release_region: { release_date: string | null; date_precision: DatePrecision | null; region: { id?: number; code: string; name: string } }[];
   release_company: { role: string; company: { name: string } }[];
   image: ReleaseImage[];
 }
@@ -237,7 +237,7 @@ export interface Report {
 // Une modification du catalogue (table catalog_change)
 export interface CatalogChange {
   id: number;
-  table_name: 'game' | 'release' | 'game_genre' | 'image';
+  table_name: 'game' | 'release' | 'game_genre' | 'image' | 'release_region';
   row_key: string;
   game_id: number | null;
   action: 'insert' | 'update' | 'delete';

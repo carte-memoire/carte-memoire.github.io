@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { formatDateTime, gamePath } from '../lib/format';
+import { formatDate, formatDateTime, gamePath } from '../lib/format';
+import { useRegions } from '../lib/useRegions';
 import { errorMessage } from '../lib/errors';
-import type { CatalogChange } from '../lib/types';
+import type { CatalogChange, DatePrecision } from '../lib/types';
 import { useConfirm } from './Confirm';
 
 // Noms lisibles des champs modifiés
@@ -14,7 +15,7 @@ const FIELDS: Record<string, string> = {
   edition_name: "Nom de l'édition", media_count: 'Disques', languages: 'Langues', specs: 'Caractéristiques',
   game_id: 'Jeu (fusion ou déplacement)', reissue_of: "Réédition de", barcode: 'Code-barres',
 };
-const TABLES: Record<CatalogChange['table_name'], string> = { game: 'Jeu', release: 'Version', game_genre: 'Genre', image: 'Image' };
+const TABLES: Record<CatalogChange['table_name'], string> = { game: 'Jeu', release: 'Version', game_genre: 'Genre', image: 'Image', release_region: 'Date de sortie' };
 const ACTIONS: Record<CatalogChange['action'], string> = { insert: 'ajout', update: 'modification', delete: 'suppression' };
 
 const show = (v: unknown): string => {
@@ -28,6 +29,7 @@ const show = (v: unknown): string => {
 // refresh : n'importe quelle valeur qui change quand il faut relire (ex. le jeu rechargé)
 export function HistoryList({ gameId, onUndone, limit = 50, refresh }: { gameId?: number; onUndone?: () => void; limit?: number; refresh?: unknown }) {
   const confirm = useConfirm();
+  const regions = useRegions();
   const [changes, setChanges] = useState<CatalogChange[] | null>(null);
   const [genres, setGenres] = useState<Map<number, string>>(new Map());
   const [titles, setTitles] = useState<Map<number, string>>(new Map());
@@ -69,6 +71,14 @@ export function HistoryList({ gameId, onUndone, limit = 50, refresh }: { gameId?
     const v = c.new_values ?? c.old_values ?? {};
     if (c.table_name === 'game_genre') return [`${c.action === 'insert' ? 'Ajouté' : 'Retiré'} : ${genres.get(Number(c.row_key.split(':')[1])) ?? `genre n° ${c.row_key.split(':')[1]}`}`];
     if (c.table_name === 'image') return [`${c.action === 'insert' ? 'Ajoutée' : 'Supprimée'} (${show(v.type)})`];
+    if (c.table_name === 'release_region') {
+      const region = regions.find((r) => r.id === Number(c.row_key.split(':')[1]))?.name ?? 'région inconnue';
+      // Une modification ne garde que les champs changés : la précision inchangée est prise de l'autre côté
+      const precision = (x: Record<string, unknown> | null) => (x?.date_precision ?? c.new_values?.date_precision ?? c.old_values?.date_precision ?? null) as DatePrecision | null;
+      const when = (x: Record<string, unknown> | null) => formatDate((x?.release_date as string) ?? null, precision(x)) || 'date inconnue';
+      if (c.action === 'update') return [`${region} : ${when(c.old_values)} → ${when(c.new_values)}`];
+      return [`${c.action === 'insert' ? 'Ajoutée' : 'Retirée'} : ${region}, ${when(v)}`];
+    }
     if (c.action !== 'update') return [`« ${show(v.title ?? v.local_title)} »${v.zone ? ` (${show(v.zone)})` : ''}`];
     return Object.keys(c.new_values ?? {}).map((k) => `${FIELDS[k] ?? k} : ${show(c.old_values?.[k])} → ${show(c.new_values?.[k])}`);
   }

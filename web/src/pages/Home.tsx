@@ -5,7 +5,7 @@ import { PlatformSelect } from '../components/PlatformSelect';
 import { PsSymbol } from '../components/PsSymbol';
 import { formatNumber, gamePath } from '../lib/format';
 import { ALL_PLATFORMS, DEFAULT_PLATFORM, rememberPlatform, rememberedPlatform } from '../lib/preferences';
-import { usePlatforms } from '../lib/usePlatforms';
+import { useKnownPlatform, usePlatforms } from '../lib/usePlatforms';
 
 export function Home() {
   const navigate = useNavigate();
@@ -13,7 +13,7 @@ export function Home() {
   const accountDeleted = Boolean((location.state as { accountDeleted?: boolean } | null)?.accountDeleted);
   const platforms = usePlatforms();
   const [params, setParams] = useSearchParams();
-  const selected = params.get('console') ?? rememberedPlatform();
+  const selected = useKnownPlatform(params.get('console') ?? rememberedPlatform());
   const current = platforms.find((p) => p.short_name === selected);
   const platformCode = selected === ALL_PLATFORMS ? null : selected;
   // Nombre de jeux de la console choisie (ou de toutes), dès que la liste des consoles est lue

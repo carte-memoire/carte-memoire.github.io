@@ -8,6 +8,7 @@ import type { GenreFamily, GenreInfo } from '../lib/types';
 import { Combobox } from './Combobox';
 import { Cover } from './Cover';
 import { PsSymbol } from './PsSymbol';
+import { useKnownPlatform } from '../lib/usePlatforms';
 
 const PAGE_SIZE = 20;
 
@@ -36,7 +37,7 @@ interface QueueRow {
 // File des jeux sans genre : on choisit une ou plusieurs familles (ou un genre
 // précis), on enregistre, le jeu quitte la file. Il est alors marqué « revu ».
 export function GenreQueue({ onCount }: { onCount: (n: number) => void }) {
-  const platform = rememberedPlatform();
+  const platform = useKnownPlatform(rememberedPlatform());
   const platformCode = platform === ALL_PLATFORMS ? null : platform;
   const [genres, setGenres] = useState<Genre[]>([]);
   const [zone, setZone] = useState('');

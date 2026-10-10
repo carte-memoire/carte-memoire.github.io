@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from './supabase';
 import type { PlatformInfo } from './types';
+import { ALL_PLATFORMS, DEFAULT_PLATFORM } from './preferences';
 
 // Liste des consoles (avec constructeur et nombre de jeux), chargée une seule fois
 let cache: Promise<PlatformInfo[]> | null = null;
@@ -20,6 +21,15 @@ export function usePlatforms(): PlatformInfo[] {
     return () => { active = false; };
   }, []);
   return platforms;
+}
+
+// Console demandée (adresse ou préférence) : une console inconnue (lien mal recopié,
+// console retirée) est remplacée par la console par défaut, au lieu d'un catalogue vide
+// qu'on ne pourrait plus quitter (elle resterait mémorisée)
+export function useKnownPlatform(requested: string): string {
+  const platforms = usePlatforms();
+  if (requested === ALL_PLATFORMS || platforms.length === 0) return requested;
+  return platforms.some((p) => p.short_name === requested) ? requested : DEFAULT_PLATFORM;
 }
 
 // Regroupement par constructeur, pour des <optgroup> : ceux qui ont le plus de

@@ -15,6 +15,7 @@ import { Cover } from '../components/Cover';
 import { MemoryBar } from '../components/MemoryBar';
 import { PlatformSelect } from '../components/PlatformSelect';
 import { PsSymbol } from '../components/PsSymbol';
+import { useKnownPlatform } from '../lib/usePlatforms';
 
 const PAGE_SIZE = 50;
 const LETTERS = ['#', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'];
@@ -39,7 +40,7 @@ export function Catalog() {
   const [params, setParams] = useSearchParams();
 
   // Filtres lus dans l'adresse (une valeur inconnue est ignorée)
-  const platform = params.get('console') ?? rememberedPlatform();
+  const platform = useKnownPlatform(params.get('console') ?? rememberedPlatform());
   const zoneParam = params.get('zone') ?? rememberedZone();
   const zone = zoneParam === ALL_ZONES || CATALOG_ZONES.some((z) => z.value === zoneParam) ? zoneParam : ALL_ZONES;
   const letterParam = params.get('lettre')?.toUpperCase() ?? null;
@@ -107,11 +108,22 @@ export function Catalog() {
   // Champ « filtrer » : il garde sa propre valeur (rien ne la réécrit pendant la frappe),
   // et l'adresse n'est mise à jour qu'après une courte pause
   const [text, setText] = useState(query);
+  const sentQuery = useRef(query);
   useEffect(() => {
     if (text.trim() === query) return;
-    const timer = setTimeout(() => update({ q: text.trim() || null }, { replace: true }), 300);
+    const timer = setTimeout(() => {
+      sentQuery.current = text.trim();
+      update({ q: text.trim() || null }, { replace: true });
+    }, 300);
     return () => clearTimeout(timer);
   }, [text]);
+  // L'adresse a changé sans passer par le champ (bouton Retour, lien) : le champ suit,
+  // sinon il remettrait son ancien texte dans l'adresse
+  useEffect(() => {
+    if (query === sentQuery.current) return;
+    sentQuery.current = query;
+    setText(query);
+  }, [query]);
 
   // La page du catalogue
   useEffect(() => {
@@ -304,7 +316,9 @@ export function Catalog() {
 
       <div className="list-row">
         <p className="muted" aria-live="polite">
-          {rows === null ? 'Lecture du catalogue…' : `${formatNumber(total)} jeu${total > 1 ? 'x' : ''}${pages > 1 ? ` · page ${page} sur ${pages}` : ''}`}
+          {rows === null ? 'Lecture du catalogue…'
+            : rows.length === 0 && page > 1 ? `Page ${page} : au-delà de la dernière page`
+            : `${formatNumber(total)} jeu${total > 1 ? 'x' : ''}${pages > 1 ? ` · page ${page} sur ${pages}` : ''}`}
         </p>
         {filtered && (
           <button type="button" className="link-button" onClick={() => { setText(''); setParams(new URLSearchParams([...params].filter(([k]) => k === 'console' || k === 'zone'))); }}>

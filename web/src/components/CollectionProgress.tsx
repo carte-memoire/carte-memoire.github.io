@@ -7,6 +7,7 @@ import {
 import { ALL_PLATFORMS, ALL_ZONES, rememberZone, rememberedPlatform, rememberedZone } from '../lib/preferences';
 import type { CollectionItem, ProgressRow, Zone } from '../lib/types';
 import { MemoryBar } from './MemoryBar';
+import { useKnownPlatform } from '../lib/usePlatforms';
 
 function initialZone(): string {
   const zone = rememberedZone();
@@ -16,7 +17,7 @@ function initialZone(): string {
 // En haut de « Ma collection » : jeux possédés sur jeux existants (par zone et
 // par genre), et quelques chiffres sur les exemplaires de la même sélection
 export function CollectionProgress({ items }: { items: CollectionItem[] }) {
-  const platform = rememberedPlatform();
+  const platform = useKnownPlatform(rememberedPlatform());
   const platformCode = platform === ALL_PLATFORMS ? null : platform;
   const [zone, setZone] = useState(initialZone);
   const zoneCode = zone === ALL_ZONES ? null : (zone as Zone);

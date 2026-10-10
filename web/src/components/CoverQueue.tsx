@@ -9,6 +9,7 @@ import type { EditionType, Zone } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
 import { Cover } from './Cover';
 import { PsSymbol } from './PsSymbol';
+import { useKnownPlatform } from '../lib/usePlatforms';
 
 const PAGE_SIZE = 20;
 
@@ -44,7 +45,7 @@ interface LastUpload {
 // suivante devient la cible. Un fichier peut aussi être choisi ou déposé sur la carte.
 export function CoverQueue({ onCount, active }: { onCount: (n: number) => void; active: boolean }) {
   const { session } = useAuth();
-  const platform = rememberedPlatform();
+  const platform = useKnownPlatform(rememberedPlatform());
   const platformCode = platform === ALL_PLATFORMS ? null : platform;
   const [edition, setEdition] = useState<EditionType | ''>('reissue');
   const [zone, setZone] = useState('');

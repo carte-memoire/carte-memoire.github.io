@@ -122,6 +122,7 @@ export function GamePage() {
               <h3>{r.local_title}</h3>
               <p className="release-badges">
                 <span className={`badge badge-zone badge-${(r.zone ?? 'unknown').toLowerCase()}`}>{zoneLabel(r.zone)}</span>
+                {countryOf(r) && <span className="badge">{countryOf(r)}</span>}
                 <span className={`badge ${r.edition_type === 'reissue' ? 'badge-platinum' : 'badge-edition'}`}>{editionLabel(r)}</span>
                 {!r.product_code && <span className="badge badge-todo">À compléter</span>}
               </p>
@@ -211,4 +212,15 @@ function SummaryProposal({ open, onClose, game }: { open: boolean; onClose: () =
       )}
     </Dialog>
   );
+}
+
+// Version sortie dans un seul pays (version française, allemande…) : son nom, pour la
+// distinguer d'un coup d'œil des autres versions de la même zone
+// (sauf s'il répète la zone : le Japon pour le NTSC-J, les États-Unis pour le NTSC-U)
+function countryOf(release: Release): string | null {
+  const countries = [...new Map(release.release_region.filter((rr) => /^[A-Z]{2}$/.test(rr.region.code))
+    .map((rr) => [rr.region.code, rr.region.name])).entries()];
+  if (countries.length !== 1) return null;
+  const [code, name] = countries[0];
+  return (release.zone === 'NTSC-J' && code === 'JP') || (release.zone === 'NTSC-U' && code === 'US') ? null : name;
 }

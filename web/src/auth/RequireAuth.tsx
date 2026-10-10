@@ -20,5 +20,6 @@ export function RequireAuth({ children, moderator = false }: { children: ReactNo
 
 // Après connexion, on ne redirige que vers une page du site (jamais vers un autre site)
 export function safeNext(value: string | null): string {
-  return value && value.startsWith('/') && !value.startsWith('//') ? value : '/collection';
+  // « //site.com » mènerait ailleurs, et le navigateur lit « \ » comme « / » : refusés
+  return value && value.startsWith('/') && !value.startsWith('//') && !value.includes('\\') ? value : '/collection';
 }

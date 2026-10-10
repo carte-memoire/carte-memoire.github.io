@@ -748,3 +748,12 @@ kbd {
 .legal { max-width: 780px; margin: 0 auto; }
 .legal h2 { font-size: 1.1rem; margin-top: 1.4em; }
 .legal p, .legal li { line-height: 1.6; }
+
+/* ---------- Modifier : dates de sortie d'une version ---------- */
+.release-dates { display: flex; flex-direction: column; gap: 8px; }
+.release-dates h4 { margin: 0; }
+.release-dates-list { gap: 6px; }
+.release-date-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.release-date-row select, .release-date-row input { width: auto; }
+.release-date-row input[type="number"] { width: 6.5em; }
+.release-date-region { min-width: 9em; font-weight: 600; }

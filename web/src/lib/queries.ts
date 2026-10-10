@@ -3,7 +3,7 @@ export const RELEASE_FIELDS = `
   id, game_id, zone, local_title, edition_type, edition_name, product_code, media_count, languages, reissue_of,
   specs,
   platform(id, short_name, spec_fields),
-  release_region(release_date, date_precision, region(code, name)),
+  release_region(release_date, date_precision, region(id, code, name)),
   release_company(role, company(name)),
   image(id, type, path)
 `;
