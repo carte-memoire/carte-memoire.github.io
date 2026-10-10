@@ -7,10 +7,13 @@ import {
   searchKey, TRADE_STATUSES, tradeStatusLabel, zoneLabel,
 } from '../lib/format';
 import { errorMessage } from '../lib/errors';
+import { downloadCsv, toCsv } from '../lib/csv';
+import { EXPORT_HEADERS, itemToRow } from '../lib/collectionCsv';
 import { rememberCollectionView, rememberedCollectionView, type CollectionView } from '../lib/preferences';
 import type { CollectionItem, ItemStatus } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
 import { AddToCollection } from '../components/AddToCollection';
+import { CollectionImport } from '../components/CollectionImport';
 import { CollectionProgress } from '../components/CollectionProgress';
 import { useConfirm } from '../components/Confirm';
 import { Cover } from '../components/Cover';
@@ -73,6 +76,7 @@ export function Collection() {
   const [error, setError] = useState('');
   const [loaded, setLoaded] = useState(false);
   const [view, setView] = useState<CollectionView>(rememberedCollectionView);
+  const [importing, setImporting] = useState(false);
   // Le champ de recherche garde sa propre valeur : relue depuis l'adresse, elle
   // pourrait revenir en arrière pendant la frappe (l'adresse suit avec un léger décalage)
   const [text, setText] = useState(() => params.get('q') ?? '');
@@ -146,6 +150,12 @@ export function Collection() {
     await load();
   }
 
+  // Toute la collection (sans tenir compte des filtres) : possédés puis recherchés, par titre
+  function exportCsv() {
+    const sorted = [...items].sort((a, b) => Number(a.status === 'wanted') - Number(b.status === 'wanted') || byTitle(a, b));
+    downloadCsv(`carte-memoire-collection-${new Date().toISOString().slice(0, 10)}.csv`, toCsv([EXPORT_HEADERS, ...sorted.map(itemToRow)]));
+  }
+
   const owned = items.filter((i) => i.status === 'owned');
   const wanted = items.filter((i) => i.status === 'wanted');
 
@@ -180,6 +190,12 @@ export function Collection() {
         </div>
         <div className="actions">
           <Link to="/catalogue" className="button"><PsSymbol shape="square" /> Cocher dans le catalogue</Link>
+          <button type="button" className="button" onClick={() => setImporting(true)} title="Ajouter des jeux depuis un fichier CSV (Excel, LibreOffice…)">
+            <PsSymbol shape="triangle" /> Importer
+          </button>
+          <button type="button" className="button" onClick={exportCsv} disabled={items.length === 0} title="Télécharger toute ta collection en CSV (sauvegarde, tableur)">
+            <PsSymbol shape="circle" /> Exporter
+          </button>
           <button type="button" className="button button-primary" onClick={() => setDialog({ open: true })}><PsSymbol shape="cross" /> Ajouter un jeu</button>
         </div>
       </div>
@@ -283,6 +299,8 @@ export function Collection() {
           ))}
         </ul>
       )}
+
+      <CollectionImport open={importing} onClose={() => setImporting(false)} onImported={load} existing={items} />
 
       <AddToCollection
         open={dialog.open}

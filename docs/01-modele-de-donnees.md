@@ -70,6 +70,7 @@ Ajouter une console (PS2, NES…) revient à ajouter **une ligne** dans `platfor
 - **RG22** : Un exemplaire est soit **possédé**, soit **recherché** (liste de souhaits). Pour un exemplaire possédé, on note la présence de la boîte, de la notice et du support (et de la spine card au Japon), l'état (du « neuf sous blister » au « mauvais état », en distinguant un blister refait), s'il a été acheté neuf ou d'occasion, où, à quel prix et quand, s'il est proposé à l'échange ou à la vente, et des notes. Ces détails n'existent pas pour un exemplaire recherché.
 - **RG23** : Une collection est privée par défaut. L'utilisateur peut la rendre publique.
 - **RG24** : Progression : un jeu est **possédé dans une zone** dès qu'au moins une de ses sorties de cette zone est possédée (Black Label ou Platinum, peu importe ; trois exemplaires comptent pour un jeu). On compte des **jeux**, pas des exemplaires : « 312 jeux PAL sur 1 286 ». Le catalogue et la progression ne regardent que la collection de la personne connectée.
+- **RG25** : Une collection s'exporte en CSV (toutes les colonnes, identifiant de version compris) et s'importe depuis un CSV. À l'import, chaque ligne est rattachée à une sortie par son identifiant, sinon son code produit, sinon son titre exact ; la zone et l'édition départagent. Les lignes douteuses (Black Label ou Platinum avec le même code…) sont à vérifier par la personne avant l'ajout, et les sorties déjà possédées sont ignorées par défaut pour ne pas créer de doubles.
 
 ---
 

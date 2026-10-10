@@ -391,6 +391,24 @@ await ko('…ni avoir de lieu d\'achat', en(MEMBRE, `insert into public.collecti
 await ko('lieu d\'achat trop long', en(MEMBRE, `insert into public.collection_item (release_id, purchase_place) values ($1, $2)`, [ff7fr, 'x'.repeat(81)]), 'check');
 await ko('lieu d\'achat vide', en(MEMBRE, `insert into public.collection_item (release_id, purchase_place) values ($1, '  ')`, [ff7fr]), 'check');
 
+console.log('\nImport d\'une collection (CSV)');
+const platinumFf7 = (await val(`select id from public.release where reissue_of = $1`, [ff7fr]))[0].id;
+const retrouve = (rows, uid = MEMBRE) => lignes(en(uid, `select row_index, release_id, method, needs_review, jsonb_array_length(choices) as n from public.match_import_rows($1::jsonb)`, [JSON.stringify(rows)]));
+await egal('par code produit, sans édition : Black Label proposée, mais à vérifier (la Platinum a le même code)',
+  retrouve([{ code: 'sces 00868' }]), [{ row_index: 0, release_id: ff7fr, method: 'code', needs_review: true, n: 2 }]);
+await egal('code + « Platinum » : la Platinum en premier choix, sans doute possible', retrouve([{ code: 'SCES-00868', edition: 'Platinum' }]),
+  [{ row_index: 0, release_id: platinumFf7, method: 'code', needs_review: false, n: 2 }]);
+await egal('code + « Black Label » : l\'édition normale, sans doute possible', retrouve([{ code: 'SCES-00868', edition: 'Black Label' }]).then((r) => [r[0].release_id, r[0].needs_review]),
+  [ff7fr, false]);
+await egal('code + mauvaise zone : à vérifier', retrouve([{ code: 'SCES-00868', zone: 'NTSC-U', edition: 'Black Label' }]).then((r) => r[0].needs_review), true);
+await egal('par identifiant (fichier exporté par le site)', retrouve([{ release_id: String(platinumFf7), code: 'n\'importe quoi' }]),
+  [{ row_index: 0, release_id: platinumFf7, method: 'id', needs_review: false, n: 1 }]);
+await egal('par titre et zone : la version japonaise', retrouve([{ title: 'CRASH bandicoot', zone: 'NTSC-J' }]).then(async (r) => [r[0].method, (await val(`select zone from public.release where id = $1`, [r[0].release_id]))[0].zone]),
+  ['title', 'NTSC-J']);
+await egal('une ligne introuvable n\'apparaît pas, les autres gardent leur numéro', retrouve([{ title: 'Jeu qui n\'existe pas du tout' }, { code: 'SCES-00868', edition: 'Platinum' }]).then((r) => r.map((x) => x.row_index)), [1]);
+await ko('plus de 2 000 lignes : refusé', retrouve(Array.from({ length: 2001 }, () => ({ code: 'SCES-00868' }))), '2 000 lignes');
+await ko('un visiteur ne peut pas l\'utiliser', retrouve([{ code: 'SCES-00868' }], null), 'permission denied');
+
 console.log('\nCohérence du catalogue (imports compris)');
 await egal('chaque jeu importé a au moins une sortie', val(`select count(*)::int as n from public.game g where g.wikidata_id is not null and not exists (select 1 from public.release r where r.game_id = g.id)`), [{ n: 0 }]);
 await egal('chaque date de sortie est cohérente avec sa précision', val(`select count(*)::int as n from public.release_region where (release_date is null) <> (date_precision is null)`), [{ n: 0 }]);
