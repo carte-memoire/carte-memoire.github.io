@@ -17,3 +17,4 @@ dist/
 .covers-import/
 .genres-import/
 exports/
+.redump-import/
