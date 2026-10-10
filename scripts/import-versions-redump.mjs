@@ -15,7 +15,7 @@
 //   node scripts/import-versions-redump.mjs
 // =====================================================================
 
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ROOT, USER_AGENT, loadPs1Releases, normalize, parseName, publicApi, readEnv } from './lib/redump.mjs';
 
@@ -66,7 +66,7 @@ for (const d of discs) {
   seen.add(k);
   const own = releasesByGame.get(gameId) ?? [];
   const zone = d.zones.has('PAL') ? 'PAL' : d.zones.has('NTSC-U') ? 'NTSC-U' : 'NTSC-J';
-  const row = { gameId, title: titleOf.get(gameId), disc: d.name, serial: d.serial, zone, places: d.places.join(', '), special: d.special };
+  const row = { gameId, title: titleOf.get(gameId), disc: d.name, serial: d.serial, zone, places: d.places.join(', '), special: d.special, d };
   if (own.some((r) => r.product_code === d.serial)) { result.existing.push(row); continue; }
   const empty = own.filter((r) => r.zone === zone && !r.product_code && (d.special ? r.edition_type !== 'standard' : r.edition_type === 'standard'));
   if (empty.length === 1) { result.fillCode.push({ ...row, release: empty[0].local_title }); continue; }
@@ -105,3 +105,131 @@ show('\nCode pour une version existante (échantillon) :', result.fillCode);
 
 mkdirSync(join(ROOT, '.redump-import'), { recursive: true });
 writeFileSync(join(ROOT, '.redump-import', 'versions.json'), JSON.stringify(result, null, 1));
+
+
+// ---------------------------------------------------------------------
+// Écriture de la migration : versions nationales PAL et rééditions
+// (node scripts/import-versions-redump.mjs --ecrire)
+// ---------------------------------------------------------------------
+if (!process.argv.includes('--ecrire')) {
+  console.log('\nPour écrire la migration (nationales PAL et rééditions) : node scripts/import-versions-redump.mjs --ecrire');
+  process.exit(0);
+}
+
+const COUNTRY = {
+  France: 'FR', Germany: 'DE', Spain: 'ES', Italy: 'IT', UK: 'GB', Australia: 'AU', Netherlands: 'NL', Sweden: 'SE',
+  Portugal: 'PT', Greece: 'GR', Denmark: 'DK', Finland: 'FI', Norway: 'NO', Belgium: 'BE', Switzerland: 'CH',
+  Austria: 'AT', Poland: 'PL', Russia: 'RU', Japan: 'JP', USA: 'US', Korea: 'KR',
+};
+const EDITION_TAG = /the best|psone books|major wave|rerelease|best choice|culture publishers|fukkokuban|reprint|greatest hits|platinum|genteiban|limited|premium|deluxe|controller set|special edition|tokubetsuban|value|nice price|collector/i;
+const COLLECTOR_TAG = /genteiban|limited|premium|deluxe|controller set|special edition|tokubetsuban|collector/i;
+
+// Titre affiché : « Colony Wars - Vengeance » → « Colony Wars: Vengeance », « Legend of Dragoon, The » → « The Legend of Dragoon »
+function displayTitle(name) {
+  let base = name.replace(/\s*\(.*$/, '').replace(/_/g, ' ').trim();
+  const article = /^(.*), (The|A|An|Les|Le|La|Die|Der|Das|El|Los|Il)$/.exec(base);
+  if (article) base = `${article[2]} ${article[1]}`;
+  return base.replace(/ - /g, ': ');
+}
+// Nombre de disques : « Final Fantasy VII (France) (Disc 3) » → 3
+const discCount = new Map();
+for (const m of dat.matchAll(/name "([^"]+) \(Disc (\d+)\)[^"]*"/g)) discCount.set(m[1], Math.max(discCount.get(m[1]) ?? 1, Number(m[2])));
+const mediaOf = (d) => discCount.get(d.name.replace(/ \(Disc \d+\).*$/, '')) ?? null;
+
+const updates = []; // version existante qui reçoit son vrai code
+const inserts = []; // nouvelle version
+for (const row of [...result.national, ...result.reissue]) {
+  const { d } = row;
+  const own = releasesByGame.get(row.gameId) ?? [];
+  const codes = own.map((r) => r.product_code).filter(Boolean);
+  const shared = (code) => code && codes.filter((c) => c === code).length > 1;
+  const country = COUNTRY[d.places[0]] ?? null;
+  const tag = [...d.name.matchAll(/\(([^)]*)\)/g)].map((m) => m[1]).find((t) => EDITION_TAG.test(t)) ?? null;
+  const editionType = !d.special ? 'standard' : COLLECTOR_TAG.test(tag ?? '') ? 'collector' : 'reissue';
+
+  // Version déjà là : nationale du même pays, ou réédition de même nom, sans code ou avec un code copié
+  const twin = own.find((r) => r.zone === row.zone && (d.special
+    ? r.edition_type !== 'standard' && normalize(r.edition_name ?? '') === normalize(tag ?? '')
+    : r.edition_type === 'standard' && country && r.release_region.some((rr) => rr.region.code === country)));
+  if (twin) {
+    if (!twin.product_code || shared(twin.product_code)) updates.push({ id: twin.id, localTitle: twin.local_title, oldCode: twin.product_code, code: row.serial });
+    continue;
+  }
+  const standard = own.filter((r) => r.zone === row.zone && r.edition_type === 'standard');
+  inserts.push({
+    gameId: row.gameId, gameTitle: row.title, localTitle: displayTitle(d.name), zone: row.zone, editionType,
+    editionName: d.special ? tag : null, code: row.serial, languages: d.languages.filter((l) => /^[a-z]{2}$/.test(l)),
+    media: mediaOf(d), country, reissueOf: d.special && standard.length === 1 ? standard[0].id : null,
+  });
+}
+console.log(`\nÀ écrire : ${updates.length} codes corrigés ou complétés, ${inserts.length} nouvelles versions`);
+
+const lit = (v) => (v === null || v === undefined ? 'null' : `'${String(v).replaceAll("'", "''")}'`);
+const arr = (a) => `'{${a.join(',')}}'`;
+const chunk = (list, size) => Array.from({ length: Math.ceil(list.length / size) }, (_, i) => list.slice(i * size, i * size + size));
+const latest = readdirSync(join(ROOT, 'supabase', 'migrations')).map((n) => n.slice(0, 14)).sort().at(-1);
+const now = new Date();
+const clock = now.toISOString().replace(/\D/g, '').slice(0, 14);
+const stamp = clock > latest ? clock : String(BigInt(latest) + 100n);
+const updateValues = updates.map((u) => `(${u.id}, ${lit(u.localTitle)}, ${lit(u.oldCode)}, ${lit(u.code)})`);
+const insertValues = inserts.map((n) => `(${n.gameId}, ${lit(n.gameTitle)}, ${lit(n.localTitle)}, ${lit(n.zone)}, ${lit(n.editionType)}, ${lit(n.editionName)}, ${lit(n.code)}, ${arr(n.languages)}, ${n.media ?? 'null'}, ${lit(n.country)}, ${n.reissueOf ?? 'null'})`);
+writeFileSync(join(ROOT, 'supabase', 'migrations', `${stamp}_import_versions_redump.sql`), [
+  '-- =====================================================================',
+  '-- Carte Mémoire · Versions nationales PAL et rééditions depuis Redump',
+  `-- Fichier GÉNÉRÉ par scripts/import-versions-redump.mjs le ${now.toISOString().slice(0, 10)}.`,
+  '-- Source : Redump (http://redump.org), via libretro-database.',
+  '--',
+  `-- ${updates.length} versions existantes reçoivent leur vrai code (une version nationale`,
+  '-- déjà présente, comme « Les Chevaliers de Baphomet », portait le code européen),',
+  `-- ${inserts.length} versions sont créées (France, Allemagne… ; The Best, PSone Books…).`,
+  '-- Garde-fous : titre de la version ou du jeu identique, code jamais en double',
+  '-- dans un même jeu, réédition rattachée seulement à une version du même jeu.',
+  '-- =====================================================================',
+  '',
+  'create temporary table redump_update (release_id bigint, local_title text, old_code text, product_code text);',
+  ...chunk(updateValues, 500).map((part) => `insert into redump_update values\n  ${part.join(',\n  ')};`),
+  '',
+  'update public.release r',
+  'set product_code = u.product_code',
+  'from redump_update u',
+  'where r.id = u.release_id and r.local_title = u.local_title',
+  '  and r.product_code is not distinct from u.old_code',
+  '  and not exists (select 1 from public.release o where o.game_id = r.game_id and o.product_code = u.product_code);',
+  '',
+  'create temporary table redump_new (',
+  '  game_id bigint, game_title text, local_title text, zone public.video_zone, edition_type public.edition_type,',
+  '  edition_name text, product_code text, languages text[], media_count smallint, country text, reissue_of bigint',
+  ');',
+  ...chunk(insertValues, 400).map((part) => `insert into redump_new values\n  ${part.join(',\n  ')};`),
+  '',
+  '-- Le jeu : par son titre s\'il est unique dans la base, sinon par identifiant ET titre',
+  'create temporary table redump_game as',
+  'select distinct n.game_id as listed_id, g.id',
+  'from redump_new n',
+  'join public.game g on g.title = n.game_title',
+  'where g.id = n.game_id or (select count(*) from public.game g2 where g2.title = n.game_title) = 1;',
+  '',
+  'with created as (',
+  '  insert into public.release (game_id, platform_id, reissue_of, local_title, product_code, zone, edition_type, edition_name, media_count, languages)',
+  '  select m.id, p.id,',
+  '         (select r.id from public.release r where r.id = n.reissue_of and r.game_id = m.id),',
+  '         n.local_title, n.product_code, n.zone, n.edition_type, n.edition_name, coalesce(n.media_count, 1), n.languages',
+  '  from redump_new n',
+  '  join redump_game m on m.listed_id = n.game_id',
+  "  cross join (select id from public.platform where short_name = 'PS1') p",
+  '  where not exists (select 1 from public.release r where r.game_id = m.id and r.product_code = n.product_code)',
+  '  returning id, game_id, product_code',
+  ')',
+  'insert into public.release_region (release_id, region_id)',
+  'select c.id, rg.id',
+  'from created c',
+  'join redump_game m on m.id = c.game_id',
+  'join redump_new n on n.game_id = m.listed_id and n.product_code = c.product_code',
+  'join public.region rg on rg.code = n.country;',
+  '',
+  'drop table redump_game;',
+  'drop table redump_new;',
+  'drop table redump_update;',
+  '',
+].join('\n'));
+console.log(`Migration écrite : supabase/migrations/${stamp}_import_versions_redump.sql`);

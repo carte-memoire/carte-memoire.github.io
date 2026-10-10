@@ -123,10 +123,10 @@ const jeu = (await ok('ajoute le jeu', en(ADMIN, `insert into public.game (title
 const ps1 = (await val(`select id from public.platform where short_name = 'PS1'`))[0].id;
 const ff7fr = (await ok('ajoute la sortie PAL FR', en(ADMIN, `
   insert into public.release (game_id, platform_id, local_title, product_code, zone, media_count, languages, specs)
-  values ($1, $2, 'Final Fantasy VII', 'SCES-00868', 'PAL', 3, '{fr}', '{"memory_card_blocks": 1}') returning id`, [jeu, ps1]))).rows[0].id;
+  values ($1, $2, 'Final Fantasy VII', 'SCES-99868', 'PAL', 3, '{fr}', '{"memory_card_blocks": 1}') returning id`, [jeu, ps1]))).rows[0].id;
 await ok('ajoute la version Platinum comme réédition', en(ADMIN, `
   insert into public.release (game_id, platform_id, reissue_of, local_title, product_code, zone, edition_type, edition_name, media_count, languages)
-  values ($1, $2, $3, 'Final Fantasy VII', 'SCES-00868', 'PAL', 'reissue', 'Platinum', 3, '{fr}')`, [jeu, ps1, ff7fr]));
+  values ($1, $2, $3, 'Final Fantasy VII', 'SCES-99868', 'PAL', 'reissue', 'Platinum', 3, '{fr}')`, [jeu, ps1, ff7fr]));
 const autreJeu = (await en(ADMIN, `insert into public.game (title) values ('Crash Bandicoot') returning id`)).rows[0].id;
 await ko('une réédition doit concerner le même jeu', en(ADMIN, `
   insert into public.release (game_id, platform_id, reissue_of, local_title) values ($1, $2, $3, 'Crash Bandicoot')`, [autreJeu, ps1, ff7fr]), 'foreign key');
@@ -322,11 +322,11 @@ await egal('l\'auteur voit sa proposition acceptée, liée au jeu', lignes(en(ME
 
 console.log('\nRecherche par code produit');
 const parCode = (q) => lignes(en(null, `select title, matched_code from public.search_games($1)`, [q]));
-await egal('le code exact trouve le jeu, en premier', parCode('SCES-00868').then((r) => r[0]), { title: 'Final Fantasy VII', matched_code: 'SCES-00868' });
-await egal('sans tiret ni majuscules', parCode('sces00868').then((r) => r[0]?.matched_code), 'SCES-00868');
-await egal('avec une espace', parCode('SCES 00868').then((r) => r[0]?.matched_code), 'SCES-00868');
-await egal('le début du code suffit', parCode('SCES-0086').then((r) => r.some((x) => x.matched_code === 'SCES-00868')), true);
-await egal('les chiffres seuls aussi', parCode('00868').then((r) => r.some((x) => x.matched_code === 'SCES-00868')), true);
+await egal('le code exact trouve le jeu, en premier', parCode('SCES-99868').then((r) => r[0]), { title: 'Final Fantasy VII', matched_code: 'SCES-99868' });
+await egal('sans tiret ni majuscules', parCode('sces99868').then((r) => r[0]?.matched_code), 'SCES-99868');
+await egal('avec une espace', parCode('SCES 99868').then((r) => r[0]?.matched_code), 'SCES-99868');
+await egal('le début du code suffit', parCode('SCES-9986').then((r) => r.some((x) => x.matched_code === 'SCES-99868')), true);
+await egal('les chiffres seuls aussi', parCode('99868').then((r) => r.some((x) => x.matched_code === 'SCES-99868')), true);
 await egal('un titre sans chiffre ne cherche pas dans les codes', parCode('sces').then((r) => r.every((x) => x.matched_code === null)), true);
 await egal('une recherche par titre reste inchangée', parCode('final fantasy VII').then((r) => r[0].title), 'Final Fantasy VII');
 
@@ -375,7 +375,7 @@ await egal('tri par titre', Promise.resolve(page1.map((x) => sansAccent(x.displa
 await egal('année 1997 : uniquement des jeux sortis en 1997', catalogue(null, { zone: 'PAL', year: 1997 }).then((r) => r.length > 0 && r.every((x) => String(x.release_date).includes('1997') || new Date(x.release_date).getUTCFullYear() === 1997)), true);
 await egal('tri par date : du plus ancien au plus récent', catalogue(null, { zone: 'PAL', sort: 'date', size: 100 }).then((r) => r.filter((x) => x.release_date).every((x, i, a) => i === 0 || new Date(a[i - 1].release_date) <= new Date(x.release_date))), true);
 await egal('console inconnue : aucun jeu', catalogue(null, { console: 'XYZ' }).then((r) => r.length), 0);
-await egal('recherche par code produit dans le catalogue', catalogue(null, { zone: 'PAL', search: 'SCES-00868' }).then((r) => r.some((x) => x.id === jeu)), true);
+await egal('recherche par code produit dans le catalogue', catalogue(null, { zone: 'PAL', search: 'SCES-99868' }).then((r) => r.some((x) => x.id === jeu)), true);
 const rpg = (await val(`select id from public.genre where name = 'Tactical RPG'`))[0].id;
 await ok('FF7 de test classé en Tactical RPG', en(ADMIN, `insert into public.game_genre (game_id, genre_id) values ($1, $2)`, [jeu, rpg]));
 await egal('famille RPG : le Tactical RPG y figure', catalogue(MEMBRE, { zone: 'PAL', family: 'rpg', ownership: 'owned' }).then((r) => r.map((x) => x.id)), [jeu]);
@@ -420,19 +420,19 @@ console.log('\nImport d\'une collection (CSV)');
 const platinumFf7 = (await val(`select id from public.release where reissue_of = $1`, [ff7fr]))[0].id;
 const retrouve = (rows, uid = MEMBRE) => lignes(en(uid, `select row_index, release_id, method, needs_review, jsonb_array_length(choices) as n from public.match_import_rows($1::jsonb)`, [JSON.stringify(rows)]));
 await egal('par code produit, sans édition : Black Label proposée, mais à vérifier (la Platinum a le même code)',
-  retrouve([{ code: 'sces 00868' }]), [{ row_index: 0, release_id: ff7fr, method: 'code', needs_review: true, n: 2 }]);
-await egal('code + « Platinum » : la Platinum en premier choix, sans doute possible', retrouve([{ code: 'SCES-00868', edition: 'Platinum' }]),
+  retrouve([{ code: 'sces 99868' }]), [{ row_index: 0, release_id: ff7fr, method: 'code', needs_review: true, n: 2 }]);
+await egal('code + « Platinum » : la Platinum en premier choix, sans doute possible', retrouve([{ code: 'SCES-99868', edition: 'Platinum' }]),
   [{ row_index: 0, release_id: platinumFf7, method: 'code', needs_review: false, n: 2 }]);
-await egal('code + « Black Label » : l\'édition normale, sans doute possible', retrouve([{ code: 'SCES-00868', edition: 'Black Label' }]).then((r) => [r[0].release_id, r[0].needs_review]),
+await egal('code + « Black Label » : l\'édition normale, sans doute possible', retrouve([{ code: 'SCES-99868', edition: 'Black Label' }]).then((r) => [r[0].release_id, r[0].needs_review]),
   [ff7fr, false]);
-await egal('code + mauvaise zone : à vérifier', retrouve([{ code: 'SCES-00868', zone: 'NTSC-U', edition: 'Black Label' }]).then((r) => r[0].needs_review), true);
+await egal('code + mauvaise zone : à vérifier', retrouve([{ code: 'SCES-99868', zone: 'NTSC-U', edition: 'Black Label' }]).then((r) => r[0].needs_review), true);
 await egal('par identifiant (fichier exporté par le site)', retrouve([{ release_id: String(platinumFf7), code: 'n\'importe quoi' }]),
   [{ row_index: 0, release_id: platinumFf7, method: 'id', needs_review: false, n: 1 }]);
 await egal('par titre et zone : la version japonaise', retrouve([{ title: 'CRASH bandicoot', zone: 'NTSC-J' }]).then(async (r) => [r[0].method, (await val(`select zone from public.release where id = $1`, [r[0].release_id]))[0].zone]),
   ['title', 'NTSC-J']);
-await egal('une ligne introuvable n\'apparaît pas, les autres gardent leur numéro', retrouve([{ title: 'Jeu qui n\'existe pas du tout' }, { code: 'SCES-00868', edition: 'Platinum' }]).then((r) => r.map((x) => x.row_index)), [1]);
-await ko('plus de 2 000 lignes : refusé', retrouve(Array.from({ length: 2001 }, () => ({ code: 'SCES-00868' }))), '2 000 lignes');
-await ko('un visiteur ne peut pas l\'utiliser', retrouve([{ code: 'SCES-00868' }], null), 'permission denied');
+await egal('une ligne introuvable n\'apparaît pas, les autres gardent leur numéro', retrouve([{ title: 'Jeu qui n\'existe pas du tout' }, { code: 'SCES-99868', edition: 'Platinum' }]).then((r) => r.map((x) => x.row_index)), [1]);
+await ko('plus de 2 000 lignes : refusé', retrouve(Array.from({ length: 2001 }, () => ({ code: 'SCES-99868' }))), '2 000 lignes');
+await ko('un visiteur ne peut pas l\'utiliser', retrouve([{ code: 'SCES-99868' }], null), 'permission denied');
 
 console.log('\nSuppression d\'un jeu ou d\'une version');
 await ko('un membre ne peut pas supprimer un jeu', en(MEMBRE, `select public.delete_game($1)`, [jeu]), 'Seuls les modérateurs');
@@ -509,6 +509,19 @@ await en(ADMIN, `insert into public.game_genre (game_id, genre_id) select $1, id
 const ajoutGenre = (await val(`select max(id) as id from public.catalog_change where table_name = 'game_genre' and game_id = $1`, [hist]))[0].id;
 await ok('annuler l\'ajout d\'un genre', en(ADMIN, `select public.undo_catalog_change($1)`, [ajoutGenre]));
 await egal('…le genre est retiré', val(`select count(*)::int as n from public.game_genre where game_id = $1`, [hist]), [{ n: 0 }]);
+
+console.log('\nVersions nationales PAL et rééditions (Redump)');
+await egal('FF7 Allemagne (SCES-00869) : version PAL créée, rattachée à l\'Allemagne, 3 disques',
+  val(`select r.zone, r.media_count, rg.code from public.release r join public.release_region rr on rr.release_id = r.id join public.region rg on rg.id = rr.region_id where r.product_code = 'SCES-00869'`),
+  [{ zone: 'PAL', media_count: 3, code: 'DE' }]);
+await egal('FF7 : France, Allemagne et Espagne créées une seule fois chacune', val(`select product_code, count(*)::int as n from public.release where product_code in ('SCES-00868', 'SCES-00869', 'SCES-00900') group by 1 order by 1`),
+  [{ product_code: 'SCES-00868', n: 1 }, { product_code: 'SCES-00869', n: 1 }, { product_code: 'SCES-00900', n: 1 }]);
+// Codes en double dans un jeu : SCES-99868 et SLES-01234 sont les jeux de test (Platinum au même
+// code que la version normale, voulu) ; les 4 autres ont été recopiés sur des versions nationales
+// par le premier import des codes (à corriger à la main). L'import Redump n'en ajoute aucun.
+await egal('codes en double dans un jeu : seulement les cas connus d\'avant l\'import Redump',
+  val(`select string_agg(distinct product_code, ',' order by product_code) as c from (select game_id, product_code from public.release where product_code is not null group by 1, 2 having count(*) > 1) x`),
+  [{ c: 'SCES-00798,SCES-99868,SLES-01234,SLES-01273,SLES-01433,SLES-03775' }]);
 
 console.log('\nCohérence du catalogue (imports compris)');
 await egal('chaque jeu importé a au moins une sortie', val(`select count(*)::int as n from public.game g where g.wikidata_id is not null and not exists (select 1 from public.release r where r.game_id = g.id)`), [{ n: 0 }]);
