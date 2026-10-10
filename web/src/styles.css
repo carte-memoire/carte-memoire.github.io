@@ -696,3 +696,12 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .danger-zone { border-color: #8f2536 #3a0d14 #3a0d14 #8f2536; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
 .danger-zone h2 { color: #ffc3cb; margin: 0; }
 .danger-zone p { margin: 0; }
+
+/* ---------- Fusion de deux jeux ---------- */
+.merge-choice { display: flex; flex-direction: column; gap: 8px; }
+.merge-option {
+  display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; cursor: pointer;
+  background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius);
+}
+.merge-option.active { border-color: var(--triangle); background: rgba(47, 214, 166, 0.08); }
+.merge-option input { margin-top: 4px; }

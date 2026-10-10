@@ -29,6 +29,7 @@ export function GameSearch({ onSelect, placeholder = 'Final Fantasy VII, Crash, 
           onChange={(e) => setQuery(e.target.value)}
           placeholder={placeholder}
           autoFocus={autoFocus}
+          data-autofocus={autoFocus ? '' : undefined}
           autoComplete="off"
           maxLength={120}
         />

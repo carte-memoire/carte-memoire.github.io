@@ -10,7 +10,12 @@ export function Dialog({ open, onClose, title, children, wide = false }: { open:
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
+    if (open && !dialog.open) {
+      dialog.showModal();
+      // showModal() place le curseur sur le premier bouton (« Fermer ») : on le rend
+      // au champ marqué data-autofocus (l'autoFocus de React agit trop tôt, fenêtre encore fermée)
+      dialog.querySelector<HTMLElement>('[data-autofocus]')?.focus();
+    }
     if (!open && dialog.open) dialog.close();
   }, [open]);
 

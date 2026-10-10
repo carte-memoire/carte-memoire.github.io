@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { GAME_FIELDS } from '../lib/queries';
 import { EDITION_TYPES, familyLabel, gamePath, LANGUAGES, ZONES, zoneLabel, zoneOrder } from '../lib/format';
 import { errorMessage } from '../lib/errors';
 import { ACCEPT_ATTRIBUTE, prepareCover } from '../lib/images';
-import type { DatePrecision, EditionType, Game, GenreInfo, ImageType, Release, Zone } from '../lib/types';
+import type { DatePrecision, EditionType, Game, GenreInfo, ImageType, Release, SearchResult, Zone } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
 import { Combobox } from '../components/Combobox';
+import { GameSearch } from '../components/GameSearch';
 import { Dialog } from '../components/Dialog';
 import { Cover } from '../components/Cover';
 import { useConfirm } from '../components/Confirm';
@@ -69,7 +70,10 @@ export function EditGame() {
       <GameForm game={game} onSaved={load} />
       <GenreEditor key={`${game.game_genre.map((g) => g.genre.id).join()}-${game.genres_reviewed}`} game={game} onSaved={load} />
       <h2>Versions</h2>
-      {releases.map((r) => <ReleaseEditor key={r.id} release={r} onSaved={load} canDelete={releases.length > 1} />)}
+      {releases.map((r) => (
+        <ReleaseEditor key={r.id} release={r} onSaved={load} canDelete={releases.length > 1} possibleDuplicate={isEmptyTwin(r, releases)} />
+      ))}
+      <MergeGame game={game} onMerged={load} />
       <DeleteGame game={game} onDeleted={() => setDeleted(game.title)} />
     </section>
   );
@@ -232,6 +236,120 @@ async function removeCovers(paths: string[] | null) {
   }
 }
 
+interface MergeCandidate {
+  id: number;
+  title: string;
+  wikidata_id: string | null;
+  release: { id: number; zone: Zone | null; product_code: string | null; image: { id: number }[] }[];
+}
+
+// Fusion avec un autre jeu (doublon que la détection automatique n'a pas vu,
+// comme « Kagero: Deception 2 » et « Kagero: Deception II ») : les versions, donc
+// les exemplaires des membres, les genres et les propositions passent sur le jeu gardé.
+function MergeGame({ game, onMerged }: { game: Game; onMerged: () => void }) {
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const [pair, setPair] = useState<[MergeCandidate, MergeCandidate] | null>(null);
+  const [keepId, setKeepId] = useState<number | null>(null);
+  const [force, setForce] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  async function choose(other: SearchResult) {
+    setError('');
+    if (other.id === game.id) return setError('Choisis un autre jeu que celui-ci.');
+    const { data, error } = await supabase.from('game')
+      .select('id, title, wikidata_id, release(id, zone, product_code, image(id))').in('id', [game.id, other.id]);
+    if (error || !data || data.length !== 2) return setError(errorMessage(error) || 'Jeu introuvable.');
+    const list = data as unknown as MergeCandidate[];
+    const self = list.find((g) => g.id === game.id)!;
+    const target = list.find((g) => g.id === other.id)!;
+    setPair([self, target]);
+    setForce(false);
+    // Par défaut : garder la fiche reliée à Wikidata, sinon celle qui a le plus de versions, sinon l'autre
+    const score = (g: MergeCandidate) => (g.wikidata_id ? 1000 : 0) + g.release.length;
+    setKeepId(score(self) > score(target) ? self.id : target.id);
+  }
+
+  async function merge(e: FormEvent) {
+    e.preventDefault();
+    if (!pair || !keepId) return;
+    const duplicate = pair.find((g) => g.id !== keepId)!;
+    setBusy(true);
+    setError('');
+    const { error } = await supabase.rpc('merge_games', { keep_id: keepId, duplicate_id: duplicate.id, force });
+    setBusy(false);
+    if (error) return setError(errorMessage(error));
+    setOpen(false);
+    if (keepId === game.id) onMerged();
+    else navigate(`/jeu/${keepId}/modifier`);
+  }
+
+  const conflict = pair && pair[0].wikidata_id && pair[1].wikidata_id && pair[0].wikidata_id !== pair[1].wikidata_id;
+
+  return (
+    <section className="panel stack">
+      <h2>Fusionner avec un autre jeu</h2>
+      <p className="muted">
+        Pour un doublon : les versions de la fiche supprimée (et donc les exemplaires des membres), ses genres, ses
+        développeurs et ses propositions passent sur la fiche gardée. La fusion est définitive.
+      </p>
+      <div>
+        <button type="button" className="button" onClick={() => { setOpen(true); setPair(null); setError(''); }}>
+          <PsSymbol shape="square" /> Fusionner avec…
+        </button>
+      </div>
+      <Dialog open={open} onClose={() => setOpen(false)} title={`Fusionner « ${game.title} »`} wide>
+        {!pair && (
+          <>
+            <GameSearch onSelect={choose} autoFocus label="Avec quel jeu ? (titre ou code produit)" />
+            {error && <p className="error" role="alert">{error}</p>}
+          </>
+        )}
+        {pair && (
+          <form onSubmit={merge} className="form">
+            <fieldset className="merge-choice">
+              <legend className="field-label">Quelle fiche garder ?</legend>
+              {pair.map((g) => (
+                <label key={g.id} className={keepId === g.id ? 'merge-option active' : 'merge-option'}>
+                  <input type="radio" name="keep" checked={keepId === g.id} onChange={() => setKeepId(g.id)} />
+                  <span>
+                    <strong>{g.title}</strong>{g.id === game.id && <span className="muted"> (cette fiche)</span>}
+                    <span className="muted small">
+                      {' '}· n° {g.id} · {g.release.length} version{g.release.length > 1 ? 's' : ''}
+                      {' '}({[...new Set(g.release.map((r) => r.zone ?? '?'))].join(', ')})
+                      {g.wikidata_id ? ` · Wikidata ${g.wikidata_id}` : ' · sans Wikidata'}
+                    </span>
+                    <span className="muted small"> {g.release.map((r) => r.product_code).filter(Boolean).join(', ')}</span>
+                  </span>
+                </label>
+              ))}
+            </fieldset>
+            {conflict && (
+              <label className="warning switch">
+                <input type="checkbox" checked={force} onChange={(e) => setForce(e.target.checked)} />
+                Ces deux fiches sont reliées à des fiches Wikidata différentes : ce sont peut-être deux jeux distincts.
+                Coche pour confirmer qu'il s'agit bien du même jeu.
+              </label>
+            )}
+            <p className="warning">
+              La fiche « {pair.find((g) => g.id !== keepId)?.title} » (n° {pair.find((g) => g.id !== keepId)?.id}) disparaîtra :
+              ses versions rejoignent « {pair.find((g) => g.id === keepId)?.title} ».
+            </p>
+            {error && <p className="error" role="alert">{error}</p>}
+            <div className="actions">
+              <button type="button" className="button" onClick={() => setPair(null)}><PsSymbol shape="circle" /> Autre jeu</button>
+              <button type="submit" className="button button-danger" disabled={busy || Boolean(conflict && !force)}>
+                {busy ? 'Fusion…' : 'Fusionner'}
+              </button>
+            </div>
+          </form>
+        )}
+      </Dialog>
+    </section>
+  );
+}
+
 // Zone dangereuse : suppression définitive, avec le titre à retaper pour confirmer
 function DeleteGame({ game, onDeleted }: { game: Game; onDeleted: () => void }) {
   const [open, setOpen] = useState(false);
@@ -289,7 +407,16 @@ function DeleteGame({ game, onDeleted }: { game: Game; onDeleted: () => void }) 
   );
 }
 
-function ReleaseEditor({ release, onSaved, canDelete }: { release: Release; onSaved: () => void; canDelete: boolean }) {
+// Version sans code produit à côté d'une version de même zone et même édition qui en a un :
+// souvent un doublon laissé par une fusion (« Kagero: Deception 2 » / « … II »). Renvoie la
+// version jumelle, pour le message (un titre différent peut aussi être une version nationale).
+function isEmptyTwin(r: Release, all: Release[]): Release | null {
+  if (r.product_code) return null;
+  return all.find((o) => o.id !== r.id && o.product_code && o.zone === r.zone && o.edition_type === r.edition_type
+    && (o.edition_name ?? '') === (r.edition_name ?? '')) ?? null;
+}
+
+function ReleaseEditor({ release, onSaved, canDelete, possibleDuplicate }: { release: Release; onSaved: () => void; canDelete: boolean; possibleDuplicate: Release | null }) {
   const { session } = useAuth();
   const confirm = useConfirm();
   const [localTitle, setLocalTitle] = useState(release.local_title);
@@ -374,6 +501,14 @@ function ReleaseEditor({ release, onSaved, canDelete }: { release: Release; onSa
   return (
     <div className="panel release-editor">
       <h3>{release.local_title} <span className="muted small">· {zoneLabel(release.zone)} · n° {release.id}</span></h3>
+      {possibleDuplicate && (
+        <p className="warning">
+          Doublon possible de « {possibleDuplicate.local_title} » (n° {possibleDuplicate.id}, {possibleDuplicate.product_code}) : même zone,
+          même édition, mais sans code produit.
+          {possibleDuplicate.local_title.trim().toLowerCase() !== release.local_title.trim().toLowerCase() && ' Le titre diffère : ce peut aussi être une version nationale (française, allemande…).'}
+          {' '}Vérifie, puis supprime-la si c'est un doublon.
+        </p>
+      )}
 
       <div className="images-editor">
         {release.image.map((img) => (
