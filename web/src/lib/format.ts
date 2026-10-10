@@ -157,3 +157,8 @@ export function formatPercent(part: number, total: number): string {
 }
 
 export const formatNumber = new Intl.NumberFormat('fr-FR').format;
+
+// Clé de recherche : sans accents, ni majuscules, ni ponctuation (« Biohazard 2 » → « biohazard2 »)
+export function searchKey(text: string): string {
+  return text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+}

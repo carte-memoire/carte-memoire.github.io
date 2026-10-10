@@ -25,3 +25,8 @@ export const rememberedPlatform = () => read(PLATFORM_KEY, DEFAULT_PLATFORM);
 export const rememberPlatform = (value: string) => write(PLATFORM_KEY, value);
 export const rememberedZone = () => read(ZONE_KEY, DEFAULT_ZONE);
 export const rememberZone = (value: string) => write(ZONE_KEY, value);
+
+const COLLECTION_VIEW_KEY = 'carte-memoire:vue-collection';
+export type CollectionView = 'list' | 'grid';
+export const rememberedCollectionView = (): CollectionView => (read(COLLECTION_VIEW_KEY, 'list') === 'grid' ? 'grid' : 'list');
+export const rememberCollectionView = (value: CollectionView) => write(COLLECTION_VIEW_KEY, value);
