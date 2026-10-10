@@ -127,7 +127,7 @@ export const FAMILIES: { value: GenreFamily; label: string }[] = [
   { value: 'racing', label: 'Course' },
   { value: 'horror', label: 'Horreur' },
   { value: 'music', label: 'Musique et rythme' },
-  { value: 'party', label: 'Party games et jeux de société' },
+  { value: 'party', label: 'Société, hasard et party games' },
   { value: 'platform', label: 'Plates-formes' },
   { value: 'puzzle', label: 'Réflexion' },
   { value: 'rpg', label: 'RPG' },
