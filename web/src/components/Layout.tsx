@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -54,7 +54,10 @@ export function Layout() {
 
       {/* La clé change avec la page : l'animation d'arrivée se rejoue à chaque navigation */}
       <main className="main" key={location.pathname}>
-        <Outlet />
+        {/* Pages chargées à la demande : message d'attente le temps de les recevoir */}
+        <Suspense fallback={<p className="loading">Lecture de la carte mémoire…</p>}>
+          <Outlet />
+        </Suspense>
       </main>
 
       <footer className="footer">

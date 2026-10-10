@@ -32,5 +32,19 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react(), contentSecurityPolicy(env.VITE_SUPABASE_URL ?? '')],
     server: { port: 5173, strictPort: true },
+    build: {
+      rolldownOptions: {
+        output: {
+          // Bibliothèques à part : elles changent rarement, le navigateur les garde
+          // en cache d'une mise à jour du site à l'autre
+          advancedChunks: {
+            groups: [
+              { name: 'supabase', test: /node_modules[\\/]@supabase/ },
+              { name: 'react', test: /node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler|cookie|set-cookie-parser)[\\/]/ },
+            ],
+          },
+        },
+      },
+    },
   };
 });

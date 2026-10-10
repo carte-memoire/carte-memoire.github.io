@@ -1,21 +1,27 @@
+import { lazy, type ComponentType } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { RequireAuth } from './auth/RequireAuth';
 import { Home } from './pages/Home';
 import { GamePage } from './pages/GamePage';
-import { EditGame } from './pages/EditGame';
 import { Login } from './pages/Login';
-import { Signup } from './pages/Signup';
-import { ForgotPassword } from './pages/ForgotPassword';
-import { ResetPassword } from './pages/ResetPassword';
-import { MfaChallenge } from './pages/MfaChallenge';
-import { Account } from './pages/Account';
-import { Collection } from './pages/Collection';
-import { Catalog } from './pages/Catalog';
-import { ProposeGame } from './pages/ProposeGame';
-import { MySubmissions } from './pages/MySubmissions';
-import { Moderation } from './pages/Moderation';
 import { NotFound } from './pages/NotFound';
+
+// Pages chargées seulement quand on y va (le premier affichage reste léger) :
+// tout ce qui sert après la connexion, la modération, les comptes
+const page = <K extends string>(load: () => Promise<Record<K, ComponentType>>, name: K) =>
+  lazy(() => load().then((m) => ({ default: m[name] })));
+const Catalog = page(() => import('./pages/Catalog'), 'Catalog');
+const Collection = page(() => import('./pages/Collection'), 'Collection');
+const EditGame = page(() => import('./pages/EditGame'), 'EditGame');
+const Moderation = page(() => import('./pages/Moderation'), 'Moderation');
+const ProposeGame = page(() => import('./pages/ProposeGame'), 'ProposeGame');
+const MySubmissions = page(() => import('./pages/MySubmissions'), 'MySubmissions');
+const Account = page(() => import('./pages/Account'), 'Account');
+const Signup = page(() => import('./pages/Signup'), 'Signup');
+const ForgotPassword = page(() => import('./pages/ForgotPassword'), 'ForgotPassword');
+const ResetPassword = page(() => import('./pages/ResetPassword'), 'ResetPassword');
+const MfaChallenge = page(() => import('./pages/MfaChallenge'), 'MfaChallenge');
 
 export function App() {
   return (
