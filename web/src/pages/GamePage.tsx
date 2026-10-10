@@ -1,10 +1,11 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { Fragment, useEffect, useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { Dialog } from '../components/Dialog';
 import { GAME_FIELDS } from '../lib/queries';
 import { editionLabel, familyLabel, formatDate, LANGUAGES, zoneLabel, zoneOrder } from '../lib/format';
+import { describeSpecs } from '../lib/specs';
 import type { Game, Release } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
 import { Cover } from '../components/Cover';
@@ -114,6 +115,9 @@ export function GamePage() {
                   <><dt>Langues</dt><dd>{r.languages.map((l) => LANGUAGES.find((x) => x.value === l)?.label ?? l).join(', ')}</dd></>
                 )}
                 {r.media_count && r.media_count > 1 && (<><dt>Disques</dt><dd>{r.media_count}</dd></>)}
+                {describeSpecs(r.specs, r.platform.spec_fields).map((s) => (
+                  <Fragment key={s.label}><dt>{s.label}</dt><dd>{s.value}</dd></Fragment>
+                ))}
               </dl>
               <button type="button" className="button button-small button-primary" onClick={() => addToCollection(r)}><PsSymbol shape="cross" /> Ajouter à ma collection</button>
             </div>

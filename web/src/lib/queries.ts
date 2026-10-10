@@ -1,7 +1,8 @@
 // Champs lus pour afficher une sortie complète (réutilisés par plusieurs pages)
 export const RELEASE_FIELDS = `
   id, game_id, zone, local_title, edition_type, edition_name, product_code, media_count, languages, reissue_of,
-  platform(id, short_name),
+  specs,
+  platform(id, short_name, spec_fields),
   release_region(release_date, date_precision, region(code, name)),
   release_company(role, company(name)),
   image(id, type, path)

@@ -61,10 +61,21 @@ export interface Release {
   media_count: number | null;
   languages: string[];
   reissue_of: number | null;
-  platform: { id: number; short_name: string };
+  platform: { id: number; short_name: string; spec_fields?: SpecField[] };
+  specs?: Record<string, unknown>;
   release_region: { release_date: string | null; date_precision: DatePrecision | null; region: { code: string; name: string } }[];
   release_company: { role: string; company: { name: string } }[];
   image: ReleaseImage[];
+}
+
+// Une caractéristique propre à une console (platform.spec_fields), ex. « Blocs de carte mémoire »
+export interface SpecField {
+  key: string;
+  label: string;
+  type: 'integer' | 'boolean' | 'choice' | 'multi_choice';
+  min?: number;
+  max?: number;
+  options?: { value: string; label: string }[];
 }
 
 export interface Game {

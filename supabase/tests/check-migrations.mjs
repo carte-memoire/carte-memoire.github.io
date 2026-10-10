@@ -455,6 +455,18 @@ await egal('journal : la version puis le jeu, avec le motif et l\'auteur', ligne
 await egal('un membre ne lit pas le journal', lignes(en(MEMBRE, `select count(*)::int as n from public.catalog_deletion`)), [{ n: 0 }]);
 await ko('personne n\'écrit directement dans le journal', en(ADMIN, `insert into public.catalog_deletion (kind, object_id, title) values ('game', 1, 'x')`), 'permission denied');
 
+console.log('\nCaractéristiques d\'une version (specs)');
+const specs = (v) => en(ADMIN, `update public.release set specs = $2::jsonb where id = $1`, [ff7fr, JSON.stringify(v)]);
+await ok('valeurs valides : 1 bloc, analogique compatible, vibrations, GunCon', specs({ memory_card_blocks: 1, analog: 'compatible', vibration: true, peripherals: ['guncon'] }));
+await ko('caractéristique inconnue de la PS1 : refusée', specs({ wifi: true }), 'Caractéristique inconnue');
+await ko('16 blocs de carte mémoire : refusé (15 au plus)', specs({ memory_card_blocks: 16 }), 'nombre entier');
+await ko('1,5 bloc : refusé', specs({ memory_card_blocks: 1.5 }), 'nombre entier');
+await ko('analogique « parfois » : refusé', specs({ analog: 'parfois' }), 'valeur non prévue');
+await ko('vibrations « oui » en texte : refusé', specs({ vibration: 'oui' }), 'oui ou non');
+await ko('périphérique inconnu : refusé', specs({ peripherals: ['kinect'] }), 'valeur non prévue');
+await ok('tout effacer reste possible', specs({}));
+await egal('libretro : Ape Escape (USA, SCUS-94423) compatible analogique et vibrations', val(`select specs ->> 'analog' as a, specs ->> 'vibration' as v from public.release where product_code = 'SCUS-94423'`), [{ a: 'compatible', v: 'true' }]);
+
 console.log('\nCohérence du catalogue (imports compris)');
 await egal('chaque jeu importé a au moins une sortie', val(`select count(*)::int as n from public.game g where g.wikidata_id is not null and not exists (select 1 from public.release r where r.game_id = g.id)`), [{ n: 0 }]);
 await egal('chaque date de sortie est cohérente avec sa précision', val(`select count(*)::int as n from public.release_region where (release_date is null) <> (date_precision is null)`), [{ n: 0 }]);

@@ -705,3 +705,6 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 }
 .merge-option.active { border-color: var(--triangle); background: rgba(47, 214, 166, 0.08); }
 .merge-option input { margin-top: 4px; }
+
+/* ---------- Caractéristiques d'une version ---------- */
+.specs-editor { display: flex; flex-direction: column; gap: 10px; padding: 12px; border: 1px dashed var(--line); border-radius: var(--radius); }

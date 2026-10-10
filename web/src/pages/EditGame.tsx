@@ -5,7 +5,7 @@ import { GAME_FIELDS } from '../lib/queries';
 import { EDITION_TYPES, familyLabel, gamePath, LANGUAGES, ZONES, zoneLabel, zoneOrder } from '../lib/format';
 import { errorMessage } from '../lib/errors';
 import { ACCEPT_ATTRIBUTE, prepareCover } from '../lib/images';
-import type { DatePrecision, EditionType, Game, GenreInfo, ImageType, Release, SearchResult, Zone } from '../lib/types';
+import type { DatePrecision, EditionType, Game, GenreInfo, ImageType, Release, SearchResult, SpecField, Zone } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
 import { Combobox } from '../components/Combobox';
 import { GameSearch } from '../components/GameSearch';
@@ -426,6 +426,7 @@ function ReleaseEditor({ release, onSaved, canDelete, possibleDuplicate }: { rel
   const [editionName, setEditionName] = useState(release.edition_name ?? '');
   const [mediaCount, setMediaCount] = useState(String(release.media_count ?? 1));
   const [languages, setLanguages] = useState<string[]>(release.languages);
+  const [specs, setSpecs] = useState<Record<string, unknown>>(release.specs ?? {});
   const [imageType, setImageType] = useState<ImageType>('front');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -446,6 +447,7 @@ function ReleaseEditor({ release, onSaved, canDelete, possibleDuplicate }: { rel
       edition_name: editionName.trim() || null,
       media_count: Number.isInteger(count) && count > 0 ? count : null,
       languages,
+      specs,
     }).eq('id', release.id);
     if (error) return setError(errorMessage(error));
     setError('');
@@ -566,6 +568,9 @@ function ReleaseEditor({ release, onSaved, canDelete, possibleDuplicate }: { rel
             <input type="number" min={1} max={20} value={mediaCount} onChange={(e) => setMediaCount(e.target.value)} />
           </label>
         </div>
+        {release.platform.spec_fields && release.platform.spec_fields.length > 0 && (
+          <SpecsEditor fields={release.platform.spec_fields} value={specs} onChange={setSpecs} />
+        )}
         <fieldset className="checks">
           <legend className="field-label">Langues</legend>
           {LANGUAGES.map((l) => (
@@ -584,5 +589,64 @@ function ReleaseEditor({ release, onSaved, canDelete, possibleDuplicate }: { rel
         </div>
       </form>
     </div>
+  );
+}
+
+// Caractéristiques propres à la console (blocs de carte mémoire, manette analogique…).
+// « Non précisé » retire la valeur : on ne confond pas « inconnu » et « non ».
+function SpecsEditor({ fields, value, onChange }: { fields: SpecField[]; value: Record<string, unknown>; onChange: (v: Record<string, unknown>) => void }) {
+  function set(key: string, v: unknown) {
+    const next = { ...value };
+    if (v === undefined) delete next[key];
+    else next[key] = v;
+    onChange(next);
+  }
+  return (
+    <fieldset className="specs-editor">
+      <legend className="field-label">Caractéristiques</legend>
+      <div className="row">
+        {fields.filter((f) => f.type !== 'multi_choice').map((f) => (
+          <label key={f.key} className="field">
+            <span className="field-label">{f.label}</span>
+            {f.type === 'integer' && (
+              <input type="number" min={f.min} max={f.max} value={value[f.key] === undefined ? '' : String(value[f.key])}
+                onChange={(e) => set(f.key, e.target.value === '' ? undefined : Number(e.target.value))} placeholder="Non précisé" />
+            )}
+            {f.type === 'boolean' && (
+              <select value={value[f.key] === true ? 'yes' : value[f.key] === false ? 'no' : ''}
+                onChange={(e) => set(f.key, e.target.value === '' ? undefined : e.target.value === 'yes')}>
+                <option value="">Non précisé</option>
+                <option value="yes">Oui</option>
+                <option value="no">Non</option>
+              </select>
+            )}
+            {f.type === 'choice' && (
+              <select value={typeof value[f.key] === 'string' ? (value[f.key] as string) : ''} onChange={(e) => set(f.key, e.target.value || undefined)}>
+                <option value="">Non précisé</option>
+                {f.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            )}
+          </label>
+        ))}
+      </div>
+      {fields.filter((f) => f.type === 'multi_choice').map((f) => {
+        const list = Array.isArray(value[f.key]) ? (value[f.key] as string[]) : [];
+        return (
+          <fieldset key={f.key} className="checks">
+            <legend className="field-label">{f.label}</legend>
+            {f.options?.map((o) => (
+              <label key={o.value}>
+                <input type="checkbox" checked={list.includes(o.value)}
+                  onChange={(e) => {
+                    const next = e.target.checked ? [...list, o.value] : list.filter((x) => x !== o.value);
+                    set(f.key, next.length ? next : undefined);
+                  }} />
+                {o.label}
+              </label>
+            ))}
+          </fieldset>
+        );
+      })}
+    </fieldset>
   );
 }
