@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { PasswordRules, passwordIsValid } from '../components/PasswordRules';
 import { PsSymbol } from '../components/PsSymbol';
+import { TERMS_VERSION } from './Legal';
 
 const USERNAME = /^[A-Za-z0-9_-]{3,30}$/;
 
@@ -12,6 +13,7 @@ export function Signup() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [accepted, setAccepted] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
@@ -21,13 +23,15 @@ export function Signup() {
     if (!USERNAME.test(username)) return setError('Pseudo : 3 à 30 caractères, lettres, chiffres, « _ » ou « - ».');
     if (!passwordIsValid(password)) return setError('Le mot de passe ne respecte pas toutes les règles.');
     if (password !== confirm) return setError('Les deux mots de passe ne sont pas identiques.');
+    if (!accepted) return setError("Pour créer un compte, accepte les conditions d'utilisation.");
     setBusy(true);
     setError('');
     const { error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
       options: {
-        data: { username },
+        // Version des conditions acceptées, gardée avec le compte (preuve de l'acceptation)
+        data: { username, terms_version: TERMS_VERSION },
         emailRedirectTo: `${window.location.origin}/connexion?confirme=1`,
       },
     });
@@ -70,6 +74,13 @@ export function Signup() {
         <label className="field">
           <span className="field-label">Confirmer le mot de passe</span>
           <input type="password" autoComplete="new-password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} maxLength={128} />
+        </label>
+        <label className="consent">
+          <input type="checkbox" required checked={accepted} onChange={(e) => setAccepted(e.target.checked)} />
+          <span>
+            J'ai lu et j'accepte les <Link to="/conditions" target="_blank">conditions d'utilisation</Link> ; mes données sont
+            traitées comme l'explique la page <Link to="/confidentialite" target="_blank">confidentialité</Link>.
+          </span>
         </label>
         {error && <p className="error" role="alert">{error}</p>}
         <button type="submit" className="button button-primary button-block" disabled={busy}><PsSymbol shape="cross" /> Créer mon compte</button>

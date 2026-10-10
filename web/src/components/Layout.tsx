@@ -71,9 +71,17 @@ export function Layout() {
         <p className="footer-note">
           Les jaquettes et visuels des jeux appartiennent à leurs éditeurs respectifs et ne sont pas couverts par la licence du catalogue.
         </p>
-        <p className="footer-note">Site de fans, sans lien avec Sony Interactive Entertainment. « PlayStation » est une marque de Sony.</p>
         <p className="footer-note">
-          <Link to="/mentions-legales">Mentions légales</Link> · <Link to="/confidentialite">Confidentialité</Link>
+          Site de fans indépendant, sans lien avec les constructeurs ni les éditeurs. Les noms de consoles et de jeux sont des marques
+          de leurs propriétaires respectifs.
+        </p>
+        <p className="footer-note">
+          Imaginé par Nameho, programmé avec l'aide d'une IA ·{' '}
+          <a href="https://github.com/carte-memoire/carte-memoire.github.io" target="_blank" rel="noopener noreferrer">code source</a>
+        </p>
+        <p className="footer-note">
+          <Link to="/mentions-legales">Mentions légales</Link> · <Link to="/conditions">Conditions d'utilisation</Link> ·{' '}
+          <Link to="/confidentialite">Confidentialité</Link>
         </p>
       </footer>
     </div>

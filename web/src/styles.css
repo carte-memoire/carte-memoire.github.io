@@ -188,6 +188,9 @@ textarea { resize: vertical; }
 .checks { display: flex; flex-wrap: wrap; gap: 6px 16px; }
 .checks legend { width: 100%; }
 .checks label, .segmented label, .switch { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+/* Acceptation des conditions (inscription) : case en haut, texte sur plusieurs lignes */
+.consent { display: flex; align-items: flex-start; gap: 8px; font-size: 0.9rem; cursor: pointer; }
+.consent input { margin-top: 4px; flex: none; }
 .segmented { display: flex; gap: 16px; flex-wrap: wrap; }
 .segmented legend { width: 100%; }
 .inline-form { flex-direction: row; align-items: flex-end; flex-wrap: wrap; }

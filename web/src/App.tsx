@@ -24,6 +24,7 @@ const ResetPassword = page(() => import('./pages/ResetPassword'), 'ResetPassword
 const MfaChallenge = page(() => import('./pages/MfaChallenge'), 'MfaChallenge');
 const LegalNotice = page(() => import('./pages/Legal'), 'LegalNotice');
 const Privacy = page(() => import('./pages/Legal'), 'Privacy');
+const Terms = page(() => import('./pages/Legal'), 'Terms');
 
 export function App() {
   return (
@@ -44,6 +45,7 @@ export function App() {
         <Route path="mes-propositions" element={<RequireAuth><MySubmissions /></RequireAuth>} />
         <Route path="moderation" element={<RequireAuth moderator><Moderation /></RequireAuth>} />
         <Route path="mentions-legales" element={<LegalNotice />} />
+        <Route path="conditions" element={<Terms />} />
         <Route path="confidentialite" element={<Privacy />} />
         <Route path="*" element={<NotFound />} />
       </Route>

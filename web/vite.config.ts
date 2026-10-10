@@ -33,6 +33,9 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), contentSecurityPolicy(env.VITE_SUPABASE_URL ?? '')],
     server: { port: 5173, strictPort: true },
     build: {
+      // Les polices restent des fichiers à part : intégrées au code (data:), la politique de
+      // sécurité (font-src 'self') les bloquerait sur le site publié
+      assetsInlineLimit: (file: string) => (/\.(woff2?|ttf|otf)$/.test(file) ? false : undefined),
       rolldownOptions: {
         output: {
           // Bibliothèques à part : elles changent rarement, le navigateur les garde
