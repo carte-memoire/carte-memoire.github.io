@@ -2,11 +2,12 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { GAME_FIELDS } from '../lib/queries';
-import { EDITION_TYPES, FAMILIES, familyLabel, gamePath, LANGUAGES, ZONES, zoneLabel, zoneOrder } from '../lib/format';
+import { EDITION_TYPES, familyLabel, gamePath, LANGUAGES, ZONES, zoneLabel, zoneOrder } from '../lib/format';
 import { errorMessage } from '../lib/errors';
 import { ACCEPT_ATTRIBUTE, prepareCover } from '../lib/images';
 import type { DatePrecision, EditionType, Game, GenreInfo, ImageType, Release, Zone } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
+import { Combobox } from '../components/Combobox';
 import { Cover } from '../components/Cover';
 import { useConfirm } from '../components/Confirm';
 import { PsSymbol } from '../components/PsSymbol';
@@ -147,11 +148,10 @@ function GenreEditor({ game, onSaved }: { game: Game; onSaved: () => void }) {
   const chosen = new Set(selected.map((g) => g.id));
   const families = [...new Set(selected.flatMap((g) => g.families))];
   const changed = selected.length !== initial.length || initial.some((g) => !chosen.has(g.id));
-  // Liste d'ajout : par famille principale, puis les thèmes
-  const groups = [
-    ...FAMILIES.map((f) => ({ label: f.label, genres: all.filter((g) => g.families[0] === f.value && !chosen.has(g.id)) })),
-    { label: 'Thèmes (sans famille)', genres: all.filter((g) => g.families.length === 0 && !chosen.has(g.id)) },
-  ].filter((group) => group.genres.length > 0);
+  // Genres proposés à l'ajout, avec leurs familles (cherchées elles aussi : « stratégie » trouve Tactical RPG)
+  const options = all
+    .filter((g) => !chosen.has(g.id))
+    .map((g) => ({ value: g.id, label: g.name, detail: g.families.length ? g.families.map(familyLabel).join(' + ') : 'thème' }));
 
   async function save() {
     setSaving(true);
@@ -197,17 +197,13 @@ function GenreEditor({ game, onSaved }: { game: Game; onSaved: () => void }) {
         ))}
         {selected.length === 0 && <li className="muted">Aucun genre.</li>}
       </ul>
-      <label className="field">
-        <span className="field-label">Ajouter un genre</span>
-        <select value="" onChange={(e) => { const g = all.find((x) => x.id === Number(e.target.value)); if (g) setSelected([...selected, g]); }}>
-          <option value="">Choisir…</option>
-          {groups.map((group) => (
-            <optgroup key={group.label} label={group.label}>
-              {group.genres.map((g) => <option key={g.id} value={g.id}>{g.name}{g.families.length > 1 ? ` (${g.families.map(familyLabel).join(' + ')})` : ''}</option>)}
-            </optgroup>
-          ))}
-        </select>
-      </label>
+      <Combobox
+        label="Ajouter un genre"
+        placeholder="Tape pour chercher : plates-formes, stratégie, RPG…"
+        options={options}
+        emptyText="Aucun genre ne correspond"
+        onSelect={(o) => { const g = all.find((x) => x.id === o.value); if (g) setSelected([...selected, g]); }}
+      />
       {message && <p className="success">{message}</p>}
       {error && <p className="error" role="alert">{error}</p>}
       <button type="button" className="button button-primary" onClick={save} disabled={saving || (!changed && game.genres_reviewed)}>
