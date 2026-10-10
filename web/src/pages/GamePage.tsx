@@ -11,6 +11,7 @@ import { useAuth } from '../auth/AuthContext';
 import { Cover } from '../components/Cover';
 import { PsSymbol } from '../components/PsSymbol';
 import { ReportDialog } from '../components/ReportDialog';
+import { standInFor } from '../lib/images';
 
 export function GamePage() {
   const { id } = useParams();
@@ -101,7 +102,7 @@ export function GamePage() {
       <ul className="release-list">
         {releases.map((r) => (
           <li key={r.id} className="release-card panel">
-            <Cover images={r.image} title={r.local_title} size="medium" />
+            <Cover images={r.image} title={r.local_title} size="medium" standIn={standInFor(r, releases)} />
             <div className="release-body">
               <h3>{r.local_title}</h3>
               <p className="release-badges">

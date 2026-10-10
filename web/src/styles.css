@@ -254,6 +254,17 @@ ul.error { padding-left: 28px; }
 .cover-small .cover-empty { font-size: 1.6rem; }
 .cover-disabled { opacity: 0.4; }
 .cover-picker { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+/* Jaquette « en attendant » (réédition sans recto) : celle de la version d'origine,
+   un peu atténuée, sous un bandeau argenté qui dit l'édition */
+.cover-stand-in { position: relative; }
+.cover-stand-in img { opacity: 0.8; }
+.cover-ribbon {
+  position: absolute; top: 0; left: 0; right: 0; padding: 2px 4px;
+  background: linear-gradient(180deg, #f4f6fa, #b4bac8); color: #1b1d26;
+  font-size: 0.62rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cover-large .cover-ribbon { font-size: 0.8rem; padding: 4px 6px; }
 
 /* ---------- Badges ---------- */
 .badge {
@@ -692,6 +703,17 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .queue-precise { max-width: 420px; }
 .pills button.pill { font: inherit; font-size: 0.85rem; }
 .pill:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ---------- Modération : jaquettes manquantes (coller une image) ---------- */
+.cover-queue-card { cursor: pointer; }
+.cover-queue-card.is-target { outline: 2px solid var(--cross); outline-offset: -2px; }
+.paste-hint { color: #c9d3ff; }
+.paste-target { border-radius: var(--radius); }
+.paste-target:focus { outline: 2px dashed var(--cross); outline-offset: 6px; }
+kbd {
+  font: 600 0.8em ui-monospace, monospace; padding: 1px 5px; border-radius: 3px;
+  background: var(--panel-2); border: 1px solid var(--bevel-light); border-bottom-width: 2px;
+}
 
 /* ---------- Zone dangereuse (suppression) ---------- */
 .danger-zone { border-color: #8f2536 #3a0d14 #3a0d14 #8f2536; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }

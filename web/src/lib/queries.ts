@@ -20,7 +20,7 @@ export const COLLECTION_FIELDS = `
   id, status, condition, has_box, has_manual, has_media, purchase_price, purchase_date, notes,
   acquisition, purchase_place, has_spine_card, trade_status,
   release:release_id(
-    id, zone, local_title, edition_type, edition_name, product_code,
+    id, zone, local_title, edition_type, edition_name, product_code, reissue_of,
     platform(short_name),
     image(id, type, path),
     game(id, title, first_release_date)

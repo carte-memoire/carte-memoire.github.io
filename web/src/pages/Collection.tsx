@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { COLLECTION_FIELDS } from '../lib/queries';
+import type { StandIn } from '../lib/images';
 import {
   acquisitionLabel, CATALOG_ZONES, CONDITIONS, conditionLabel, editionLabel, formatNumber, formatPrice, gamePath,
   searchKey, TRADE_STATUSES, tradeStatusLabel, zoneLabel,
@@ -72,6 +73,8 @@ export function Collection() {
   const confirm = useConfirm();
   const [params, setParams] = useSearchParams();
   const [items, setItems] = useState<CollectionItem[]>([]);
+  // Recto de la version d'origine des rééditions sans jaquette (id de l'origine → image)
+  const [originCovers, setOriginCovers] = useState<Map<number, string>>(new Map());
   const [dialog, setDialog] = useState<{ open: boolean; releaseId?: number | null; item?: CollectionItem | null }>({ open: false });
   const [error, setError] = useState('');
   const [loaded, setLoaded] = useState(false);
@@ -103,6 +106,11 @@ export function Collection() {
     setParams(next, { replace: true });
   }
 
+  function standInOf(item: CollectionItem): StandIn | null {
+    const path = item.release.reissue_of ? originCovers.get(item.release.reissue_of) : undefined;
+    return path ? { path, label: item.release.edition_name ?? 'Réédition' } : null;
+  }
+
   function chooseView(value: CollectionView) {
     rememberCollectionView(value);
     setView(value);
@@ -130,6 +138,17 @@ export function Collection() {
     }
     setItems(all);
     setLoaded(true);
+
+    const origins = [...new Set(all.map((i) => i.release)
+      .filter((r) => r.reissue_of && !r.image.some((im) => im.type === 'front'))
+      .map((r) => r.reissue_of!))];
+    const covers = new Map<number, string>();
+    for (let i = 0; i < origins.length; i += 200) {
+      const { data } = await supabase.from('image').select('release_id, path')
+        .eq('type', 'front').in('release_id', origins.slice(i, i + 200)).order('id');
+      for (const row of data ?? []) if (!covers.has(row.release_id)) covers.set(row.release_id, row.path);
+    }
+    setOriginCovers(covers);
   }, [session]);
 
   useEffect(() => { load(); }, [load]);
@@ -289,13 +308,13 @@ export function Collection() {
       {view === 'list' ? (
         <ul className="memory-card">
           {shown.map((item) => (
-            <ItemBlock key={item.id} item={item} onEdit={() => setDialog({ open: true, item })} onRemove={() => remove(item)} />
+            <ItemBlock key={item.id} item={item} standIn={standInOf(item)} onEdit={() => setDialog({ open: true, item })} onRemove={() => remove(item)} />
           ))}
         </ul>
       ) : (
         <ul className="cover-grid">
           {shown.map((item) => (
-            <ItemTile key={item.id} item={item} onEdit={() => setDialog({ open: true, item })} />
+            <ItemTile key={item.id} item={item} standIn={standInOf(item)} onEdit={() => setDialog({ open: true, item })} />
           ))}
         </ul>
       )}
@@ -314,12 +333,12 @@ export function Collection() {
 }
 
 // Vue en liste : tous les détails de l'exemplaire
-function ItemBlock({ item, onEdit, onRemove }: { item: CollectionItem; onEdit: () => void; onRemove: () => void }) {
+function ItemBlock({ item, standIn, onEdit, onRemove }: { item: CollectionItem; standIn: StandIn | null; onEdit: () => void; onRemove: () => void }) {
   const r = item.release;
   const complete = item.has_box && item.has_manual && item.has_media;
   return (
     <li className="block">
-      <Cover images={r.image} title={r.local_title} size="medium" />
+      <Cover images={r.image} title={r.local_title} size="medium" standIn={standIn} />
       <div className="block-body">
         <Link to={gamePath(r.game)} className="block-title">{r.local_title}</Link>
         <p className="block-badges">
@@ -348,13 +367,13 @@ function ItemBlock({ item, onEdit, onRemove }: { item: CollectionItem; onEdit: (
 }
 
 // Vue en grille : la jaquette d'abord, comme une étagère
-function ItemTile({ item, onEdit }: { item: CollectionItem; onEdit: () => void }) {
+function ItemTile({ item, standIn, onEdit }: { item: CollectionItem; standIn: StandIn | null; onEdit: () => void }) {
   const r = item.release;
   const complete = item.has_box && item.has_manual && item.has_media;
   return (
     <li className="cover-tile">
       <Link to={gamePath(r.game)} className="cover-tile-link" title={r.local_title}>
-        <Cover images={r.image} title={r.local_title} size="medium" />
+        <Cover images={r.image} title={r.local_title} size="medium" standIn={standIn} />
         <span className="cover-tile-title">{r.local_title}</span>
       </Link>
       <span className="cover-tile-meta">

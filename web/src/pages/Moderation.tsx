@@ -10,21 +10,23 @@ import { useGameSearch } from '../components/GameSearch';
 import { Cover } from '../components/Cover';
 import { PsSymbol } from '../components/PsSymbol';
 import { useConfirm } from '../components/Confirm';
+import { CoverQueue } from '../components/CoverQueue';
 import { GenreQueue } from '../components/GenreQueue';
 import { HistoryList } from '../components/HistoryList';
 import { ReportQueue } from '../components/ReportQueue';
 
-type Tab = 'submissions' | 'reports' | 'duplicates' | 'genres' | 'history';
+type Tab = 'submissions' | 'reports' | 'duplicates' | 'genres' | 'covers' | 'history';
 
 export function Moderation() {
   const { aal } = useAuth();
   const [tab, setTab] = useState<Tab>('submissions');
-  const [counts, setCounts] = useState({ submissions: 0, reports: 0, duplicates: 0, genres: 0 });
+  const [counts, setCounts] = useState({ submissions: 0, reports: 0, duplicates: 0, genres: 0, covers: 0 });
   // Fonctions stables : sinon chaque affichage relancerait le chargement des listes
   const countSubmissions = useCallback((n: number) => setCounts((c) => ({ ...c, submissions: n })), []);
   const countDuplicates = useCallback((n: number) => setCounts((c) => ({ ...c, duplicates: n })), []);
   const countGenres = useCallback((n: number) => setCounts((c) => ({ ...c, genres: n })), []);
   const countReports = useCallback((n: number) => setCounts((c) => ({ ...c, reports: n })), []);
+  const countCovers = useCallback((n: number) => setCounts((c) => ({ ...c, covers: n })), []);
 
   return (
     <section className="stack">
@@ -48,6 +50,9 @@ export function Moderation() {
         <button type="button" role="tab" aria-selected={tab === 'genres'} className={tab === 'genres' ? 'tab active' : 'tab'} onClick={() => setTab('genres')}>
           Jeux sans genre ({counts.genres})
         </button>
+        <button type="button" role="tab" aria-selected={tab === 'covers'} className={tab === 'covers' ? 'tab active' : 'tab'} onClick={() => setTab('covers')}>
+          Jaquettes manquantes ({counts.covers})
+        </button>
         <button type="button" role="tab" aria-selected={tab === 'history'} className={tab === 'history' ? 'tab active' : 'tab'} onClick={() => setTab('history')}>
           Historique
         </button>
@@ -57,6 +62,7 @@ export function Moderation() {
       <div hidden={tab !== 'duplicates'}><DuplicateList onCount={countDuplicates} /></div>
       <div hidden={tab !== 'genres'}><GenreQueue onCount={countGenres} /></div>
       <div hidden={tab !== 'reports'}><ReportQueue onCount={countReports} /></div>
+      <div hidden={tab !== 'covers'}><CoverQueue onCount={countCovers} active={tab === 'covers'} /></div>
       {tab === 'history' && <HistoryList limit={100} />}
     </section>
   );

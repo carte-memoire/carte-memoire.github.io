@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { GAME_FIELDS } from '../lib/queries';
 import { EDITION_TYPES, familyLabel, gamePath, LANGUAGES, slugify, ZONES, zoneLabel, zoneOrder } from '../lib/format';
 import { errorMessage } from '../lib/errors';
-import { ACCEPT_ATTRIBUTE, prepareCover } from '../lib/images';
+import { ACCEPT_ATTRIBUTE, imageFromClipboard, uploadReleaseImage } from '../lib/images';
 import type { DatePrecision, EditionType, Game, GenreInfo, ImageType, Release, SearchResult, SpecField, Zone } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
 import { Combobox } from '../components/Combobox';
@@ -460,22 +460,14 @@ function ReleaseEditor({ release, onSaved, canDelete, possibleDuplicate }: { rel
     onSaved();
   }
 
-  async function uploadImage(file: File | undefined) {
-    if (!file) return;
+  async function uploadImage(file: File | undefined | null) {
+    if (!file || busy) return;
     setBusy(true);
     setError('');
     setMessage('');
-    const path = `releases/${release.id}/${crypto.randomUUID()}.webp`;
     try {
-      const blob = await prepareCover(file);
-      const { error: uploadError } = await supabase.storage.from('covers').upload(path, blob, { contentType: 'image/webp', upsert: false });
-      if (uploadError) throw uploadError;
-      const { error: rowError } = await supabase.from('image').insert({ release_id: release.id, type: imageType, path, uploaded_by: session!.user.id });
-      if (rowError) {
-        await supabase.storage.from('covers').remove([path]);
-        throw rowError;
-      }
-      setMessage('Image ajoutée.');
+      await uploadReleaseImage(release.id, imageType, file, session!.user.id);
+      setMessage(`Image ajoutée (${IMAGE_TYPES.find((t) => t.value === imageType)?.label.toLowerCase()}).`);
       onSaved();
     } catch (err) {
       setError(errorMessage(err));
@@ -536,7 +528,20 @@ function ReleaseEditor({ release, onSaved, canDelete, possibleDuplicate }: { rel
         </p>
       )}
 
-      <div className="images-editor">
+      {/* Clic sur cette zone, puis Ctrl+V : colle une image copiée sur un autre site ;
+          on peut aussi y déposer un fichier. Elle prend le type choisi dans la liste. */}
+      <div
+        className="images-editor paste-target"
+        tabIndex={0}
+        aria-label={`Images de ${release.local_title} : clique ici puis colle une image (Ctrl+V), ou dépose un fichier`}
+        onPaste={(e) => {
+          const file = imageFromClipboard(e.clipboardData);
+          if (file) { e.preventDefault(); uploadImage(file); }
+          else setError("Le presse-papiers ne contient pas d'image : sur l'autre site, fais un clic droit sur l'image puis « Copier l'image ».");
+        }}
+        onDragOver={(e) => { if (e.dataTransfer.types.includes('Files')) e.preventDefault(); }}
+        onDrop={(e) => { const file = imageFromClipboard(e.dataTransfer); if (file) { e.preventDefault(); uploadImage(file); } }}
+      >
         {release.image.map((img) => (
           <figure key={img.id} className="image-tile">
             <Cover images={[{ ...img, type: 'front' }]} title={release.local_title} size="small" />
@@ -556,6 +561,7 @@ function ReleaseEditor({ release, onSaved, canDelete, possibleDuplicate }: { rel
             <input type="file" accept={ACCEPT_ATTRIBUTE} className="sr-only" disabled={busy}
               onChange={(e) => { uploadImage(e.target.files?.[0]); e.target.value = ''; }} />
           </label>
+          <span className="muted small">ou clique dans ce cadre et colle (Ctrl+V)</span>
         </div>
       </div>
 

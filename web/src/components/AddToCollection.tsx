@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { ACQUISITIONS, CONDITIONS, TRADE_STATUSES, zoneOrder } from '../lib/format';
 import { errorMessage } from '../lib/errors';
 import { RELEASE_FIELDS } from '../lib/queries';
+import { standInFor } from '../lib/images';
 import type { AcquisitionType, CollectionItem, ItemCondition, ItemStatus, Release, SearchResult, TradeStatus } from '../lib/types';
 import { Dialog } from './Dialog';
 import { GameSearch } from './GameSearch';
@@ -84,7 +85,7 @@ export function AddToCollection({ open, onClose, onSaved, initialReleaseId, edit
             {releases.map((r) => (
               <li key={r.id}>
                 <button type="button" className="choice" onClick={() => { setRelease(r); setStep('details'); }}>
-                  <Cover images={r.image} title={r.local_title} size="small" />
+                  <Cover images={r.image} title={r.local_title} size="small" standIn={standInFor(r, releases)} />
                   <span>
                     <span className="choice-title">{r.local_title}</span>
                     <ReleaseSummary release={r} />

@@ -557,6 +557,20 @@ await egal('codes en double dans un jeu : seulement les cas connus d\'avant l\'i
   val(`select string_agg(distinct product_code, ',' order by product_code) as c from (select game_id, product_code from public.release where product_code is not null group by 1, 2 having count(*) > 1) x`),
   [{ c: 'SCES-99868,SLES-01234,SLES-01433' }]);
 
+console.log('\nVersions sans jaquette');
+const sansJaquette = (args, uid = MEMBRE) => lignes(en(uid, `select id, stand_in_path, total_count from public.releases_without_cover('PS1', $1, null, $2, 1, 100)`, args));
+const ff7platinum = (await val(`select id from public.release where reissue_of = $1 and edition_name = 'Platinum'`, [ff7fr]))[0].id;
+await en(ADMIN, `insert into public.image (release_id, type, path) values ($1, 'back', 'test/ff7-fr-dos.webp')`, [ff7fr]);
+await egal('un verso seul ne compte pas : la version d\'origine est dans la file', sansJaquette(['standard', 'SCES-99868']).then((r) => r.map((x) => x.id)), [ff7fr]);
+await en(ADMIN, `insert into public.image (release_id, type, path) values ($1, 'front', 'test/ff7-fr.webp')`, [ff7fr]);
+await egal('la Platinum de FF7 est dans la file, avec le recto de la version d\'origine en attendant',
+  sansJaquette(['reissue', 'SCES-99868']).then((r) => r.map((x) => [x.id, x.stand_in_path])), [[ff7platinum, 'test/ff7-fr.webp']]);
+await egal('…mais plus la version d\'origine, qui a son recto', sansJaquette([null, 'SCES-99868']).then((r) => r.some((x) => x.id === ff7fr)), false);
+await en(ADMIN, `insert into public.image (release_id, type, path) values ($1, 'front', 'test/ff7-platinum.webp')`, [ff7platinum]);
+await egal('jaquette ajoutée : la Platinum quitte la file', sansJaquette(['reissue', 'SCES-99868']).then((r) => r.length), 0);
+await ko('un visiteur ne peut pas lire la file', sansJaquette([null, null], null), 'permission denied');
+await en(ADMIN, `delete from public.image where path like 'test/ff7-%'`);
+
 console.log('\nCohérence du catalogue (imports compris)');
 await egal('chaque jeu importé a au moins une sortie', val(`select count(*)::int as n from public.game g where g.wikidata_id is not null and not exists (select 1 from public.release r where r.game_id = g.id)`), [{ n: 0 }]);
 await egal('chaque date de sortie est cohérente avec sa précision', val(`select count(*)::int as n from public.release_region where (release_date is null) <> (date_precision is null)`), [{ n: 0 }]);
