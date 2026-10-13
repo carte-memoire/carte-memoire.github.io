@@ -19,3 +19,4 @@ dist/
 exports/
 .redump-import/
 .origins-import/
+.covers-recompress/
