@@ -77,7 +77,7 @@ Bilan (aucune image téléchargée)
   Jaquette trouvée           ${matches.length}  ${JSON.stringify(byZone)}
   Sans correspondance        ${unmatched.length}
   À télécharger              ${files.size} fichiers PNG, ${Math.round(downloadSize / 1048576)} Mo
-  Après conversion en WebP   environ ${Math.round(files.size * 70 / 1024)} Mo dans le stockage Supabase (≈ 70 Ko par image)
+  Après conversion en WebP   environ ${Math.round(files.size * 35 / 1024)} Mo dans le stockage Supabase (≈ 30 à 40 Ko par image)
 `);
 console.log('Exemples :');
 for (const t of ['Final Fantasy VII', 'Crash Bandicoot 2: Cortex Strikes Back', 'Resident Evil', 'Metal Gear Solid', 'Gran Turismo', '40 Winks']) {
@@ -139,10 +139,14 @@ async function processMatch(m) {
     if (converted.has(m.cover.file)) {
       writeFileSync(target, readFileSync(converted.get(m.cover.file)));
     } else {
-      // sharp vérifie que c'est bien une image avant de la convertir (rien d'autre n'est accepté)
+      // sharp vérifie que c'est bien une image avant de la convertir (rien d'autre n'est accepté).
+      // 480 × 672 au plus (boîtier DVD ; un boîtier CD reste carré, 480 × 480) : assez pour
+      // l'affichage le plus grand du site (280 px de large) sur un écran Retina. Qualité 72 et
+      // compression poussée (effort 6) : un tiers de place en moins qu'en qualité 80, sans
+      // différence visible (essais du 14 octobre 2026). Même réglage que les envois du site.
       const webp = await sharp(await fetchPng(m.cover.file), { failOn: 'error' })
-        .resize({ width: 800, height: 800, fit: 'inside', withoutEnlargement: true })
-        .webp({ quality: 80 })
+        .resize({ width: 480, height: 672, fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 72, effort: 6 })
         .toBuffer();
       writeFileSync(target, webp);
     }

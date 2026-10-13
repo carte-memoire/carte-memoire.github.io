@@ -186,7 +186,8 @@ function SubmissionCard({ submission: s, onDone }: { submission: Submission; onD
     try {
       if (s.data.cover_path) {
         // Le stockage ne se manipule pas en SQL : on copie d'abord la jaquette dans l'espace public
-        publicCover = `submissions/${s.id}-${crypto.randomUUID()}.webp`;
+        // Même format que le fichier envoyé (WebP, ou JPEG pour un navigateur qui ne sait pas écrire le WebP)
+        publicCover = `submissions/${s.id}-${crypto.randomUUID()}.${s.data.cover_path.endsWith('.jpg') ? 'jpg' : 'webp'}`;
         const { error } = await supabase.storage.from('submission-images').copy(s.data.cover_path, publicCover, { destinationBucket: 'covers' });
         if (error) { publicCover = null; throw error; }
       }

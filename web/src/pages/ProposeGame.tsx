@@ -5,7 +5,7 @@ import {
   EDITION_TYPES, gamePath, LANGUAGES, yearOf, ZONES, BOX_REGIONS, boxRegionName, regionName,
 } from '../lib/format';
 import { errorMessage } from '../lib/errors';
-import { ACCEPT_ATTRIBUTE, prepareCover } from '../lib/images';
+import { ACCEPT_ATTRIBUTE, extensionOf, prepareCover } from '../lib/images';
 import type { DatePrecision, EditionType, Region, ReleaseProposal, Zone } from '../lib/types';
 import { groupByManufacturer, usePlatforms } from '../lib/usePlatforms';
 import { DEFAULT_PLATFORM, rememberedPlatform } from '../lib/preferences';
@@ -104,8 +104,8 @@ export function ProposeGame() {
     try {
       if (cover) {
         const blob = await prepareCover(cover);
-        coverPath = `${session!.user.id}/${crypto.randomUUID()}.webp`;
-        const { error } = await supabase.storage.from('submission-images').upload(coverPath, blob, { contentType: 'image/webp', upsert: false });
+        coverPath = `${session!.user.id}/${crypto.randomUUID()}.${extensionOf(blob)}`;
+        const { error } = await supabase.storage.from('submission-images').upload(coverPath, blob, { contentType: blob.type, upsert: false });
         if (error) throw error;
       }
 

@@ -3,21 +3,30 @@ import type { EditionType, ImageType, ReleaseImage, Zone } from './types';
 import { LANGUAGES, countryName } from './format';
 import { tr } from './i18n';
 
-// Préparation d'une jaquette avant envoi :
+// Préparation d'une image avant envoi :
 // - vérifie le format et le poids ;
-// - redimensionne (1200 px maximum) et convertit en WebP.
+// - redimensionne et convertit en WebP.
 // Ré-encoder l'image supprime aussi ses métadonnées (EXIF), dont la position
 // GPS qu'un téléphone peut y avoir laissée.
+//
+// Recto : 480 × 672 au plus (boîtier DVD ; un boîtier CD reste carré, 480 × 480), assez
+// pour l'affichage le plus grand du site (280 px de large) sur un écran Retina, et
+// qualité 72 : même réglage que les jaquettes importées (scripts/import-covers.mjs).
+// Verso, notice, disque… : plus grands (1000 px), pour pouvoir lire le texte.
 
 const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_INPUT = 15 * 1024 * 1024;
 const MAX_OUTPUT = 5 * 1024 * 1024; // limite du stockage Supabase
-const MAX_SIDE = 1200;
+const FRONT_BOX = { width: 480, height: 672, quality: 0.72 };
+const OTHER_BOX = { width: 1000, height: 1000, quality: 0.8 };
 const MIN_SIDE = 150;
 
 export const ACCEPT_ATTRIBUTE = ACCEPTED.join(',');
 
-export async function prepareCover(file: File): Promise<Blob> {
+// Extension du fichier envoyé, selon le format produit (WebP, ou JPEG en secours)
+export const extensionOf = (blob: Blob) => (blob.type === 'image/webp' ? 'webp' : 'jpg');
+
+export async function prepareCover(file: File, type: ImageType = 'front'): Promise<Blob> {
   if (!ACCEPTED.includes(file.type)) throw new Error(tr('Formats acceptés : JPEG, PNG ou WebP.'));
   if (file.size > MAX_INPUT) throw new Error(tr('Image trop lourde (15 Mo maximum).'));
 
@@ -32,14 +41,23 @@ export async function prepareCover(file: File): Promise<Blob> {
     throw new Error(tr('Image trop petite ({0} px minimum de côté).', MIN_SIDE));
   }
 
-  const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
+  const box = type === 'front' ? FRONT_BOX : OTHER_BOX;
+  const scale = Math.min(1, box.width / bitmap.width, box.height / bitmap.height);
   const canvas = document.createElement('canvas');
   canvas.width = Math.round(bitmap.width * scale);
   canvas.height = Math.round(bitmap.height * scale);
-  canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  const context = canvas.getContext('2d')!;
+  // Réduction de qualité : sans ce réglage, le navigateur réduit au plus vite (image floue)
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = 'high';
+  context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
   bitmap.close();
 
-  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.85));
+  const encode = (format: string) => new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, format, box.quality));
+  // WebP, le plus léger ; un navigateur qui ne sait pas l'écrire (ancien Safari) rend un
+  // PNG bien plus lourd : on passe alors au JPEG
+  let blob = await encode('image/webp');
+  if (blob && blob.type !== 'image/webp') blob = await encode('image/jpeg');
   if (!blob) throw new Error(tr("Impossible de convertir l'image."));
   if (blob.size > MAX_OUTPUT) throw new Error(tr('Image encore trop lourde après conversion (5 Mo maximum).'));
   return blob;
@@ -49,9 +67,9 @@ export async function prepareCover(file: File): Promise<Blob> {
 // ligne dans la table image. Si la ligne est refusée, le fichier est retiré aussitôt.
 // Réservé aux modérateurs (la base refuse sinon).
 export async function uploadReleaseImage(releaseId: number, type: ImageType, file: File, userId: string) {
-  const blob = await prepareCover(file);
-  const path = `releases/${releaseId}/${crypto.randomUUID()}.webp`;
-  const { error: uploadError } = await supabase.storage.from('covers').upload(path, blob, { contentType: 'image/webp', upsert: false });
+  const blob = await prepareCover(file, type);
+  const path = `releases/${releaseId}/${crypto.randomUUID()}.${extensionOf(blob)}`;
+  const { error: uploadError } = await supabase.storage.from('covers').upload(path, blob, { contentType: blob.type, upsert: false });
   if (uploadError) throw uploadError;
   const { data, error: rowError } = await supabase.from('image')
     .insert({ release_id: releaseId, type, path, uploaded_by: userId }).select('id').single();
