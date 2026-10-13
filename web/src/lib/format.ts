@@ -36,6 +36,13 @@ export function editionLabel(release: Pick<Release, 'edition_type' | 'edition_na
   return EDITION_TYPES.find((e) => e.value === release.edition_type)?.label.split(' (')[0] ?? release.edition_type;
 }
 
+// Couleur du badge d'édition : argent pour les rééditions (Platinum…), rouge pour les
+// Greatest Hits américains (leur étiquette rouge), noir pour l'édition standard
+export function editionClass(release: { edition_type: string; edition_name?: string | null }): string {
+  if (release.edition_type !== 'reissue') return 'badge-edition';
+  return /greatest hits/i.test(release.edition_name ?? '') ? 'badge-greatest-hits' : 'badge-platinum';
+}
+
 // État d'un exemplaire, du meilleur au moins bon (échelle habituelle des collectionneurs)
 export const CONDITIONS: { value: ItemCondition; label: string; hint: string }[] = [
   { value: 'sealed', label: tr('Neuf sous blister'), hint: tr("Blister d'origine, jamais ouvert") },

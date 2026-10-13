@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { COLLECTION_FIELDS } from '../lib/queries';
 import { standInFor, type CoverSource, type StandIn } from '../lib/images';
 import {
-  acquisitionLabel, CATALOG_ZONES, CONDITIONS, conditionLabel, editionLabel, formatNumber, formatPrice, gamePath, languagesLong, languagesShort, searchKey, TRADE_STATUSES, tradeStatusLabel, zoneLabel, boxRegionName,
+  acquisitionLabel, CATALOG_ZONES, CONDITIONS, conditionLabel, editionClass, editionLabel, formatNumber, formatPrice, gamePath, languagesLong, languagesShort, searchKey, TRADE_STATUSES, tradeStatusLabel, zoneLabel, boxRegionName,
 } from '../lib/format';
 import { errorMessage } from '../lib/errors';
 import { downloadCsv, toCsv } from '../lib/csv';
@@ -395,7 +395,7 @@ function ItemBlock({ item, showPlatform, standIn, onEdit, onRemove }: { item: Co
         <p className="block-badges">
           {showPlatform && <span className="badge badge-console">{r.platform.short_name}</span>}
           <span className={`badge badge-zone badge-${(r.zone ?? 'unknown').toLowerCase()}`}>{zoneLabel(r.zone)}</span>
-          <span className={`badge ${r.edition_type === 'reissue' ? 'badge-platinum' : 'badge-edition'}`}>{editionLabel(r)}</span>
+          <span className={`badge ${editionClass(r)}`}>{editionLabel(r)}</span>
           {r.box_region
             ? <span className="badge badge-language" title={tr('Boîte : {0}', boxRegionName(r.box_region.code))}>{tr('Boîte ')}{r.box_region.code === 'europe' ? 'EU' : r.box_region.code}</span>
             : r.languages.length > 0 && <span className="badge badge-language" title={languagesLong(r.languages)}>{languagesShort(r.languages)}</span>}

@@ -357,6 +357,8 @@ ul.error { padding-left: 28px; }
 /* Console (PS1, PS2…) : affichée seulement quand plusieurs consoles se côtoient */
 .badge-console { color: #dfe3f5; background: #1a1c27; border-color: #6b7194; letter-spacing: 0.03em; }
 .badge-platinum { color: #1b1d26; background: var(--platinum); border-color: #fff; }
+/* Greatest Hits (États-Unis) : l'étiquette rouge des boîtes */
+.badge-greatest-hits { color: #fff; background: #c8202c; border-color: #ff8a93; }
 .badge-todo { color: #f1e2ae; border-color: var(--gold); }
 .badge-ok { color: #b5f3e1; border-color: var(--triangle); }
 .badge-ko { color: #ffc3cb; border-color: var(--circle); }

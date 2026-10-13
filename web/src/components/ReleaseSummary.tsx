@@ -1,4 +1,4 @@
-import { boxRegionName, editionLabel, formatDate, languagesShort, zoneLabel } from '../lib/format';
+import { boxRegionName, editionClass, editionLabel, formatDate, languagesShort, zoneLabel } from '../lib/format';
 import type { Release } from '../lib/types';
 import { tr } from '../lib/i18n';
 
@@ -11,7 +11,7 @@ export function ReleaseSummary({ release, showPlatform = false }: { release: Rel
     <span className="release-summary">
       {showPlatform && <span className="badge badge-console">{release.platform.short_name}</span>}
       <span className={`badge badge-zone badge-${(release.zone ?? 'unknown').toLowerCase()}`}>{zoneLabel(release.zone)}</span>
-      <span className={`badge ${release.edition_type === 'reissue' ? 'badge-platinum' : 'badge-edition'}`}>{editionLabel(release)}</span>
+      <span className={`badge ${editionClass(release)}`}>{editionLabel(release)}</span>
       {release.box_region
         ? <span className="badge badge-language">{tr('Boîte : ')}{boxRegionName(release.box_region.code)}</span>
         : release.languages.length > 0 && <span className="badge badge-language">{languagesShort(release.languages)}</span>}

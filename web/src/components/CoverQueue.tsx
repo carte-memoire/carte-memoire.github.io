@@ -1,7 +1,7 @@
 import { useEffect, useEffectEvent, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { CATALOG_ZONES, editionLabel, formatNumber, gamePath, zoneLabel } from '../lib/format';
+import { CATALOG_ZONES, editionClass, editionLabel, formatNumber, gamePath, zoneLabel } from '../lib/format';
 import { errorMessage } from '../lib/errors';
 import { ACCEPT_ATTRIBUTE, imageFromClipboard, uploadReleaseImage } from '../lib/images';
 import { ALL_PLATFORMS, rememberedPageSize, rememberedPlatform, rememberPageSize } from '../lib/preferences';
@@ -285,7 +285,7 @@ function CoverCard({ row, platform, isTarget, busy, onTarget, onFile, onPaste, o
         </p>
         <p className="release-badges">
           <span className={`badge badge-zone badge-${(row.zone ?? 'unknown').toLowerCase()}`}>{zoneLabel(row.zone)}</span>
-          <span className={`badge ${row.edition_type === 'reissue' ? 'badge-platinum' : 'badge-edition'}`}>{edition}</span>
+          <span className={`badge ${editionClass(row)}`}>{edition}</span>
           {row.product_code && <span className="muted small">{row.product_code}</span>}
         </p>
         <p className="muted small">

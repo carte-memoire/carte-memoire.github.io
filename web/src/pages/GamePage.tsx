@@ -5,7 +5,7 @@ import { errorMessage } from '../lib/errors';
 import { Dialog } from '../components/Dialog';
 import { GAME_FIELDS } from '../lib/queries';
 import {
-  boxRegionName, countryName, editionLabel, familyLabel, formatDate, languagesLong, languagesShort, speaksLanguage, zoneLabel, zoneOrder, genreName, regionName,
+  boxRegionName, countryName, editionClass, editionLabel, familyLabel, formatDate, languagesLong, languagesShort, speaksLanguage, zoneLabel, zoneOrder, genreName, regionName,
 } from '../lib/format';
 import { rememberedLanguage, rememberedPlatform } from '../lib/preferences';
 import { describeSpecs } from '../lib/specs';
@@ -303,7 +303,7 @@ export function GamePage() {
                   <p className="release-badges">
                     <span className={`badge badge-zone badge-${(r.zone ?? 'unknown').toLowerCase()}`}>{zoneLabel(r.zone)}</span>
                     {countryOf(r) && <span className="badge">{countryOf(r)}</span>}
-                    <span className={`badge ${r.edition_type === 'reissue' ? 'badge-platinum' : 'badge-edition'}`}>{editionLabel(r)}</span>
+                    <span className={`badge ${editionClass(r)}`}>{editionLabel(r)}</span>
                     {r.box_region && <span className="badge badge-language" title={tr('Boîte imprimée pour ce pays')}>{tr('Boîte : ')}{boxRegionName(r.box_region.code)}</span>}
                     {r.languages.length > 0 && (
                       <span className="badge badge-language" title={languagesLong(r.languages)}>
