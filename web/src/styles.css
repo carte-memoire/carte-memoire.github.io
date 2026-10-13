@@ -519,6 +519,10 @@ fieldset.notice { padding: 10px 12px; }
 /* ---------- Symboles de la manette (SVG, tous de la même taille) ---------- */
 .ps-symbol { width: 1em; height: 1em; flex: none; vertical-align: -0.15em; }
 .buttons-legend { font-size: 1.6rem; gap: 16px; }
+/* La console choisie, dessinée en 3D sous le titre de l'accueil */
+.console-stage { display: flex; justify-content: center; margin: 2px 0 0; }
+/* Largeur pour les consoles à plat, hauteur plafonnée pour les consoles debout (PS5, Xbox…) */
+.console-art { display: block; width: clamp(170px, 34vw, 250px); height: auto; max-height: 190px; overflow: visible; }
 .cover-empty .ps-symbol { stroke-width: 1.6; }
 
 /* ---------- Animations ----------
@@ -534,6 +538,11 @@ fieldset.notice { padding: 10px 12px; }
 @keyframes boot-glow {
   0%, 100% { text-shadow: 3px 3px 0 #000, 0 0 24px rgba(123, 147, 255, 0.45); }
   50% { text-shadow: 3px 3px 0 #000, 0 0 40px rgba(123, 147, 255, 0.85); }
+}
+/* La console arrive en se posant : de légèrement plus haut, en fondu */
+@keyframes console-in {
+  0% { opacity: 0; transform: translateY(-14px) scale(0.94); }
+  100% { opacity: 1; transform: none; }
 }
 @keyframes pop {
   0% { opacity: 0; transform: scale(0.2); }
@@ -552,6 +561,7 @@ fieldset.notice { padding: 10px 12px; }
   .hero-title { animation: boot-title 900ms cubic-bezier(0.2, 0.7, 0.2, 1) both, boot-glow 1.6s ease-in-out 900ms 1; }
   .hero-subtitle { animation: fade-in 500ms ease-out 500ms both; }
   .buttons-legend .ps-symbol { animation: pop 420ms cubic-bezier(0.3, 1.4, 0.5, 1) both; }
+  .console-art { animation: console-in 520ms cubic-bezier(0.2, 0.9, 0.3, 1.15) 600ms both; }
   .buttons-legend .ps-symbol:nth-child(1) { animation-delay: 700ms; }
   .buttons-legend .ps-symbol:nth-child(2) { animation-delay: 820ms; }
   .buttons-legend .ps-symbol:nth-child(3) { animation-delay: 940ms; }

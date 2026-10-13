@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ControllerButtons } from '../components/ControllerButtons';
+import { ConsoleArt, hasConsoleArt } from '../components/ConsoleArt';
 import { GameSearch } from '../components/GameSearch';
 import { useScanner } from '../components/Scanner';
 import { PlatformSelect } from '../components/PlatformSelect';
@@ -49,10 +50,14 @@ export function Home() {
           {gameCount ? tr('Les {0} jeux', formatNumber(gameCount)) : tr('Les jeux')}{platformCode ? tr(' de la') : ''}{' '}
           <PlatformSelect value={selected} onChange={choose} />{tr(', version par version. Et ta collection.')}
         </p>
-        {/* Les boutons de la manette de la console choisie (rejoués à chaque changement) */}
-        <p className="buttons-legend" aria-hidden="true" key={selected}>
-          <ControllerButtons platform={selected} />
-        </p>
+        {/* La console choisie, dessinée ; sinon les boutons de sa manette (rejoués à chaque changement) */}
+        {hasConsoleArt(selected) ? (
+          <div className="console-stage" key={selected}><ConsoleArt platform={selected} /></div>
+        ) : (
+          <p className="buttons-legend" aria-hidden="true" key={selected}>
+            <ControllerButtons platform={selected} />
+          </p>
+        )}
       </div>
 
       {accountDeleted && <p className="success center">{tr("Ton compte a bien été supprimé. Merci d'être passé par Carte Mémoire !")}</p>}
