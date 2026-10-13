@@ -10,6 +10,7 @@ import { useAuth } from '../auth/AuthContext';
 import { Combobox } from '../components/Combobox';
 import { GameSearch } from '../components/GameSearch';
 import { HistoryList } from '../components/HistoryList';
+import { StudioListEditor } from '../components/StudioListEditor';
 import { useRegions } from '../lib/useRegions';
 import { Dialog } from '../components/Dialog';
 import { Cover } from '../components/Cover';
@@ -71,7 +72,17 @@ export function EditGame() {
       )}
       <GameForm game={game} onSaved={load} />
       <GenreEditor key={`${game.game_genre.map((g) => g.genre.id).join()}-${game.genres_reviewed}`} game={game} onSaved={load} />
-      <OriginEditor gameId={game.id} onSaved={load} />
+      <section className="panel stack">
+        <h2>Développeurs</h2>
+        <StudioListEditor
+          title="Développeurs du jeu"
+          studios={game.game_developer.map((d) => d.company)}
+          onAdd={(companyId) => supabase.from('game_developer').insert({ game_id: game.id, company_id: companyId })}
+          onRemove={(companyId) => supabase.from('game_developer').delete().eq('game_id', game.id).eq('company_id', companyId)}
+          onSaved={load}
+        />
+      </section>
+      <OriginEditor key={game.game_developer.map((d) => d.company.id).join()} gameId={game.id} onSaved={load} />
       <h2>Versions</h2>
       {releases.map((r) => (
         <ReleaseEditor key={r.id} release={r} onSaved={load} canDelete={releases.length > 1} possibleDuplicate={isEmptyTwin(r, releases)} />
@@ -640,6 +651,13 @@ function ReleaseEditor({ release, onSaved, canDelete, possibleDuplicate }: { rel
       </div>
 
       <ReleaseDates release={release} onSaved={onSaved} />
+      <StudioListEditor
+        title="Éditeurs de cette version"
+        studios={release.release_company.filter((c) => c.role === 'publisher').map((c) => c.company)}
+        onAdd={(companyId) => supabase.from('release_company').insert({ release_id: release.id, company_id: companyId, role: 'publisher' })}
+        onRemove={(companyId) => supabase.from('release_company').delete().eq('release_id', release.id).eq('company_id', companyId).eq('role', 'publisher')}
+        onSaved={onSaved}
+      />
 
       <form onSubmit={save} className="form">
         <div className="row">

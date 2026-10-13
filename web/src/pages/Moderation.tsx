@@ -15,6 +15,8 @@ import { GenreQueue } from '../components/GenreQueue';
 import { HistoryList } from '../components/HistoryList';
 import { ReportQueue } from '../components/ReportQueue';
 import { StudioQueue } from '../components/StudioQueue';
+import { needsStudioDecision, StudioDecision, type StudioChoice } from '../components/StudioDecision';
+import { forgetCompanies, useCompanies } from '../lib/useCompanies';
 
 type Tab = 'submissions' | 'reports' | 'duplicates' | 'studios' | 'genres' | 'covers' | 'history';
 
@@ -131,6 +133,12 @@ function SubmissionCard({ submission: s, onDone }: { submission: Submission; onD
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // Studios inconnus : créer, remplacer par un existant, ou retirer
+  const companies = useCompanies();
+  const [studios, setStudios] = useState<{ publisher?: StudioChoice; developer?: StudioChoice }>({});
+  const undecided = Boolean(r) && companies.length > 0
+    && (needsStudioDecision(companies, r!.publisher_id, r!.publisher_name, studios.publisher)
+      || needsStudioDecision(companies, r!.developer_id, r!.developer_name, studios.developer));
 
   // La jaquette est privée : lien temporaire (10 minutes) pour l'afficher
   useEffect(() => {
@@ -165,8 +173,10 @@ function SubmissionCard({ submission: s, onDone }: { submission: Submission; onD
         note: note.trim() || null,
         cover_path: publicCover,
         attach_to_game_id: attachTo,
+        studios: Object.values(studios).some((v) => v !== undefined) ? studios : null,
       });
       if (error) throw error;
+      if (studios.publisher === 'create' || studios.developer === 'create') forgetCompanies();
       if (s.data.cover_path) await supabase.storage.from('submission-images').remove([s.data.cover_path]);
       onDone({ approved: true, gameId: (data as { game_id: number }).game_id });
     } catch (err) {
@@ -212,13 +222,20 @@ function SubmissionCard({ submission: s, onDone }: { submission: Submission; onD
               <dt>Édition</dt><dd>{EDITION_TYPES.find((t) => t.value === r.edition_type)?.label.split(' (')[0]}{r.edition_name ? ` · ${r.edition_name}` : ''}</dd>
               {r.release_date && (<><dt>Sortie</dt><dd>{formatDate(r.release_date, r.date_precision ?? 'day')}{r.region_code ? ` (${r.region_code})` : ''}</dd></>)}
               {r.languages && r.languages.length > 0 && (<><dt>Langues</dt><dd>{r.languages.map((l) => LANGUAGES.find((x) => x.value === l)?.label ?? l).join(', ')}</dd></>)}
-              {r.publisher_name && (<><dt>Éditeur</dt><dd>{r.publisher_name}</dd></>)}
-              {r.developer_name && (<><dt>Développeur</dt><dd>{r.developer_name}</dd></>)}
             </dl>
           )}
           {s.sources && <p className="block-notes">Sources : {s.sources}</p>}
         </div>
       </div>
+
+      {r && (
+        <div className="stack studio-decisions">
+          <StudioDecision label="Éditeur" id={r.publisher_id} name={r.publisher_name} choice={studios.publisher}
+            onChoice={(c) => setStudios((d) => ({ ...d, publisher: c }))} />
+          <StudioDecision label="Développeur" id={r.developer_id} name={r.developer_name} choice={studios.developer}
+            onChoice={(c) => setStudios((d) => ({ ...d, developer: c }))} />
+        </div>
+      )}
 
       {isNewGame && similar.length > 0 && (
         <fieldset className="notice">
@@ -243,7 +260,8 @@ function SubmissionCard({ submission: s, onDone }: { submission: Submission; onD
       </label>
       {error && <p className="error" role="alert">{error}</p>}
       <div className="actions">
-        <button type="button" className="button button-primary" onClick={approve} disabled={busy}>
+        <button type="button" className="button button-primary" onClick={approve} disabled={busy || undecided}
+          title={undecided ? "Décide d'abord du nouveau studio" : undefined}>
           <PsSymbol shape="cross" /> {attachTo ? 'Accepter (version du jeu choisi)' : 'Accepter'}
         </button>
         <button type="button" className="button button-danger" onClick={reject} disabled={busy}>

@@ -962,3 +962,14 @@ kbd {
 @media (prefers-reduced-motion: no-preference) {
   .scan-done-mark { animation: pop 360ms cubic-bezier(0.3, 1.4, 0.5, 1) both; }
 }
+
+/* ---------- Studios : choix dans la liste, nouveau studio à vérifier ---------- */
+.studio-known { color: var(--triangle); }
+.studio-new { color: #f1e2ae; }
+.studio-decisions { gap: 8px; }
+.studio-decision { margin: 0; }
+fieldset.studio-decision { padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; }
+.studio-editor { display: flex; flex-direction: column; gap: 8px; }
+.studio-editor .field-label { margin: 0; }
+.studio-editor-add { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+.studio-editor-add .field { flex: 1 1 260px; }

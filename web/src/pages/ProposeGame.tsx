@@ -9,6 +9,7 @@ import { groupByManufacturer, usePlatforms } from '../lib/usePlatforms';
 import { useAuth } from '../auth/AuthContext';
 import { useGameSearch } from '../components/GameSearch';
 import { PsSymbol } from '../components/PsSymbol';
+import { EMPTY_STUDIO, StudioField, type StudioValue } from '../components/StudioField';
 
 // Proposer un jeu absent de la base, ou une version manquante d'un jeu existant
 // (/proposer?jeu=12). La proposition est vérifiée par un modérateur avant publication.
@@ -31,8 +32,8 @@ export function ProposeGame() {
   const [editionType, setEditionType] = useState<EditionType>('standard');
   const [editionName, setEditionName] = useState('');
   const [languages, setLanguages] = useState<string[]>([]);
-  const [publisher, setPublisher] = useState('');
-  const [developer, setDeveloper] = useState('');
+  const [publisher, setPublisher] = useState<StudioValue>(EMPTY_STUDIO);
+  const [developer, setDeveloper] = useState<StudioValue>(EMPTY_STUDIO);
   const [sources, setSources] = useState('');
   const [cover, setCover] = useState<File | null>(null);
   const [noCover, setNoCover] = useState(false);
@@ -111,8 +112,9 @@ export function ProposeGame() {
         ...(editionName.trim() && { edition_name: editionName.trim() }),
         ...(regionCode && { region_code: regionCode }),
         ...(date.date && { release_date: date.date, date_precision: precision }),
-        ...(publisher.trim() && { publisher_name: publisher.trim() }),
-        ...(developer.trim() && { developer_name: developer.trim() }),
+        // Studio de la liste : son identifiant ; sinon le nom tapé (nouveau studio, vérifié en modération)
+        ...(publisher.id ? { publisher_id: publisher.id } : publisher.name.trim() ? { publisher_name: publisher.name.trim() } : {}),
+        ...(developer.id ? { developer_id: developer.id } : developer.name.trim() ? { developer_name: developer.name.trim() } : {}),
       };
       const data = {
         ...(existingGame ? { game_id: existingGame.id } : { game: { title: title.trim() } }),
@@ -276,14 +278,8 @@ export function ProposeGame() {
         </fieldset>
 
         <div className="row">
-          <label className="field">
-            <span className="field-label">Éditeur</span>
-            <input value={publisher} onChange={(e) => setPublisher(e.target.value)} maxLength={120} />
-          </label>
-          <label className="field">
-            <span className="field-label">Développeur</span>
-            <input value={developer} onChange={(e) => setDeveloper(e.target.value)} maxLength={120} />
-          </label>
+          <StudioField label="Éditeur" value={publisher} onChange={setPublisher} />
+          <StudioField label="Développeur" value={developer} onChange={setDeveloper} />
         </div>
 
         <fieldset className="cover-field">

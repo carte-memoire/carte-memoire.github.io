@@ -149,6 +149,9 @@ export interface ReleaseProposal {
   date_precision?: DatePrecision;
   publisher_name?: string;
   developer_name?: string;
+  // Studio choisi dans la liste (sinon, le nom tapé : nouveau studio à vérifier)
+  publisher_id?: number;
+  developer_id?: number;
 }
 
 export interface Submission {
@@ -241,7 +244,7 @@ export interface Report {
 // Une modification du catalogue (table catalog_change)
 export interface CatalogChange {
   id: number;
-  table_name: 'game' | 'release' | 'game_genre' | 'image' | 'release_region' | 'release_barcode';
+  table_name: 'game' | 'release' | 'game_genre' | 'image' | 'release_region' | 'release_barcode' | 'game_developer' | 'release_company';
   row_key: string;
   game_id: number | null;
   action: 'insert' | 'update' | 'delete';

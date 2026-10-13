@@ -247,19 +247,22 @@ await ko('deux identifiants Wikidata différents : fusion refusée', en(ADMIN, `
 
 console.log('\nModération');
 const soumettre = async (data, target = 'game') => (await en(MEMBRE, `insert into public.submission (action, target, data, sources) values ('create', $2, $1::jsonb, 'test') returning id`, [JSON.stringify(data), target])).rows[0].id;
-const traiter = (uid, id, approve, note = null, cover = null, attach = null, aal) => en(uid, `select public.review_submission($1, $2, $3, $4, $5) as r`, [id, approve, note, cover, attach], aal);
+const traiter = (uid, id, approve, note = null, cover = null, attach = null, aal, studios = null) =>
+  en(uid, `select public.review_submission($1, $2, $3, $4, $5, $6::jsonb) as r`, [id, approve, note, cover, attach, studios && JSON.stringify(studios)], aal);
 const versionPAL = { platform_id: Number(ps1), zone: 'PAL', local_title: 'Mon Jeu Perdu', product_code: 'sles-01234', edition_type: 'standard', languages: ['fr', 'en'], region_code: 'FR', release_date: '1999-03-01', date_precision: 'month', publisher_name: 'Éditeur Inconnu', developer_name: 'Studio Fantôme' };
 
 const p1 = await soumettre({ game: { title: 'Mon Jeu Perdu' }, release: versionPAL, no_cover: true });
 await ko('un membre ne peut pas traiter une proposition', traiter(MEMBRE, p1, true), 'Seuls les modérateurs');
 await ko('un visiteur non plus', en(null, `select public.review_submission($1, true)`, [p1]), 'permission denied');
 await ko('un admin sans double authentification non plus', traiter(ADMIN, p1, true, null, null, null, 'aal1'), 'Seuls les modérateurs');
-const r1 = await ok('un admin accepte un nouveau jeu', traiter(ADMIN, p1, true));
+await ko("studios inconnus : la validation s'arrête et demande une décision", traiter(ADMIN, p1, true), 'Nouveau studio « Éditeur Inconnu »');
+await egal("…rien n'a été créé", val(`select count(*)::int as n from public.company where name in ('Éditeur Inconnu', 'Studio Fantôme')`), [{ n: 0 }]);
+const r1 = await ok('un admin accepte un nouveau jeu, en confirmant la création des deux studios', traiter(ADMIN, p1, true, null, null, null, undefined, { publisher: 'create', developer: 'create' }));
 const cree = r1.rows[0].r;
 await egal('le jeu est créé avec sa première sortie', val(`select title, first_release_date::text as d, first_release_precision as p from public.game where id = $1`, [cree.game_id]), [{ title: 'Mon Jeu Perdu', d: '1999-03-01', p: 'month' }]);
 await egal('la version est créée (code produit en majuscules)', val(`select zone, local_title, product_code, languages from public.release where id = $1`, [cree.release_id]), [{ zone: 'PAL', local_title: 'Mon Jeu Perdu', product_code: 'SLES-01234', languages: ['fr', 'en'] }]);
 await egal('…avec sa date en France', val(`select rg.code, rr.release_date::text as d from public.release_region rr join public.region rg on rg.id = rr.region_id where rr.release_id = $1`, [cree.release_id]), [{ code: 'FR', d: '1999-03-01' }]);
-await egal('…son éditeur et son développeur (sociétés créées)', val(`select (select c.name from public.release_company rc join public.company c on c.id = rc.company_id where rc.release_id = $1) as editeur, (select c.name from public.game_developer gd join public.company c on c.id = gd.company_id where gd.game_id = $2) as dev`, [cree.release_id, cree.game_id]), [{ editeur: 'Éditeur Inconnu', dev: 'Studio Fantôme' }]);
+await egal('…son éditeur et son développeur (studios créés sur confirmation)', val(`select (select c.name from public.release_company rc join public.company c on c.id = rc.company_id where rc.release_id = $1) as editeur, (select c.name from public.game_developer gd join public.company c on c.id = gd.company_id where gd.game_id = $2) as dev`, [cree.release_id, cree.game_id]), [{ editeur: 'Éditeur Inconnu', dev: 'Studio Fantôme' }]);
 await egal('l\'auteur voit sa proposition acceptée et le jeu créé', lignes(en(MEMBRE, `select status, created_game_id from public.submission where id = $1`, [p1])), [{ status: 'approved', created_game_id: cree.game_id }]);
 await ko('une proposition déjà traitée ne peut pas l\'être deux fois', traiter(ADMIN, p1, false, 'non'), 'déjà été traitée');
 
@@ -279,6 +282,27 @@ await ok('le modérateur copie la jaquette dans les jaquettes publiques', en(ADM
 const r4 = (await ok('…puis accepte la nouvelle version', traiter(ADMIN, p4, true, null, 'submissions/test.webp'))).rows[0].r;
 await egal('la jaquette est rattachée à la version (recto)', val(`select type, path from public.image where release_id = $1`, [r4.release_id]), [{ type: 'front', path: 'submissions/test.webp' }]);
 await egal('…et sort dans la recherche', lignes(en(null, `select cover_path from public.search_games('mon jeu perdu') where id = $1`, [cree.game_id])), [{ cover_path: 'submissions/test.webp' }]);
+const studioExistant = (await val(`select id from public.company where name = 'Éditeur Inconnu'`))[0].id;
+const p5 = await soumettre({ game: { title: 'Jeu Studio Liste' }, release: { ...versionPAL, local_title: 'Jeu Studio Liste', publisher_name: undefined, publisher_id: Number(studioExistant), developer_name: 'Studoi Fantome' }, no_cover: true });
+await ko('faute de frappe dans un développeur : décision demandée', traiter(ADMIN, p5, true), 'Nouveau studio « Studoi Fantome »');
+const fantome = (await val(`select id from public.company where name = 'Studio Fantôme'`))[0].id;
+const r5 = (await ok('le modérateur choisit le bon studio existant à la place', traiter(ADMIN, p5, true, null, null, null, undefined, { developer: Number(fantome) }))).rows[0].r;
+await egal('…éditeur choisi dans la liste, développeur corrigé, aucun studio mal orthographié créé',
+  val(`select (select rc.company_id from public.release_company rc where rc.release_id = $1) as ed, (select gd.company_id from public.game_developer gd where gd.game_id = $2) as dev,
+    (select count(*)::int from public.company where name = 'Studoi Fantome') as faute`, [r5.release_id, r5.game_id]),
+  [{ ed: studioExistant, dev: fantome, faute: 0 }]);
+const p6 = await soumettre({ game: { title: 'Jeu Sans Studio' }, release: { ...versionPAL, local_title: 'Jeu Sans Studio', publisher_name: 'Editeur Douteux', developer_name: undefined }, no_cover: true });
+const r6 = (await ok('le modérateur retire un studio douteux', traiter(ADMIN, p6, true, null, null, null, undefined, { publisher: 'skip' }))).rows[0].r;
+await egal('…la version est créée sans éditeur', val(`select count(*)::int as n from public.release_company where release_id = $1`, [r6.release_id]), [{ n: 0 }]);
+await ko('un studio choisi qui n\'existe pas : refusé', traiter(ADMIN, await soumettre({ game: { title: 'Jeu Fantôme 2' }, release: { ...versionPAL, local_title: 'X' }, no_cover: true }), true, null, null, null, undefined, { publisher: -1, developer: 'skip' }), "n'existe plus");
+
+console.log('\nHistorique des studios (Modifier ce jeu)');
+await ok('un modérateur ajoute un développeur au jeu', en(ADMIN, `insert into public.game_developer (game_id, company_id) values ($1, $2)`, [cree.game_id, studioExistant]));
+const ajoutDev = (await val(`select id, new_values ->> 'company_name' as nom from public.catalog_change where table_name = 'game_developer' and game_id = $1 order by id desc limit 1`, [cree.game_id]))[0];
+await egal('…dans l\'historique, avec le nom du studio', Promise.resolve(ajoutDev?.nom), 'Éditeur Inconnu');
+await ok('…puis annule cet ajout', en(ADMIN, `select public.undo_catalog_change($1)`, [ajoutDev.id]));
+await egal('…le développeur est retiré', val(`select count(*)::int as n from public.game_developer where game_id = $1 and company_id = $2`, [cree.game_id, studioExistant]), [{ n: 0 }]);
+await ko('un membre ne peut pas changer les studios', en(MEMBRE, `insert into public.game_developer (game_id, company_id) values ($1, $2)`, [cree.game_id, studioExistant]), 'row-level security');
 await ko('des données trop volumineuses sont refusées', en(MEMBRE, `insert into public.submission (action, target, data) values ('create', 'game', $1::jsonb)`, [JSON.stringify({ game: { title: 'x'.repeat(40000) }, no_cover: true })]), 'submission_data_size');
 
 console.log('\nConsoles');

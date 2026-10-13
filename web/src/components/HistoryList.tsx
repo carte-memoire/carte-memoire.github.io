@@ -18,6 +18,7 @@ const FIELDS: Record<string, string> = {
 };
 const TABLES: Record<CatalogChange['table_name'], string> = {
   game: 'Jeu', release: 'Version', game_genre: 'Genre', image: 'Image', release_region: 'Date de sortie', release_barcode: 'Code-barres',
+  game_developer: 'Développeur', release_company: 'Éditeur',
 };
 const ACTIONS: Record<CatalogChange['action'], string> = { insert: 'ajout', update: 'modification', delete: 'suppression' };
 
@@ -82,13 +83,16 @@ export function HistoryList({ gameId, onUndone, limit = 50, refresh }: { gameId?
       if (c.action === 'update') return [`${region} : ${when(c.old_values)} → ${when(c.new_values)}`];
       return [`${c.action === 'insert' ? 'Ajoutée' : 'Retirée'} : ${region}, ${when(v)}`];
     }
+    if (c.table_name === 'game_developer' || c.table_name === 'release_company') {
+      return [`${c.action === 'insert' ? 'Ajouté' : 'Retiré'} : ${show(v.company_name ?? `studio n° ${v.company_id}`)}${c.table_name === 'release_company' ? ` (version n° ${show(v.release_id)})` : ''}`];
+    }
     if (c.table_name === 'release_barcode') return [`${c.action === 'insert' ? 'Associé' : 'Retiré'} : ${formatBarcode(String(v.barcode ?? ''))} (version n° ${show(v.release_id)})`];
     if (c.action !== 'update') return [`« ${show(v.title ?? v.local_title)} »${v.zone ? ` (${show(v.zone)})` : ''}`];
     return Object.keys(c.new_values ?? {}).map((k) => `${FIELDS[k] ?? k} : ${show(c.old_values?.[k])} → ${show(c.new_values?.[k])}`);
   }
 
   const undoable = (c: CatalogChange) => !c.undone_at
-    && ((c.action === 'update' && (c.table_name === 'game' || c.table_name === 'release')) || c.table_name === 'game_genre' || c.table_name === 'release_barcode');
+    && ((c.action === 'update' && (c.table_name === 'game' || c.table_name === 'release')) || ['game_genre', 'release_barcode', 'game_developer', 'release_company'].includes(c.table_name));
 
   if (changes === null) return <p className="loading">Lecture de l'historique…</p>;
   return (
