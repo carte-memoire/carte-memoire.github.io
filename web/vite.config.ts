@@ -28,12 +28,13 @@ function contentSecurityPolicy(supabaseUrl: string): Plugin {
 }
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, '.');
+  // VITE_… (fichiers .env) et PORT (variable d'environnement, lue aussi par loadEnv)
+  const env = loadEnv(mode, '.', ['VITE_', 'PORT']);
   return {
     plugins: [react(), contentSecurityPolicy(env.VITE_SUPABASE_URL ?? '')],
     // 5173 par défaut (adresse autorisée pour les liens reçus par e-mail) ; un autre port
     // si PORT est fourni (deux serveurs de développement en même temps)
-    server: { port: Number(process.env.PORT) || 5173, strictPort: true },
+    server: { port: Number(env.PORT) || 5173, strictPort: true },
     build: {
       // Les polices restent des fichiers à part : intégrées au code (data:), la politique de
       // sécurité (font-src 'self') les bloquerait sur le site publié
