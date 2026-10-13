@@ -31,7 +31,9 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.');
   return {
     plugins: [react(), contentSecurityPolicy(env.VITE_SUPABASE_URL ?? '')],
-    server: { port: 5173, strictPort: true },
+    // 5173 par défaut (adresse autorisée pour les liens reçus par e-mail) ; un autre port
+    // si PORT est fourni (deux serveurs de développement en même temps)
+    server: { port: Number(process.env.PORT) || 5173, strictPort: true },
     build: {
       // Les polices restent des fichiers à part : intégrées au code (data:), la politique de
       // sécurité (font-src 'self') les bloquerait sur le site publié
