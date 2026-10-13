@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { EDITION_TYPES, gamePath, LANGUAGES, yearOf, ZONES } from '../lib/format';
+import { EDITION_TYPES, gamePath, LANGUAGES, yearOf, ZONES, BOX_REGIONS, boxRegionName } from '../lib/format';
 import { errorMessage } from '../lib/errors';
 import { ACCEPT_ATTRIBUTE, prepareCover } from '../lib/images';
 import type { DatePrecision, EditionType, Region, ReleaseProposal, Zone } from '../lib/types';
@@ -34,6 +34,7 @@ export function ProposeGame() {
   const [languages, setLanguages] = useState<string[]>([]);
   const [publisher, setPublisher] = useState<StudioValue>(EMPTY_STUDIO);
   const [developer, setDeveloper] = useState<StudioValue>(EMPTY_STUDIO);
+  const [boxRegion, setBoxRegion] = useState('');
   const [sources, setSources] = useState('');
   const [cover, setCover] = useState<File | null>(null);
   const [noCover, setNoCover] = useState(false);
@@ -115,6 +116,7 @@ export function ProposeGame() {
         // Studio de la liste : son identifiant ; sinon le nom tapé (nouveau studio, vérifié en modération)
         ...(publisher.id ? { publisher_id: publisher.id } : publisher.name.trim() ? { publisher_name: publisher.name.trim() } : {}),
         ...(developer.id ? { developer_id: developer.id } : developer.name.trim() ? { developer_name: developer.name.trim() } : {}),
+        ...(boxRegion && { box_region_code: boxRegion }),
       };
       const data = {
         ...(existingGame ? { game_id: existingGame.id } : { game: { title: title.trim() } }),
@@ -276,6 +278,15 @@ export function ProposeGame() {
             </label>
           ))}
         </fieldset>
+
+        <label className="field">
+          <span className="field-label">Boîte vendue en (facultatif)</span>
+          <select value={boxRegion} onChange={(e) => setBoxRegion(e.target.value)}>
+            <option value="">Non précisé</option>
+            {BOX_REGIONS.map((code) => <option key={code} value={code}>{boxRegionName(code)}</option>)}
+          </select>
+          <span className="hint">Si le dos de ta boîte est écrit pour un seul pays (tout en français, par exemple) alors que le disque contient plusieurs langues.</span>
+        </label>
 
         <div className="row">
           <StudioField label="Éditeur" value={publisher} onChange={setPublisher} />

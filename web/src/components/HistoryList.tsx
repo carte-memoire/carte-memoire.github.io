@@ -14,7 +14,7 @@ const FIELDS: Record<string, string> = {
   first_release_precision: 'Précision de la date', wikidata_id: 'Wikidata', genres_reviewed: 'Genres revus',
   local_title: 'Titre sur la boîte', zone: 'Zone', product_code: 'Code produit', edition_type: 'Édition',
   edition_name: "Nom de l'édition", media_count: 'Disques', languages: 'Langues', specs: 'Caractéristiques',
-  game_id: 'Jeu (fusion ou déplacement)', reissue_of: "Réédition de", barcode: 'Code-barres',
+  game_id: 'Jeu (fusion ou déplacement)', reissue_of: "Réédition de", barcode: 'Code-barres', box_region_id: 'Boîte vendue en',
 };
 const TABLES: Record<CatalogChange['table_name'], string> = {
   game: 'Jeu', release: 'Version', game_genre: 'Genre', image: 'Image', release_region: 'Date de sortie', release_barcode: 'Code-barres',
@@ -88,7 +88,8 @@ export function HistoryList({ gameId, onUndone, limit = 50, refresh }: { gameId?
     }
     if (c.table_name === 'release_barcode') return [`${c.action === 'insert' ? 'Associé' : 'Retiré'} : ${formatBarcode(String(v.barcode ?? ''))} (version n° ${show(v.release_id)})`];
     if (c.action !== 'update') return [`« ${show(v.title ?? v.local_title)} »${v.zone ? ` (${show(v.zone)})` : ''}`];
-    return Object.keys(c.new_values ?? {}).map((k) => `${FIELDS[k] ?? k} : ${show(c.old_values?.[k])} → ${show(c.new_values?.[k])}`);
+    const value = (k: string, v: unknown) => (k === 'box_region_id' && v ? regions.find((r) => r.id === Number(v))?.name ?? v : v);
+    return Object.keys(c.new_values ?? {}).map((k) => `${FIELDS[k] ?? k} : ${show(value(k, c.old_values?.[k]))} → ${show(value(k, c.new_values?.[k]))}`);
   }
 
   const undoable = (c: CatalogChange) => !c.undone_at

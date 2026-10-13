@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { Dialog } from '../components/Dialog';
 import { GAME_FIELDS } from '../lib/queries';
-import { countryName, editionLabel, familyLabel, formatDate, languagesLong, languagesShort, zoneLabel, zoneOrder } from '../lib/format';
+import { boxRegionName, countryName, editionLabel, familyLabel, formatDate, languagesLong, languagesShort, speaksLanguage, zoneLabel, zoneOrder } from '../lib/format';
 import { rememberedLanguage } from '../lib/preferences';
 import { describeSpecs } from '../lib/specs';
 import type { Game, ItemStatus, Release } from '../lib/types';
@@ -101,7 +101,7 @@ export function GamePage() {
   const language = rememberedLanguage();
   const releases = [...game.release].sort((a, b) => zoneOrder(a.zone) - zoneOrder(b.zone)
     || Number(b.edition_type === 'standard') - Number(a.edition_type === 'standard')
-    || Number(b.languages.includes(language)) - Number(a.languages.includes(language)) || a.id - b.id);
+    || Number(speaksLanguage({ ...b, box_country: b.box_region?.code }, language)) - Number(speaksLanguage({ ...a, box_country: a.box_region?.code }, language)) || a.id - b.id);
   const copies = (r: Release) => mine.filter((m) => m.release_id === r.id && m.status === 'owned').length;
   const wantedItem = (r: Release) => mine.find((m) => m.release_id === r.id && m.status === 'wanted');
   const focused = releases.find((r) => r.id === focusId) ?? null;
@@ -272,6 +272,7 @@ export function GamePage() {
                 <span className={`badge badge-zone badge-${(r.zone ?? 'unknown').toLowerCase()}`}>{zoneLabel(r.zone)}</span>
                 {countryOf(r) && <span className="badge">{countryOf(r)}</span>}
                 <span className={`badge ${r.edition_type === 'reissue' ? 'badge-platinum' : 'badge-edition'}`}>{editionLabel(r)}</span>
+                {r.box_region && <span className="badge badge-language" title="Boîte imprimée pour ce pays">Boîte : {boxRegionName(r.box_region.code)}</span>}
                 {r.languages.length > 0 && (
                   <span className="badge badge-language" title={languagesLong(r.languages)}>
                     {r.languages.length === 1 ? languagesLong(r.languages) : languagesShort(r.languages)}

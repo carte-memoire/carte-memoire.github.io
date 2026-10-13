@@ -375,7 +375,9 @@ function ItemBlock({ item, standIn, onEdit, onRemove }: { item: CollectionItem; 
         <p className="block-badges">
           <span className={`badge badge-zone badge-${(r.zone ?? 'unknown').toLowerCase()}`}>{zoneLabel(r.zone)}</span>
           <span className={`badge ${r.edition_type === 'reissue' ? 'badge-platinum' : 'badge-edition'}`}>{editionLabel(r)}</span>
-          {r.languages.length > 0 && <span className="badge badge-language" title={languagesLong(r.languages)}>{languagesShort(r.languages)}</span>}
+          {r.box_region
+            ? <span className="badge badge-language" title={`Boîte : ${r.box_region.name}`}>Boîte {r.box_region.code === 'europe' ? 'EU' : r.box_region.code}</span>
+            : r.languages.length > 0 && <span className="badge badge-language" title={languagesLong(r.languages)}>{languagesShort(r.languages)}</span>}
           {item.condition && <span className={`badge badge-condition badge-${item.condition}`}>{conditionLabel(item.condition)}</span>}
           {item.trade_status && <span className="badge badge-trade">{tradeStatusLabel(item.trade_status)}</span>}
         </p>

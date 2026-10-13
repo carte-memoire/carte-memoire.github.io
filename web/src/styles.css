@@ -973,3 +973,6 @@ fieldset.studio-decision { padding: 10px 12px; display: flex; flex-direction: co
 .studio-editor .field-label { margin: 0; }
 .studio-editor-add { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
 .studio-editor-add .field { flex: 1 1 260px; }
+
+/* Pays de la boîte (Modifier ce jeu) */
+.field-box-region select { max-width: 340px; }

@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { COLLECTION_FIELDS } from '../lib/queries';
 import {
   CATALOG_ZONES, FAMILIES, LANGUAGES, ORIGINS, countryName, editionLabel, familyOriginLabel, formatNumber, formatPercent, gamePath, languagesLong,
-  languagesShort, originFromParam, originParam, yearOf, zoneOrder,
+  languagesShort, boxRegionName, boxTag, originFromParam, originParam, speaksLanguage, yearOf, zoneOrder,
 } from '../lib/format';
 import { errorMessage } from '../lib/errors';
 import {
@@ -551,7 +551,7 @@ function ZoneSelect({ value, onChange }: { value: string; onChange: (value: stri
 // Versions dans l'ordre habituel du site : Japon, Amérique, Europe ; la standard d'abord,
 // et parmi les versions nationales, celle dans la langue choisie
 function sortReleases(releases: CatalogRelease[], language = ''): CatalogRelease[] {
-  const inLanguage = (r: CatalogRelease) => Number(Boolean(r.languages?.includes(language)));
+  const inLanguage = (r: CatalogRelease) => Number(Boolean(language) && (r.box_country ? speaksLanguage(r, language) : Boolean(r.languages?.includes(language))));
   return [...releases].sort((a, b) => zoneOrder(a.zone) - zoneOrder(b.zone)
     || Number(b.edition_type === 'standard') - Number(a.edition_type === 'standard') || inLanguage(b) - inLanguage(a) || a.id - b.id);
 }
@@ -581,7 +581,7 @@ function CatalogLine({ row, showZone, language, canTick, busyRelease, onAdd, onO
   // recherchées ou de langue inconnue) ; s'il n'y en a aucune, tout le groupe reste
   const kept = new Set<number>();
   for (const list of groups.values()) {
-    const mine = list.filter((r) => r.owned || r.wanted || !r.languages?.length || r.languages.includes(language));
+    const mine = list.filter((r) => r.owned || r.wanted || speaksLanguage(r, language));
     for (const r of (list.length === 1 || language === ALL_LANGUAGES || mine.length === 0 ? list : mine)) kept.add(r.id);
   }
   const hidden = releases.length - kept.size;
@@ -628,7 +628,8 @@ function ReleaseChip({ release, showZone, showLanguage, interactive, busy, onCli
   release: CatalogRelease; showZone: boolean; showLanguage: boolean; interactive: boolean; busy: boolean; onClick: () => void;
 }) {
   const edition = editionLabel(release);
-  const language = showLanguage ? languagesShort(release.languages) : '';
+  // Boîte d'un pays : son code (FR, DE…) ; sinon les langues du disque
+  const language = !showLanguage ? '' : release.box_country ? boxTag(release.box_country) : languagesShort(release.languages);
   const className = `release-chip${release.owned ? ' owned' : ''}${release.edition_type === 'reissue' ? ' reissue' : ''}`;
   const content = (
     <>
@@ -640,7 +641,7 @@ function ReleaseChip({ release, showZone, showLanguage, interactive, busy, onCli
     </>
   );
   // Au survol : la langue en toutes lettres et le code produit
-  const details = [languagesLong(release.languages), release.product_code].filter(Boolean).join(' · ');
+  const details = [release.box_country && `boîte : ${boxRegionName(release.box_country)}`, languagesLong(release.languages), release.product_code].filter(Boolean).join(' · ');
   if (!interactive) return <span className={className} title={details || undefined}>{content}</span>;
   const description = [edition, languagesLong(release.languages)].filter(Boolean).join(', ');
   return (

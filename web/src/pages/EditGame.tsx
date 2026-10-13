@@ -2,7 +2,9 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { GAME_FIELDS } from '../lib/queries';
-import { countryName, EDITION_TYPES, familyLabel, gamePath, LANGUAGES, slugify, ZONES, zoneLabel, zoneOrder } from '../lib/format';
+import {
+  countryName, EDITION_TYPES, familyLabel, gamePath, LANGUAGES, slugify, ZONES, zoneLabel, zoneOrder, BOX_REGIONS, boxRegionName, editionLabel, languagesLong,
+} from '../lib/format';
 import { errorMessage } from '../lib/errors';
 import { ACCEPT_ATTRIBUTE, imageFromClipboard, uploadReleaseImage } from '../lib/images';
 import type { DatePrecision, EditionType, Game, GenreInfo, ImageType, Release, SearchResult, SpecField, Zone } from '../lib/types';
@@ -85,7 +87,7 @@ export function EditGame() {
       <OriginEditor key={game.game_developer.map((d) => d.company.id).join()} gameId={game.id} onSaved={load} />
       <h2>Versions</h2>
       {releases.map((r) => (
-        <ReleaseEditor key={r.id} release={r} onSaved={load} canDelete={releases.length > 1} possibleDuplicate={isEmptyTwin(r, releases)} />
+        <ReleaseEditor key={r.id} release={r} siblings={releases} onSaved={load} canDelete={releases.length > 1} possibleDuplicate={isEmptyTwin(r, releases)} />
       ))}
       <section className="panel stack">
         <h2>Historique</h2>
@@ -506,8 +508,12 @@ function isEmptyTwin(r: Release, all: Release[]): Release | null {
     && (o.edition_name ?? '') === (r.edition_name ?? '')) ?? null;
 }
 
-function ReleaseEditor({ release, onSaved, canDelete, possibleDuplicate }: { release: Release; onSaved: () => void; canDelete: boolean; possibleDuplicate: Release | null }) {
+function ReleaseEditor({ release, siblings, onSaved, canDelete, possibleDuplicate }: {
+  release: Release; siblings: Release[]; onSaved: () => void; canDelete: boolean; possibleDuplicate: Release | null;
+}) {
   const { session } = useAuth();
+  const regions = useRegions();
+  const [boxRegion, setBoxRegion] = useState(release.box_region?.code ?? '');
   const confirm = useConfirm();
   const [localTitle, setLocalTitle] = useState(release.local_title);
   const [zone, setZone] = useState<Zone | ''>(release.zone ?? '');
@@ -538,6 +544,7 @@ function ReleaseEditor({ release, onSaved, canDelete, possibleDuplicate }: { rel
       media_count: Number.isInteger(count) && count > 0 ? count : null,
       languages,
       specs,
+      box_region_id: regions.find((r) => r.code === boxRegion)?.id ?? null,
     }).eq('id', release.id);
     if (error) return setError(errorMessage(error));
     setError('');
@@ -697,7 +704,7 @@ function ReleaseEditor({ release, onSaved, canDelete, possibleDuplicate }: { rel
           <SpecsEditor fields={release.platform.spec_fields} value={specs} onChange={setSpecs} />
         )}
         <fieldset className="checks">
-          <legend className="field-label">Langues</legend>
+          <legend className="field-label">Langues du disque</legend>
           {LANGUAGES.map((l) => (
             <label key={l.value}>
               <input type="checkbox" checked={languages.includes(l.value)}
@@ -706,15 +713,120 @@ function ReleaseEditor({ release, onSaved, canDelete, possibleDuplicate }: { rel
             </label>
           ))}
         </fieldset>
+        <label className="field field-box-region">
+          <span className="field-label">Boîte vendue en</span>
+          <select value={boxRegion} onChange={(e) => setBoxRegion(e.target.value)}>
+            <option value="">Non précisé</option>
+            {BOX_REGIONS.map((code) => <option key={code} value={code}>{boxRegionName(code)}</option>)}
+          </select>
+          <span className="hint">Seulement quand le même disque a eu des boîtes différentes selon le pays (Crash Bash Platinum : boîte française, allemande…).</span>
+        </label>
         {message && <p className="success">{message}</p>}
         {error && <p className="error" role="alert">{error}</p>}
         <div className="actions">
           <button type="submit" className="button button-primary"><PsSymbol shape="cross" /> Enregistrer cette version</button>
+          <DeclineRelease release={release} siblings={siblings} onDone={onSaved} />
           {canDelete && <MoveRelease release={release} onMoved={onSaved} />}
           {canDelete && <button type="button" className="button button-small button-danger" onClick={removeRelease}>Supprimer cette version</button>}
         </div>
       </form>
     </div>
+  );
+}
+
+// « Décliner par langue ou par pays » : crée en un clic les variantes d'une version
+// (Platinum générique → Platinum française, allemande…). Rien n'est créé sans cocher :
+// aucune source ne garantit qu'un jeu a eu sa Platinum dans chaque pays.
+// - Par langue : quand le disque change avec la langue (FF7), une variante par
+//   version standard de la zone, avec son code produit et ses langues.
+// - Par pays : même disque, boîtes imprimées pour chaque pays (Crash Bash).
+function DeclineRelease({ release, siblings, onDone }: { release: Release; siblings: Release[]; onDone: () => void }) {
+  const regions = useRegions();
+  const [open, setOpen] = useState(false);
+  const [byLanguage, setByLanguage] = useState<number[]>([]);
+  const [byCountry, setByCountry] = useState<string[]>([]);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const same = (r: Release) => r.id !== release.id && r.zone === release.zone && r.edition_type === release.edition_type
+    && (r.edition_name ?? '') === (release.edition_name ?? '');
+  // Versions standard de la zone, une par langue de disque (code produit connu)
+  const standards = siblings.filter((r) => r.edition_type === 'standard' && r.zone === release.zone && r.product_code && r.languages.length > 0);
+  const languageChoices = standards.length > 1
+    ? standards.filter((s) => !siblings.some((r) => same(r) && r.product_code === s.product_code && !r.box_region))
+    : [];
+  const countryChoices = BOX_REGIONS.filter((code) => !siblings.some((r) => same(r) && r.box_region?.code === code));
+  const base = standards.length === 1 ? standards[0] : null;
+
+  async function create() {
+    setBusy(true);
+    setError('');
+    const common = {
+      game_id: release.game_id, platform_id: release.platform.id, zone: release.zone,
+      edition_type: release.edition_type, edition_name: release.edition_name,
+    };
+    const rows = [
+      ...standards.filter((s) => byLanguage.includes(s.id)).map((s) => ({
+        ...common, local_title: s.local_title, product_code: s.product_code, languages: s.languages, media_count: s.media_count,
+        reissue_of: release.edition_type === 'standard' ? null : s.id,
+      })),
+      ...byCountry.map((code) => ({
+        ...common, local_title: release.local_title,
+        product_code: release.product_code ?? base?.product_code ?? null,
+        languages: release.languages.length ? release.languages : base?.languages ?? [],
+        media_count: release.media_count ?? base?.media_count ?? null,
+        reissue_of: release.reissue_of ?? (release.edition_type === 'standard' ? null : base?.id ?? null),
+        box_region_id: regions.find((r) => r.code === code)?.id ?? null,
+      })),
+    ];
+    const { error } = await supabase.from('release').insert(rows);
+    setBusy(false);
+    if (error) return setError(errorMessage(error));
+    setOpen(false);
+    setByLanguage([]);
+    setByCountry([]);
+    onDone();
+  }
+
+  if (languageChoices.length === 0 && countryChoices.length === 0) return null;
+  return (
+    <>
+      <button type="button" className="button button-small" onClick={() => setOpen(true)}>Décliner par langue ou par pays</button>
+      <Dialog open={open} onClose={() => setOpen(false)} title={`Décliner « ${release.local_title} » (${editionLabel(release)})`}>
+        <p className="small">
+          Coche seulement les variantes qui existent vraiment (boîte en main, photo, fiche fiable) : rien n'est créé d'office.
+          Ensuite, si cette version générique ne sert plus, supprime-la.
+        </p>
+        {languageChoices.length > 0 && (
+          <fieldset className="checks">
+            <legend className="field-label">Par langue (le disque change avec la langue)</legend>
+            {languageChoices.map((s) => (
+              <label key={s.id}>
+                <input type="checkbox" checked={byLanguage.includes(s.id)}
+                  onChange={(e) => setByLanguage(e.target.checked ? [...byLanguage, s.id] : byLanguage.filter((x) => x !== s.id))} />
+                {languagesLong(s.languages)} <span className="code muted">{s.product_code}</span>
+              </label>
+            ))}
+          </fieldset>
+        )}
+        <fieldset className="checks">
+          <legend className="field-label">Par pays (même disque, boîte imprimée pour ce pays)</legend>
+          {countryChoices.map((code) => (
+            <label key={code}>
+              <input type="checkbox" checked={byCountry.includes(code)}
+                onChange={(e) => setByCountry(e.target.checked ? [...byCountry, code] : byCountry.filter((x) => x !== code))} />
+              {boxRegionName(code)}
+            </label>
+          ))}
+        </fieldset>
+        {error && <p className="error" role="alert">{error}</p>}
+        <div className="actions">
+          <button type="button" className="button button-primary" onClick={create} disabled={busy || byLanguage.length + byCountry.length === 0}>
+            <PsSymbol shape="cross" /> Créer {byLanguage.length + byCountry.length || ''} variante{byLanguage.length + byCountry.length > 1 ? 's' : ''}
+          </button>
+        </div>
+      </Dialog>
+    </>
   );
 }
 

@@ -93,6 +93,7 @@ interface ReleaseWithoutCover extends CoverSource {
   edition_name: string | null;
   reissue_of: number | null;
   languages: string[];
+  box_region?: { code: string; name: string } | null;
 }
 
 const front = (r: { image: ReleaseImage[] }) => r.image.find((i) => i.type === 'front');
@@ -122,7 +123,8 @@ function standInParts(release: ReleaseWithoutCover): string[] {
   const parts: string[] = [];
   if (release.edition_type !== 'standard') parts.push(release.edition_name ?? (release.edition_type === 'reissue' ? 'Réédition' : 'Autre édition'));
   const languages = release.languages ?? [];
-  if (languages.length === 1) parts.push(LANGUAGES.find((l) => l.value === languages[0])?.label ?? languages[0].toUpperCase());
+  if (release.box_region) parts.push(release.box_region.code === 'europe' ? 'Europe' : release.box_region.name);
+  else if (languages.length === 1) parts.push(LANGUAGES.find((l) => l.value === languages[0])?.label ?? languages[0].toUpperCase());
   else if (languages.length >= 2 && languages.length <= 3) parts.push(languages.map((l) => l.toUpperCase()).join(' · '));
   else if (languages.length > 3) parts.push('Multilingue');
   return parts;

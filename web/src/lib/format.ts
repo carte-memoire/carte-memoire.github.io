@@ -89,6 +89,24 @@ export const LANGUAGES: { value: string; label: string }[] = [
   { value: 'ru', label: 'Russe' },
 ];
 
+// Pays de la boîte : quand un même disque a eu des boîtes imprimées pour chaque pays
+// (Crash Bash Platinum « boîte française », « boîte allemande »…). « europe » : boîte multi-pays.
+export const BOX_REGIONS = ['europe', 'FR', 'BE', 'CH', 'LU', 'DE', 'AT', 'GB', 'IE', 'IT', 'ES', 'PT', 'NL', 'SE', 'NO', 'DK', 'FI', 'PL', 'GR', 'AU', 'NZ', 'US', 'CA', 'JP'];
+export const boxRegionName = (code: string) => (code === 'europe' ? 'Europe (multi-pays)' : countryName(code));
+export const boxTag = (code: string) => (code === 'europe' ? 'EU' : code);
+const COUNTRY_LANGUAGES: Record<string, string[]> = {
+  FR: ['fr'], BE: ['fr', 'nl'], CH: ['fr', 'de', 'it'], LU: ['fr', 'de'], DE: ['de'], AT: ['de'], GB: ['en'], IE: ['en'],
+  AU: ['en'], NZ: ['en'], US: ['en'], CA: ['en', 'fr'], IT: ['it'], ES: ['es'], PT: ['pt'], NL: ['nl'], SE: ['sv'],
+  NO: ['no'], DK: ['da'], FI: ['fi'], PL: ['pl'], JP: ['ja'],
+};
+
+// La version parle-t-elle la langue choisie ? Boîte d'un pays : la langue de ce pays (une
+// boîte multi-pays convient à tous) ; sinon les langues du disque (inconnues : on garde)
+export function speaksLanguage(r: { languages?: string[] | null; box_country?: string | null }, language: string): boolean {
+  if (r.box_country) return r.box_country === 'europe' || (COUNTRY_LANGUAGES[r.box_country] ?? []).includes(language);
+  return !r.languages?.length || r.languages.includes(language);
+}
+
 // Langues d'une version en abrégé : « FR », « EN · FR · DE », « Multi » au-delà de trois
 export function languagesShort(languages: string[] | null | undefined): string {
   if (!languages?.length) return '';

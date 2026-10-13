@@ -61,6 +61,8 @@ export interface Release {
   media_count: number | null;
   languages: string[];
   reissue_of: number | null;
+  // Pays pour lequel la boîte a été imprimée (même disque, boîtes différentes)
+  box_region?: { code: string; name: string } | null;
   platform: { id: number; short_name: string; spec_fields?: SpecField[] };
   specs?: Record<string, unknown>;
   release_region: { release_date: string | null; date_precision: DatePrecision | null; region: { id?: number; code: string; name: string } }[];
@@ -122,6 +124,7 @@ export interface CollectionItem {
     product_code: string | null;
     reissue_of: number | null;
     languages: string[];
+    box_region?: { code: string; name: string } | null;
     platform: { short_name: string };
     image: ReleaseImage[];
     game: { id: number; title: string; first_release_date: string | null };
@@ -152,6 +155,8 @@ export interface ReleaseProposal {
   // Studio choisi dans la liste (sinon, le nom tapé : nouveau studio à vérifier)
   publisher_id?: number;
   developer_id?: number;
+  // Boîte imprimée pour un pays (code de région : FR, DE, europe…)
+  box_region_code?: string;
 }
 
 export interface Submission {
@@ -190,6 +195,8 @@ export interface CatalogRelease {
   product_code: string | null;
   // Absent tant que la migration 20261010190300 n'est pas envoyée
   languages?: string[];
+  // Pays de la boîte (migration 20261010190700)
+  box_country?: string | null;
   zone: Zone | null;
   edition_type: EditionType;
   edition_name: string | null;

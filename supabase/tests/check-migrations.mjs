@@ -771,6 +771,33 @@ await egal('une ligne par version, plus le total', lignes(en(null, `select count
   (await val(`select count(*)::int + 1 as n from public.release where game_id = $1`, [jeu]))[0].n);
 await ko('jamais l\'identité des membres', en(null, `select profile_id from public.game_popularity($1)`, [jeu]), 'does not exist');
 
+console.log('\nPays de la boîte (même disque, boîtes différentes selon le pays)');
+const regionFr = (await val(`select id from public.region where code = 'FR'`))[0].id;
+await ko('un membre ne peut pas changer le pays de la boîte', en(MEMBRE, `update public.release set box_region_id = $1 where id = $2 returning id`, [regionFr, ff7platinum]).then((r) => { if (!r.rows.length) throw new Error('row-level security : aucune ligne'); }), 'row-level security');
+await ok('un modérateur indique « boîte vendue en France »', en(ADMIN, `update public.release set box_region_id = $1 where id = $2`, [regionFr, ff7platinum]));
+await egal('le catalogue donne le pays de la boîte de chaque version', catalogue(null, { zone: 'PAL', search: 'final fantasy vii' })
+  .then((r) => ff7(r)?.releases.find((x) => x.id === ff7platinum)?.box_country), 'FR');
+await egal('…dans l\'historique du jeu', val(`select new_values ->> 'box_region_id' as v from public.catalog_change where table_name = 'release' and row_key = $1 and action = 'update' order by id desc limit 1`, [String(ff7platinum)]), [{ v: String(regionFr) }]);
+const pBoite = await soumettre({ game: { title: 'Jeu Boîte Allemande' }, release: { ...versionPAL, local_title: 'Jeu Boîte Allemande', box_region_code: 'DE' }, no_cover: true });
+const rBoite = (await ok('une proposition peut préciser le pays de la boîte', traiter(ADMIN, pBoite, true))).rows[0].r;
+await egal('…la version créée a sa boîte allemande', val(`select rg.code from public.release r join public.region rg on rg.id = r.box_region_id where r.id = $1`, [rBoite.release_id]), [{ code: 'DE' }]);
+
+console.log('\nFusion de deux versions (doublon)');
+const garder = (await en(ADMIN, `insert into public.release (game_id, platform_id, zone, local_title, edition_type, edition_name) values ($1, $2, 'PAL', 'FF7 Platinum A', 'reissue', 'Platinum') returning id`, [jeu, ps1])).rows[0].id;
+const doublonV = (await en(ADMIN, `insert into public.release (game_id, platform_id, zone, local_title, edition_type, edition_name) values ($1, $2, 'PAL', 'FF7 Platinum B', 'reissue', 'Platinum') returning id`, [jeu, ps1])).rows[0].id;
+await ok('un exemplaire du membre sur le doublon', en(MEMBRE, `insert into public.collection_item (release_id, status) values ($1, 'owned')`, [doublonV]));
+await ok('…un code-barres sur le doublon', db.query(`insert into public.release_barcode (barcode, release_id) values ('4006381333931', $1)`, [doublonV]));
+await ok('…et une date', db.query(`insert into public.release_region (release_id, region_id) values ($1, $2)`, [doublonV, regionFr]));
+await ko('fusion interne : fermée à l\'API', en(ADMIN, `select private.merge_releases($1, $2)`, [garder, doublonV]), 'permission denied');
+const autreVersion = (await val(`select id from public.release where game_id <> $1 order by id limit 1`, [jeu]))[0].id;
+await ko('fusion de versions de deux jeux différents : refusée', db.query(`select private.merge_releases($1, $2)`, [garder, autreVersion]), 'même jeu');
+await ok('fusion du doublon dans la version gardée', db.query(`select private.merge_releases($1, $2)`, [garder, doublonV]));
+await egal('…le doublon a disparu', val(`select count(*)::int as n from public.release where id = $1`, [doublonV]), [{ n: 0 }]);
+await egal('…l\'exemplaire du membre suit', val(`select count(*)::int as n from public.collection_item where release_id = $1`, [garder]), [{ n: 1 }]);
+await egal('…le code-barres et la date aussi', val(`select (select count(*)::int from public.release_barcode where release_id = $1) as codes, (select count(*)::int from public.release_region where release_id = $1) as dates`, [garder]), [{ codes: 1, dates: 1 }]);
+await ok('nettoyage (exemplaire)', db.query(`delete from public.collection_item where release_id = $1`, [garder]));
+await ok('nettoyage (version)', db.query(`delete from public.release where id = $1`, [garder]));
+
 console.log('\nCohérence du catalogue (imports compris)');
 await egal('chaque jeu importé a au moins une sortie', val(`select count(*)::int as n from public.game g where g.wikidata_id is not null and not exists (select 1 from public.release r where r.game_id = g.id)`), [{ n: 0 }]);
 await egal('chaque date de sortie est cohérente avec sa précision', val(`select count(*)::int as n from public.release_region where (release_date is null) <> (date_precision is null)`), [{ n: 0 }]);
