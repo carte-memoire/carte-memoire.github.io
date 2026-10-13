@@ -66,3 +66,21 @@ const COLLECTION_VIEW_KEY = 'carte-memoire:vue-collection';
 export type CollectionView = 'list' | 'grid';
 export const rememberedCollectionView = (): CollectionView => (read(COLLECTION_VIEW_KEY, 'list') === 'grid' ? 'grid' : 'list');
 export const rememberCollectionView = (value: CollectionView) => write(COLLECTION_VIEW_KEY, value);
+
+// Déconnexion après inactivité, réglée pour CET appareil (un PC partagé n'a pas besoin
+// du même délai qu'un téléphone personnel). Modérateurs : une heure au plus.
+export const IDLE_CHOICES = [15, 30, 60, 240, 1440, 10080];
+export const DEFAULT_IDLE_MINUTES = 60;
+export const MODERATOR_MAX_IDLE_MINUTES = 60;
+const IDLE_KEY = 'carte-memoire:inactivite';
+const ACTIVITY_KEY = 'carte-memoire:derniere-activite';
+
+export function idleMinutes(moderator: boolean): number {
+  const chosen = Number(read(IDLE_KEY, ''));
+  const minutes = IDLE_CHOICES.includes(chosen) ? chosen : DEFAULT_IDLE_MINUTES;
+  return moderator ? Math.min(minutes, MODERATOR_MAX_IDLE_MINUTES) : minutes;
+}
+export const rememberIdleMinutes = (minutes: number) => write(IDLE_KEY, String(minutes));
+
+export const lastActivity = () => Number(read(ACTIVITY_KEY, '0')) || 0;
+export const touchActivity = (at: number) => write(ACTIVITY_KEY, String(at));

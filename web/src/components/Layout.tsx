@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useConfirm } from './Confirm';
 import { NavIcon, type NavIconName } from './NavIcon';
 import { ScannerProvider, useScanner } from './Scanner';
+import { IdleLogout } from '../auth/IdleLogout';
 
 // Chaque rubrique prend la couleur d'un bouton de la manette quand on s'y trouve
 const LINKS: { to: string; label: string; short?: string; icon: NavIconName; accent: string }[] = [
@@ -116,6 +117,8 @@ function Frame() {
           <Outlet />
         </Suspense>
       </main>
+
+      {session && <IdleLogout />}
 
       <footer className="footer">
         <p>

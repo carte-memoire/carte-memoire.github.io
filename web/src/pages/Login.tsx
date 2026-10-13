@@ -48,6 +48,9 @@ export function Login() {
     <section className="panel narrow">
       <h1>Connexion</h1>
       {params.get('confirme') && <p className="success">Adresse e-mail confirmée : tu peux te connecter.</p>}
+      {params.get('raison') === 'inactivite' && (
+        <p className="notice">Tu as été déconnecté après une période sans activité, pour protéger ton compte. Reconnecte-toi pour reprendre où tu en étais.</p>
+      )}
 
       {passkeysSupported && (
         <>

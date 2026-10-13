@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { useAuth } from '../auth/AuthContext';
+import { DEFAULT_IDLE_MINUTES, IDLE_CHOICES, MODERATOR_MAX_IDLE_MINUTES, idleMinutes, rememberIdleMinutes } from '../lib/preferences';
 import { PasswordRules, passwordIsValid } from '../components/PasswordRules';
 import { useConfirm } from '../components/Confirm';
 import { CodeInput } from '../components/CodeInput';
@@ -295,6 +296,27 @@ function PasswordSection() {
   );
 }
 
+// Délai de déconnexion automatique sur cet appareil
+function IdleSetting() {
+  const { isModerator } = useAuth();
+  const [minutes, setMinutes] = useState(() => idleMinutes(isModerator));
+  const label = (m: number) => (m < 60 ? `${m} minutes` : m < 1440 ? `${m / 60} heure${m > 60 ? 's' : ''}` : `${m / 1440} jour${m > 1440 ? 's' : ''}`);
+  return (
+    <label className="field">
+      <span className="field-label">Déconnexion automatique sur cet appareil, après</span>
+      <select value={minutes} onChange={(e) => { const m = Number(e.target.value); rememberIdleMinutes(m); setMinutes(m); }}>
+        {IDLE_CHOICES.filter((m) => !isModerator || m <= MODERATOR_MAX_IDLE_MINUTES).map((m) => (
+          <option key={m} value={m}>{label(m)} sans activité{m === DEFAULT_IDLE_MINUTES ? ' (conseillé)' : ''}</option>
+        ))}
+      </select>
+      <span className="hint">
+        Court sur un ordinateur partagé, plus long sur ton téléphone personnel.
+        {isModerator && ' Modérateurs : une heure au plus, car votre compte peut modifier le catalogue.'}
+      </span>
+    </label>
+  );
+}
+
 function SessionsSection() {
   const { signOut } = useAuth();
   const confirm = useConfirm();
@@ -308,8 +330,9 @@ function SessionsSection() {
     })) await signOut(true);
   }
   return (
-    <div className="panel">
+    <div className="panel stack">
       <h2>Sessions</h2>
+      <IdleSetting />
       <p className="muted">Un doute sur un appareil (ordinateur partagé, téléphone perdu) ? Déconnecte-les tous d'un coup.</p>
       <button type="button" className="button button-danger" onClick={signOutEverywhere}>Se déconnecter de tous les appareils</button>
     </div>
