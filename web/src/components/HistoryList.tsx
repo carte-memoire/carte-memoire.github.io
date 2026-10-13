@@ -6,6 +6,7 @@ import { useRegions } from '../lib/useRegions';
 import { errorMessage } from '../lib/errors';
 import type { CatalogChange, DatePrecision } from '../lib/types';
 import { useConfirm } from './Confirm';
+import { formatBarcode } from '../lib/barcode';
 
 // Noms lisibles des champs modifiés
 const FIELDS: Record<string, string> = {
@@ -15,7 +16,9 @@ const FIELDS: Record<string, string> = {
   edition_name: "Nom de l'édition", media_count: 'Disques', languages: 'Langues', specs: 'Caractéristiques',
   game_id: 'Jeu (fusion ou déplacement)', reissue_of: "Réédition de", barcode: 'Code-barres',
 };
-const TABLES: Record<CatalogChange['table_name'], string> = { game: 'Jeu', release: 'Version', game_genre: 'Genre', image: 'Image', release_region: 'Date de sortie' };
+const TABLES: Record<CatalogChange['table_name'], string> = {
+  game: 'Jeu', release: 'Version', game_genre: 'Genre', image: 'Image', release_region: 'Date de sortie', release_barcode: 'Code-barres',
+};
 const ACTIONS: Record<CatalogChange['action'], string> = { insert: 'ajout', update: 'modification', delete: 'suppression' };
 
 const show = (v: unknown): string => {
@@ -79,12 +82,13 @@ export function HistoryList({ gameId, onUndone, limit = 50, refresh }: { gameId?
       if (c.action === 'update') return [`${region} : ${when(c.old_values)} → ${when(c.new_values)}`];
       return [`${c.action === 'insert' ? 'Ajoutée' : 'Retirée'} : ${region}, ${when(v)}`];
     }
+    if (c.table_name === 'release_barcode') return [`${c.action === 'insert' ? 'Associé' : 'Retiré'} : ${formatBarcode(String(v.barcode ?? ''))} (version n° ${show(v.release_id)})`];
     if (c.action !== 'update') return [`« ${show(v.title ?? v.local_title)} »${v.zone ? ` (${show(v.zone)})` : ''}`];
     return Object.keys(c.new_values ?? {}).map((k) => `${FIELDS[k] ?? k} : ${show(c.old_values?.[k])} → ${show(c.new_values?.[k])}`);
   }
 
   const undoable = (c: CatalogChange) => !c.undone_at
-    && ((c.action === 'update' && (c.table_name === 'game' || c.table_name === 'release')) || c.table_name === 'game_genre');
+    && ((c.action === 'update' && (c.table_name === 'game' || c.table_name === 'release')) || c.table_name === 'game_genre' || c.table_name === 'release_barcode');
 
   if (changes === null) return <p className="loading">Lecture de l'historique…</p>;
   return (

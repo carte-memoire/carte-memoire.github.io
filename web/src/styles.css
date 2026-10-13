@@ -877,3 +877,61 @@ kbd {
 .release-date-row select, .release-date-row input { width: auto; }
 .release-date-row input[type="number"] { width: 6.5em; }
 .release-date-region { min-width: 9em; font-weight: 600; }
+
+/* ---------- Recherche : bouton « Scanner » et studios ---------- */
+.search-row { display: flex; gap: 8px; align-items: stretch; }
+.search-row input { flex: 1; min-width: 0; }
+.scan-button { flex: none; min-height: 48px; gap: 8px; }
+@media (max-width: 400px) {
+  .scan-button { padding-inline: 10px; gap: 6px; }
+}
+.studio-results { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.studio-result {
+  width: 100%; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; text-align: left; cursor: pointer;
+  font: inherit; color: var(--text); background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px;
+}
+.studio-result:hover { border-color: var(--gold); }
+.badge-studio { color: #f1e2ae; border-color: var(--gold); }
+
+/* ---------- Scanner : image de l'appareil photo et cadre de visée ---------- */
+.scan-camera { display: flex; flex-direction: column; gap: 8px; }
+.scan-view {
+  position: relative; overflow: hidden; border-radius: var(--radius); background: #000;
+  aspect-ratio: 4 / 3; max-height: 60vh; border: 2px solid var(--bevel-light);
+}
+.scan-view video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.scan-frame {
+  position: absolute; left: 10%; right: 10%; top: 32%; bottom: 32%;
+  border: 3px solid var(--triangle); border-radius: 8px; box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.35);
+}
+.scan-wait { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); }
+.scan-view.is-flash .scan-frame { border-color: #fff; background: rgba(47, 214, 166, 0.25); }
+.manual-code-row { display: flex; gap: 8px; }
+.manual-code-row input { flex: 1; min-width: 0; font-family: ui-monospace, monospace; letter-spacing: 0.08em; }
+.scan-sent .list-row { font-size: 0.85rem; }
+.phone-link {
+  font: inherit; font-size: 0.8rem; cursor: pointer; padding: 4px 10px; border-radius: 999px; white-space: nowrap;
+  color: #b5f3e1; background: rgba(47, 214, 166, 0.12); border: 1px solid var(--triangle);
+}
+
+/* ---------- Fiche : version scannée, code à associer ---------- */
+.scan-banner p { margin: 0 0 8px; }
+.scan-found { border-color: var(--triangle) var(--bevel-dark) var(--bevel-dark) var(--triangle); }
+.release-card.is-focused { outline: 3px solid var(--triangle); outline-offset: 2px; }
+.barcode-value { display: inline-flex; gap: 8px; align-items: baseline; margin-right: 12px; }
+
+/* ---------- Catalogue filtré par studio ---------- */
+.studio-banner { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; }
+.studio-banner p { margin: 0; }
+.studio-banner-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.studio-name { font-size: 1.1rem; }
+.studio-progress { display: flex; flex-direction: column; gap: 6px; max-width: 420px; }
+
+/* ---------- Modération : studios en double ---------- */
+.studio-pair { display: flex; flex-direction: column; gap: 10px; }
+.studio-pair-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+.studio-card { flex-direction: column; justify-content: space-between; }
+.studio-pair > .link-button { align-self: flex-start; }
+.rename-studio summary { cursor: pointer; font-weight: 600; }
+.rename-studio[open] { display: flex; flex-direction: column; gap: 10px; }
+.center > img { margin-inline: auto; }

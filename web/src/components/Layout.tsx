@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext';
 import { supabase } from '../lib/supabase';
 import { useConfirm } from './Confirm';
 import { NavIcon, type NavIconName } from './NavIcon';
+import { ScannerProvider, useScanner } from './Scanner';
 
 // Chaque rubrique prend la couleur d'un bouton de la manette quand on s'y trouve
 const LINKS: { to: string; label: string; short?: string; icon: NavIconName; accent: string }[] = [
@@ -25,6 +26,25 @@ function NavLabel({ long, short }: { long: string; short?: string }) {
 }
 
 export function Layout() {
+  return (
+    <ScannerProvider>
+      <Frame />
+    </ScannerProvider>
+  );
+}
+
+// Téléphone relié au scanner (depuis l'ordinateur) : on le rappelle, et on peut délier
+function PhoneLinkBadge() {
+  const { linked, unlink } = useScanner();
+  if (!linked) return null;
+  return (
+    <button type="button" className="phone-link" onClick={unlink} title="Le téléphone envoie ses scans à cet ordinateur. Cliquer pour délier.">
+      <span aria-hidden="true">📱</span> Relié <span className="sr-only">: délier le téléphone</span>
+    </button>
+  );
+}
+
+function Frame() {
   const { session, profile, signOut, isModerator } = useAuth();
   const confirm = useConfirm();
 
@@ -70,6 +90,7 @@ export function Layout() {
           )}
         </nav>
         <div className="account">
+          <PhoneLinkBadge />
           {session ? (
             <details className="account-menu">
               <summary>{profile?.username ?? 'Mon compte'}</summary>

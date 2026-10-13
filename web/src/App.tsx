@@ -25,6 +25,7 @@ const MfaChallenge = page(() => import('./pages/MfaChallenge'), 'MfaChallenge');
 const LegalNotice = page(() => import('./pages/Legal'), 'LegalNotice');
 const Privacy = page(() => import('./pages/Legal'), 'Privacy');
 const Terms = page(() => import('./pages/Legal'), 'Terms');
+const ScannerPage = page(() => import('./pages/Scanner'), 'ScannerPage');
 
 export function App() {
   return (
@@ -44,6 +45,7 @@ export function App() {
         <Route path="proposer" element={<RequireAuth><ProposeGame /></RequireAuth>} />
         <Route path="mes-propositions" element={<RequireAuth><MySubmissions /></RequireAuth>} />
         <Route path="moderation" element={<RequireAuth moderator><Moderation /></RequireAuth>} />
+        <Route path="scanner" element={<ScannerPage />} />
         <Route path="mentions-legales" element={<LegalNotice />} />
         <Route path="conditions" element={<Terms />} />
         <Route path="confidentialite" element={<Privacy />} />

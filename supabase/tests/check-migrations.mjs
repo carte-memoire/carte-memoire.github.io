@@ -349,9 +349,9 @@ await ok('…et marque le jeu comme revu', en(ADMIN, `update public.game set gen
 const catalogue = (uid, a = {}) => lignes(en(uid, `
   select * from public.catalog_games(platform_code => $1, zone_code => $2, first_letter => $3, family_code => $4, release_year => $5,
                                      ownership => $6, search => $7, sort_by => $8, page_number => $9, page_size => $10,
-                                     origin_filter => $11)`,
+                                     origin_filter => $11, company_filter => $12)`,
   [a.console === undefined ? 'PS1' : a.console, a.zone ?? null, a.letter ?? null, a.family ?? null, a.year ?? null,
-   a.ownership ?? null, a.search ?? null, a.sort ?? 'title', a.page ?? 1, a.size ?? 50, a.origin ?? null]));
+   a.ownership ?? null, a.search ?? null, a.sort ?? 'title', a.page ?? 1, a.size ?? 50, a.origin ?? null, a.studio ?? null]));
 const ff7 = (rows) => rows.find((r) => r.id === jeu);
 const sansAccent = (t) => t.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 const totalPal = (await val(`select count(distinct game_id)::int as n from public.release where zone = 'PAL' and platform_id = $1`, [ps1]))[0].n;
@@ -647,6 +647,65 @@ await egal('Nightmare Creatures : Kalisto, studio français → origine France',
 await egal('plus aucun studio au nom de liste Wikipédia', val(`select count(*)::int as n from public.company where name ilike 'list of %'`), [{ n: 0 }]);
 await egal('plus de « rail transport in Malawi » (ni son faux pays)', val(`select count(*)::int as n from public.company where name = 'rail transport in Malawi' or country = 'MW'`), [{ n: 0 }]);
 await egal('le faux lien Wikidata de Kalisto (un groupe pirate) est retiré', val(`select count(*)::int as n from public.company where wikidata_id = 'Q6353182'`), [{ n: 0 }]);
+
+console.log('\nStudios : recherche, résumé, catalogue filtré, fusion');
+const studioA = (await en(ADMIN, `insert into public.company (name, country) values ('Squaresoft Test', 'JP') returning id`)).rows[0].id;
+const studioB = (await en(ADMIN, `insert into public.company (name) values ('Squaresfot Test') returning id`)).rows[0].id;
+await ok('Squaresoft Test développe le FF7 de test', en(ADMIN, `insert into public.game_developer (game_id, company_id) values ($1, $2)`, [jeu, studioA]));
+await ok('…et son doublon mal orthographié aussi', en(ADMIN, `insert into public.game_developer (game_id, company_id) values ($1, $2)`, [jeu, studioB]));
+await ok('…qui édite la version PAL française', en(ADMIN, `insert into public.release_company (release_id, company_id, role) values ($1, $2, 'publisher')`, [ff7fr, studioB]));
+await egal('recherche « squaresoft test » (visiteur) : le studio, 1 jeu développé', lignes(en(null, `select name, developed, published from public.search_companies('squaresoft test', 'PS1')`)),
+  [{ name: 'Squaresoft Test', developed: 1, published: 0 }]);
+await egal('recherche « squaresoft » : le nom exact en premier (le vrai Squaresoft, éditeur)', lignes(en(null, `select name from public.search_companies('squaresoft', 'PS1')`)).then((r) => r[0]?.name), 'Squaresoft');
+await egal('sans recherche : tous les studios ayant des jeux (outil de modération)', lignes(en(null, `select count(*)::int as n from public.search_companies(null, null, 2000)`)).then((r) => r[0].n > 100), true);
+await egal('résumé du studio sur PS1 : 1 jeu, première sortie en 1997', lignes(en(null, `select name, country, developed, published, first_year from public.company_summary($1, 'PS1')`, [studioA])),
+  [{ name: 'Squaresoft Test', country: 'JP', developed: 1, published: 0, first_year: 1997 }]);
+await egal('catalogue filtré par studio (développeur) : le FF7 de test', catalogue(null, { zone: 'PAL', studio: studioA }).then((r) => r.map((x) => x.id)), [jeu]);
+await egal('…par éditeur, dans sa zone (PAL) : le FF7 de test', catalogue(null, { zone: 'PAL', studio: studioB }).then((r) => r.map((x) => x.id)), [jeu]);
+await egal('…un studio sans jeu : catalogue vide', catalogue(null, { zone: 'PAL', studio: -1 }).then((r) => r.length), 0);
+await ko('un membre ne peut pas fusionner des studios', en(SIMPLE, `select public.merge_companies($1, $2)`, [studioA, studioB]), 'Seuls les modérateurs');
+await ko('un modérateur sans double authentification non plus', en(ADMIN, `select public.merge_companies($1, $2)`, [studioA, studioB], 'aal1'), 'Seuls les modérateurs');
+await ko('un visiteur ne peut même pas l\'appeler', en(null, `select public.merge_companies($1, $2)`, [studioA, studioB]), 'permission denied');
+await ok('le modérateur fusionne le doublon dans le bon studio', en(ADMIN, `select public.merge_companies($1, $2)`, [studioA, studioB]));
+await egal('…le doublon a disparu', val(`select count(*)::int as n from public.company where id = $1`, [studioB]), [{ n: 0 }]);
+await egal('…le jeu n\'a plus qu\'un seul lien vers le studio', val(`select count(*)::int as n from public.game_developer where game_id = $1 and company_id = $2`, [jeu, studioA]), [{ n: 1 }]);
+await egal('…la version éditée passe au bon studio', val(`select count(*)::int as n from public.release_company where release_id = $1 and company_id = $2 and role = 'publisher'`, [ff7fr, studioA]), [{ n: 1 }]);
+await egal('…une proposition qui écrit l\'ancien nom retrouve le bon studio', val(`select private.company_by_name('Squaresfot Test') = $1 as ok`, [studioA]), [{ ok: true }]);
+await ko('un membre ne peut pas écarter une paire de studios', en(SIMPLE, `insert into public.dismissed_company_duplicate (company_a, company_b) values (1, 2)`), 'row-level security');
+await ko('les anciens noms ne sont pas lisibles par l\'API', en(SIMPLE, `select * from public.company_alias`), 'permission denied');
+
+console.log('\nCodes-barres des versions (scan)');
+const ean13 = (base) => base + String((10 - [...base].reverse().reduce((s, d, i) => s + Number(d) * (i % 2 === 0 ? 3 : 1), 0) % 10) % 10);
+await egal('EAN-13 valide : gardé tel quel', val(`select private.normalize_barcode('4006381333931') as v`), [{ v: '4006381333931' }]);
+await egal('UPC-A (boîtes américaines) : complété en EAN-13', val(`select private.normalize_barcode('036000291452') as v`), [{ v: '0036000291452' }]);
+await egal('EAN-8 valide : gardé', val(`select private.normalize_barcode('96385074') as v`), [{ v: '96385074' }]);
+await egal('clé de contrôle fausse (code mal lu) : refusé', val(`select private.normalize_barcode('4006381333932') as v`), [{ v: null }]);
+await egal('espaces et tirets ignorés', val(`select private.normalize_barcode('4 006381-333931') as v`), [{ v: '4006381333931' }]);
+await egal('le calcul de la clé côté tests est le même', Promise.resolve(ean13('400638133393')), '4006381333931');
+await ko('un visiteur ne peut pas associer de code', en(null, `select public.add_release_barcode($1, $2)`, [ff7fr, '4006381333931']), 'permission denied');
+await ko('un visiteur ne peut pas appeler la normalisation (schéma privé)', en(null, `select private.normalize_barcode('4006381333931')`), 'permission denied');
+await ko('un membre non plus, directement', en(SIMPLE, `select private.normalize_barcode('4006381333931')`), 'permission denied');
+await egal('un membre associe le code de sa boîte à sa version', lignes(en(SIMPLE, `select public.add_release_barcode($1, $2) as code`, [ff7fr, '4 006381 333931'])), [{ code: '4006381333931' }]);
+await egal('…le même code sur la même version : sans effet, pas d\'erreur', lignes(en(SIMPLE, `select public.add_release_barcode($1, $2) as code`, [ff7fr, '4006381333931'])), [{ code: '4006381333931' }]);
+await ko('code à la clé fausse : refusé', en(SIMPLE, `select public.add_release_barcode($1, $2)`, [ff7fr, '4006381333932']), 'Code-barres invalide');
+await ko('version inexistante : refusé', en(SIMPLE, `select public.add_release_barcode($1, $2)`, [-1, ean13('500000000001')]), 'Version introuvable');
+await ko('un autre membre ne peut pas déplacer ce code vers une autre version', en(AUTRE, `select public.add_release_barcode($1, $2)`, [ff7platinum, '4006381333931'], 'aal1'), 'déjà associé');
+await ko('l\'écriture directe dans la table est fermée', en(SIMPLE, `insert into public.release_barcode (barcode, release_id) values ($1, $2)`, [ean13('500000000002'), ff7fr]), 'permission denied');
+await egal('un visiteur qui scanne retrouve la version (espaces compris)', lignes(en(null, `select release_id, game_title, zone, languages from public.releases_by_barcode('4 006381 333931')`)),
+  [{ release_id: ff7fr, game_title: 'Final Fantasy VII', zone: 'PAL', languages: ['fr'] }]);
+await egal('code inconnu : aucune version', lignes(en(null, `select * from public.releases_by_barcode($1)`, [ean13('500000000003')])), []);
+await ko('qui a ajouté le code reste privé', en(null, `select added_by from public.release_barcode`), 'permission denied');
+await egal('l\'ajout est dans l\'historique du jeu', val(`select action, changed_by from public.catalog_change where table_name = 'release_barcode' and game_id = $1`, [jeu]), [{ action: 'insert', changed_by: SIMPLE }]);
+await ok('un membre ne peut pas retirer un code (sans effet)', en(SIMPLE, `delete from public.release_barcode where release_id = $1`, [ff7fr]));
+await egal('…le code est toujours là', val(`select count(*)::int as n from public.release_barcode where release_id = $1`, [ff7fr]), [{ n: 1 }]);
+const ajoutCode = (await val(`select id from public.catalog_change where table_name = 'release_barcode' and game_id = $1`, [jeu]))[0].id;
+await ok('un modérateur annule l\'ajout (code faux)', en(ADMIN, `select public.undo_catalog_change($1)`, [ajoutCode]));
+await egal('…le code ne mène plus nulle part', lignes(en(null, `select * from public.releases_by_barcode('4006381333931')`)), []);
+await ok('le modérateur peut l\'associer à la bonne version', en(ADMIN, `select public.add_release_barcode($1, $2)`, [ff7platinum, '4006381333931']));
+let limite = (await val(`select count(*)::int as n from public.release_barcode where added_by = $1`, [SIMPLE]))[0].n;
+for (let i = 0; limite < 100; i++, limite++) await en(SIMPLE, `select public.add_release_barcode($1, $2)`, [ff7fr, ean13(String(600000000000 + i))]);
+await ko('101e code de la journée : refusé', en(SIMPLE, `select public.add_release_barcode($1, $2)`, [ff7fr, ean13('700000000000')]), 'Limite atteinte');
+await ok('nettoyage des codes de test', db.query(`delete from public.release_barcode where release_id = $1`, [ff7fr]));
 
 console.log('\nCohérence du catalogue (imports compris)');
 await egal('chaque jeu importé a au moins une sortie', val(`select count(*)::int as n from public.game g where g.wikidata_id is not null and not exists (select 1 from public.release r where r.game_id = g.id)`), [{ n: 0 }]);

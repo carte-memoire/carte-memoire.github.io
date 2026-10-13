@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState, type ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
-import { yearOf } from '../lib/format';
-import type { SearchResult } from '../lib/types';
+import { countryName, formatNumber, yearOf } from '../lib/format';
+import type { CompanyResult, SearchResult } from '../lib/types';
 import { Cover } from './Cover';
 
 interface Props {
@@ -12,31 +12,56 @@ interface Props {
   label?: string;
   // Code de la console (PS1, NES…) pour ne chercher que ses jeux ; null = toutes
   platform?: string | null;
+  // Bouton à côté du champ (« Scanner »)
+  action?: ReactNode;
+  // Proposer aussi les studios qui correspondent (page d'accueil)
+  onSelectStudio?: (studio: CompanyResult) => void;
 }
 
 // Champ de recherche de jeux : interroge la base pendant la frappe (après une courte pause)
-export function GameSearch({ onSelect, placeholder = 'Final Fantasy VII, Crash, Biohazard, SCES-00867…', autoFocus, initialQuery = '', label = 'Rechercher un jeu', platform = null }: Props) {
+export function GameSearch({ onSelect, placeholder = 'Final Fantasy VII, Crash, Biohazard, SCES-00867…', autoFocus, initialQuery = '', label = 'Rechercher un jeu', platform = null, action, onSelectStudio }: Props) {
   const [query, setQuery] = useState(initialQuery);
   const { results, loading, error } = useGameSearch(query, 20, platform);
+  const studios = useStudioSearch(onSelectStudio ? query : '', platform);
+  const inputId = useId();
 
   return (
     <div className="game-search">
-      <label className="field">
-        <span className="field-label">{label}</span>
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={placeholder}
-          autoFocus={autoFocus}
-          data-autofocus={autoFocus ? '' : undefined}
-          autoComplete="off"
-          maxLength={120}
-        />
-      </label>
+      <div className="field">
+        <label className="field-label" htmlFor={inputId}>{label}</label>
+        <span className="search-row">
+          <input
+            id={inputId}
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={placeholder}
+            autoFocus={autoFocus}
+            data-autofocus={autoFocus ? '' : undefined}
+            autoComplete="off"
+            maxLength={120}
+          />
+          {action}
+        </span>
+      </div>
       {error && <p className="error">{error}</p>}
-      {query.trim().length >= 2 && !loading && results.length === 0 && !error && (
+      {query.trim().length >= 2 && !loading && results.length === 0 && studios.length === 0 && !error && (
         <p className="muted">Aucun jeu trouvé.</p>
+      )}
+      {studios.length > 0 && onSelectStudio && (
+        <ul className="studio-results" aria-label="Studios">
+          {studios.map((s) => (
+            <li key={s.id}>
+              <button type="button" className="studio-result" onClick={() => onSelectStudio(s)}>
+                <span className="badge badge-studio">Studio</span>
+                <strong>{s.name}</strong>
+                <span className="muted small">
+                  {[s.country && countryName(s.country), studioCounts(s)].filter(Boolean).join(' · ')}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
       {results.length > 0 && (
         <ul className="result-list">
@@ -60,6 +85,33 @@ export function GameSearch({ onSelect, placeholder = 'Final Fantasy VII, Crash, 
       )}
     </div>
   );
+}
+
+// « 25 jeux développés, 40 édités »
+export function studioCounts(s: Pick<CompanyResult, 'developed' | 'published'>): string {
+  const parts = [];
+  if (s.developed) parts.push(`${formatNumber(s.developed)} jeu${s.developed > 1 ? 'x' : ''} développé${s.developed > 1 ? 's' : ''}`);
+  if (s.published) parts.push(`${formatNumber(s.published)} édité${s.published > 1 ? 's' : ''}`);
+  return parts.join(', ');
+}
+
+// Studios dont le nom contient la recherche (3 au plus) ; silencieux en cas d'erreur
+function useStudioSearch(query: string, platform: string | null) {
+  const [studios, setStudios] = useState<CompanyResult[]>([]);
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 3) return setStudios([]);
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const { data } = await supabase.rpc('search_companies', { search: q, platform_code: platform, max_results: 3 });
+      if (!cancelled) setStudios((data as CompanyResult[] | null) ?? []);
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query, platform]);
+  return studios;
 }
 
 export function useGameSearch(query: string, max = 20, platform: string | null = null) {

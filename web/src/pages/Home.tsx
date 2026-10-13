@@ -2,14 +2,25 @@ import { useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ControllerButtons } from '../components/ControllerButtons';
 import { GameSearch } from '../components/GameSearch';
+import { useScanner } from '../components/Scanner';
 import { PlatformSelect } from '../components/PlatformSelect';
 import { PsSymbol } from '../components/PsSymbol';
 import { formatNumber, gamePath } from '../lib/format';
 import { ALL_PLATFORMS, DEFAULT_PLATFORM, rememberPlatform, rememberedPlatform } from '../lib/preferences';
 import { useKnownPlatform, usePlatforms } from '../lib/usePlatforms';
 
+// Un code-barres
+function ScanIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="nav-icon" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden="true" focusable="false">
+      <path d="M3 7V4h3M18 4h3v3M21 17v3h-3M6 20H3v-3M7 8v8M10 8v8M13 8v8M16 8v8M18 8v8" />
+    </svg>
+  );
+}
+
 export function Home() {
   const navigate = useNavigate();
+  const scanner = useScanner();
   const platforms = usePlatforms();
   const [params, setParams] = useSearchParams();
   // Arrivée après « Supprimer mon compte » (rechargement complet, voir Account.tsx)
@@ -57,8 +68,14 @@ export function Home() {
           key={selected}
           platform={platformCode}
           onSelect={(g) => navigate(gamePath(g))}
+          onSelectStudio={(s) => navigate(`/catalogue?studio=${s.id}`)}
+          action={(
+            <button type="button" className="button scan-button" onClick={scanner.open} title="Scanner le code-barres de la boîte : la fiche de ta version s'ouvre directement">
+              <ScanIcon /> <span className="scan-button-label">Scanner</span>
+            </button>
+          )}
           autoFocus
-          label={`Rechercher un jeu${current ? ` ${current.name}` : ''} (titre, titre japonais ou européen, code produit…)`}
+          label={`Rechercher un jeu${current ? ` ${current.name}` : ''} ou un studio (titre, titre japonais ou européen, code produit…)`}
         />
       </div>
 

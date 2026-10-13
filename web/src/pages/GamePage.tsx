@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState, type FormEvent } from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { Dialog } from '../components/Dialog';
@@ -14,6 +14,7 @@ import { Cover } from '../components/Cover';
 import { PsSymbol } from '../components/PsSymbol';
 import { ReportDialog } from '../components/ReportDialog';
 import { standInFor } from '../lib/images';
+import { formatBarcode, normalizeBarcode } from '../lib/barcode';
 
 export function GamePage() {
   const { id } = useParams();
@@ -37,6 +38,14 @@ export function GamePage() {
   const [actionError, setActionError] = useState('');
   const userId = session?.user.id ?? null;
   const canTick = Boolean(session) && !needsMfa;
+  // Arrivée par un scan : ?version=… (la version trouvée) ou ?code=… (code inconnu à associer)
+  const [params, setParams] = useSearchParams();
+  const focusId = Number.parseInt(params.get('version') ?? '', 10) || null;
+  const scanned = normalizeBarcode(params.get('code') ?? '');
+  const [barcodes, setBarcodes] = useState<{ barcode: string; release_id: number }[]>([]);
+  const [barcodesVersion, setBarcodesVersion] = useState(0);
+  const [thanks, setThanks] = useState('');
+  const here = location.pathname + location.search;
 
   useEffect(() => {
     if (!Number.isInteger(gameId)) return setState('missing');
@@ -58,6 +67,23 @@ export function GamePage() {
     return () => { active = false; };
   }, [game, userId, mineVersion]);
 
+  // Codes-barres connus des versions (absents tant que la base n'est pas à jour : on s'en passe)
+  useEffect(() => {
+    const ids = game?.release.map((r) => r.id) ?? [];
+    if (ids.length === 0) return;
+    let active = true;
+    supabase.from('release_barcode').select('barcode, release_id').in('release_id', ids).order('barcode')
+      .then(({ data, error }) => { if (active && !error) setBarcodes((data as typeof barcodes | null) ?? []); });
+    return () => { active = false; };
+  }, [game, barcodesVersion]);
+
+  // La version scannée : on l'amène à l'écran
+  useEffect(() => {
+    if (state !== 'ok' || !focusId) return;
+    const timer = setTimeout(() => document.getElementById(`version-${focusId}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 150);
+    return () => clearTimeout(timer);
+  }, [state, focusId]);
+
   if (state === 'loading') return <p className="loading">Lecture de la carte mémoire…</p>;
   if (state === 'missing' || !game) return <section className="panel"><h1>Jeu introuvable</h1><Link to="/"><PsSymbol shape="circle" /> Retour à la recherche</Link></section>;
 
@@ -68,6 +94,8 @@ export function GamePage() {
     || Number(b.languages.includes(language)) - Number(a.languages.includes(language)) || a.id - b.id);
   const copies = (r: Release) => mine.filter((m) => m.release_id === r.id && m.status === 'owned').length;
   const wantedItem = (r: Release) => mine.find((m) => m.release_id === r.id && m.status === 'wanted');
+  const focused = releases.find((r) => r.id === focusId) ?? null;
+  const codesOf = (r: Release) => barcodes.filter((b) => b.release_id === r.id).map((b) => b.barcode);
   const heroImages = releases.find((r) => r.zone === 'PAL' && r.image.length)?.image ?? releases.find((r) => r.image.length)?.image ?? [];
   // Genres (avec leurs familles, cliquables vers le catalogue) et thèmes (sans famille)
   const genres = game.game_genre.map((g) => g.genre).filter((g) => g.families.length > 0);
@@ -76,9 +104,31 @@ export function GamePage() {
 
   // Ajout sur place (fenêtre de l'exemplaire), sans quitter la fiche
   function addToCollection(release: Release) {
-    if (!session) return navigate(`/connexion?next=${encodeURIComponent(location.pathname)}`);
-    if (needsMfa) return navigate(`/connexion/verification?next=${encodeURIComponent(location.pathname)}`);
+    if (!session) return navigate(`/connexion?next=${encodeURIComponent(here)}`);
+    if (needsMfa) return navigate(`/connexion/verification?next=${encodeURIComponent(here)}`);
     setAdding(release.id);
+  }
+
+  // « C'est ma version » : le code scanné est associé à cette version, pour tout le monde
+  async function associate(release: Release) {
+    if (!scanned) return;
+    if (!session) return navigate(`/connexion?next=${encodeURIComponent(here)}`);
+    if (needsMfa) return navigate(`/connexion/verification?next=${encodeURIComponent(here)}`);
+    setBusy(release.id);
+    setActionError('');
+    const { error } = await supabase.rpc('add_release_barcode', { target_release: release.id, code: scanned });
+    setBusy(null);
+    if (error) return setActionError(errorMessage(error));
+    setThanks(`Merci ! Le code ${formatBarcode(scanned)} mène maintenant directement à cette version, pour tous les collectionneurs.`);
+    setBarcodesVersion((v) => v + 1);
+    setParams({ version: String(release.id) }, { replace: true });
+  }
+
+  // Code-barres faux : un modérateur le retire (l'historique garde la trace)
+  async function removeBarcode(release: Release, barcode: string) {
+    const { error } = await supabase.from('release_barcode').delete().eq('release_id', release.id).eq('barcode', barcode);
+    if (error) return setActionError(errorMessage(error));
+    setBarcodesVersion((v) => v + 1);
   }
 
   async function toggleWanted(release: Release) {
@@ -101,7 +151,9 @@ export function GamePage() {
           <h1>{game.title}</h1>
           <dl className="facts">
             {game.first_release_date && (<><dt>Première sortie</dt><dd>{formatDate(game.first_release_date, game.first_release_precision)}</dd></>)}
-            {game.game_developer.length > 0 && (<><dt>Développement</dt><dd>{game.game_developer.map((d) => d.company.name).join(', ')}</dd></>)}
+            {game.game_developer.length > 0 && (
+              <><dt>Développement</dt><dd><StudioLinks companies={game.game_developer.map((d) => d.company)} /></dd></>
+            )}
             {origin && (
               <>
                 <dt>Origine</dt>
@@ -155,11 +207,33 @@ export function GamePage() {
         </div>
       </header>
 
+      {scanned && (
+        <p className="notice scan-banner" aria-live="polite">
+          <strong>Code-barres {formatBarcode(scanned)}</strong> : quelle version as-tu en main ? Touche « C'est ma version » sur la bonne
+          fiche ci-dessous{session ? '' : ' (après connexion)'}. Le prochain qui scannera ce code tombera directement dessus.
+        </p>
+      )}
+      {thanks && <p className="success" role="status">{thanks}</p>}
+      {focused && !scanned && (
+        <div className="panel scan-banner scan-found">
+          <p>
+            <strong>Ta version :</strong> {focused.local_title} · {zoneLabel(focused.zone)} · {editionLabel(focused)}
+            {focused.languages.length > 0 && ` · ${languagesLong(focused.languages)}`}
+          </p>
+          <div className="actions">
+            {copies(focused) > 0
+              ? <span className="badge badge-owned">✓ Déjà dans ta collection{copies(focused) > 1 ? ` (×${copies(focused)})` : ''}</span>
+              : <button type="button" className="button button-primary" onClick={() => addToCollection(focused)}><PsSymbol shape="cross" /> Ajouter à ma collection</button>}
+            <button type="button" className="link-button small" onClick={() => { setThanks(''); setParams({}, { replace: true }); }}>Voir toutes les versions</button>
+          </div>
+        </div>
+      )}
+
       <h2>Versions ({releases.length})</h2>
       {actionError && <p className="error">{actionError}</p>}
       <ul className="release-list">
         {releases.map((r) => (
-          <li key={r.id} className="release-card panel">
+          <li key={r.id} id={`version-${r.id}`} className={r.id === focusId ? 'release-card panel is-focused' : 'release-card panel'}>
             <Cover images={r.image} title={r.local_title} size="medium" standIn={standInFor(r, releases)} />
             <div className="release-body">
               <h3>{r.local_title}</h3>
@@ -182,7 +256,22 @@ export function GamePage() {
                   <><dt>Sortie</dt><dd>{r.release_region.map((rr) => `${rr.region.name}${rr.release_date ? ` : ${formatDate(rr.release_date, rr.date_precision)}` : ''}`).join(' · ')}</dd></>
                 )}
                 {r.release_company.length > 0 && (
-                  <><dt>Édition</dt><dd>{r.release_company.map((c) => c.company.name).join(', ')}</dd></>
+                  <><dt>Édition</dt><dd><StudioLinks companies={r.release_company.map((c) => c.company)} /></dd></>
+                )}
+                {codesOf(r).length > 0 && (
+                  <>
+                    <dt>Code-barres</dt>
+                    <dd>
+                      {codesOf(r).map((b) => (
+                        <span key={b} className="barcode-value">
+                          <span className="code">{formatBarcode(b)}</span>
+                          {isModerator && (
+                            <button type="button" className="link-button danger small" onClick={() => removeBarcode(r, b)} title="Retirer ce code-barres (faux)">retirer</button>
+                          )}
+                        </span>
+                      ))}
+                    </dd>
+                  </>
                 )}
                 {r.languages.length > 0 && (
                   <><dt>Langues</dt><dd>{languagesLong(r.languages)}</dd></>
@@ -193,7 +282,12 @@ export function GamePage() {
                 ))}
               </dl>
               <div className="actions">
-                <button type="button" className={copies(r) > 0 ? 'button button-small' : 'button button-small button-primary'} onClick={() => addToCollection(r)}>
+                {scanned && !codesOf(r).includes(scanned) && (
+                  <button type="button" className="button button-small button-primary" disabled={busy === r.id} onClick={() => associate(r)}>
+                    <PsSymbol shape="triangle" /> C'est ma version
+                  </button>
+                )}
+                <button type="button" className={copies(r) > 0 || scanned ? 'button button-small' : 'button button-small button-primary'} onClick={() => addToCollection(r)}>
                   <PsSymbol shape="cross" /> {copies(r) > 0 ? 'Ajouter un autre exemplaire' : 'Ajouter à ma collection'}
                 </button>
                 {canTick && copies(r) === 0 && (
@@ -224,6 +318,20 @@ export function GamePage() {
         </div>
       </section>
     </article>
+  );
+}
+
+// Studios cliquables : leurs jeux dans le catalogue
+function StudioLinks({ companies }: { companies: { id: number; name: string }[] }) {
+  return (
+    <>
+      {companies.map((c, i) => (
+        <Fragment key={c.id}>
+          {i > 0 && ', '}
+          <Link to={`/catalogue?studio=${c.id}`} title={`Tous les jeux de ${c.name}`}>{c.name}</Link>
+        </Fragment>
+      ))}
+    </>
   );
 }
 

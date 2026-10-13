@@ -3,7 +3,7 @@ import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { COLLECTION_FIELDS } from '../lib/queries';
 import {
-  CATALOG_ZONES, FAMILIES, LANGUAGES, ORIGINS, editionLabel, familyOriginLabel, formatNumber, formatPercent, gamePath, languagesLong,
+  CATALOG_ZONES, FAMILIES, LANGUAGES, ORIGINS, countryName, editionLabel, familyOriginLabel, formatNumber, formatPercent, gamePath, languagesLong,
   languagesShort, originFromParam, originParam, yearOf, zoneOrder,
 } from '../lib/format';
 import { errorMessage } from '../lib/errors';
@@ -11,7 +11,7 @@ import {
   ALL_LANGUAGES, ALL_PLATFORMS, ALL_ZONES, DEFAULT_LANGUAGE, DEFAULT_PLATFORM, pageSizeFrom, pageSizeParam, rememberLanguage, rememberPageSize,
   rememberPlatform, rememberZone, rememberedLanguage, rememberedPageSize, rememberedPlatform, rememberedZone,
 } from '../lib/preferences';
-import type { CatalogRelease, CatalogRow, CollectionItem, GenreFamily, Ownership, ProgressRow, Zone } from '../lib/types';
+import type { CatalogRelease, CatalogRow, CollectionItem, CompanySummary, GenreFamily, Ownership, ProgressRow, Zone } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
 import { AddToCollection } from '../components/AddToCollection';
 import { Cover } from '../components/Cover';
@@ -68,6 +68,8 @@ export function Catalog() {
   const ownershipParam = params.get('possession');
   const ownership = session && OWNERSHIP.some((o) => o.value === ownershipParam) ? (ownershipParam as Ownership) : null;
   const query = params.get('q') ?? '';
+  // Un studio (développeur ou éditeur), depuis la fiche d'un jeu ou la recherche
+  const studio = Math.max(0, Number.parseInt(params.get('studio') ?? '', 10) || 0) || null;
   const sort = SORTS.find((s) => s.value === params.get('tri'))?.value ?? 'title';
   // Langue des versions : les versions semblables dans d'autres langues sont repliées
   const languageParam = params.get('langue') ?? rememberedLanguage();
@@ -169,6 +171,7 @@ export function Catalog() {
       page_number: pageNumber,
       page_size: size,
       ...(origin ? { origin_filter: origin } : {}),
+      ...(studio ? { company_filter: studio } : {}),
     });
     (async () => {
       const first = await read(page, pageSize || MAX_PER_CALL);
@@ -188,7 +191,7 @@ export function Catalog() {
       setRows(data);
     })();
     return () => { active = false; };
-  }, [platformCode, zoneCode, letter, family, origin, year, ownership, query, sort, page, pageSize, version, userId]);
+  }, [platformCode, zoneCode, letter, family, origin, year, ownership, query, sort, page, pageSize, studio, version, userId]);
 
   // La progression de la personne connectée (zone choisie, et genre s'il est filtré)
   useEffect(() => {
@@ -254,7 +257,7 @@ export function Catalog() {
   const zoneInfo = CATALOG_ZONES.find((z) => z.value === zoneCode);
   const zoneProgress = progress.find((p) => p.scope === 'zone' && p.code === (zoneCode ?? 'all'));
   const familyProgress = family ? progress.find((p) => p.scope === 'family' && p.code === family) : null;
-  const filtered = Boolean(letter || family || origin || year || ownership || query);
+  const filtered = Boolean(letter || family || origin || year || ownership || query || studio);
   const activeFilters = [letter, family, origin, year, ownership, sort !== 'title' ? sort : null].filter(Boolean).length;
   // Avec le filtre d'origine : combien de jeux de la zone ont une origine connue
   const originRows = progress.filter((p) => p.scope === 'origin');
@@ -285,6 +288,11 @@ export function Catalog() {
           </div>
         )}
       </div>
+
+      {studio && (
+        <StudioBanner id={studio} platformCode={platformCode} zoneCode={zoneCode} zoneShort={zoneInfo?.short ?? ''} userId={userId} version={version}
+          onClose={() => update({ studio: null })} />
+      )}
 
       {!session && (
         <p className="notice">
@@ -438,6 +446,67 @@ export function Catalog() {
         onSaved={() => setVersion((v) => v + 1)}
       />
     </section>
+  );
+}
+
+// Le studio choisi : qui il est, combien de jeux, et combien tu en as
+function StudioBanner({ id, platformCode, zoneCode, zoneShort, userId, version, onClose }: {
+  id: number; platformCode: string | null; zoneCode: Zone | null; zoneShort: string; userId: string | null; version: number; onClose: () => void;
+}) {
+  const [info, setInfo] = useState<CompanySummary | null | undefined>(undefined);
+  const [counts, setCounts] = useState<{ all: number; owned: number } | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    supabase.rpc('company_summary', { company_id: id, platform_code: platformCode })
+      .then(({ data }) => { if (active) setInfo(((data as CompanySummary[] | null) ?? [])[0] ?? null); });
+    return () => { active = false; };
+  }, [id, platformCode]);
+
+  // Ta progression sur ses jeux (zone choisie)
+  useEffect(() => {
+    if (!userId) return setCounts(null);
+    let active = true;
+    const count = (ownership: string | null) => supabase.rpc('catalog_games', {
+      platform_code: platformCode, zone_code: zoneCode, ownership, page_size: 1, company_filter: id,
+    }).then(({ data }) => ((data as CatalogRow[] | null) ?? [])[0]?.total_count ?? 0);
+    Promise.all([count(null), count('owned')]).then(([all, owned]) => { if (active) setCounts({ all, owned }); });
+    return () => { active = false; };
+  }, [id, platformCode, zoneCode, userId, version]);
+
+  if (info === undefined) return <div className="panel studio-banner"><p className="muted">Lecture du studio…</p></div>;
+  if (info === null) {
+    return (
+      <div className="panel studio-banner">
+        <p>Ce studio n'existe plus (fusionné avec un autre, peut-être).</p>
+        <button type="button" className="link-button" onClick={onClose}>Retirer ce filtre</button>
+      </div>
+    );
+  }
+  const years = info.first_year && info.last_year ? (info.first_year === info.last_year ? String(info.first_year) : `${info.first_year} – ${info.last_year}`) : '';
+  return (
+    <div className="panel studio-banner">
+      <div className="studio-banner-head">
+        <p className="studio-name">
+          <span className="badge badge-studio">Studio</span> <strong>{info.name}</strong>
+          {info.country && <span className="muted"> · {countryName(info.country)}</span>}
+        </p>
+        <button type="button" className="link-button small" onClick={onClose}>Retirer ce filtre</button>
+      </div>
+      <p className="small muted">
+        {[info.developed > 0 && `développeur de ${formatNumber(info.developed)} jeu${info.developed > 1 ? 'x' : ''}`,
+          info.published > 0 && `éditeur de ${formatNumber(info.published)}`, years].filter(Boolean).join(' · ')}
+        {info.wikidata_id && (
+          <> · <a href={`https://www.wikidata.org/wiki/${info.wikidata_id}`} target="_blank" rel="noopener noreferrer">Wikidata</a></>
+        )}
+      </p>
+      {counts && counts.all > 0 && (
+        <div className="studio-progress">
+          <p className="small"><strong>{formatNumber(counts.owned)}</strong> / {formatNumber(counts.all)} de ses jeux{zoneShort ? ` ${zoneShort}` : ''} dans ta collection</p>
+          <MemoryBar owned={counts.owned} total={counts.all} label={`Ta progression sur les jeux de ${info.name}`} />
+        </div>
+      )}
+    </div>
   );
 }
 

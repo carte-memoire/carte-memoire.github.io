@@ -64,7 +64,7 @@ export interface Release {
   platform: { id: number; short_name: string; spec_fields?: SpecField[] };
   specs?: Record<string, unknown>;
   release_region: { release_date: string | null; date_precision: DatePrecision | null; region: { id?: number; code: string; name: string } }[];
-  release_company: { role: string; company: { name: string } }[];
+  release_company: { role: string; company: { id: number; name: string } }[];
   image: ReleaseImage[];
 }
 
@@ -85,7 +85,7 @@ export interface Game {
   summary_source: string | null;
   first_release_date: string | null;
   first_release_precision: DatePrecision | null;
-  game_developer: { company: { name: string } }[];
+  game_developer: { company: { id: number; name: string } }[];
   genres_reviewed: boolean;
   game_genre: { genre: GenreInfo }[];
   release: Release[];
@@ -240,7 +240,7 @@ export interface Report {
 // Une modification du catalogue (table catalog_change)
 export interface CatalogChange {
   id: number;
-  table_name: 'game' | 'release' | 'game_genre' | 'image' | 'release_region';
+  table_name: 'game' | 'release' | 'game_genre' | 'image' | 'release_region' | 'release_barcode';
   row_key: string;
   game_id: number | null;
   action: 'insert' | 'update' | 'delete';
@@ -250,4 +250,34 @@ export interface CatalogChange {
   undone_at: string | null;
   author?: { username: string } | null;
   undoer?: { username: string } | null;
+}
+
+// Un studio (développeur ou éditeur) et son nombre de jeux (fonction search_companies)
+export interface CompanyResult {
+  id: number;
+  name: string;
+  country: string | null;
+  wikidata_id: string | null;
+  developed: number;
+  published: number;
+}
+
+// Résumé d'un studio sur une console (fonction company_summary)
+export interface CompanySummary extends CompanyResult {
+  first_year: number | null;
+  last_year: number | null;
+}
+
+// Une version retrouvée par son code-barres (fonction releases_by_barcode)
+export interface BarcodeMatch {
+  release_id: number;
+  game_id: number;
+  game_title: string;
+  local_title: string;
+  zone: Zone | null;
+  edition_type: EditionType;
+  edition_name: string | null;
+  languages: string[];
+  platform: string;
+  barcode: string;
 }

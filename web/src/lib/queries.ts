@@ -4,13 +4,13 @@ export const RELEASE_FIELDS = `
   specs,
   platform(id, short_name, spec_fields),
   release_region(release_date, date_precision, region(id, code, name)),
-  release_company(role, company(name)),
+  release_company(role, company(id, name)),
   image(id, type, path)
 `;
 
 export const GAME_FIELDS = `
   id, title, summary, summary_source, first_release_date, first_release_precision,
-  game_developer(company(name)),
+  game_developer(company(id, name)),
   genres_reviewed,
   game_genre(genre(id, name, families)),
   release(${RELEASE_FIELDS})
