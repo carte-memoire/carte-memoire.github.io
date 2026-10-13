@@ -1,6 +1,6 @@
 // =====================================================================
 // Carte Mémoire · Jaquettes (recto) depuis la collection libretro-thumbnails
-// (https://github.com/libretro-thumbnails/Sony_-_PlayStation, dossier Named_Boxarts,
+// (https://github.com/libretro-thumbnails/Sony_-_PlayStation et Sony_-_PlayStation_2, dossier Named_Boxarts,
 // la collection utilisée par RetroArch). Les jaquettes appartiennent à leurs éditeurs.
 //
 // Associe chaque image à une VERSION de notre base (même jeu, même zone),
@@ -9,6 +9,7 @@
 //
 // Étapes (depuis le dossier carte-memoire) :
 //   node scripts/import-covers.mjs                → analyse seule, AUCUN téléchargement
+//   (jeux PS1 ; --console PS2 pour ceux de la PS2)
 //   node scripts/import-covers.mjs --telecharger  → télécharge, convertit en WebP dans
 //                                                   .covers-import/, et écrit .covers-import/link-covers.sql
 // Puis : envoyer les images dans le stockage, et SEULEMENT ENSUITE lancer link-covers.sql
@@ -17,19 +18,21 @@
 
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { ROOT, USER_AGENT, bestMatch, buildIndex, loadPs1Releases, parseName, publicApi, readEnv } from './lib/redump.mjs';
+import { ROOT, USER_AGENT, bestMatch, buildIndex, loadReleases, parseName, publicApi, readEnv } from './lib/redump.mjs';
+import { consoleFromArgs } from './lib/consoles.mjs';
 
-const REPO = 'libretro-thumbnails/Sony_-_PlayStation';
+const CONSOLE = consoleFromArgs();
+const REPO = CONSOLE.thumbnails;
 const download = process.argv.includes('--telecharger');
 
 
 // ---------------------------------------------------------------------
-// 1. Nos versions PS1 sans image
+// 1. Nos versions de la console sans image
 // ---------------------------------------------------------------------
-console.log('Lecture des versions PS1 de la base…');
-const { releases, keysOfGame } = await loadPs1Releases(publicApi(readEnv()), 'image(id)');
+console.log(`Lecture des versions ${CONSOLE.code} de la base…`);
+const { releases, keysOfGame } = await loadReleases(publicApi(readEnv()), 'image(id)', CONSOLE.code);
 const targets = releases.filter((r) => r.image.length === 0 && r.zone && r.edition_type === 'standard');
-console.log(`  ${releases.length} versions PS1, dont ${targets.length} sans image (zone connue, édition standard)`);
+console.log(`  ${releases.length} versions ${CONSOLE.code}, dont ${targets.length} sans image (zone connue, édition standard)`);
 
 
 // ---------------------------------------------------------------------
@@ -95,7 +98,7 @@ for (const r of unmatched.filter((_, i) => i % Math.ceil(unmatched.length / 12) 
 }
 
 if (!download) {
-  console.log('\nPour télécharger et convertir : node scripts/import-covers.mjs --telecharger');
+  console.log(`\nPour télécharger et convertir : node scripts/import-covers.mjs --console ${CONSOLE.code} --telecharger`);
   process.exit(0);
 }
 

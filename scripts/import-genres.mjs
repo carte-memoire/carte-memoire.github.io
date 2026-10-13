@@ -26,11 +26,13 @@
 // à la main par un modérateur (genres_reviewed) ne sont pas touchés.
 // =====================================================================
 
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ROOT, USER_AGENT, publicApi, readEnv } from './lib/redump.mjs';
+import { consoleFromArgs, nextMigrationStamp } from './lib/consoles.mjs';
 
 const write = process.argv.includes('--ecrire');
+const CONSOLE = process.argv.some((a) => a.startsWith('--console')) ? consoleFromArgs() : null;
 const CACHE_DIR = join(ROOT, '.genres-import');
 const CACHE = join(CACHE_DIR, 'wikipedia.json');
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -104,10 +106,13 @@ const api = publicApi(readEnv());
 const genres = await api('genre?select=*&limit=1000');
 // Familles d'un genre : colonne families (après la migration genre_families) ou family (avant)
 const familiesOf = (g) => g.families ?? HYBRID[g.wikidata_id] ?? (g.family ? [g.family] : []);
+// --console PS2 : seulement les jeux qui ont une version sur cette console
+const platform = CONSOLE ? (await api(`platform?select=id&short_name=eq.${CONSOLE.code}`))[0] : null;
+const onPlatform = platform ? `,release!inner(platform_id)&release.platform_id=eq.${platform.id}` : '';
 const games = [];
 for (let offset = 0; ; offset += 1000) {
-  const page = await api(`game?select=id,title,wikidata_id,genres_reviewed:genres_reviewed,game_genre(genre_id)&wikidata_id=not.is.null&order=id&limit=1000&offset=${offset}`)
-    .catch(() => api(`game?select=id,title,wikidata_id,game_genre(genre_id)&wikidata_id=not.is.null&order=id&limit=1000&offset=${offset}`));
+  const page = await api(`game?select=id,title,wikidata_id,genres_reviewed:genres_reviewed,game_genre(genre_id)${onPlatform}&wikidata_id=not.is.null&order=id&limit=1000&offset=${offset}`)
+    .catch(() => api(`game?select=id,title,wikidata_id,game_genre(genre_id)${onPlatform}&wikidata_id=not.is.null&order=id&limit=1000&offset=${offset}`));
   games.push(...page);
   if (page.length < 1000) break;
 }
@@ -160,6 +165,7 @@ for (const [i, batch] of chunks(titles, 50).entries()) {
     cache.infobox[original] = text === null ? null : genreField(text);
   }
   for (const t of batch) if (!(t in cache.infobox)) cache.infobox[t] = null;
+  for (const t of batch) if (!(t in cache.redirected)) cache.redirected[t] = false;
   save();
   await pause(1000);
 }
@@ -307,10 +313,8 @@ if (!write) {
 // Seulement les genres de Wikipédia : la base en déduit les familles, puis ce qu'elle garde (même règle que le bilan)
 const pairs = decisions.flatMap((d) => d.wikipedia.map((g) => `('${d.game.wikidata_id}', '${g.wikidata_id}')`));
 const now = new Date();
-// Toujours après la dernière migration existante : l'ordre des fichiers compte
-const latest = readdirSync(join(ROOT, 'supabase', 'migrations')).map((name) => name.slice(0, 14)).sort().at(-1) ?? '0';
-const clock = now.toISOString().replace(/\D/g, '').slice(0, 14);
-const stamp = clock > latest ? clock : String(BigInt(latest) + 100n);
+// Toujours juste après la dernière migration existante : l'ordre des fichiers compte
+const stamp = nextMigrationStamp(ROOT);
 writeFileSync(join(ROOT, 'supabase', 'migrations', `${stamp}_import_genres_wikipedia.sql`), `-- =====================================================================
 -- Carte Mémoire · Genres des jeux depuis Wikipédia en anglais
 -- Fichier GÉNÉRÉ par scripts/import-genres.mjs le ${now.toISOString().slice(0, 10)}.

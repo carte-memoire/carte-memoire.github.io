@@ -3,7 +3,7 @@
 //
 // L'origine d'un jeu se déduit du pays de ses studios (migration game_origin).
 // Ce script complète ce qui manque, seulement quand Wikidata donne UNE réponse :
-//   1. studios (développeurs de jeux PS1) qui ont un identifiant Wikidata mais pas
+//   1. studios (développeurs des jeux de la console) qui ont un identifiant Wikidata mais pas
 //      de pays : pays (P17), sinon pays du siège (P159), sinon pays d'origine (P495),
 //      seulement si l'élément est bien une entreprise ou une organisation (pas une
 //      liste, un jeu…) ; pour un développeur indépendant (une personne), sa nationalité (P27) ;
@@ -12,13 +12,16 @@
 // Étapes (depuis le dossier carte-memoire) :
 //   node scripts/import-origins.mjs           → bilan seul (réponses gardées dans .origins-import/)
 //   node scripts/import-origins.mjs --ecrire  → écrit la migration dans supabase/migrations/
+//   (jeux PS1 ; --console PS2 pour ceux de la PS2)
 // =====================================================================
 
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ROOT, USER_AGENT, publicApi, readEnv } from './lib/redump.mjs';
+import { consoleFromArgs, nextMigrationStamp } from './lib/consoles.mjs';
 
 const write = process.argv.includes('--ecrire');
+const CONSOLE = consoleFromArgs();
 const CACHE = join(ROOT, '.origins-import');
 mkdirSync(CACHE, { recursive: true });
 
@@ -65,17 +68,17 @@ const single = (values) => {
 
 
 // ---------------------------------------------------------------------
-// 1. Jeux PS1 et leurs studios
+// 1. Jeux de la console et leurs studios
 // ---------------------------------------------------------------------
-console.log('Lecture des jeux PS1 et de leurs studios…');
+console.log(`Lecture des jeux ${CONSOLE.code} et de leurs studios…`);
 const api = publicApi(readEnv());
-const [ps1] = await api('platform?select=id&short_name=eq.PS1');
+const [platform] = await api(`platform?select=id&short_name=eq.${CONSOLE.code}`);
 // Avant l'envoi de la migration game_origin, la colonne origin_country n'existe pas encore
 const fields = 'id,title,wikidata_id,game_developer(company(id,name,wikidata_id,country)),game_genre(genre(families)),release!inner(platform_id)';
 const withOrigin = await api(`game?select=origin_country&limit=1`).then(() => true, () => false);
 const games = [];
 for (let offset = 0; ; offset += 1000) {
-  const page = await api(`game?select=${fields}${withOrigin ? ',origin_country' : ''}&release.platform_id=eq.${ps1.id}&order=id&limit=1000&offset=${offset}`);
+  const page = await api(`game?select=${fields}${withOrigin ? ',origin_country' : ''}&release.platform_id=eq.${platform.id}&order=id&limit=1000&offset=${offset}`);
   games.push(...page);
   if (page.length < 1000) break;
 }
@@ -173,11 +176,9 @@ if (!write) process.exit(0);
 const sql = (s) => `'${String(s).replaceAll("'", "''")}'`;
 const values = (map) => [...map.values()].sort((a, b) => a.wikidata_id.localeCompare(b.wikidata_id))
   .map((v) => `  (${sql(v.wikidata_id)}, ${sql(v.country)})`).join(',\n');
-const latest = readdirSync(join(ROOT, 'supabase', 'migrations')).map((n) => n.slice(0, 14)).sort().at(-1);
 const now = new Date();
-const clock = now.toISOString().replace(/\D/g, '').slice(0, 14);
-const stamp = clock > latest ? clock : String(BigInt(latest) + 100n);
-const file = `${stamp}_import_origins_wikidata.sql`;
+const stamp = nextMigrationStamp(ROOT);
+const file = `${stamp}_import_origins_${CONSOLE.slug}.sql`;
 writeFileSync(join(ROOT, 'supabase', 'migrations', file), `-- =====================================================================
 -- Carte Mémoire · Pays des studios et origine des jeux, depuis Wikidata (CC0)
 -- Fichier GÉNÉRÉ par scripts/import-origins.mjs le ${now.toISOString().slice(0, 10)}.

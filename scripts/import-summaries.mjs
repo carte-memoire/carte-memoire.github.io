@@ -16,6 +16,7 @@
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { nextMigrationStamp } from './lib/consoles.mjs';
 
 const ROOT = join(import.meta.dirname, '..');
 const USER_AGENT = 'carte-memoire-import/1.0 (projet personnel, import ponctuel)';
@@ -187,7 +188,7 @@ if (dryRun) process.exit(0);
 // ---------------------------------------------------------------------
 const lit = (v) => `'${String(v).replaceAll("'", "''")}'`;
 const now = new Date();
-const stamp = now.toISOString().replace(/\D/g, '').slice(0, 14);
+const stamp = nextMigrationStamp(ROOT);
 const file = join(ROOT, 'supabase', 'migrations', `${stamp}_import_summaries_fr.sql`);
 const values = [];
 for (let i = 0; i < rows.length; i += 200) {
