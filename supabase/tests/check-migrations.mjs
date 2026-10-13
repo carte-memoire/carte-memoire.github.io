@@ -102,6 +102,7 @@ await db.query(`update public.profile set role = 'admin' where id = $1`, [ADMIN]
 
 console.log('\nDonnées de référence');
 await egal('PS1 présente avec ses 6 champs spécifiques', val(`select short_name, jsonb_array_length(spec_fields) as n from public.platform where short_name = 'PS1'`), [{ short_name: 'PS1', n: 6 }]);
+await egal('PS2 présente avec ses 8 champs spécifiques', val(`select short_name, jsonb_array_length(spec_fields) as n from public.platform where short_name = 'PS2'`), [{ short_name: 'PS2', n: 8 }]);
 await egal('France rangée dans Europe, dans Monde', val(`select z.code as zone, w.code as world from public.region c join public.region z on z.id = c.parent_id join public.region w on w.id = z.parent_id where c.code = 'FR'`), [{ zone: 'europe', world: 'world' }]);
 await egal('39 régions', val(`select count(*)::int as n from public.region`), [{ n: 39 }]);
 
@@ -641,6 +642,34 @@ await egal('…mais plus la version d\'origine, qui a son recto', sansJaquette([
 await en(ADMIN, `insert into public.image (release_id, type, path) values ($1, 'front', 'test/ff7-platinum.webp')`, [ff7platinum]);
 await egal('jaquette ajoutée : la Platinum quitte la file', sansJaquette(['reissue', 'SCES-99868']).then((r) => r.length), 0);
 await ko('un visiteur ne peut pas lire la file', sansJaquette([null, null], null), 'permission denied');
+
+console.log('\nUn jeu sur deux consoles (PS1 et PS2)');
+const ps2 = (await val(`select id from public.platform where short_name = 'PS2'`))[0].id;
+const ff7ps2 = (await en(ADMIN, `insert into public.release (game_id, platform_id, local_title, zone) values ($1, $2, 'Final Fantasy VII Console Test', 'PAL') returning id`, [jeu, ps2])).rows[0].id;
+await egal('la version PS2 est dans la file PS2, sans emprunter la jaquette de la version PS1',
+  lignes(en(MEMBRE, `select id, stand_in_path, platform_short_name from public.releases_without_cover('PS2', null, null, 'Console Test', 1, 100)`)),
+  [{ id: ff7ps2, stand_in_path: null, platform_short_name: 'PS2' }]);
+await egal('…absente de la file PS1', sansJaquette([null, 'Console Test']).then((r) => r.length), 0);
+await egal('…toutes consoles : chaque version dit sa console', lignes(en(MEMBRE, `select platform_short_name as p from public.releases_without_cover(null, null, null, 'Console Test', 1, 100)`)), [{ p: 'PS2' }]);
+const specsPs2 = (v) => en(ADMIN, `update public.release set specs = $2::jsonb where id = $1`, [ff7ps2, JSON.stringify(v)]);
+await ok('PS2 : 112 Ko, tous les boutons analogiques, 16:9 et 480p, Dolby Pro Logic II, EyeToy',
+  specsPs2({ memory_card_kb: 112, analog: 'all_buttons', vibration: true, display: ['widescreen', 'progressive'], audio: ['dolby_pl2'], peripherals: ['eyetoy'] }));
+await ko('PS2 : des blocs de carte mémoire PS1 sont refusés', specsPs2({ memory_card_blocks: 1 }), 'Caractéristique inconnue');
+await ko('PS2 : analogique « compatible » (valeur PS1) refusé', specsPs2({ analog: 'compatible' }), 'valeur non prévue');
+await ko('PS2 : 9 Mo de carte mémoire refusés (8 Mo au plus)', specsPs2({ memory_card_kb: 9000 }), 'nombre entier');
+await egal('catalogue PS1 : le jeu ne montre que sa version PS1', catalogue(null, { zone: 'PAL', search: 'Final Fantasy VII' }).then((r) => r.find((x) => x.id === jeu)?.releases.every((v) => v.platform.short_name === 'PS1')), true);
+await ok('nettoyage (version PS2)', en(ADMIN, `delete from public.release where id = $1`, [ff7ps2]));
+const [spider1, spider2] = (await en(ADMIN, `insert into public.game (title, wikidata_id) values ('Araignée Console', 'Q999999801'), ('Araignée : Console', 'Q999999802') returning id`)).rows.map((r) => r.id);
+await en(ADMIN, `insert into public.release (game_id, platform_id, local_title, zone) values ($1, $2, 'Araignée Console', 'PAL'), ($3, $4, 'Araignée : Console', 'PAL')`, [spider1, ps1, spider2, ps2]);
+const doublonsAraignee = () => lignes(en(ADMIN, `select total from public.possible_duplicate_game where title_key = 'araigneeconsole'`));
+await egal('même titre, deux fiches Wikidata, une PS1 et une PS2 : pas un doublon signalé', doublonsAraignee(), []);
+await en(ADMIN, `insert into public.release (game_id, platform_id, local_title, zone) values ($1, $2, 'Araignée : Console', 'NTSC-U')`, [spider2, ps1]);
+await egal('…mais signalé dès que les deux ont une version sur la même console', doublonsAraignee(), [{ total: 2 }]);
+await en(ADMIN, `delete from public.release where game_id = $1 and platform_id = $2`, [spider2, ps1]);
+await en(ADMIN, `update public.game set wikidata_id = null where id = $1`, [spider2]);
+await egal('…ou quand l\'un n\'a pas de fiche Wikidata (peut-être la même œuvre)', doublonsAraignee(), [{ total: 2 }]);
+await en(ADMIN, `delete from public.release where game_id = any($1)`, [[spider1, spider2]]);
+await ok('nettoyage (homonymes de test)', en(ADMIN, `delete from public.game where id = any($1)`, [[spider1, spider2]]));
 await en(ADMIN, `delete from public.image where path like 'test/ff7-%'`);
 
 console.log('\nDates de sortie (correction de Strider, historique)');
@@ -665,9 +694,13 @@ await egal('Mortal Kombat II : Midway et Probe Entertainment', studiosDe('Mortal
 await egal('Tenchu : un seul Acquire, le vrai (Japon), plus le jeu de société', studiosDe('Tenchu: Stealth Assassins'), 'Acquire (JP)');
 await egal('Tintin: Destination Adventure : Infogrames et Runecraft, et non « Runic magic »', studiosDe('Tintin: Destination Adventure'), 'Infogrames (FR), Runecraft (GB)');
 // Des homonymes distincts dans Wikidata existent (Atari, Inc. de 1972 et de 1993…) ; pas un
-// studio sans lien à côté d'un autre du même nom (comme le faux « Acquire » à côté du vrai)
-await egal('pas de studio en double du même nom (hors homonymes distincts dans Wikidata)', val(`select string_agg(name_key, ', ') as d from (
-  select c.name_key from public.company c where exists (select 1 from public.game_developer gd where gd.company_id = c.id)
+// studio sans lien à côté d'un autre du même nom (comme le faux « Acquire » à côté du vrai).
+// Studios des jeux PS1 (ceux de la correction) : un doublon plus ancien entre une fiche éditeur
+// et une fiche développeur (« Dazz ») peut ressortir avec la PS2, il se fusionne en modération.
+await egal('pas de studio PS1 en double du même nom (hors homonymes distincts dans Wikidata)', val(`select string_agg(name_key, ', ') as d from (
+  select c.name_key from public.company c where exists (
+    select 1 from public.game_developer gd join public.release r on r.game_id = gd.game_id join public.platform p on p.id = r.platform_id
+    where gd.company_id = c.id and p.short_name = 'PS1')
   group by c.name_key having count(*) > 1 and count(*) > count(distinct c.wikidata_id)) x`), [{ d: null }]);
 await egal('Nightmare Creatures : Kalisto, studio français → origine France', val(`select public.origin(g) as o from public.game g where g.title = 'Nightmare Creatures'`), [{ o: 'FR' }]);
 await egal('plus aucun studio au nom de liste Wikipédia', val(`select count(*)::int as n from public.company where name ilike 'list of %'`), [{ n: 0 }]);

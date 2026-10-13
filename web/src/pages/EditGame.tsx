@@ -19,6 +19,7 @@ import { Cover } from '../components/Cover';
 import { useConfirm } from '../components/Confirm';
 import { PsSymbol } from '../components/PsSymbol';
 import { tr } from '../lib/i18n';
+import { specText } from '../lib/specs';
 
 const IMAGE_TYPES: { value: ImageType; label: string }[] = [
   { value: 'front', label: tr('Recto') },
@@ -963,7 +964,7 @@ function SpecsEditor({ fields, value, onChange }: { fields: SpecField[]; value: 
       <div className="row">
         {fields.filter((f) => f.type !== 'multi_choice').map((f) => (
           <label key={f.key} className="field">
-            <span className="field-label">{f.label}</span>
+            <span className="field-label">{specText(f.label)}</span>
             {f.type === 'integer' && (
               <input type="number" min={f.min} max={f.max} value={value[f.key] === undefined ? '' : String(value[f.key])}
                 onChange={(e) => set(f.key, e.target.value === '' ? undefined : Number(e.target.value))} placeholder={tr('Non précisé')} />
@@ -979,7 +980,7 @@ function SpecsEditor({ fields, value, onChange }: { fields: SpecField[]; value: 
             {f.type === 'choice' && (
               <select value={typeof value[f.key] === 'string' ? (value[f.key] as string) : ''} onChange={(e) => set(f.key, e.target.value || undefined)}>
                 <option value="">{tr('Non précisé')}</option>
-                {f.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                {f.options?.map((o) => <option key={o.value} value={o.value}>{specText(o.label)}</option>)}
               </select>
             )}
           </label>
@@ -989,7 +990,7 @@ function SpecsEditor({ fields, value, onChange }: { fields: SpecField[]; value: 
         const list = Array.isArray(value[f.key]) ? (value[f.key] as string[]) : [];
         return (
           <fieldset key={f.key} className="checks">
-            <legend className="field-label">{f.label}</legend>
+            <legend className="field-label">{specText(f.label)}</legend>
             {f.options?.map((o) => (
               <label key={o.value}>
                 <input type="checkbox" checked={list.includes(o.value)}
@@ -997,7 +998,7 @@ function SpecsEditor({ fields, value, onChange }: { fields: SpecField[]; value: 
                     const next = e.target.checked ? [...list, o.value] : list.filter((x) => x !== o.value);
                     set(f.key, next.length ? next : undefined);
                   }} />
-                {o.label}
+                {specText(o.label)}
               </label>
             ))}
           </fieldset>

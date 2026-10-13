@@ -8,6 +8,7 @@ import { errorMessage } from '../lib/errors';
 import { ACCEPT_ATTRIBUTE, prepareCover } from '../lib/images';
 import type { DatePrecision, EditionType, Region, ReleaseProposal, Zone } from '../lib/types';
 import { groupByManufacturer, usePlatforms } from '../lib/usePlatforms';
+import { DEFAULT_PLATFORM, rememberedPlatform } from '../lib/preferences';
 import { useAuth } from '../auth/AuthContext';
 import { useGameSearch } from '../components/GameSearch';
 import { PsSymbol } from '../components/PsSymbol';
@@ -50,9 +51,11 @@ export function ProposeGame() {
     supabase.from('region').select('id, code, name, type, parent_id').order('name').then(({ data }) => setRegions((data as Region[]) ?? []));
   }, []);
 
-  // PlayStation présélectionnée (la seule console qui a des jeux pour l'instant)
+  // Console présélectionnée : celle choisie dans le catalogue (la PlayStation par défaut)
   useEffect(() => {
-    if (platformId === '' && platforms.length) setPlatformId(platforms.find((p) => p.short_name === 'PS1')?.id ?? '');
+    if (platformId !== '' || !platforms.length) return;
+    const remembered = rememberedPlatform();
+    setPlatformId((platforms.find((p) => p.short_name === remembered) ?? platforms.find((p) => p.short_name === DEFAULT_PLATFORM))?.id ?? '');
   }, [platforms, platformId]);
 
   useEffect(() => {

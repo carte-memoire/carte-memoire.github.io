@@ -10,6 +10,8 @@ import { useAuth } from '../auth/AuthContext';
 import { Cover } from '../components/Cover';
 import { MemoryBar } from '../components/MemoryBar';
 import { PageSizeSelect, Pagination } from '../components/Pagination';
+import { DEFAULT_PLATFORM } from '../lib/preferences';
+import { usePlatforms } from '../lib/usePlatforms';
 import { tr, locale } from '../lib/i18n';
 
 interface PublicProfile {
@@ -57,12 +59,15 @@ export function MemberPage() {
   const { session, refresh } = useAuth();
   const [profile, setProfile] = useState<PublicProfile | null | undefined>(undefined);
   const [items, setItems] = useState<PublicItem[]>([]);
-  const [totals, setTotals] = useState<ProgressRow[]>([]);
+  // Jeux existants par zone, pour chaque console de la collection
+  const [totals, setTotals] = useState<[string, ProgressRow[]][]>([]);
+  const platforms = usePlatforms();
   const [version, setVersion] = useState(0);
   const [error, setError] = useState('');
   const [tab, setTab] = useState<Tab>('owned');
   const [query, setQuery] = useState('');
   const [zone, setZone] = useState('');
+  const [platform, setPlatform] = useState('');
   const [pageSize, setPageSize] = useState(100);
   const [page, setPage] = useState(1);
   const [shared, setShared] = useState('');
@@ -72,13 +77,18 @@ export function MemberPage() {
     Promise.all([
       supabase.rpc('public_profile', { member: pseudo }),
       supabase.rpc('public_collection', { member: pseudo }),
-      supabase.rpc('collection_progress', { platform_code: 'PS1', zone_code: null }),
-    ]).then(([p, c, t]) => {
+    ]).then(async ([p, c]) => {
       if (!active) return;
       setError(p.error ? errorMessage(p.error) : c.error ? errorMessage(c.error) : '');
       setProfile(((p.data as PublicProfile[] | null) ?? [])[0] ?? null);
-      setItems((c.data as PublicItem[] | null) ?? []);
-      setTotals((t.data as ProgressRow[] | null) ?? []);
+      const list = (c.data as PublicItem[] | null) ?? [];
+      setItems(list);
+      // Une progression par console possédée (la PlayStation si la collection est vide)
+      const codes = [...new Set(list.filter((i) => i.status === 'owned').map((i) => i.platform))].sort();
+      const progress = await Promise.all((codes.length ? codes : [DEFAULT_PLATFORM]).map((code) =>
+        supabase.rpc('collection_progress', { platform_code: code, zone_code: null })
+          .then(({ data }) => [code, (data as ProgressRow[] | null) ?? []] as [string, ProgressRow[]])));
+      if (active) setTotals(progress);
     });
     return () => { active = false; };
   }, [pseudo, version, session?.user.id]);
@@ -91,6 +101,7 @@ export function MemberPage() {
       if (tab === 'owned' && i.status !== 'owned') continue;
       if (tab === 'wanted' && i.status !== 'wanted') continue;
       if (tab === 'offered' && !(i.status === 'owned' && i.trade_status)) continue;
+      if (platform && i.platform !== platform) continue;
       if (zone && i.zone !== zone) continue;
       if (key && ![i.local_title, i.game_title].some((t) => searchKey(t).includes(key))) continue;
       const k = `${i.release_id}|${i.condition}|${i.trade_status}`;
@@ -99,7 +110,7 @@ export function MemberPage() {
       else map.set(k, { item: i, count: 1 });
     }
     return [...map.values()];
-  }, [items, tab, zone, query]);
+  }, [items, tab, platform, zone, query]);
 
   if (profile === undefined) return <p className="loading">{tr('Lecture de la carte mémoire…')}</p>;
   if (profile === null) {
@@ -117,7 +128,11 @@ export function MemberPage() {
   const pages = pageSize === 0 ? 1 : Math.max(1, Math.ceil(groups.length / pageSize));
   const current = Math.min(page, pages);
   const shown = pageSize === 0 ? groups : groups.slice((current - 1) * pageSize, current * pageSize);
-  const ownedPs1 = (z: Zone) => new Set(items.filter((i) => i.status === 'owned' && i.platform === 'PS1' && i.zone === z).map((i) => i.game_id)).size;
+  const ownedOn = (code: string, z: Zone) => new Set(items.filter((i) => i.status === 'owned' && i.platform === code && i.zone === z).map((i) => i.game_id)).size;
+  const platformName = (code: string) => platforms.find((p) => p.short_name === code)?.name ?? code;
+  // Consoles de la collection : au-delà d'une, un filtre et la console sur chaque tuile
+  const consoles = [...new Set(items.map((i) => i.platform))].sort();
+  const multiPlatform = consoles.length > 1;
 
   async function share() {
     const title = tr('La collection de {0} · Carte Mémoire', profile!.username);
@@ -181,22 +196,24 @@ export function MemberPage() {
             <div><dt>{tr('À échanger ou vendre')}</dt><dd>{formatNumber(profile.offered ?? 0)}</dd></div>
           </dl>
 
-          <div className="panel progress-panel">
-            <h2>{tr('PlayStation, région par région')}</h2>
-            <ul className="family-list">
-              {CATALOG_ZONES.map((z) => {
-                const total = totals.find((t) => t.scope === 'zone' && t.code === z.value)?.total ?? 0;
-                const owned = ownedPs1(z.value);
-                return (
-                  <li key={z.value} className="family-row">
-                    <span className="family-name">{z.label}</span>
-                    <span className="family-count">{formatNumber(owned)} / {formatNumber(total)} · {formatPercent(owned, total)}</span>
-                    <MemoryBar size="small" owned={owned} total={total} label={tr('{0} : jeux possédés', z.label)} />
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
+          {totals.map(([code, rows]) => (
+            <div key={code} className="panel progress-panel">
+              <h2>{tr('{0}, région par région', platformName(code))}</h2>
+              <ul className="family-list">
+                {CATALOG_ZONES.map((z) => {
+                  const total = rows.find((t) => t.scope === 'zone' && t.code === z.value)?.total ?? 0;
+                  const owned = ownedOn(code, z.value);
+                  return (
+                    <li key={z.value} className="family-row">
+                      <span className="family-name">{z.label}</span>
+                      <span className="family-count">{formatNumber(owned)} / {formatNumber(total)} · {formatPercent(owned, total)}</span>
+                      <MemoryBar size="small" owned={owned} total={total} label={tr('{0} : jeux possédés', z.label)} />
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
 
           <div className="tabs" role="tablist">
             {([['owned', tr('Sa collection ({0})', formatNumber(profile.owned_copies ?? 0))], ['wanted', tr('Recherchés ({0})', formatNumber(profile.wanted_games ?? 0))], ['offered', tr('À échanger ou vendre ({0})', formatNumber(profile.offered ?? 0))]] as [Tab, string][]).map(([value, label]) => (
@@ -211,6 +228,15 @@ export function MemberPage() {
                 <span className="field-label">{tr('Rechercher')}</span>
                 <input type="search" value={query} onChange={(e) => { setQuery(e.target.value); setPage(1); }} placeholder={tr('Titre')} maxLength={120} autoComplete="off" />
               </label>
+              {multiPlatform && (
+                <label className="field">
+                  <span className="field-label">{tr('Console')}</span>
+                  <select value={platform} onChange={(e) => { setPlatform(e.target.value); setPage(1); }}>
+                    <option value="">{tr('Toutes')}</option>
+                    {consoles.map((code) => <option key={code} value={code}>{platformName(code)}</option>)}
+                  </select>
+                </label>
+              )}
               <label className="field">
                 <span className="field-label">{tr('Zone')}</span>
                 <select value={zone} onChange={(e) => { setZone(e.target.value); setPage(1); }}>
@@ -236,7 +262,7 @@ export function MemberPage() {
                     <span className="cover-tile-title">{i.local_title}{count > 1 && <span className="chip-copies"> ×{count}</span>}</span>
                   </Link>
                   <span className="cover-tile-meta">
-                    {i.zone ?? '?'} · {editionLabel({ ...i, platform: { short_name: i.platform } })}
+                    {multiPlatform && `${i.platform} · `}{i.zone ?? '?'} · {editionLabel({ ...i, platform: { short_name: i.platform } })}
                     {i.languages.length > 0 && <span title={languagesLong(i.languages)}> · {languagesShort(i.languages)}</span>}
                     {i.status === 'owned' && i.has_box && i.has_manual && i.has_media && <span className="cover-tile-complete">{tr(' · Complet')}</span>}
                   </span>

@@ -11,7 +11,7 @@ export function PlatformSelect({ value, onChange }: { value: string; onChange: (
       <select className="inline-select" value={value} onChange={(e) => onChange(e.target.value)} aria-label={tr('Choisir la console')}>
         <option value={ALL_PLATFORMS}>{tr('de toutes les consoles')}</option>
         {/* Tant que la liste n'est pas chargée, la console choisie reste affichée */}
-        {platforms.length === 0 && value !== ALL_PLATFORMS && <option value={value}>{value === 'PS1' ? tr('PlayStation') : value}</option>}
+        {platforms.length === 0 && value !== ALL_PLATFORMS && <option value={value}>{value === 'PS1' ? tr('PlayStation') : value === 'PS2' ? 'PlayStation 2' : value}</option>}
         {groupByManufacturer(platforms).map(([maker, list]) => (
           <optgroup key={maker} label={maker}>
             {list.map((p) => (

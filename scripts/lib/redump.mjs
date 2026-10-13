@@ -41,12 +41,12 @@ export function publicApi(env) {
     .then((r) => { if (!r.ok) throw new Error(`Base : ${r.status} ${path}`); return r.json(); });
 }
 
-// Toutes les versions PS1 de la base, et toutes les façons d'écrire le titre de chaque jeu
-export async function loadPs1Releases(api, fields) {
-  const [ps1] = await api('platform?select=id&short_name=eq.PS1');
+// Toutes les versions d'une console (PS1 par défaut), et toutes les façons d'écrire le titre de chaque jeu
+export async function loadReleases(api, fields, code = 'PS1') {
+  const [platform] = await api(`platform?select=id&short_name=eq.${code}`);
   const releases = [];
   for (let offset = 0; ; offset += 1000) {
-    const page = await api(`release?select=id,game_id,zone,local_title,edition_type,release_region(region(code)),game(title),${fields}&platform_id=eq.${ps1.id}&order=id&limit=1000&offset=${offset}`);
+    const page = await api(`release?select=id,game_id,zone,local_title,edition_type,release_region(region(code)),game(title),${fields}&platform_id=eq.${platform.id}&order=id&limit=1000&offset=${offset}`);
     releases.push(...page);
     if (page.length < 1000) break;
   }
@@ -57,6 +57,7 @@ export async function loadPs1Releases(api, fields) {
   }
   return { releases, keysOfGame };
 }
+export const loadPs1Releases = (api, fields) => loadReleases(api, fields, 'PS1');
 
 // « Gran Turismo (Europe) (En,Fr,De,Es,It) (Disc 1) » → ses informations
 export function parseName(name) {

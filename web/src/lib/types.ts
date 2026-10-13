@@ -63,7 +63,7 @@ export interface Release {
   reissue_of: number | null;
   // Pays pour lequel la boîte a été imprimée (même disque, boîtes différentes)
   box_region?: { code: string; name: string } | null;
-  platform: { id: number; short_name: string; spec_fields?: SpecField[] };
+  platform: { id: number; short_name: string; name?: string; launch_date?: string | null; spec_fields?: SpecField[] };
   specs?: Record<string, unknown>;
   release_region: { release_date: string | null; date_precision: DatePrecision | null; region: { id?: number; code: string; name: string } }[];
   release_company: { role: string; company: { id: number; name: string } }[];
@@ -125,7 +125,7 @@ export interface CollectionItem {
     reissue_of: number | null;
     languages: string[];
     box_region?: { code: string; name: string } | null;
-    platform: { short_name: string };
+    platform: { id?: number; short_name: string };
     image: ReleaseImage[];
     game: { id: number; title: string; first_release_date: string | null };
   };

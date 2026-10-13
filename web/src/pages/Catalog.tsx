@@ -41,9 +41,10 @@ const OWNERSHIP: { value: Ownership; label: string }[] = [
   { value: 'wanted', label: tr('Ceux que je cherche') },
 ];
 
-// Années proposées : celles de la vie de la console (PS1 : 1994 à 2006)
+// Années proposées : celles de la vie de la console (PS1 : 1994 à 2006, PS2 : 2000 à 2013)
+const CONSOLE_YEARS: Record<string, [number, number]> = { PS1: [1994, 2006], PS2: [2000, 2013] };
 function yearsFor(platform: string): number[] {
-  const [from, to] = platform === 'PS1' ? [1994, 2006] : [1972, new Date().getFullYear()];
+  const [from, to] = CONSOLE_YEARS[platform] ?? [1972, new Date().getFullYear()];
   return Array.from({ length: to - from + 1 }, (_, i) => from + i);
 }
 
@@ -424,6 +425,7 @@ export function Catalog() {
               key={row.id}
               row={row}
               showZone={!zoneCode}
+              showPlatform={!platformCode}
               language={language}
               canTick={canTick}
               busyRelease={busyRelease}
@@ -552,13 +554,16 @@ function ZoneSelect({ value, onChange }: { value: string; onChange: (value: stri
 // et parmi les versions nationales, celle dans la langue choisie
 function sortReleases(releases: CatalogRelease[], language = ''): CatalogRelease[] {
   const inLanguage = (r: CatalogRelease) => Number(Boolean(language) && (r.box_country ? speaksLanguage(r, language) : Boolean(r.languages?.includes(language))));
-  return [...releases].sort((a, b) => zoneOrder(a.zone) - zoneOrder(b.zone)
+  // Console par console (toutes les consoles : PS1 puis PS2…), puis zone par zone
+  return [...releases].sort((a, b) => a.platform.short_name.localeCompare(b.platform.short_name, 'en', { numeric: true }) || zoneOrder(a.zone) - zoneOrder(b.zone)
     || Number(b.edition_type === 'standard') - Number(a.edition_type === 'standard') || inLanguage(b) - inLanguage(a) || a.id - b.id);
 }
 
 interface LineProps {
   row: CatalogRow;
   showZone: boolean;
+  // « Toutes les consoles » : chaque version dit sa console
+  showPlatform: boolean;
   language: string;
   canTick: boolean;
   busyRelease: number | null;
@@ -567,13 +572,13 @@ interface LineProps {
   onToggleWanted: (row: CatalogRow) => void;
 }
 
-function CatalogLine({ row, showZone, language, canTick, busyRelease, onAdd, onOpen, onToggleWanted }: LineProps) {
+function CatalogLine({ row, showZone, showPlatform, language, canTick, busyRelease, onAdd, onOpen, onToggleWanted }: LineProps) {
   const [expanded, setExpanded] = useState(false);
   const releases = sortReleases(row.releases, language);
   const busy = releases.some((r) => r.id === busyRelease);
   // Versions qui se ressemblent (même zone, même édition : FF7 PAL anglais, français,
   // allemand…) : on les distingue par leur langue. Le code produit reste sur la fiche.
-  const lookalike = (r: CatalogRelease) => `${r.zone}|${editionLabel(r)}`;
+  const lookalike = (r: CatalogRelease) => `${r.platform.short_name}|${r.zone}|${editionLabel(r)}`;
   const groups = new Map<string, CatalogRelease[]>();
   for (const r of releases) groups.set(lookalike(r), [...(groups.get(lookalike(r)) ?? []), r]);
   const counts = new Map([...groups].map(([key, list]) => [key, list.length]));
@@ -600,7 +605,7 @@ function CatalogLine({ row, showZone, language, canTick, busyRelease, onAdd, onO
         <ul className="catalog-releases" aria-label={tr('Versions')}>
           {shown.map((r) => (
             <li key={r.id}>
-              <ReleaseChip release={r} showZone={showZone} showLanguage={(counts.get(lookalike(r)) ?? 0) > 1} interactive={canTick} busy={busy}
+              <ReleaseChip release={r} showZone={showZone} showPlatform={showPlatform} showLanguage={(counts.get(lookalike(r)) ?? 0) > 1} interactive={canTick} busy={busy}
                 onClick={() => (r.owned && r.owned_item ? onOpen(r.owned_item) : onAdd(r))} />
             </li>
           ))}
@@ -624,8 +629,8 @@ function CatalogLine({ row, showZone, language, canTick, busyRelease, onAdd, onO
   );
 }
 
-function ReleaseChip({ release, showZone, showLanguage, interactive, busy, onClick }: {
-  release: CatalogRelease; showZone: boolean; showLanguage: boolean; interactive: boolean; busy: boolean; onClick: () => void;
+function ReleaseChip({ release, showZone, showPlatform, showLanguage, interactive, busy, onClick }: {
+  release: CatalogRelease; showZone: boolean; showPlatform: boolean; showLanguage: boolean; interactive: boolean; busy: boolean; onClick: () => void;
 }) {
   const edition = editionLabel(release);
   // Boîte d'un pays : son code (FR, DE…) ; sinon les langues du disque
@@ -634,6 +639,7 @@ function ReleaseChip({ release, showZone, showLanguage, interactive, busy, onCli
   const content = (
     <>
       <span className="chip-box" aria-hidden="true">{release.owned ? '✓' : ''}</span>
+      {showPlatform && <span className="chip-zone">{release.platform.short_name}</span>}
       {showZone && <span className="chip-zone">{release.zone ?? '?'}</span>}
       <span>{edition}</span>
       {language && <span className="chip-language">{language}</span>}

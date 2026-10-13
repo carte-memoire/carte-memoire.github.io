@@ -32,6 +32,8 @@ interface CoverRow {
   edition_type: EditionType;
   edition_name: string | null;
   stand_in_path: string | null;
+  // Console de la version (absente tant que la migration 20261010190800 n'est pas envoyée)
+  platform_short_name?: string;
   total_count: number;
 }
 
@@ -230,7 +232,7 @@ export function CoverQueue({ onCount, active }: { onCount: (n: number) => void; 
           <CoverCard
             key={row.id}
             row={row}
-            platform={platformCode ?? 'PS1'}
+            platform={row.platform_short_name ?? platformCode ?? 'PS1'}
             isTarget={row.id === target?.id}
             busy={busyId === row.id}
             onTarget={() => setTargetId(row.id)}
@@ -262,7 +264,7 @@ function CoverCard({ row, platform, isTarget, busy, onTarget, onFile, onPaste, o
 }) {
   const edition = label(row, platform);
   const search = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(
-    `"${row.local_title}" ${row.edition_type === 'standard' ? '' : edition} ${platform === 'PS1' ? 'PS1' : platform} ${row.zone ?? ''} cover`.replace(/\s+/g, ' '),
+    `"${row.local_title}" ${row.edition_type === 'standard' ? '' : edition} ${platform} ${row.zone ?? ''} cover`.replace(/\s+/g, ' '),
   )}`;
   const standIn = row.stand_in_path
     ? { path: row.stand_in_path, label: row.edition_type === 'reissue' ? edition : tr('Autre version') }

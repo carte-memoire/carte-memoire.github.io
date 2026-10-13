@@ -1,25 +1,32 @@
 // =====================================================================
-// Carte Mémoire · Import des jeux PS1 depuis Wikidata (licence CC0)
+// Carte Mémoire · Import des jeux d'une console depuis Wikidata (licence CC0)
 //
 // Interroge Wikidata, puis écrit une migration SQL dans supabase/migrations/.
 // Cette migration s'envoie ensuite comme les autres : npx supabase db push
 //
 // Usage (depuis le dossier carte-memoire) :
-//   node scripts/import-wikidata.mjs            → écrit la migration
-//   node scripts/import-wikidata.mjs --dry-run  → affiche seulement le bilan
+//   node scripts/import-wikidata.mjs                  → jeux PS1, écrit la migration
+//   node scripts/import-wikidata.mjs --console PS2    → jeux PS2
+//   node scripts/import-wikidata.mjs --dry-run        → affiche seulement le bilan
+//
+// Un jeu sorti sur plusieurs consoles (même élément Wikidata) reste UN jeu :
+// l'import lui ajoute seulement ses versions sur la console importée.
 //
 // Aucune dépendance : il suffit de Node 18 ou plus.
 // =====================================================================
 
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { consoleFromArgs, nextMigrationStamp, redumpDatUrl } from './lib/consoles.mjs';
+import { parseName } from './lib/redump.mjs';
 
 const ENDPOINT = 'https://query.wikidata.org/sparql';
 // Wikimedia demande un User-Agent qui identifie le projet (on peut y ajouter un contact).
 const USER_AGENT = 'carte-memoire-import/1.0 (projet personnel, import ponctuel)';
 
-const PS1 = 'Q10677';
-const PS1_GAMES = `?game wdt:P400 wd:${PS1} ; wdt:P31/wdt:P279* wd:Q7889 .`;
+const CONSOLE = consoleFromArgs();
+const PLATFORM = CONSOLE.wikidata;
+const GAMES = `?game wdt:P400 wd:${PLATFORM} ; wdt:P31/wdt:P279* wd:Q7889 .`;
 
 // --- Régions : doit rester cohérent avec la migration reference_data ---
 const COUNTRY_ZONE = {
@@ -49,7 +56,7 @@ const PLACE_ZONE = {
   Q45256: 'oceania',           // Australasie
   Q15: 'africa',
 };
-// Zone géographique → zone vidéo de la PS1
+// Zone géographique → zone vidéo (PS1 et PS2 : mêmes zones)
 const VIDEO_ZONE = {
   europe: 'PAL', oceania: 'PAL', africa: 'PAL',
   'north-america': 'NTSC-U', 'south-america': 'NTSC-U',
@@ -146,6 +153,19 @@ const zoneOfRegion = (code) => (COUNTRY_ZONE[code] ?? code);
 
 const capitalize = (s) => s && s[0].toLocaleUpperCase('fr') + s.slice(1);
 
+// Même idée que public.normalize_name : sans majuscules, accents, espaces ni ponctuation
+const normalizeTitle = (s) => (s ?? '').normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/[\s\p{P}\p{S}]+/gu, '');
+// Titre d'article Wikipédia comparable : espaces, première lettre en majuscule
+const articleKey = (t) => { const s = t.replace(/_/g, ' ').trim(); return s && s[0].toUpperCase() + s.slice(1); };
+// Wikitexte → texte : [[Lien|Texte]] → Texte, modèles, balises et références retirés
+const plainText = (s) => s
+  .replace(/<ref[^>]*\/>|<ref[^>]*>[\s\S]*?<\/ref>/gi, '')
+  .replace(/\[\[(?:[^\]|]*\|)?([^\]]*)\]\]/g, '$1')
+  .replace(/\{\{[^{}]*\}\}/g, '')
+  .replace(/<[^>]+>/g, '')
+  .replace(/'{2,}/g, '')
+  .trim();
+
 
 // ---------------------------------------------------------------------
 // 2. Récupération
@@ -154,7 +174,7 @@ console.log('Interrogation de Wikidata…');
 
 const gameRows = await sparql(`
   SELECT DISTINCT ?game ?en ?fr ?ja ?mul WHERE {
-    ${PS1_GAMES}
+    ${GAMES}
     OPTIONAL { ?game rdfs:label ?en  FILTER(LANG(?en)  = "en") }
     OPTIONAL { ?game rdfs:label ?fr  FILTER(LANG(?fr)  = "fr") }
     OPTIONAL { ?game rdfs:label ?ja  FILTER(LANG(?ja)  = "ja") }
@@ -162,12 +182,12 @@ const gameRows = await sparql(`
   }`, 'jeux');
 
 const platformCountRows = await sparql(`
-  SELECT ?game (COUNT(DISTINCT ?p) AS ?n) WHERE { ${PS1_GAMES} ?game wdt:P400 ?p . }
+  SELECT ?game (COUNT(DISTINCT ?p) AS ?n) WHERE { ${GAMES} ?game wdt:P400 ?p . }
   GROUP BY ?game`, 'nombre de plateformes par jeu');
 
 const dateRows = await sparql(`
   SELECT DISTINCT ?game ?s ?time ?prec ?place ?plat ?part WHERE {
-    ${PS1_GAMES}
+    ${GAMES}
     ?game p:P577 ?s .
     ?s psv:P577 [ wikibase:timeValue ?time ; wikibase:timePrecision ?prec ] .
     FILTER NOT EXISTS { ?s wikibase:rank wikibase:DeprecatedRank }
@@ -178,7 +198,7 @@ const dateRows = await sparql(`
 
 const companyStatement = (prop) => `
   SELECT DISTINCT ?game ?s ?company ?place ?plat ?part WHERE {
-    ${PS1_GAMES}
+    ${GAMES}
     ?game p:${prop} ?s . ?s ps:${prop} ?company .
     FILTER NOT EXISTS { ?s wikibase:rank wikibase:DeprecatedRank }
     OPTIONAL { ?s pq:P291|pq:P3005|pq:P1001 ?place }
@@ -188,8 +208,8 @@ const companyStatement = (prop) => `
 const publisherRows = await sparql(companyStatement('P123'), 'éditeurs');
 const developerRows = await sparql(companyStatement('P178'), 'développeurs');
 
-const genreRows = await sparql(`SELECT DISTINCT ?game ?genre WHERE { ${PS1_GAMES} ?game wdt:P136 ?genre . }`, 'genres');
-const seriesRows = await sparql(`SELECT DISTINCT ?game ?series WHERE { ${PS1_GAMES} ?game wdt:P179 ?series . }`, 'séries');
+const genreRows = await sparql(`SELECT DISTINCT ?game ?genre WHERE { ${GAMES} ?game wdt:P136 ?genre . }`, 'genres');
+const seriesRows = await sparql(`SELECT DISTINCT ?game ?series WHERE { ${GAMES} ?game wdt:P179 ?series . }`, 'séries');
 
 // Libellés et codes pays des entités liées (sociétés, genres, séries, lieux)
 async function describe(qids, label) {
@@ -242,10 +262,66 @@ for (const r of gameRows) {
   const q = qid(r.game);
   const title = (r.en ?? r.mul ?? r.fr ?? r.ja)?.trim();
   if (!title) { stats.sansTitre++; continue; }
-  games.set(q, { qid: q, title, ja: r.ja?.trim(), en: (r.en ?? r.mul)?.trim(), firstRelease: null, regions: new Map() });
+  const labels = [...(games.get(q)?.labels ?? []), r.en, r.mul, r.fr, r.ja].filter(Boolean).map((l) => l.trim());
+  games.set(q, { qid: q, title, ja: r.ja?.trim(), en: (r.en ?? r.mul)?.trim(), labels, firstRelease: null, regions: new Map() });
 }
 
-// Dates : première sortie de l'œuvre + dates PS1 par région
+// Jeux confirmés (PS2) : Wikidata range aussi sous la console des jeux annulés (« 100 Bullets »),
+// des erreurs, ou des jeux d'arcade sortis seulement dans une compilation. On ne garde que
+// ceux que la liste Wikipédia de la console cite (lien vers leur article, ou même titre) ou
+// dont Redump a un disque du même titre. Les autres sont écrits dans exports/, à relire.
+const unconfirmed = [];
+if (CONSOLE.confirmWikidata) {
+  console.log('Confirmation par la liste Wikipédia et par Redump…');
+  const listLinks = new Set();
+  const listTitles = new Set();
+  for (const page of CONSOLE.wikipediaPages) {
+    const url = `https://en.wikipedia.org/w/api.php?${new URLSearchParams({ action: 'query', prop: 'revisions', rvprop: 'content', rvslots: 'main', titles: page, format: 'json', formatversion: '2' })}`;
+    const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT } });
+    if (!res.ok) throw new Error(`Wikipédia : ${res.status} pour « ${page} »`);
+    const text = (await res.json()).query.pages[0].revisions[0].slots.main.content;
+    const start = text.indexOf('id="softwarelist"');
+    const table = text.slice(start, text.indexOf('\n|}', start));
+    for (const m of table.matchAll(/\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|[^\]]*)?\]\]/g)) listLinks.add(articleKey(m[1]));
+    // Titres (en italique) et titres secondaires (« •Tsukiyo ni Saraba »)
+    for (const m of table.matchAll(/''([^\n]+?)''|•([^\n<{]+)/g)) {
+      for (const part of (m[1] ?? m[2]).split(/<br\s*\/?\s*>|•/i)) {
+        const key = normalizeTitle(plainText(part));
+        if (key) listTitles.add(key);
+      }
+    }
+  }
+  const datRes = await fetch(redumpDatUrl(CONSOLE), { headers: { 'User-Agent': USER_AGENT } });
+  if (!datRes.ok) throw new Error(`Redump : ${datRes.status}`);
+  // Disques vendus seulement : prototypes, démos et disques promotionnels ne confirment rien
+  const redumpTitles = new Set();
+  for (const m of (await datRes.text()).matchAll(/\n\tname "([^"]+)"/g)) {
+    const disc = parseName(m[1]);
+    if (disc) redumpTitles.add(disc.key);
+  }
+  const sitelinks = await sparql(`
+    SELECT ?game ?article WHERE {
+      ${GAMES}
+      ?article schema:about ?game ; schema:isPartOf <https://en.wikipedia.org/> .
+    }`, 'articles Wikipédia');
+  const articleOf = new Map(sitelinks.map((r) => [qid(r.game), articleKey(decodeURIComponent(r.article.split('/wiki/').pop()))]));
+  // Un même titre porté par plusieurs éléments Wikidata : le titre seul ne suffit plus
+  const holders = new Map();
+  for (const g of games.values()) {
+    for (const key of new Set(g.labels.map(normalizeTitle))) holders.set(key, (holders.get(key) ?? 0) + 1);
+  }
+  for (const g of [...games.values()]) {
+    const keys = [...new Set(g.labels.map(normalizeTitle))].filter(Boolean);
+    const linked = listLinks.has(articleOf.get(g.qid));
+    const byTitle = keys.some((k) => holders.get(k) === 1 && (listTitles.has(k) || redumpTitles.has(k)));
+    if (linked || byTitle) continue;
+    unconfirmed.push(g);
+    games.delete(g.qid);
+  }
+  console.log(`  ${games.size} jeux confirmés, ${unconfirmed.length} écartés (liste à relire dans exports/)`);
+}
+
+// Dates : première sortie de l'œuvre + dates sur la console, par région
 for (const s of dateStatements) {
   const game = games.get(s.game);
   const d = game && normDate(s.value, s.prec);
@@ -253,11 +329,11 @@ for (const s of dateStatements) {
 
   if (earlier(d, game.firstRelease)) game.firstRelease = d;
 
-  // Date valable pour la PS1 ? Oui si le qualificatif « plateforme » dit PS1,
-  // ou s'il n'y en a pas et que le jeu n'existe que sur PS1.
-  const forPs1 = s.platforms.has(PS1)
+  // Date valable pour la console ? Oui si le qualificatif « plateforme » la cite,
+  // ou s'il n'y en a pas et que le jeu n'existe que sur cette console.
+  const forConsole = s.platforms.has(PLATFORM)
     || (s.platforms.size === 0 && !s.hasPart && platformCount.get(s.game) === 1);
-  if (!forPs1) continue;
+  if (!forConsole) continue;
 
   for (const place of s.places) {
     const region = regionOf(place, places);
@@ -301,7 +377,7 @@ const usedCompanies = new Set();
 const gameDevelopers = new Set();
 for (const s of developerStatements) {
   if (!games.has(s.game) || s.hasPart) continue;
-  if (s.platforms.size > 0 && !s.platforms.has(PS1)) continue;
+  if (s.platforms.size > 0 && !s.platforms.has(PLATFORM)) continue;
   const c = qid(s.value);
   if (!companyName(c)) continue;
   gameDevelopers.add(`${s.game}|${c}`);
@@ -314,7 +390,7 @@ const releaseCompanies = new Set();
 const unqualified = new Map();
 for (const s of publisherStatements) {
   if (!games.has(s.game) || s.hasPart) continue;
-  if (s.platforms.size > 0 && !s.platforms.has(PS1)) continue;
+  if (s.platforms.size > 0 && !s.platforms.has(PLATFORM)) continue;
   const c = qid(s.value);
   if (!companyName(c)) continue;
   if (s.places.size > 0) {
@@ -370,9 +446,9 @@ const genreNames = new Set([...gameGenres].map((k) => k.split('|')[1]));
 
 console.log(`
 Bilan
-  Jeux                       ${games.size}  (${stats.sansTitre} ignorés faute de titre)
+  Jeux                       ${games.size}  (${stats.sansTitre} ignorés faute de titre${CONSOLE.confirmWikidata ? `, ${unconfirmed.length} non confirmés` : ''})
     avec date de 1re sortie  ${[...games.values()].filter((g) => g.firstRelease).length}
-  Sorties PS1                ${releases.length}  ${JSON.stringify(byZone)}
+  Sorties ${CONSOLE.code.padEnd(19)}${releases.length}  ${JSON.stringify(byZone)}
     dates par région         ${releaseRegions.length}
   Sociétés                   ${usedCompanies.size}
     liens développeur        ${gameDevelopers.size}
@@ -403,17 +479,20 @@ function insertValues(table, columns, rows) {
 }
 
 const now = new Date();
-const stamp = now.toISOString().replace(/\D/g, '').slice(0, 14);
-const file = join(import.meta.dirname, '..', 'supabase', 'migrations', `${stamp}_import_wikidata_ps1.sql`);
+const stamp = nextMigrationStamp(join(import.meta.dirname, '..'));
+const fileName = `${stamp}_import_wikidata_${CONSOLE.slug}.sql`;
+const file = join(import.meta.dirname, '..', 'supabase', 'migrations', fileName);
 
 const sql = `-- =====================================================================
--- Carte Mémoire · Import des jeux PS1 depuis Wikidata
+-- Carte Mémoire · Import des jeux ${CONSOLE.code} depuis Wikidata
 -- Fichier GÉNÉRÉ par scripts/import-wikidata.mjs le ${now.toISOString().slice(0, 10)} : ne pas modifier à la main.
 -- Données Wikidata sous licence CC0 (https://www.wikidata.org).
 --
--- ${games.size} jeux, ${releases.length} sorties PS1, ${usedCompanies.size} sociétés, ${genreNames.size} genres.
+-- ${games.size} jeux, ${releases.length} sorties ${CONSOLE.code}, ${usedCompanies.size} sociétés, ${genreNames.size} genres.
 -- Ré-exécutable sans risque : rien n'est dupliqué, et les sorties ne sont
--- créées que pour les jeux qui n'en ont encore aucune.
+-- créées que pour les jeux qui n'en ont encore aucune sur cette console.
+-- Un jeu déjà présent sur une autre console (même identifiant Wikidata)
+-- reçoit ses versions ${CONSOLE.code} ; il n'est jamais rapproché par son seul titre.
 -- =====================================================================
 
 
@@ -467,9 +546,32 @@ ${insertValues('import_release_company', ['game', 'zone', 'company'],
 -- ---------------------------------------------------------------------
 -- 3. Copie vers les vraies tables
 -- ---------------------------------------------------------------------
+-- Société déjà présente SANS identifiant Wikidata (import Wikipédia, saisie à la
+-- main) avec le même nom normalisé : on la relie au lieu d'en créer une seconde
+with candidate as (
+  select distinct on (i.wikidata_id) c.id, i.wikidata_id
+  from import_company i
+  join public.company c on c.wikidata_id is null and c.name_key = public.normalize_name(i.name)
+  where not exists (select 1 from public.company x where x.wikidata_id = i.wikidata_id)
+  order by i.wikidata_id,
+           (exists (select 1 from public.game_developer gd where gd.company_id = c.id)
+            or exists (select 1 from public.release_company rc where rc.company_id = c.id)) desc,
+           c.id
+), unique_link as (
+  select distinct on (id) id, wikidata_id from candidate order by id, wikidata_id
+)
+update public.company c set wikidata_id = u.wikidata_id
+from unique_link u
+where c.id = u.id;
+
 insert into public.company (name, country, wikidata_id)
 select name, country, wikidata_id from import_company
 on conflict (wikidata_id) do nothing;
+
+-- Pays : complété s'il manquait (il sert à l'origine des jeux)
+update public.company c set country = i.country
+from import_company i
+where c.wikidata_id = i.wikidata_id and c.country is null and i.country is not null;
 
 -- « on conflict do nothing » sans cible : ignore aussi un nom de genre déjà pris
 insert into public.genre (name, wikidata_id)
@@ -482,12 +584,18 @@ on conflict (wikidata_id) do nothing;
 
 -- Jeu déjà présent SANS identifiant Wikidata (ajouté par un autre import ou à la
 -- main) avec le même titre normalisé : on le relie au lieu de créer un doublon.
--- (Un seul jeu par identifiant, et un seul identifiant par jeu.)
+-- (Un seul jeu par identifiant, et un seul identifiant par jeu.) Jamais un jeu
+-- d'une autre console : deux jeux homonymes (« Spider-Man » PS1 de 2000 et PS2
+-- de 2002) sont souvent deux œuvres différentes.
 with candidate as (
   select distinct on (g.id) g.id, i.wikidata_id
   from import_game i
   join public.game g on g.wikidata_id is null and g.title_key = public.normalize_name(i.title)
   where not exists (select 1 from public.game x where x.wikidata_id = i.wikidata_id)
+    and not exists (
+      select 1 from public.release r join public.platform p on p.id = r.platform_id
+      where r.game_id = g.id and p.short_name <> '${CONSOLE.code}'
+    )
   order by g.id, i.wikidata_id
 ), unique_link as (
   select distinct on (wikidata_id) id, wikidata_id from candidate order by wikidata_id, id
@@ -527,20 +635,20 @@ join public.game g on g.wikidata_id = i.game
 join public.series s on s.wikidata_id = i.series
 on conflict do nothing;
 
--- Sorties : seulement pour les jeux qui n'en ont encore aucune
+-- Sorties : seulement pour les jeux qui n'en ont encore aucune sur cette console
 insert into public.release (game_id, platform_id, local_title, zone)
 select g.id, p.id, i.local_title, i.zone
 from import_release i
 join public.game g on g.wikidata_id = i.game
-cross join (select id from public.platform where short_name = 'PS1') p
-where not exists (select 1 from public.release r where r.game_id = g.id);
+cross join (select id from public.platform where short_name = '${CONSOLE.code}') p
+where not exists (select 1 from public.release r where r.game_id = g.id and r.platform_id = p.id);
 
 -- Dates et éditeurs : sur la sortie DE BASE de chaque zone uniquement (la plus
 -- ancienne en édition standard), jamais sur une réédition ou une version nationale
 create temporary table import_base_release as
 select distinct on (r.game_id, r.zone) r.id, r.game_id, r.zone
 from public.release r
-join public.platform p on p.id = r.platform_id and p.short_name = 'PS1'
+join public.platform p on p.id = r.platform_id and p.short_name = '${CONSOLE.code}'
 where r.edition_type = 'standard'
 order by r.game_id, r.zone, r.id;
 
@@ -570,4 +678,15 @@ drop table import_company, import_genre, import_series, import_game,
 `;
 
 writeFileSync(file, sql);
-console.log(`Migration écrite : supabase/migrations/${stamp}_import_wikidata_ps1.sql (${Math.round(sql.length / 1024)} Ko)`);
+console.log(`Migration écrite : supabase/migrations/${fileName} (${Math.round(sql.length / 1024)} Ko)`);
+
+// Jeux non confirmés : à relire (un vrai jeu absent de la liste Wikipédia s'ajoute
+// ensuite par « Proposer un jeu », ou en complétant la liste Wikipédia)
+if (unconfirmed.length) {
+  const cell = (v) => (/[;"\n]/.test(v ?? '') ? `"${String(v).replaceAll('"', '""')}"` : (v ?? ''));
+  const rows = [['wikidata_id', 'titre', 'titre_japon', 'lien_wikidata'],
+    ...unconfirmed.sort((a, b) => a.title.localeCompare(b.title, 'en')).map((g) => [g.qid, g.title, g.ja ?? '', `https://www.wikidata.org/wiki/${g.qid}`])];
+  const csv = join(import.meta.dirname, '..', 'exports', `${CONSOLE.slug}-wikidata-non-confirmes-${now.toISOString().slice(0, 10)}.csv`);
+  writeFileSync(csv, `﻿${rows.map((r) => r.map(cell).join(';')).join('\r\n')}\r\n`);
+  console.log(`Jeux non confirmés : ${csv.split(/[\\/]/).slice(-2).join('/')} (${unconfirmed.length})`);
+}

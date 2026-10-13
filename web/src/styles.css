@@ -354,6 +354,8 @@ ul.error { padding-left: 28px; }
 .badge-unknown, .badge-region_free { color: var(--muted); }
 .badge-edition { color: #e8eaf4; background: #0c0c10; border-color: #3a3a46; }
 .badge-language { color: #c9d3ff; border-color: var(--line); }
+/* Console (PS1, PS2…) : affichée seulement quand plusieurs consoles se côtoient */
+.badge-console { color: #dfe3f5; background: #1a1c27; border-color: #6b7194; letter-spacing: 0.03em; }
 .badge-platinum { color: #1b1d26; background: var(--platinum); border-color: #fff; }
 .badge-todo { color: #f1e2ae; border-color: var(--gold); }
 .badge-ok { color: #b5f3e1; border-color: var(--triangle); }

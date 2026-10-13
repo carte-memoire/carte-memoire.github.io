@@ -2,13 +2,14 @@ import { boxRegionName, editionLabel, formatDate, languagesShort, zoneLabel } fr
 import type { Release } from '../lib/types';
 import { tr } from '../lib/i18n';
 
-// Résumé d'une sortie : zone, édition, code produit, date
-export function ReleaseSummary({ release }: { release: Release }) {
+// Résumé d'une sortie : console (si le jeu en a plusieurs), zone, édition, code produit, date
+export function ReleaseSummary({ release, showPlatform = false }: { release: Release; showPlatform?: boolean }) {
   const firstDate = [...release.release_region]
     .filter((r) => r.release_date)
     .sort((a, b) => (a.release_date! < b.release_date! ? -1 : 1))[0];
   return (
     <span className="release-summary">
+      {showPlatform && <span className="badge badge-console">{release.platform.short_name}</span>}
       <span className={`badge badge-zone badge-${(release.zone ?? 'unknown').toLowerCase()}`}>{zoneLabel(release.zone)}</span>
       <span className={`badge ${release.edition_type === 'reissue' ? 'badge-platinum' : 'badge-edition'}`}>{editionLabel(release)}</span>
       {release.box_region

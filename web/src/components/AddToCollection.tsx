@@ -54,7 +54,9 @@ export function AddToCollection({ open, onClose, onSaved, initialReleaseId, edit
     setGame(g);
     const { data, error } = await supabase.from('release').select(RELEASE_FIELDS).eq('game_id', g.id);
     if (error) return setError(errorMessage(error));
-    const list = (data as unknown as Release[]).sort((a, b) => zoneOrder(a.zone) - zoneOrder(b.zone) || a.id - b.id);
+    // Console par console (PS1, puis PS2…), puis zone par zone
+    const list = (data as unknown as Release[]).sort((a, b) => (a.platform.launch_date ?? '').localeCompare(b.platform.launch_date ?? '')
+      || zoneOrder(a.zone) - zoneOrder(b.zone) || a.id - b.id);
     setReleases(list);
     if (list.length === 1) {
       setRelease(list[0]);
@@ -65,6 +67,8 @@ export function AddToCollection({ open, onClose, onSaved, initialReleaseId, edit
   }
 
   const title = editItem ? tr('Modifier cet exemplaire') : tr('Ajouter un jeu à ma collection');
+  // Jeu sorti sur plusieurs consoles : chaque version dit la sienne
+  const multiPlatform = new Set(releases.map((r) => r.platform.id)).size > 1;
 
   return (
     <Dialog open={open} onClose={onClose} title={title}>
@@ -86,10 +90,10 @@ export function AddToCollection({ open, onClose, onSaved, initialReleaseId, edit
             {releases.map((r) => (
               <li key={r.id}>
                 <button type="button" className="choice" onClick={() => { setRelease(r); setStep('details'); }}>
-                  <Cover images={r.image} title={r.local_title} size="small" standIn={standInFor(r, releases)} />
+                  <Cover images={r.image} title={r.local_title} size="small" standIn={standInFor(r, releases.filter((x) => x.platform.id === r.platform.id))} />
                   <span>
                     <span className="choice-title">{r.local_title}</span>
-                    <ReleaseSummary release={r} />
+                    <ReleaseSummary release={r} showPlatform={multiPlatform} />
                   </span>
                 </button>
               </li>
@@ -177,7 +181,7 @@ function ItemForm({ release, item, onBack, onSaved }: { release: Release; item: 
         <Cover images={release.image} title={release.local_title} size="small" />
         <span>
           <span className="choice-title">{release.local_title}</span>
-          <ReleaseSummary release={release} />
+          <ReleaseSummary release={release} showPlatform />
         </span>
       </div>
 

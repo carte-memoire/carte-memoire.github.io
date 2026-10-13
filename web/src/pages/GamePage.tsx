@@ -7,7 +7,7 @@ import { GAME_FIELDS } from '../lib/queries';
 import {
   boxRegionName, countryName, editionLabel, familyLabel, formatDate, languagesLong, languagesShort, speaksLanguage, zoneLabel, zoneOrder, genreName, regionName,
 } from '../lib/format';
-import { rememberedLanguage } from '../lib/preferences';
+import { rememberedLanguage, rememberedPlatform } from '../lib/preferences';
 import { describeSpecs } from '../lib/specs';
 import type { Game, ItemStatus, Release } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
@@ -111,7 +111,19 @@ export function GamePage() {
   const gameStats = popularity.find((p) => p.release_id === null);
   const statsOf = (r: Release) => popularity.find((p) => p.release_id === r.id);
   const codesOf = (r: Release) => barcodes.filter((b) => b.release_id === r.id).map((b) => b.barcode);
-  const heroImages = releases.find((r) => r.zone === 'PAL' && r.image.length)?.image ?? releases.find((r) => r.image.length)?.image ?? [];
+  // Un jeu sorti sur plusieurs consoles (PS1 et PS2…) : ses versions console par console,
+  // celle choisie dans le catalogue d'abord, puis par date de lancement
+  const preferredPlatform = rememberedPlatform();
+  const platforms = [...new Map(releases.map((r) => [r.platform.id, r.platform])).values()]
+    .sort((a, b) => Number(b.short_name === preferredPlatform) - Number(a.short_name === preferredPlatform)
+      || (a.launch_date ?? '').localeCompare(b.launch_date ?? '') || a.id - b.id);
+  const byPlatform = platforms.map((p) => ({ platform: p, releases: releases.filter((r) => r.platform.id === p.id) }));
+  // Jaquette provisoire : empruntée à une version de la même console seulement (une boîte
+  // PS1 n'aide pas à reconnaître la version PS2)
+  const samePlatform = (r: Release) => releases.filter((x) => x.platform.id === r.platform.id);
+  const heroPool = byPlatform[0]?.releases ?? releases;
+  const heroImages = heroPool.find((r) => r.zone === 'PAL' && r.image.length)?.image ?? heroPool.find((r) => r.image.length)?.image
+    ?? releases.find((r) => r.image.length)?.image ?? [];
   // Genres (avec leurs familles, cliquables vers le catalogue) et thèmes (sans famille)
   const genres = game.game_genre.map((g) => g.genre).filter((g) => g.families.length > 0);
   const themes = game.game_genre.map((g) => g.genre).filter((g) => g.families.length === 0);
@@ -166,6 +178,19 @@ export function GamePage() {
           <h1>{game.title}</h1>
           <dl className="facts">
             {game.first_release_date && (<><dt>{tr('Première sortie')}</dt><dd>{formatDate(game.first_release_date, game.first_release_precision)}</dd></>)}
+            {platforms.length > 1 && (
+              <>
+                <dt>{tr('Consoles')}</dt>
+                <dd>
+                  {platforms.map((p, i) => (
+                    <Fragment key={p.id}>
+                      {i > 0 && ', '}
+                      <a href={`#console-${p.short_name}`}>{p.name ?? p.short_name}</a>
+                    </Fragment>
+                  ))}
+                </dd>
+              </>
+            )}
             {game.game_developer.length > 0 && (
               <><dt>{tr('Développement')}</dt><dd><StudioLinks companies={game.game_developer.map((d) => d.company)} /></dd></>
             )}
@@ -263,83 +288,89 @@ export function GamePage() {
         </div>
       )}
 
-      <h2>{tr('Versions (')}{releases.length})</h2>
       {actionError && <p className="error">{actionError}</p>}
-      <ul className="release-list">
-        {releases.map((r) => (
-          <li key={r.id} id={`version-${r.id}`} className={r.id === focusId ? 'release-card panel is-focused' : 'release-card panel'}>
-            <Cover images={r.image} title={r.local_title} size="medium" standIn={standInFor(r, releases)} />
-            <div className="release-body">
-              <h3>{r.local_title}</h3>
-              <p className="release-badges">
-                <span className={`badge badge-zone badge-${(r.zone ?? 'unknown').toLowerCase()}`}>{zoneLabel(r.zone)}</span>
-                {countryOf(r) && <span className="badge">{countryOf(r)}</span>}
-                <span className={`badge ${r.edition_type === 'reissue' ? 'badge-platinum' : 'badge-edition'}`}>{editionLabel(r)}</span>
-                {r.box_region && <span className="badge badge-language" title={tr('Boîte imprimée pour ce pays')}>{tr('Boîte : ')}{boxRegionName(r.box_region.code)}</span>}
-                {r.languages.length > 0 && (
-                  <span className="badge badge-language" title={languagesLong(r.languages)}>
-                    {r.languages.length === 1 ? languagesLong(r.languages) : languagesShort(r.languages)}
-                  </span>
-                )}
-                {!r.product_code && <span className="badge badge-todo">{tr('À compléter')}</span>}
-                {copies(r) > 0 && <span className="badge badge-owned">{tr('✓ Dans ta collection')}{copies(r) > 1 ? tr(' (×{0})', copies(r)) : ''}</span>}
-                {wantedItem(r) && <span className="badge badge-trade">{tr('♥ Recherchée')}</span>}
-              </p>
-              <dl className="facts">
-                {r.product_code && (<><dt>{tr('Code produit')}</dt><dd className="code">{r.product_code}</dd></>)}
-                {r.release_region.length > 0 && (
-                  <><dt>{tr('Sortie')}</dt><dd>{r.release_region.map((rr) => `${regionName(rr.region)}${rr.release_date ? ` : ${formatDate(rr.release_date, rr.date_precision)}` : ''}`).join(' · ')}</dd></>
-                )}
-                {r.release_company.length > 0 && (
-                  <><dt>{tr('Éditeur')}</dt><dd><StudioLinks companies={r.release_company.map((c) => c.company)} /></dd></>
-                )}
-                {(statsOf(r)?.owners ?? 0) + (statsOf(r)?.seekers ?? 0) > 0 && (
-                  <><dt>{tr('Collectionneurs')}</dt><dd>{popularityText(statsOf(r)!.owners, statsOf(r)!.seekers)}</dd></>
-                )}
-                {codesOf(r).length > 0 && (
-                  <>
-                    <dt>{tr('Code-barres')}</dt>
-                    <dd>
-                      {codesOf(r).map((b) => (
-                        <span key={b} className="barcode-value">
-                          <span className="code">{formatBarcode(b)}</span>
-                          {isModerator && (
-                            <button type="button" className="link-button danger small" onClick={() => removeBarcode(r, b)} title={tr('Retirer ce code-barres (faux)')}>{tr('retirer')}</button>
-                          )}
-                        </span>
-                      ))}
-                    </dd>
-                  </>
-                )}
-                {r.languages.length > 0 && (
-                  <><dt>{tr('Langues')}</dt><dd>{languagesLong(r.languages)}</dd></>
-                )}
-                {r.media_count && r.media_count > 1 && (<><dt>{tr('Disques')}</dt><dd>{r.media_count}</dd></>)}
-                {describeSpecs(r.specs, r.platform.spec_fields).map((s) => (
-                  <Fragment key={s.label}><dt>{s.label}</dt><dd>{s.value}</dd></Fragment>
-                ))}
-              </dl>
-              <div className="actions">
-                {scanned && !codesOf(r).includes(scanned) && (
-                  <button type="button" className="button button-small button-primary" disabled={busy === r.id} onClick={() => associate(r)}>
-                    <PsSymbol shape="triangle" />{tr(" C'est ma version")}
-                  </button>
-                )}
-                <button type="button" className={copies(r) > 0 || scanned ? 'button button-small' : 'button button-small button-primary'} onClick={() => addToCollection(r)}>
-                  <PsSymbol shape="cross" /> {copies(r) > 0 ? tr('Ajouter un autre exemplaire') : tr('Ajouter à ma collection')}
-                </button>
-                {canTick && copies(r) === 0 && (
-                  <button type="button" className={wantedItem(r) ? 'wish-button active' : 'wish-button'} aria-pressed={Boolean(wantedItem(r))}
-                    disabled={busy === r.id} onClick={() => toggleWanted(r)}>
-                    {wantedItem(r) ? tr('♥ Recherchée') : tr('♡ Je la cherche')}
-                  </button>
-                )}
-                {copies(r) > 0 && <Link to="/collection" className="small">{tr('Voir ma collection')}</Link>}
-              </div>
-            </div>
-          </li>
-        ))}
-      </ul>
+      {byPlatform.map(({ platform, releases: list }) => (
+        <Fragment key={platform.id}>
+          <h2 id={`console-${platform.short_name}`}>
+            {byPlatform.length > 1 ? `${platform.name ?? platform.short_name} (${list.length})` : <>{tr('Versions (')}{list.length})</>}
+          </h2>
+          <ul className="release-list">
+            {list.map((r) => (
+              <li key={r.id} id={`version-${r.id}`} className={r.id === focusId ? 'release-card panel is-focused' : 'release-card panel'}>
+                <Cover images={r.image} title={r.local_title} size="medium" standIn={standInFor(r, samePlatform(r))} />
+                <div className="release-body">
+                  <h3>{r.local_title}</h3>
+                  <p className="release-badges">
+                    <span className={`badge badge-zone badge-${(r.zone ?? 'unknown').toLowerCase()}`}>{zoneLabel(r.zone)}</span>
+                    {countryOf(r) && <span className="badge">{countryOf(r)}</span>}
+                    <span className={`badge ${r.edition_type === 'reissue' ? 'badge-platinum' : 'badge-edition'}`}>{editionLabel(r)}</span>
+                    {r.box_region && <span className="badge badge-language" title={tr('Boîte imprimée pour ce pays')}>{tr('Boîte : ')}{boxRegionName(r.box_region.code)}</span>}
+                    {r.languages.length > 0 && (
+                      <span className="badge badge-language" title={languagesLong(r.languages)}>
+                        {r.languages.length === 1 ? languagesLong(r.languages) : languagesShort(r.languages)}
+                      </span>
+                    )}
+                    {!r.product_code && <span className="badge badge-todo">{tr('À compléter')}</span>}
+                    {copies(r) > 0 && <span className="badge badge-owned">{tr('✓ Dans ta collection')}{copies(r) > 1 ? tr(' (×{0})', copies(r)) : ''}</span>}
+                    {wantedItem(r) && <span className="badge badge-trade">{tr('♥ Recherchée')}</span>}
+                  </p>
+                  <dl className="facts">
+                    {r.product_code && (<><dt>{tr('Code produit')}</dt><dd className="code">{r.product_code}</dd></>)}
+                    {r.release_region.length > 0 && (
+                      <><dt>{tr('Sortie')}</dt><dd>{r.release_region.map((rr) => `${regionName(rr.region)}${rr.release_date ? ` : ${formatDate(rr.release_date, rr.date_precision)}` : ''}`).join(' · ')}</dd></>
+                    )}
+                    {r.release_company.length > 0 && (
+                      <><dt>{tr('Éditeur')}</dt><dd><StudioLinks companies={r.release_company.map((c) => c.company)} /></dd></>
+                    )}
+                    {(statsOf(r)?.owners ?? 0) + (statsOf(r)?.seekers ?? 0) > 0 && (
+                      <><dt>{tr('Collectionneurs')}</dt><dd>{popularityText(statsOf(r)!.owners, statsOf(r)!.seekers)}</dd></>
+                    )}
+                    {codesOf(r).length > 0 && (
+                      <>
+                        <dt>{tr('Code-barres')}</dt>
+                        <dd>
+                          {codesOf(r).map((b) => (
+                            <span key={b} className="barcode-value">
+                              <span className="code">{formatBarcode(b)}</span>
+                              {isModerator && (
+                                <button type="button" className="link-button danger small" onClick={() => removeBarcode(r, b)} title={tr('Retirer ce code-barres (faux)')}>{tr('retirer')}</button>
+                              )}
+                            </span>
+                          ))}
+                        </dd>
+                      </>
+                    )}
+                    {r.languages.length > 0 && (
+                      <><dt>{tr('Langues')}</dt><dd>{languagesLong(r.languages)}</dd></>
+                    )}
+                    {r.media_count && r.media_count > 1 && (<><dt>{tr('Disques')}</dt><dd>{r.media_count}</dd></>)}
+                    {describeSpecs(r.specs, r.platform.spec_fields).map((s) => (
+                      <Fragment key={s.label}><dt>{s.label}</dt><dd>{s.value}</dd></Fragment>
+                    ))}
+                  </dl>
+                  <div className="actions">
+                    {scanned && !codesOf(r).includes(scanned) && (
+                      <button type="button" className="button button-small button-primary" disabled={busy === r.id} onClick={() => associate(r)}>
+                        <PsSymbol shape="triangle" />{tr(" C'est ma version")}
+                      </button>
+                    )}
+                    <button type="button" className={copies(r) > 0 || scanned ? 'button button-small' : 'button button-small button-primary'} onClick={() => addToCollection(r)}>
+                      <PsSymbol shape="cross" /> {copies(r) > 0 ? tr('Ajouter un autre exemplaire') : tr('Ajouter à ma collection')}
+                    </button>
+                    {canTick && copies(r) === 0 && (
+                      <button type="button" className={wantedItem(r) ? 'wish-button active' : 'wish-button'} aria-pressed={Boolean(wantedItem(r))}
+                        disabled={busy === r.id} onClick={() => toggleWanted(r)}>
+                        {wantedItem(r) ? tr('♥ Recherchée') : tr('♡ Je la cherche')}
+                      </button>
+                    )}
+                    {copies(r) > 0 && <Link to="/collection" className="small">{tr('Voir ma collection')}</Link>}
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Fragment>
+      ))}
 
       {/* Contribuer : après les versions, l'essentiel pour qui consulte la fiche */}
       <section className="panel contribute">

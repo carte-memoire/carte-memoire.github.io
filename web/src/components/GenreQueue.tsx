@@ -11,7 +11,7 @@ import { Combobox } from './Combobox';
 import { Cover } from './Cover';
 import { PageSizeSelect, Pagination } from './Pagination';
 import { PsSymbol } from './PsSymbol';
-import { useKnownPlatform } from '../lib/usePlatforms';
+import { useKnownPlatform, usePlatforms } from '../lib/usePlatforms';
 import { tr } from '../lib/i18n';
 
 // Files de modération : 100 au plus par page (plafond des fonctions)
@@ -44,6 +44,8 @@ interface QueueRow {
 export function GenreQueue({ onCount }: { onCount: (n: number) => void }) {
   const platform = useKnownPlatform(rememberedPlatform());
   const platformCode = platform === ALL_PLATFORMS ? null : platform;
+  // Nom de la console pour la recherche sur le web (« PlayStation 2 »)
+  const consoleName = usePlatforms().find((p) => p.short_name === platformCode)?.name ?? 'PlayStation';
   const [genres, setGenres] = useState<Genre[]>([]);
   const [zone, setZone] = useState('');
   const [text, setText] = useState('');
@@ -134,7 +136,7 @@ export function GenreQueue({ onCount }: { onCount: (n: number) => void }) {
       {rows !== null && total === 0 && <p className="panel empty">{tr('Plus aucun jeu à classer ici. Bravo !')}</p>}
 
       <ul className="plain-list queue-list">
-        {visible.map((row) => <QueueCard key={row.id} row={row} genres={genres} onDone={(saved) => done(row.id, saved)} />)}
+        {visible.map((row) => <QueueCard key={row.id} row={row} consoleName={consoleName} genres={genres} onDone={(saved) => done(row.id, saved)} />)}
       </ul>
 
       <Pagination page={page} pages={pages} onChange={setPage} label={tr('Pages de la file')} />
@@ -142,14 +144,14 @@ export function GenreQueue({ onCount }: { onCount: (n: number) => void }) {
   );
 }
 
-function QueueCard({ row, genres, onDone }: { row: QueueRow; genres: Genre[]; onDone: (saved: boolean) => void }) {
+function QueueCard({ row, consoleName, genres, onDone }: { row: QueueRow; consoleName: string; genres: Genre[]; onDone: (saved: boolean) => void }) {
   const [chosen, setChosen] = useState<Genre[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const mainOf = (family: GenreFamily) => genres.find((g) => g.wikidata_id === MAIN_GENRE[family]);
   const has = (g: Genre | undefined) => Boolean(g && chosen.some((c) => c.id === g.id));
   const toggle = (g: Genre | undefined) => g && setChosen(has(g) ? chosen.filter((c) => c.id !== g.id) : [...chosen, g]);
-  const search = `https://www.google.com/search?q=${encodeURIComponent(tr('"{0}" PlayStation jeu genre', row.local_title ?? row.title))}`;
+  const search = `https://www.google.com/search?q=${encodeURIComponent(tr('"{0}" {1} jeu genre', row.local_title ?? row.title, consoleName))}`;
 
   async function save() {
     setBusy(true);

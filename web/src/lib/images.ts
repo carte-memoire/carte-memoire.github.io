@@ -85,6 +85,8 @@ export interface StandIn {
 // Une autre version du même jeu, dont on peut emprunter le recto
 export interface CoverSource {
   id: number;
+  // Console de la version : on n'emprunte que la jaquette d'une version de la même console
+  platform_id?: number;
   zone: Zone | null;
   edition_type: EditionType;
   image: ReleaseImage[];

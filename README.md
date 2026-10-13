@@ -51,10 +51,20 @@ Scripts dans `scripts/` (dépendances : `cd scripts && npm install`). Chacun éc
 
 | Script | Source | Contenu |
 |---|---|---|
-| `import-wikidata.mjs` | Wikidata (CC0) | Jeux PS1, développeurs, genres, séries, dates |
-| `import-wikipedia.mjs` | Wikipédia EN (CC BY-SA) | Liste complète des jeux PS1, versions par région, éditeurs |
+| `import-wikidata.mjs` | Wikidata (CC0) | Jeux d'une console, développeurs, genres, séries, dates |
+| `import-wikipedia.mjs` | Wikipédia EN (CC BY-SA) | Liste complète des jeux d'une console, versions par région, éditeurs |
 | `import-summaries.mjs` | Wikipédia FR (CC BY-SA) | Résumés (introduction des articles), avec lien source |
 | `import-covers.mjs` | libretro-thumbnails | Jaquettes (recto) |
+
+Les deux premiers prennent l'option `--console PS2` (sans option : la PlayStation ; consoles connues dans
+[`scripts/lib/consoles.mjs`](scripts/lib/consoles.mjs)). Un jeu sorti sur plusieurs consoles (même élément
+Wikidata) reste un seul jeu, avec ses versions de chaque console ; deux jeux de consoles différentes ne sont
+jamais rapprochés par leur seul titre.
+
+```bash
+node scripts/import-wikidata.mjs --console PS2
+node scripts/import-wikipedia.mjs --console PS2
+```
 
 Jaquettes, en trois temps :
 

@@ -139,7 +139,8 @@ function Frame() {
         <p>
           {tr('Catalogue publié sous licence')}{' '}
           <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.fr" target="_blank" rel="noopener noreferrer">{tr('CC BY-SA 4.0')}</a>{tr('. Données issues en partie de')}{' '}
-          <a href="https://en.wikipedia.org/wiki/List_of_PlayStation_(console)_games_(A%E2%80%93L)" target="_blank" rel="noopener noreferrer">{tr('Wikipédia')}</a>{' '}
+          {tr('Wikipédia')} (<a href="https://en.wikipedia.org/wiki/List_of_PlayStation_(console)_games_(A%E2%80%93L)" target="_blank" rel="noopener noreferrer">{tr('jeux PS1')}</a>,{' '}
+          <a href="https://en.wikipedia.org/wiki/List_of_PlayStation_2_games_(A%E2%80%93K)" target="_blank" rel="noopener noreferrer">{tr('jeux PS2')}</a>){' '}
           {tr('et de ')}<a href="https://www.wikidata.org" target="_blank" rel="noopener noreferrer">{tr('Wikidata')}</a>.
         </p>
         <p className="footer-note">

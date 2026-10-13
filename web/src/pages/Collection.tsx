@@ -21,6 +21,7 @@ import { useConfirm } from '../components/Confirm';
 import { Cover } from '../components/Cover';
 import { PageSizeSelect, Pagination } from '../components/Pagination';
 import { PsSymbol } from '../components/PsSymbol';
+import { usePlatforms } from '../lib/usePlatforms';
 import { tr } from '../lib/i18n';
 
 // L'API renvoie au plus 1 000 lignes par requête : on lit la collection par paquets
@@ -91,6 +92,8 @@ export function Collection() {
   // en revenant d'une fiche de jeu
   const tab: ItemStatus = params.get('onglet') === 'recherches' ? 'wanted' : 'owned';
   const zone = params.get('zone') ?? '';
+  // Console (PS1, PS2…) : le filtre n'apparaît que si la collection en mélange plusieurs
+  const platform = params.get('console') ?? '';
   const condition = params.get('etat') ?? '';
   const content = (CONTENTS.some((c) => c.value === params.get('contenu')) ? params.get('contenu') : '') as Content | '';
   const offer = params.get('echange') ?? '';
@@ -125,7 +128,8 @@ export function Collection() {
   }
 
   function standInOf(item: CollectionItem): StandIn | null {
-    return standInFor(item.release, siblings.get(item.release.game.id) ?? []);
+    const platformId = item.release.platform.id;
+    return standInFor(item.release, (siblings.get(item.release.game.id) ?? []).filter((s) => !platformId || s.platform_id === platformId));
   }
 
   function chooseView(value: CollectionView) {
@@ -162,7 +166,7 @@ export function Collection() {
     const found = new Map<number, CoverSource[]>();
     for (let i = 0; i < games.length; i += 200) {
       const { data } = await supabase.from('release')
-        .select('id, game_id, zone, edition_type, image!inner(id, type, path)')
+        .select('id, game_id, platform_id, zone, edition_type, image!inner(id, type, path)')
         .eq('image.type', 'front').in('game_id', games.slice(i, i + 200)).order('id');
       for (const row of (data ?? []) as (CoverSource & { game_id: number })[]) {
         found.set(row.game_id, [...(found.get(row.game_id) ?? []), row]);
@@ -197,12 +201,19 @@ export function Collection() {
 
   const owned = items.filter((i) => i.status === 'owned');
   const wanted = items.filter((i) => i.status === 'wanted');
+  // Consoles présentes dans la collection, avec leur nom complet (liste des consoles)
+  const platforms = usePlatforms();
+  const consoles = [...new Set(items.map((i) => i.release.platform.short_name))]
+    .map((code) => ({ code, name: platforms.find((p) => p.short_name === code)?.name ?? code }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'fr', { numeric: true }));
+  const multiPlatform = consoles.length > 1;
 
   const shown = useMemo(() => {
     const key = searchKey(text);
     const list = (tab === 'owned' ? owned : wanted).filter((item) => {
       const r = item.release;
       if (key && ![r.local_title, r.game.title, r.product_code ?? ''].some((t) => searchKey(t).includes(key))) return false;
+      if (platform && r.platform.short_name !== platform) return false;
       if (zone && r.zone !== zone) return false;
       if (tab === 'wanted') return true;
       if (condition && (condition === UNKNOWN_CONDITION ? item.condition !== null : item.condition !== condition)) return false;
@@ -212,10 +223,10 @@ export function Collection() {
     });
     const compare = COMPARE[sort];
     return compare ? [...list].sort(compare) : list;
-  }, [items, tab, text, zone, condition, content, offer, sort]);
+  }, [items, tab, text, platform, zone, condition, content, offer, sort]);
 
   const total = tab === 'owned' ? owned.length : wanted.length;
-  const filtered = Boolean(text || zone || (tab === 'owned' && (condition || content || offer)));
+  const filtered = Boolean(text || platform || zone || (tab === 'owned' && (condition || content || offer)));
   const pages = pageSize === 0 ? 1 : Math.max(1, Math.ceil(shown.length / pageSize));
   // Page au-delà de la dernière (exemplaires retirés, filtre plus strict) : la dernière
   const current = Math.min(page, pages);
@@ -264,6 +275,15 @@ export function Collection() {
               <span className="field-label">{tr('Rechercher')}</span>
               <input type="search" value={text} onChange={(e) => { setText(e.target.value); update({ q: e.target.value }); }} placeholder={tr('Titre ou code produit')} maxLength={120} autoComplete="off" />
             </label>
+            {(multiPlatform || platform) && (
+              <label className="field">
+                <span className="field-label">{tr('Console')}</span>
+                <select value={platform} onChange={(e) => update({ console: e.target.value })}>
+                  <option value="">{tr('Toutes')}</option>
+                  {consoles.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
+                </select>
+              </label>
+            )}
             <label className="field">
               <span className="field-label">{tr('Zone')}</span>
               <select value={zone} onChange={(e) => update({ zone: e.target.value })}>
@@ -309,7 +329,7 @@ export function Collection() {
               {filtered ? `${formatNumber(shown.length)} sur ${formatNumber(total)}` : formatNumber(total)} {noun(tab, total)}
               {pages > 1 && tr(' · page {0} sur {1}', current, pages)}
               {filtered && (
-                <> · <button type="button" className="link-button" onClick={() => { setText(''); update({ q: null, zone: null, etat: null, contenu: null, echange: null }); }}>{tr('effacer les filtres')}</button></>
+                <> · <button type="button" className="link-button" onClick={() => { setText(''); update({ q: null, console: null, zone: null, etat: null, contenu: null, echange: null }); }}>{tr('effacer les filtres')}</button></>
               )}
             </p>
             <div className="list-tools">
@@ -337,13 +357,13 @@ export function Collection() {
       {view === 'list' ? (
         <ul className="memory-card">
           {visible.map((item) => (
-            <ItemBlock key={item.id} item={item} standIn={standInOf(item)} onEdit={() => setDialog({ open: true, item })} onRemove={() => remove(item)} />
+            <ItemBlock key={item.id} item={item} showPlatform={multiPlatform} standIn={standInOf(item)} onEdit={() => setDialog({ open: true, item })} onRemove={() => remove(item)} />
           ))}
         </ul>
       ) : (
         <ul className="cover-grid">
           {visible.map((item) => (
-            <ItemTile key={item.id} item={item} standIn={standInOf(item)} onEdit={() => setDialog({ open: true, item })} />
+            <ItemTile key={item.id} item={item} showPlatform={multiPlatform} standIn={standInOf(item)} onEdit={() => setDialog({ open: true, item })} />
           ))}
         </ul>
       )}
@@ -364,7 +384,7 @@ export function Collection() {
 }
 
 // Vue en liste : tous les détails de l'exemplaire
-function ItemBlock({ item, standIn, onEdit, onRemove }: { item: CollectionItem; standIn: StandIn | null; onEdit: () => void; onRemove: () => void }) {
+function ItemBlock({ item, showPlatform, standIn, onEdit, onRemove }: { item: CollectionItem; showPlatform: boolean; standIn: StandIn | null; onEdit: () => void; onRemove: () => void }) {
   const r = item.release;
   const complete = item.has_box && item.has_manual && item.has_media;
   return (
@@ -373,6 +393,7 @@ function ItemBlock({ item, standIn, onEdit, onRemove }: { item: CollectionItem; 
       <div className="block-body">
         <Link to={gamePath(r.game)} className="block-title">{r.local_title}</Link>
         <p className="block-badges">
+          {showPlatform && <span className="badge badge-console">{r.platform.short_name}</span>}
           <span className={`badge badge-zone badge-${(r.zone ?? 'unknown').toLowerCase()}`}>{zoneLabel(r.zone)}</span>
           <span className={`badge ${r.edition_type === 'reissue' ? 'badge-platinum' : 'badge-edition'}`}>{editionLabel(r)}</span>
           {r.box_region
@@ -401,7 +422,7 @@ function ItemBlock({ item, standIn, onEdit, onRemove }: { item: CollectionItem; 
 }
 
 // Vue en grille : la jaquette d'abord, comme une étagère
-function ItemTile({ item, standIn, onEdit }: { item: CollectionItem; standIn: StandIn | null; onEdit: () => void }) {
+function ItemTile({ item, showPlatform, standIn, onEdit }: { item: CollectionItem; showPlatform: boolean; standIn: StandIn | null; onEdit: () => void }) {
   const r = item.release;
   const complete = item.has_box && item.has_manual && item.has_media;
   return (
@@ -411,7 +432,7 @@ function ItemTile({ item, standIn, onEdit }: { item: CollectionItem; standIn: St
         <span className="cover-tile-title">{r.local_title}</span>
       </Link>
       <span className="cover-tile-meta">
-        {r.zone ?? '?'} · {editionLabel(r)}{r.languages.length > 0 && <span title={languagesLong(r.languages)}> · {languagesShort(r.languages)}</span>}
+        {showPlatform && `${r.platform.short_name} · `}{r.zone ?? '?'} · {editionLabel(r)}{r.languages.length > 0 && <span title={languagesLong(r.languages)}> · {languagesShort(r.languages)}</span>}
         {item.status === 'owned' && complete && <span className="cover-tile-complete" title={tr('Complet (boîte, notice, disque)')}>{tr(' · Complet')}</span>}
       </span>
       {(item.condition || item.trade_status) && (

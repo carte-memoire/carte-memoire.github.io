@@ -4,10 +4,10 @@ import { supabase } from '../lib/supabase';
 import {
   ACQUISITIONS, CATALOG_ZONES, ORIGINS, familyOriginLabel, formatNumber, formatPercent, formatPrice, gamePath, originParam, type Origin,
 } from '../lib/format';
-import { ALL_PLATFORMS, ALL_ZONES, rememberZone, rememberedPlatform, rememberedZone } from '../lib/preferences';
+import { ALL_PLATFORMS, ALL_ZONES, rememberPlatform, rememberZone, rememberedPlatform, rememberedZone } from '../lib/preferences';
 import type { CollectionItem, ProgressRow, Zone } from '../lib/types';
 import { MemoryBar } from './MemoryBar';
-import { useKnownPlatform } from '../lib/usePlatforms';
+import { useKnownPlatform, usePlatforms } from '../lib/usePlatforms';
 import { tr } from '../lib/i18n';
 
 function initialZone(): string {
@@ -18,8 +18,13 @@ function initialZone(): string {
 // En haut de « Ma collection » : jeux possédés sur jeux existants (par zone et
 // par genre), et quelques chiffres sur les exemplaires de la même sélection
 export function CollectionProgress({ items }: { items: CollectionItem[] }) {
-  const platform = useKnownPlatform(rememberedPlatform());
+  // Console : celle du catalogue, sinon celle choisie ici (et retenue pour le catalogue)
+  const [chosenPlatform, setChosenPlatform] = useState<string | null>(null);
+  const rememberedConsole = useKnownPlatform(rememberedPlatform());
+  const platform = chosenPlatform ?? rememberedConsole;
   const platformCode = platform === ALL_PLATFORMS ? null : platform;
+  // Le choix de la console n'apparaît que lorsque plusieurs consoles ont des jeux
+  const withGames = usePlatforms().filter((p) => p.game_count > 0);
   const [zone, setZone] = useState(initialZone);
   const zoneCode = zone === ALL_ZONES ? null : (zone as Zone);
   const [rows, setRows] = useState<ProgressRow[]>([]);
@@ -56,6 +61,11 @@ export function CollectionProgress({ items }: { items: CollectionItem[] }) {
   function choose(value: string) {
     rememberZone(value);
     setZone(value);
+  }
+
+  function choosePlatform(value: string) {
+    rememberPlatform(value);
+    setChosenPlatform(value);
   }
 
   const main = rows.find((r) => r.scope === 'zone' && r.code === (zoneCode ?? 'all'));
@@ -99,6 +109,16 @@ export function CollectionProgress({ items }: { items: CollectionItem[] }) {
     <section className="panel progress-panel" aria-labelledby="progress-title">
       <div className="progress-head">
         <h2 id="progress-title">{tr('Progression')}</h2>
+        {withGames.length > 1 && (
+          <div className="zone-switch" role="group" aria-label={tr('Console')}>
+            {[...withGames.map((p) => ({ value: p.short_name, label: p.short_name, title: p.name })), { value: ALL_PLATFORMS, label: tr('Toutes'), title: tr('Toutes les consoles') }].map((p) => (
+              <button key={p.value} type="button" className={platform === p.value ? 'zone-option active' : 'zone-option'} aria-pressed={platform === p.value}
+                title={p.title} onClick={() => choosePlatform(p.value)}>
+                {p.label}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="zone-switch" role="group" aria-label={tr('Région')}>
           {[...CATALOG_ZONES.map((z) => ({ value: z.value as string, label: z.short })), { value: ALL_ZONES, label: tr('Toutes') }].map((z) => (
             <button key={z.value} type="button" className={zone === z.value ? 'zone-option active' : 'zone-option'} aria-pressed={zone === z.value} onClick={() => choose(z.value)}>
