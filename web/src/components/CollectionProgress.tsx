@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import {
-  CATALOG_ZONES, ORIGINS, familyOriginLabel, formatNumber, formatPercent, formatPrice, originParam, type Origin,
+  ACQUISITIONS, CATALOG_ZONES, ORIGINS, familyOriginLabel, formatNumber, formatPercent, formatPrice, gamePath, originParam, type Origin,
 } from '../lib/format';
 import { ALL_PLATFORMS, ALL_ZONES, rememberZone, rememberedPlatform, rememberedZone } from '../lib/preferences';
 import type { CollectionItem, ProgressRow, Zone } from '../lib/types';
@@ -25,6 +25,9 @@ export function CollectionProgress({ items }: { items: CollectionItem[] }) {
   // Genres d'une seule origine (studios japonais : les RPG deviennent les JRPG)
   const [origin, setOrigin] = useState<Origin | null>(null);
   const [originRows, setOriginRows] = useState<ProgressRow[]>([]);
+  // Séries commencées (au moins un jeu possédé)
+  const [series, setSeries] = useState<{ series_id: number; name: string; total: number; owned: number }[]>([]);
+  const [allSeries, setAllSeries] = useState(false);
 
   // Relue quand la collection change (ajout, retrait…)
   useEffect(() => {
@@ -41,6 +44,13 @@ export function CollectionProgress({ items }: { items: CollectionItem[] }) {
       .then(({ data }) => { if (active) setOriginRows((data as ProgressRow[]) ?? []); });
     return () => { active = false; };
   }, [platformCode, zoneCode, origin, items]);
+
+  useEffect(() => {
+    let active = true;
+    supabase.rpc('collection_series_progress', { platform_code: platformCode, zone_code: zoneCode })
+      .then(({ data, error }) => { if (active && !error) setSeries((data as typeof series | null) ?? []); });
+    return () => { active = false; };
+  }, [platformCode, zoneCode, items]);
 
   function choose(value: string) {
     rememberZone(value);
@@ -63,6 +73,24 @@ export function CollectionProgress({ items }: { items: CollectionItem[] }) {
   const sealed = owned.filter((i) => i.condition === 'sealed').length;
   const spent = owned.reduce((sum, i) => sum + (i.purchase_price ?? 0), 0);
   const offered = owned.filter((i) => i.trade_status).length;
+
+  // Dépenses : exemplaires dont le prix est noté
+  const priced = owned.filter((i) => i.purchase_price !== null);
+  const average = priced.length ? spent / priced.length : 0;
+  const priciest = [...priced].sort((a, b) => (b.purchase_price ?? 0) - (a.purchase_price ?? 0)).slice(0, 3);
+  const years = new Map<string, { sum: number; count: number }>();
+  for (const i of priced) {
+    const year = i.purchase_date?.slice(0, 4) ?? 'Date inconnue';
+    const y = years.get(year) ?? { sum: 0, count: 0 };
+    years.set(year, { sum: y.sum + (i.purchase_price ?? 0), count: y.count + 1 });
+  }
+  const byYear = [...years].sort(([a], [b]) => (a === 'Date inconnue' ? 1 : b === 'Date inconnue' ? -1 : b.localeCompare(a)));
+  const maxYear = Math.max(1, ...byYear.map(([, y]) => y.sum));
+  const byAcquisition = ACQUISITIONS.map((a) => {
+    const list = priced.filter((i) => i.acquisition === a.value);
+    return { label: a.label, count: list.length, sum: list.reduce((n, i) => n + (i.purchase_price ?? 0), 0) };
+  }).filter((a) => a.count > 0);
+  const shownSeries = allSeries ? series : series.slice(0, 8);
 
   const catalogLink = (filters: Record<string, string>) => `/catalogue?${new URLSearchParams({ zone, ...filters })}`;
 
@@ -100,6 +128,76 @@ export function CollectionProgress({ items }: { items: CollectionItem[] }) {
         <div><dt>À échanger ou vendre</dt><dd>{formatNumber(offered)}</dd></div>
         <div><dt>Dépensé</dt><dd>{formatPrice(spent)}</dd></div>
       </dl>
+
+      {series.length > 0 && (
+        <>
+          <h3>Par série</h3>
+          <ul className="family-list">
+            {shownSeries.map((s) => (
+              <li key={s.series_id}>
+                <Link to={catalogLink({ serie: String(s.series_id) })} className="family-row">
+                  <span className="family-name">{s.name}</span>
+                  <span className="family-count">{formatNumber(s.owned)} / {formatNumber(s.total)}</span>
+                  <MemoryBar size="small" owned={s.owned} total={s.total} label={`${s.name} : jeux possédés`} />
+                </Link>
+              </li>
+            ))}
+          </ul>
+          {series.length > 8 && (
+            <button type="button" className="link-button small" onClick={() => setAllSeries((v) => !v)}>
+              {allSeries ? 'Moins de séries' : `Voir les ${formatNumber(series.length)} séries commencées`}
+            </button>
+          )}
+        </>
+      )}
+
+      {priced.length > 0 && (
+        <div className="spending">
+          <h3>Dépenses</h3>
+          <dl className="progress-stats">
+            <div><dt>Total payé</dt><dd>{formatPrice(spent)}</dd></div>
+            <div><dt>Prix moyen</dt><dd>{formatPrice(Math.round(average * 100) / 100)}</dd></div>
+            <div><dt>Avec un prix noté</dt><dd>{formatNumber(priced.length)} / {formatNumber(owned.length)}</dd></div>
+          </dl>
+          <div className="spending-grid">
+            <div>
+              <h4>Par année d'achat</h4>
+              <ul className="bar-list">
+                {byYear.map(([year, y]) => (
+                  <li key={year} title={`${year} : ${formatPrice(y.sum)} pour ${y.count} exemplaire${y.count > 1 ? 's' : ''}`}>
+                    <span className="bar-label">{year}</span>
+                    <span className="bar-track" aria-hidden="true"><span className="bar-fill" style={{ width: `${Math.max(2, (y.sum / maxYear) * 100)}%` }} /></span>
+                    <span className="bar-value">{formatPrice(y.sum)} <span className="muted">· {y.count}</span></span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h4>Les plus chers</h4>
+              <ol className="priciest">
+                {priciest.map((i) => (
+                  <li key={i.id}>
+                    <Link to={gamePath(i.release.game)}>{i.release.local_title}</Link> <span className="muted">· {formatPrice(i.purchase_price)}</span>
+                  </li>
+                ))}
+              </ol>
+              {byAcquisition.length > 0 && (
+                <>
+                  <h4>Selon l'achat</h4>
+                  <ul className="plain-list small">
+                    {byAcquisition.map((a) => (
+                      <li key={a.label}>{a.label} : {formatPrice(a.sum)} <span className="muted">({formatNumber(a.count)})</span></li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </div>
+          </div>
+          {priced.length < owned.length && (
+            <p className="hint">Les exemplaires sans prix ne sont pas comptés : ajoute le prix payé dans « Modifier » pour des chiffres complets.</p>
+          )}
+        </div>
+      )}
 
       {(families.length > 0 || origin) && (
         <>

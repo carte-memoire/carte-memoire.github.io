@@ -101,7 +101,16 @@ export function Privacy() {
         <li>
           <strong>Ta collection</strong> : jeux possédés ou recherchés et leurs détails (état, prix, lieu d'achat, notes). Pour
           faire fonctionner ta collection. Elle est privée par défaut : personne d'autre ne la voit, à moins que tu la rendes
-          publique.
+          publique. Même publique, sa page ne montre que les jeux, leur état, leur contenu et ce que tu proposes à l'échange :
+          jamais les prix, les lieux et dates d'achat, ni tes notes.
+        </li>
+        <li>
+          <strong>Statistiques anonymes</strong> : sur la fiche d'un jeu, le nombre de membres qui le possèdent ou le
+          recherchent (collections privées comprises). Seulement des totaux, jamais qui.
+        </li>
+        <li>
+          <strong>Codes-barres</strong> : quand tu associes le code-barres d'une boîte à sa version, le code est public ; ton
+          pseudo n'est visible que des modérateurs (historique des modifications).
         </li>
         <li>
           <strong>Tes contributions</strong> : propositions, signalements, modifications du catalogue, avec ton pseudo. Pour

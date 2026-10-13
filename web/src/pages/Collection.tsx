@@ -229,6 +229,7 @@ export function Collection() {
           <p className="muted">
             {profile?.public_collection ? 'Visible par tout le monde' : 'Privée (visible par toi seul)'} ·{' '}
             <Link to="/compte">changer</Link>
+            {profile && <> · <Link to={`/membre/${encodeURIComponent(profile.username)}`}>{profile.public_collection ? 'voir et partager ma page publique' : 'voir ma page publique'}</Link></>}
           </p>
         </div>
         <div className="actions">

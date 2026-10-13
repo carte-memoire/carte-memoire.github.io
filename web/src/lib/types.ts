@@ -86,6 +86,7 @@ export interface Game {
   first_release_date: string | null;
   first_release_precision: DatePrecision | null;
   game_developer: { company: { id: number; name: string } }[];
+  game_series: { series: { id: number; name: string } }[];
   genres_reviewed: boolean;
   game_genre: { genre: GenreInfo }[];
   release: Release[];

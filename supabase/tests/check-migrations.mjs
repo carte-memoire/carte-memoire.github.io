@@ -153,7 +153,9 @@ await ko('membre ne peut pas remplir la collection d\'un autre', en(MEMBRE, `ins
 await egal('collection privée : invisible pour les autres membres', lignes(en(AUTRE, `select count(*)::int as n from public.collection_item`)), [{ n: 0 }]);
 await egal('collection privée : invisible pour les visiteurs', lignes(en(null, `select count(*)::int as n from public.collection_item`)), [{ n: 0 }]);
 await ok('membre rend sa collection publique', en(MEMBRE, `update public.profile set public_collection = true where id = $1`, [MEMBRE]));
-await egal('collection publique : visible par les visiteurs', lignes(en(null, `select count(*)::int as n from public.collection_item`)), [{ n: 2 }]);
+await egal('collection publique : la table ne montre rien aux visiteurs (prix, notes…)', lignes(en(null, `select count(*)::int as n from public.collection_item`)), [{ n: 0 }]);
+await egal('…et aux autres membres', lignes(en(AUTRE, `select count(*)::int as n from public.collection_item`)), [{ n: 0 }]);
+await egal('…la page publique montre ses 2 exemplaires', lignes(en(null, `select count(*)::int as n from public.public_collection((select username from public.profile where id = $1))`, [MEMBRE])), [{ n: 2 }]);
 await ko('une sortie possédée ne peut pas être supprimée', en(ADMIN, `delete from public.release where id = $1`, [ff7fr]), 'foreign key');
 
 console.log('\nPropositions');
@@ -349,9 +351,9 @@ await ok('…et marque le jeu comme revu', en(ADMIN, `update public.game set gen
 const catalogue = (uid, a = {}) => lignes(en(uid, `
   select * from public.catalog_games(platform_code => $1, zone_code => $2, first_letter => $3, family_code => $4, release_year => $5,
                                      ownership => $6, search => $7, sort_by => $8, page_number => $9, page_size => $10,
-                                     origin_filter => $11, company_filter => $12)`,
+                                     origin_filter => $11, company_filter => $12, series_filter => $13)`,
   [a.console === undefined ? 'PS1' : a.console, a.zone ?? null, a.letter ?? null, a.family ?? null, a.year ?? null,
-   a.ownership ?? null, a.search ?? null, a.sort ?? 'title', a.page ?? 1, a.size ?? 50, a.origin ?? null, a.studio ?? null]));
+   a.ownership ?? null, a.search ?? null, a.sort ?? 'title', a.page ?? 1, a.size ?? 50, a.origin ?? null, a.studio ?? null, a.series ?? null]));
 const ff7 = (rows) => rows.find((r) => r.id === jeu);
 const sansAccent = (t) => t.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 const totalPal = (await val(`select count(distinct game_id)::int as n from public.release where zone = 'PAL' and platform_id = $1`, [ps1]))[0].n;
@@ -706,6 +708,44 @@ let limite = (await val(`select count(*)::int as n from public.release_barcode w
 for (let i = 0; limite < 100; i++, limite++) await en(SIMPLE, `select public.add_release_barcode($1, $2)`, [ff7fr, ean13(String(600000000000 + i))]);
 await ko('101e code de la journée : refusé', en(SIMPLE, `select public.add_release_barcode($1, $2)`, [ff7fr, ean13('700000000000')]), 'Limite atteinte');
 await ok('nettoyage des codes de test', db.query(`delete from public.release_barcode where release_id = $1`, [ff7fr]));
+
+console.log('\nCollections publiques : seules les colonnes sûres');
+const pseudo = (await val(`select username from public.profile where id = $1`, [MEMBRE]))[0].username;
+await ok('la collection du membre est publique', db.query(`update public.profile set public_collection = true where id = $1`, [MEMBRE]));
+await egal('un visiteur ne lit aucune ligne de la table des collections', lignes(en(null, `select count(*)::int as n from public.collection_item`)), [{ n: 0 }]);
+await egal('un autre membre non plus (prix, lieux, notes restent privés)', lignes(en(AUTRE, `select count(*)::int as n from public.collection_item where profile_id = $1`, [MEMBRE])), [{ n: 0 }]);
+await egal('la page publique montre ses exemplaires', lignes(en(null, `select count(*)::int as n from public.public_collection($1)`, [pseudo])).then((r) => r[0].n > 0), true);
+await ko('…sans le prix payé', en(null, `select purchase_price from public.public_collection($1)`, [pseudo]), 'does not exist');
+await ko('…ni les notes', en(null, `select notes from public.public_collection($1)`, [pseudo]), 'does not exist');
+await egal('…pseudo trouvé quelle que soit la casse', lignes(en(null, `select count(*)::int as n from public.public_collection($1)`, [pseudo.toUpperCase()])).then((r) => r[0].n > 0), true);
+await egal('…avec la jaquette et l\'état', lignes(en(null, `select local_title, zone, condition from public.public_collection($1) where release_id = $2 limit 1`, [pseudo, ff7fr])),
+  [{ local_title: 'Final Fantasy VII', zone: 'PAL', condition: 'good' }]);
+await egal('profil public : ses chiffres', lignes(en(null, `select is_public, is_me, owned_games >= 1 as a, owned_copies >= 2 as b from public.public_profile($1)`, [pseudo])),
+  [{ is_public: true, is_me: false, a: true, b: true }]);
+await egal('…« c\'est moi » pour le propriétaire', lignes(en(MEMBRE, `select is_me from public.public_profile($1)`, [pseudo])), [{ is_me: true }]);
+await ok('la collection redevient privée', db.query(`update public.profile set public_collection = false where id = $1`, [MEMBRE]));
+await egal('collection privée : page publique vide', lignes(en(null, `select count(*)::int as n from public.public_collection($1)`, [pseudo])), [{ n: 0 }]);
+await egal('…le profil existe, sans aucun chiffre', lignes(en(AUTRE, `select is_public, owned_games, wanted_games from public.public_profile($1)`, [pseudo])),
+  [{ is_public: false, owned_games: null, wanted_games: null }]);
+await egal('…son propriétaire voit quand même sa page', lignes(en(MEMBRE, `select count(*)::int as n from public.public_collection($1)`, [pseudo])).then((r) => r[0].n > 0), true);
+await egal('membre inconnu : rien', lignes(en(null, `select * from public.public_profile('personne_ici')`)), []);
+await ok('la collection redevient publique', db.query(`update public.profile set public_collection = true where id = $1`, [MEMBRE]));
+
+console.log('\nSéries : catalogue filtré, résumé, progression');
+const serie = (await en(ADMIN, `insert into public.series (name) values ('Série Test') returning id`)).rows[0].id;
+await ok('FF7 de test dans la série', en(ADMIN, `insert into public.game_series (game_id, series_id) values ($1, $2)`, [jeu, serie]));
+await ok('…et un autre jeu PAL', en(ADMIN, `insert into public.game_series (game_id, series_id) values ($1, $2)`, [unAutrePal.game_id, serie]));
+await egal('catalogue filtré par série : les deux jeux', catalogue(null, { zone: 'PAL', series: serie }).then((r) => r.map((x) => x.id).sort()), [jeu, unAutrePal.game_id].sort());
+await egal('résumé de la série sur PS1 : 2 jeux', lignes(en(null, `select name, games from public.series_summary($1, 'PS1')`, [serie])), [{ name: 'Série Test', games: 2 }]);
+await egal('progression du membre dans la série (PAL) : 1 sur 2', lignes(en(MEMBRE, `select total, owned from public.collection_series_progress('PS1', 'PAL') where series_id = $1`, [serie])), [{ total: 2, owned: 1 }]);
+await egal('un visiteur : aucune série commencée', lignes(en(null, `select count(*)::int as n from public.collection_series_progress('PS1', 'PAL')`)), [{ n: 0 }]);
+
+console.log('\nNombre de membres par jeu (totaux seulement)');
+const proprietaires = (await val(`select count(distinct c.profile_id)::int as n from public.collection_item c join public.release r on r.id = c.release_id where r.game_id = $1 and c.status = 'owned'`, [jeu]))[0].n;
+await egal('total du jeu : membres différents qui le possèdent (un visiteur peut le lire)', lignes(en(null, `select owners from public.game_popularity($1) where release_id is null`, [jeu])), [{ owners: proprietaires }]);
+await egal('une ligne par version, plus le total', lignes(en(null, `select count(*)::int as n from public.game_popularity($1)`, [jeu])).then((r) => r[0].n),
+  (await val(`select count(*)::int + 1 as n from public.release where game_id = $1`, [jeu]))[0].n);
+await ko('jamais l\'identité des membres', en(null, `select profile_id from public.game_popularity($1)`, [jeu]), 'does not exist');
 
 console.log('\nCohérence du catalogue (imports compris)');
 await egal('chaque jeu importé a au moins une sortie', val(`select count(*)::int as n from public.game g where g.wikidata_id is not null and not exists (select 1 from public.release r where r.game_id = g.id)`), [{ n: 0 }]);

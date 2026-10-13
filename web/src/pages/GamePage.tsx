@@ -45,6 +45,8 @@ export function GamePage() {
   const [barcodes, setBarcodes] = useState<{ barcode: string; release_id: number }[]>([]);
   const [barcodesVersion, setBarcodesVersion] = useState(0);
   const [thanks, setThanks] = useState('');
+  // Combien de membres possèdent ou recherchent le jeu (totaux seulement)
+  const [popularity, setPopularity] = useState<{ release_id: number | null; owners: number; seekers: number }[]>([]);
   const here = location.pathname + location.search;
 
   useEffect(() => {
@@ -77,6 +79,14 @@ export function GamePage() {
     return () => { active = false; };
   }, [game, barcodesVersion]);
 
+  useEffect(() => {
+    if (!game) return;
+    let active = true;
+    supabase.rpc('game_popularity', { target_game: game.id })
+      .then(({ data, error }) => { if (active && !error) setPopularity((data as typeof popularity | null) ?? []); });
+    return () => { active = false; };
+  }, [game, mineVersion]);
+
   // La version scannée : on l'amène à l'écran
   useEffect(() => {
     if (state !== 'ok' || !focusId) return;
@@ -95,6 +105,8 @@ export function GamePage() {
   const copies = (r: Release) => mine.filter((m) => m.release_id === r.id && m.status === 'owned').length;
   const wantedItem = (r: Release) => mine.find((m) => m.release_id === r.id && m.status === 'wanted');
   const focused = releases.find((r) => r.id === focusId) ?? null;
+  const gameStats = popularity.find((p) => p.release_id === null);
+  const statsOf = (r: Release) => popularity.find((p) => p.release_id === r.id);
   const codesOf = (r: Release) => barcodes.filter((b) => b.release_id === r.id).map((b) => b.barcode);
   const heroImages = releases.find((r) => r.zone === 'PAL' && r.image.length)?.image ?? releases.find((r) => r.image.length)?.image ?? [];
   // Genres (avec leurs familles, cliquables vers le catalogue) et thèmes (sans famille)
@@ -153,6 +165,25 @@ export function GamePage() {
             {game.first_release_date && (<><dt>Première sortie</dt><dd>{formatDate(game.first_release_date, game.first_release_precision)}</dd></>)}
             {game.game_developer.length > 0 && (
               <><dt>Développement</dt><dd><StudioLinks companies={game.game_developer.map((d) => d.company)} /></dd></>
+            )}
+            {game.game_series.length > 0 && (
+              <>
+                <dt>Série</dt>
+                <dd>
+                  {game.game_series.map((g, i) => (
+                    <Fragment key={g.series.id}>
+                      {i > 0 && ', '}
+                      <Link to={`/catalogue?serie=${g.series.id}`} title={`Tous les jeux de la série ${g.series.name}`}>{g.series.name}</Link>
+                    </Fragment>
+                  ))}
+                </dd>
+              </>
+            )}
+            {gameStats && gameStats.owners + gameStats.seekers > 0 && (
+              <>
+                <dt>Collectionneurs</dt>
+                <dd>{popularityText(gameStats.owners, gameStats.seekers)}</dd>
+              </>
             )}
             {origin && (
               <>
@@ -258,6 +289,9 @@ export function GamePage() {
                 {r.release_company.length > 0 && (
                   <><dt>Édition</dt><dd><StudioLinks companies={r.release_company.map((c) => c.company)} /></dd></>
                 )}
+                {(statsOf(r)?.owners ?? 0) + (statsOf(r)?.seekers ?? 0) > 0 && (
+                  <><dt>Collectionneurs</dt><dd>{popularityText(statsOf(r)!.owners, statsOf(r)!.seekers)}</dd></>
+                )}
                 {codesOf(r).length > 0 && (
                   <>
                     <dt>Code-barres</dt>
@@ -319,6 +353,14 @@ export function GamePage() {
       </section>
     </article>
   );
+}
+
+// « 12 membres l'ont · 3 le cherchent »
+function popularityText(owners: number, seekers: number): string {
+  return [
+    owners > 0 && `${owners} membre${owners > 1 ? 's l’ont' : ' l’a'}`,
+    seekers > 0 && `${seekers} ${seekers > 1 ? 'le cherchent' : 'le cherche'}`,
+  ].filter(Boolean).join(' · ');
 }
 
 // Studios cliquables : leurs jeux dans le catalogue

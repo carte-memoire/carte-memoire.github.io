@@ -96,6 +96,7 @@ function Frame() {
             <details className="account-menu">
               <summary>{profile?.username ?? 'Mon compte'}</summary>
               <div className="account-menu-panel">
+                {profile && <Link to={`/membre/${encodeURIComponent(profile.username)}`}>Ma page publique</Link>}
                 <Link to="/compte">Mon compte et sécurité</Link>
                 <Link to="/mes-propositions">Mes propositions</Link>
                 <button type="button" className="link-button" onClick={confirmSignOut}>Se déconnecter</button>

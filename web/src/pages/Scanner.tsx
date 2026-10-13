@@ -9,7 +9,9 @@ import { ManualCode, matchLabel, useScanner } from '../components/Scanner';
 
 interface Sent {
   code: string;
-  label: string;
+  // Le jeu reconnu (titre, zone, édition), ou rien si le code est inconnu
+  title: string;
+  status: 'found' | 'several' | 'unknown';
   ok: boolean;
 }
 
@@ -37,6 +39,8 @@ function LinkedScanner({ link }: { link: string }) {
   const channel = useRef<RealtimeChannel | null>(null);
   const [connected, setConnected] = useState(false);
   const [sent, setSent] = useState<Sent[]>([]);
+  // Après chaque code : l'appareil photo s'arrête et on renvoie vers l'ordinateur
+  const [step, setStep] = useState<'scanning' | 'sending' | 'done'>('scanning');
 
   useEffect(() => {
     const ch = supabase.channel(linkChannel(link), { config: { broadcast: { self: false, ack: true }, presence: { key: crypto.randomUUID() } } });
@@ -58,32 +62,69 @@ function LinkedScanner({ link }: { link: string }) {
   }, [link]);
 
   async function send(code: string) {
+    setStep('sending');
     const result = await channel.current?.send({ type: 'broadcast', event: 'code', payload: { code } });
     // Pour l'affichage sur le téléphone : de quel jeu s'agit-il ?
     const { data } = await supabase.rpc('releases_by_barcode', { code });
     const matches = (data as BarcodeMatch[] | null) ?? [];
-    const label = matches.length === 1 ? matchLabel(matches[0])
-      : matches.length > 1 ? `${matches.length} versions possibles : choix sur l'ordinateur`
-      : 'Code inconnu : à identifier sur l’ordinateur';
-    setSent((list) => [{ code, label, ok: result === 'ok' }, ...list].slice(0, 8));
+    const entry: Sent = {
+      code,
+      title: matches.length === 1 ? matchLabel(matches[0]) : '',
+      status: matches.length === 1 ? 'found' : matches.length > 1 ? 'several' : 'unknown',
+      ok: result === 'ok',
+    };
+    setSent((list) => [entry, ...list].slice(0, 8));
+    setStep('done');
   }
+
+  const last = sent[0];
 
   return (
     <section className="stack narrow">
       <h1>Scanner vers l'ordinateur</h1>
-      <p className={connected ? 'success' : 'notice'} aria-live="polite">
-        {connected ? 'Relié à ton ordinateur : scanne les codes-barres de tes jeux, leur fiche s’ouvre là-bas.' : 'Connexion à ton ordinateur…'}
-      </p>
-      <div className="panel stack"><ScanCamera onCode={send} continuous /><ManualCode onCode={send} /></div>
-      {sent.length > 0 && (
-        <ul className="plain-list scan-sent" aria-live="polite">
-          {sent.map((s, i) => (
-            <li key={`${s.code}-${i}`} className="list-row">
-              <span><span className="code">{formatBarcode(s.code)}</span> · {s.label}</span>
-              <span className={s.ok ? 'rule-ok' : 'error small'}>{s.ok ? '✓ envoyé' : 'non reçu'}</span>
-            </li>
-          ))}
-        </ul>
+      {step === 'scanning' && (
+        <>
+          <p className={connected ? 'success' : 'notice'} aria-live="polite">
+            {connected ? 'Relié à ton ordinateur : scanne le code-barres au dos de la boîte.' : 'Connexion à ton ordinateur…'}
+          </p>
+          <div className="panel stack"><ScanCamera onCode={send} /><ManualCode onCode={send} /></div>
+        </>
+      )}
+      {step === 'sending' && <p className="loading">Envoi à ton ordinateur…</p>}
+      {step === 'done' && last && (
+        <div className={last.ok ? 'panel scan-done' : 'panel scan-done is-error'} role="status">
+          <p className="scan-done-mark" aria-hidden="true">{last.ok ? '✓' : '!'}</p>
+          {last.ok ? (
+            <>
+              <h2>Code envoyé : retourne sur ton ordinateur</h2>
+              <p>
+                {last.status === 'found' && <>La fiche de <strong>{last.title}</strong> vient de s'y ouvrir.</>}
+                {last.status === 'several' && 'Plusieurs versions portent ce code : choisis la tienne sur l’ordinateur.'}
+                {last.status === 'unknown' && 'Ce code n’est pas encore connu : retrouve ton jeu sur l’ordinateur pour l’associer à ta version.'}
+              </p>
+            </>
+          ) : (
+            <>
+              <h2>L'ordinateur n'a pas reçu le code</h2>
+              <p>Vérifie que la fenêtre « Scanner un jeu » y est toujours ouverte, puis réessaie.</p>
+            </>
+          )}
+          <p className="small muted">Code lu : <span className="code">{formatBarcode(last.code)}</span></p>
+          <button type="button" className="button button-primary button-block" onClick={() => setStep('scanning')}>Scanner un autre jeu</button>
+        </div>
+      )}
+      {sent.length > 1 && (
+        <details className="scan-history">
+          <summary>Codes déjà envoyés ({sent.length})</summary>
+          <ul className="plain-list scan-sent">
+            {sent.map((s, i) => (
+              <li key={`${s.code}-${i}`} className="list-row">
+                <span><span className="code">{formatBarcode(s.code)}</span>{s.title ? ` · ${s.title}` : ''}</span>
+                <span className={s.ok ? 'rule-ok' : 'error small'}>{s.ok ? '✓ envoyé' : 'non reçu'}</span>
+              </li>
+            ))}
+          </ul>
+        </details>
       )}
       <p className="hint">Rien n'est enregistré sur ce téléphone, et l'image de l'appareil photo n'est envoyée nulle part : seuls les chiffres du code partent vers ton ordinateur. <Link to="/">Revenir au site</Link></p>
     </section>
