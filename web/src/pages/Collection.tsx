@@ -389,7 +389,7 @@ function ItemBlock({ item, showPlatform, standIn, onEdit, onRemove }: { item: Co
   const complete = item.has_box && item.has_manual && item.has_media;
   return (
     <li className="block">
-      <Cover images={r.image} title={r.local_title} size="medium" standIn={standIn} />
+      <Cover images={r.image} title={r.local_title} size="medium" platform={r.platform.short_name} standIn={standIn} />
       <div className="block-body">
         <Link to={gamePath(r.game)} className="block-title">{r.local_title}</Link>
         <p className="block-badges">
@@ -428,7 +428,7 @@ function ItemTile({ item, showPlatform, standIn, onEdit }: { item: CollectionIte
   return (
     <li className="cover-tile">
       <Link to={gamePath(r.game)} className="cover-tile-link" title={r.local_title}>
-        <Cover images={r.image} title={r.local_title} size="medium" standIn={standIn} />
+        <Cover images={r.image} title={r.local_title} size="medium" platform={r.platform.short_name} standIn={standIn} />
         <span className="cover-tile-title">{r.local_title}</span>
       </Link>
       <span className="cover-tile-meta">

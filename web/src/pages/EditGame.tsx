@@ -631,7 +631,7 @@ function ReleaseEditor({ release, siblings, onSaved, canDelete, possibleDuplicat
       >
         {release.image.map((img) => (
           <figure key={img.id} className="image-tile">
-            <Cover images={[{ ...img, type: 'front' }]} title={release.local_title} size="small" />
+            <Cover images={[{ ...img, type: 'front' }]} title={release.local_title} size="small" platform={release.platform.short_name} />
             <figcaption>
               {IMAGE_TYPES.find((t) => t.value === img.type)?.label}
               <button type="button" className="link-button" onClick={() => downloadImage(img.path, img.type)}>{tr('Télécharger')}</button>

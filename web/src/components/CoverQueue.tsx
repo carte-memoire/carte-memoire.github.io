@@ -277,7 +277,7 @@ function CoverCard({ row, platform, isTarget, busy, onTarget, onFile, onPaste, o
       onDragOver={(e) => { if (e.dataTransfer.types.includes('Files')) e.preventDefault(); }}
       onDrop={(e) => { e.preventDefault(); onTarget(); onFile(imageFromClipboard(e.dataTransfer)); }}
     >
-      <Cover images={[]} standIn={standIn} title={row.local_title} size="small" />
+      <Cover images={[]} standIn={standIn} title={row.local_title} size="small" platform={platform} />
       <div className="queue-body">
         <p className="queue-title">
           <Link to={gamePath({ id: row.game_id, title: row.game_title })} target="_blank" rel="noopener">{row.local_title}</Link>

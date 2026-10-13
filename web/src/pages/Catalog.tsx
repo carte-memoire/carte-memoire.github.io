@@ -590,11 +590,14 @@ function CatalogLine({ row, showZone, showPlatform, language, canTick, busyRelea
     for (const r of (list.length === 1 || language === ALL_LANGUAGES || mine.length === 0 ? list : mine)) kept.add(r.id);
   }
   const hidden = releases.length - kept.size;
+  // Console des versions affichées (une seule en général) : forme de la jaquette
+  const consoles = new Set(row.releases.map((r) => r.platform.short_name));
+  const rowPlatform = consoles.size === 1 ? [...consoles][0] : null;
   const shown = expanded ? releases : releases.filter((r) => kept.has(r.id));
   return (
     <li className={row.owned ? 'catalog-row is-owned' : 'catalog-row'}>
       <div className={row.cover_other_zone ? 'cover-other-zone' : undefined} title={row.cover_other_zone ? tr("Jaquette d'une autre région") : undefined}>
-        <Cover images={row.cover_path ? [{ id: 0, type: 'front', path: row.cover_path }] : []} title={row.display_title} size="small" />
+        <Cover images={row.cover_path ? [{ id: 0, type: 'front', path: row.cover_path }] : []} title={row.display_title} size="small" platform={rowPlatform} />
       </div>
       <div className="catalog-main">
         <p className="catalog-heading">

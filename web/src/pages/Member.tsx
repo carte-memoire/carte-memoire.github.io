@@ -258,7 +258,7 @@ export function MemberPage() {
               {shown.map(({ item: i, count }) => (
                 <li key={`${i.release_id}|${i.condition}|${i.trade_status}`} className="cover-tile">
                   <Link to={`${gamePath({ id: i.game_id, title: i.game_title })}?version=${i.release_id}`} className="cover-tile-link" title={i.local_title}>
-                    <Cover images={i.cover_path ? [{ id: 0, type: 'front', path: i.cover_path }] : []} title={i.local_title} size="medium" />
+                    <Cover images={i.cover_path ? [{ id: 0, type: 'front', path: i.cover_path }] : []} title={i.local_title} size="medium" platform={i.platform} />
                     <span className="cover-tile-title">{i.local_title}{count > 1 && <span className="chip-copies"> ×{count}</span>}</span>
                   </Link>
                   <span className="cover-tile-meta">

@@ -173,7 +173,7 @@ export function GamePage() {
   return (
     <article className="game">
       <header className="game-head panel">
-        <Cover images={heroImages} title={game.title} size="large" />
+        <Cover images={heroImages} title={game.title} size="large" platform={byPlatform[0]?.platform.short_name} />
         <div className="game-info">
           <h1>{game.title}</h1>
           <dl className="facts">
@@ -297,7 +297,7 @@ export function GamePage() {
           <ul className="release-list">
             {list.map((r) => (
               <li key={r.id} id={`version-${r.id}`} className={r.id === focusId ? 'release-card panel is-focused' : 'release-card panel'}>
-                <Cover images={r.image} title={r.local_title} size="medium" standIn={standInFor(r, samePlatform(r))} />
+                <Cover images={r.image} title={r.local_title} size="medium" platform={r.platform.short_name} standIn={standInFor(r, samePlatform(r))} />
                 <div className="release-body">
                   <h3>{r.local_title}</h3>
                   <p className="release-badges">
