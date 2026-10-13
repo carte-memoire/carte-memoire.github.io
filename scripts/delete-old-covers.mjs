@@ -47,14 +47,31 @@ if (!confirmed) {
   process.exit(0);
 }
 
+const npx = (args) => spawnSync('npx', ['supabase', 'storage', ...args, '--linked', '--experimental'], { cwd: ROOT, shell: true, encoding: 'utf8' });
+
+// Le fichier est-il encore dans le stockage ? (liste du dossier qui le contient)
+function stillThere(path) {
+  const folder = path.slice(0, path.lastIndexOf('/') + 1);
+  const result = npx(['ls', `ss:///covers/${folder}`]);
+  // Nom exact entre guillemets (la commande répond en JSON) : « front.webp » n'est pas « front-480.webp »
+  return (result.stdout ?? '').includes(`"${path.slice(folder.length)}"`);
+}
+
 const BATCH = 150;
 let done = 0;
 for (let i = 0; i < list.length; i += BATCH) {
-  const batch = list.slice(i, i + BATCH).map((p) => `ss:///covers/${p}`);
-  const result = spawnSync('npx', ['supabase', 'storage', 'rm', ...batch, '--linked', '--experimental'], { cwd: ROOT, shell: true, encoding: 'utf8' });
+  const batch = list.slice(i, i + BATCH);
+  // --yes : la commande demande une confirmation ; sans réponse, elle ne supprime rien (sans le dire)
+  const result = npx(['rm', ...batch.map((p) => `ss:///covers/${p}`), '--yes']);
   if (result.status !== 0) {
     console.log(`\nÉchec sur le paquet ${i / BATCH + 1} : ${(result.stderr || result.stdout || '').trim().slice(0, 400)}`);
     console.log(`${done} fichiers supprimés jusqu'ici ; les autres sont intacts (et toujours inutilisés).`);
+    process.exit(1);
+  }
+  // Vérification : le premier fichier du paquet a bien disparu
+  if (stillThere(batch[0])) {
+    console.log(`\nARRÊT : la commande n'a rien supprimé (${batch[0]} est toujours là).`);
+    console.log((result.stdout || result.stderr || '').trim().slice(0, 400));
     process.exit(1);
   }
   done += batch.length;
