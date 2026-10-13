@@ -26,10 +26,11 @@ export const EDITION_TYPES: { value: EditionType; label: string }[] = [
 ];
 
 // « Black Label » : nom donné par les collectionneurs à l'édition standard PS1 / PS2
-export function editionLabel(release: Pick<Release, 'edition_type' | 'edition_name'> & { platform: { short_name: string } }): string {
+// européenne et américaine (pas au Japon, où l'on dit simplement l'édition standard)
+export function editionLabel(release: Pick<Release, 'edition_type' | 'edition_name'> & { platform: { short_name: string }; zone?: Zone | null }): string {
   if (release.edition_name) return release.edition_name;
   if (release.edition_type === 'standard') {
-    return ['PS1', 'PS2'].includes(release.platform.short_name) ? 'Black Label' : 'Standard';
+    return ['PS1', 'PS2'].includes(release.platform.short_name) && release.zone !== 'NTSC-J' ? 'Black Label' : 'Standard';
   }
   return EDITION_TYPES.find((e) => e.value === release.edition_type)?.label.split(' (')[0] ?? release.edition_type;
 }
@@ -87,6 +88,17 @@ export const LANGUAGES: { value: string; label: string }[] = [
   { value: 'pl', label: 'Polonais' },
   { value: 'ru', label: 'Russe' },
 ];
+
+// Langues d'une version en abrégé : « FR », « EN · FR · DE », « Multi » au-delà de trois
+export function languagesShort(languages: string[] | null | undefined): string {
+  if (!languages?.length) return '';
+  return languages.length > 3 ? 'Multi' : languages.map((l) => l.toUpperCase()).join(' · ');
+}
+
+// Langues en toutes lettres : « Français, Anglais »
+export function languagesLong(languages: string[] | null | undefined): string {
+  return (languages ?? []).map((l) => LANGUAGES.find((x) => x.value === l)?.label ?? l.toUpperCase()).join(', ');
+}
 
 const dayFormat = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 const monthFormat = new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric', timeZone: 'UTC' });

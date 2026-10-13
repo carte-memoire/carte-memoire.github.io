@@ -3,22 +3,37 @@ import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { COLLECTION_FIELDS } from '../lib/queries';
 import {
-  CATALOG_ZONES, FAMILIES, ORIGINS, editionLabel, familyOriginLabel, formatNumber, formatPercent, gamePath, originFromParam, originParam,
-  yearOf, zoneOrder,
+  CATALOG_ZONES, FAMILIES, LANGUAGES, ORIGINS, editionLabel, familyOriginLabel, formatNumber, formatPercent, gamePath, languagesLong,
+  languagesShort, originFromParam, originParam, yearOf, zoneOrder,
 } from '../lib/format';
 import { errorMessage } from '../lib/errors';
-import { ALL_PLATFORMS, ALL_ZONES, DEFAULT_PLATFORM, rememberPlatform, rememberZone, rememberedPlatform, rememberedZone } from '../lib/preferences';
+import {
+  ALL_LANGUAGES, ALL_PLATFORMS, ALL_ZONES, DEFAULT_LANGUAGE, DEFAULT_PLATFORM, pageSizeFrom, pageSizeParam, rememberLanguage, rememberPageSize,
+  rememberPlatform, rememberZone, rememberedLanguage, rememberedPageSize, rememberedPlatform, rememberedZone,
+} from '../lib/preferences';
 import type { CatalogRelease, CatalogRow, CollectionItem, GenreFamily, Ownership, ProgressRow, Zone } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
 import { AddToCollection } from '../components/AddToCollection';
 import { Cover } from '../components/Cover';
 import { MemoryBar } from '../components/MemoryBar';
+import { PageSizeSelect, Pagination } from '../components/Pagination';
 import { PlatformSelect } from '../components/PlatformSelect';
 import { PsSymbol } from '../components/PsSymbol';
 import { useKnownPlatform } from '../lib/usePlatforms';
 
-const PAGE_SIZE = 50;
+// L'API renvoie au plus 1 000 jeux par appel : « tout » est lu en plusieurs fois
+const MAX_PER_CALL = 1000;
 const LETTERS = ['#', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'];
+// Tris du catalogue (le premier est celui par défaut, absent de l'adresse)
+const SORTS = [
+  { value: 'title', label: 'Titre (A → Z)' },
+  { value: 'title_desc', label: 'Titre (Z → A)' },
+  { value: 'date', label: 'Date de sortie (les plus anciens)' },
+  { value: 'date_desc', label: 'Date de sortie (les plus récents)' },
+  { value: 'versions', label: 'Nombre de versions' },
+  { value: 'added', label: 'Ajouts récents à la base' },
+];
+
 const OWNERSHIP: { value: Ownership; label: string }[] = [
   { value: 'owned', label: "Ceux que j'ai" },
   { value: 'missing', label: 'Ceux qui me manquent' },
@@ -53,8 +68,13 @@ export function Catalog() {
   const ownershipParam = params.get('possession');
   const ownership = session && OWNERSHIP.some((o) => o.value === ownershipParam) ? (ownershipParam as Ownership) : null;
   const query = params.get('q') ?? '';
-  const sort = params.get('tri') === 'date' ? 'date' : 'title';
-  const page = Math.max(1, Number.parseInt(params.get('page') ?? '1', 10) || 1);
+  const sort = SORTS.find((s) => s.value === params.get('tri'))?.value ?? 'title';
+  // Langue des versions : les versions semblables dans d'autres langues sont repliées
+  const languageParam = params.get('langue') ?? rememberedLanguage();
+  const language = languageParam === ALL_LANGUAGES || LANGUAGES.some((l) => l.value === languageParam) ? languageParam : DEFAULT_LANGUAGE;
+  // Nombre de jeux par page (0 = tout) : adresse, sinon le dernier choix
+  const pageSize = pageSizeFrom(params.get('par')) ?? rememberedPageSize('catalogue', 50);
+  const page = pageSize === 0 ? 1 : Math.max(1, Number.parseInt(params.get('page') ?? '1', 10) || 1);
 
   const platformCode = platform === ALL_PLATFORMS ? null : platform;
   const zoneCode = zone === ALL_ZONES ? null : (zone as Zone);
@@ -71,9 +91,12 @@ export function Catalog() {
   const [editItem, setEditItem] = useState<CollectionItem | null>(null);
   const [toast, setToast] = useState<{ text: string; itemId?: number; error?: boolean } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // Téléphone : les filtres secondaires sont repliés pour laisser voir la liste
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   useEffect(() => { rememberPlatform(platform); }, [platform]);
   useEffect(() => { rememberZone(zone); }, [zone]);
+  useEffect(() => { rememberLanguage(language); }, [language]);
 
   // Change des filtres dans l'adresse ; par défaut on revient à la page 1
   function update(changes: Record<string, string | null>, { keepPage = false, replace = false } = {}) {
@@ -98,6 +121,11 @@ export function Catalog() {
   function chooseZone(value: string) {
     rememberZone(value);
     update({ zone: value });
+  }
+
+  function choosePageSize(size: number) {
+    rememberPageSize('catalogue', size);
+    update({ par: pageSizeParam(size) });
   }
 
   function goToPage(n: number) {
@@ -125,11 +153,11 @@ export function Catalog() {
     setText(query);
   }, [query]);
 
-  // La page du catalogue
+  // La page du catalogue (ou tout le catalogue filtré, lu par paquets de 1 000)
   useEffect(() => {
     let active = true;
     setLoading(true);
-    supabase.rpc('catalog_games', {
+    const read = (pageNumber: number, size: number) => supabase.rpc('catalog_games', {
       platform_code: platformCode,
       zone_code: zoneCode,
       first_letter: letter,
@@ -138,17 +166,29 @@ export function Catalog() {
       ownership,
       search: query || null,
       sort_by: sort,
-      page_number: page,
-      page_size: PAGE_SIZE,
+      page_number: pageNumber,
+      page_size: size,
       ...(origin ? { origin_filter: origin } : {}),
-    }).then(({ data, error }) => {
+    });
+    (async () => {
+      const first = await read(page, pageSize || MAX_PER_CALL);
+      let data = (first.data as CatalogRow[] | null) ?? [];
+      let failure = first.error;
+      if (!failure && pageSize === 0 && data.length > 0 && data.length < data[0].total_count) {
+        // Taille des paquets : ce que le serveur a vraiment renvoyé (son plafond)
+        const per = data.length;
+        const calls = Math.ceil(data[0].total_count / per);
+        const rest = await Promise.all(Array.from({ length: calls - 1 }, (_, i) => read(i + 2, per)));
+        failure = rest.find((r) => r.error)?.error ?? null;
+        data = [...data, ...rest.flatMap((r) => (r.data as CatalogRow[] | null) ?? [])];
+      }
       if (!active) return;
       setLoading(false);
-      setError(error ? errorMessage(error) : '');
-      setRows((data as CatalogRow[]) ?? []);
-    });
+      setError(failure ? errorMessage(failure) : '');
+      setRows(data);
+    })();
     return () => { active = false; };
-  }, [platformCode, zoneCode, letter, family, origin, year, ownership, query, sort, page, version, userId]);
+  }, [platformCode, zoneCode, letter, family, origin, year, ownership, query, sort, page, pageSize, version, userId]);
 
   // La progression de la personne connectée (zone choisie, et genre s'il est filtré)
   useEffect(() => {
@@ -198,8 +238,10 @@ export function Catalog() {
       const ids = releases.filter((r) => r.wanted).map((r) => r.id);
       ({ error: failure } = await supabase.from('collection_item').delete().in('release_id', ids).eq('status', 'wanted'));
     } else {
-      // Toutes zones : on vise de préférence la version européenne standard
-      const target = (zoneCode ? null : releases.find((r) => r.zone === 'PAL' && r.edition_type === 'standard')) ?? releases.find((r) => r.edition_type === 'standard') ?? releases[0];
+      // On vise la version standard (européenne si toutes zones), dans la langue choisie de préférence
+      const standard = releases.filter((r) => r.edition_type === 'standard' && (zoneCode || r.zone === 'PAL'));
+      const target = standard.find((r) => r.languages?.includes(language)) ?? standard[0]
+        ?? releases.find((r) => r.edition_type === 'standard') ?? releases[0];
       ({ error: failure } = await supabase.from('collection_item').insert({ release_id: target.id, status: 'wanted' }));
     }
     setBusyRelease(null);
@@ -208,11 +250,12 @@ export function Catalog() {
   }
 
   const total = rows?.[0]?.total_count ?? 0;
-  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const pages = pageSize === 0 ? 1 : Math.max(1, Math.ceil(total / pageSize));
   const zoneInfo = CATALOG_ZONES.find((z) => z.value === zoneCode);
   const zoneProgress = progress.find((p) => p.scope === 'zone' && p.code === (zoneCode ?? 'all'));
   const familyProgress = family ? progress.find((p) => p.scope === 'family' && p.code === family) : null;
   const filtered = Boolean(letter || family || origin || year || ownership || query);
+  const activeFilters = [letter, family, origin, year, ownership, sort !== 'title' ? sort : null].filter(Boolean).length;
   // Avec le filtre d'origine : combien de jeux de la zone ont une origine connue
   const originRows = progress.filter((p) => p.scope === 'origin');
   const unknownOrigin = originRows.find((p) => p.code === 'unknown')?.total ?? 0;
@@ -255,63 +298,78 @@ export function Catalog() {
       )}
 
       <div className="panel catalog-filters">
-        <div className="row">
+        <div className="row catalog-search-row">
           <label className="field catalog-search">
             <span className="field-label">Filtrer</span>
             <input type="search" value={text} onChange={(e) => setText(e.target.value)} placeholder="Titre ou code produit" maxLength={120} autoComplete="off" />
           </label>
-          <label className="field">
-            <span className="field-label">Genre</span>
-            <select value={family ?? ''} onChange={(e) => update({ genre: e.target.value || null })}>
-              <option value="">Tous les genres</option>
-              {FAMILIES.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
-            </select>
-          </label>
-          <label className="field">
-            <span className="field-label">Origine du studio</span>
-            <select value={originParam(origin) ?? ''} onChange={(e) => update({ origine: e.target.value || null })}>
-              <option value="">Toutes</option>
-              {ORIGINS.map((o) => (
-                <option key={o.value} value={o.param}>
-                  {o.label}{family === 'rpg' ? (o.value === 'japan' ? ' (JRPG)' : ' (RPG occidentaux)') : ''}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span className="field-label">Année</span>
-            <select value={year ?? ''} onChange={(e) => update({ annee: e.target.value || null })}>
-              <option value="">Toutes</option>
-              {yearsFor(platform).map((y) => <option key={y} value={y}>{y}</option>)}
-            </select>
-          </label>
-          {session && (
+          <button type="button" className="button filters-toggle" aria-expanded={filtersOpen} aria-controls="catalog-more-filters"
+            onClick={() => setFiltersOpen((v) => !v)}>
+            Filtres{activeFilters > 0 && <span className="count-badge">{activeFilters}</span>} <span aria-hidden="true">{filtersOpen ? '▴' : '▾'}</span>
+          </button>
+        </div>
+        <div id="catalog-more-filters" className={filtersOpen ? 'more-filters is-open' : 'more-filters'}>
+          <div className="row">
             <label className="field">
-              <span className="field-label">Ma collection</span>
-              <select value={ownership ?? ''} onChange={(e) => update({ possession: e.target.value || null })}>
-                <option value="">Tous les jeux</option>
-                {OWNERSHIP.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              <span className="field-label">Genre</span>
+              <select value={family ?? ''} onChange={(e) => update({ genre: e.target.value || null })}>
+                <option value="">Tous les genres</option>
+                {FAMILIES.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
               </select>
             </label>
-          )}
-          <label className="field">
-            <span className="field-label">Tri</span>
-            <select value={sort} onChange={(e) => update({ tri: e.target.value === 'date' ? 'date' : null })}>
-              <option value="title">Par titre</option>
-              <option value="date">Par date de sortie</option>
-            </select>
-          </label>
+            <label className="field">
+              <span className="field-label">Origine du studio</span>
+              <select value={originParam(origin) ?? ''} onChange={(e) => update({ origine: e.target.value || null })}>
+                <option value="">Toutes</option>
+                {ORIGINS.map((o) => (
+                  <option key={o.value} value={o.param}>
+                    {o.label}{family === 'rpg' ? (o.value === 'japan' ? ' (JRPG)' : ' (RPG occidentaux)') : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              <span className="field-label">Année</span>
+              <select value={year ?? ''} onChange={(e) => update({ annee: e.target.value || null })}>
+                <option value="">Toutes</option>
+                {yearsFor(platform).map((y) => <option key={y} value={y}>{y}</option>)}
+              </select>
+            </label>
+            {session && (
+              <label className="field">
+                <span className="field-label">Ma collection</span>
+                <select value={ownership ?? ''} onChange={(e) => update({ possession: e.target.value || null })}>
+                  <option value="">Tous les jeux</option>
+                  {OWNERSHIP.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </label>
+            )}
+            <label className="field">
+              <span className="field-label">Langue des versions</span>
+              <select value={language} onChange={(e) => update({ langue: e.target.value === DEFAULT_LANGUAGE ? null : e.target.value }, { keepPage: true })}
+                title="Quand un jeu existe en plusieurs versions nationales (anglaise, française, allemande…), celle-ci s'affiche d'abord ; les autres restent à un clic">
+                {LANGUAGES.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
+                <option value={ALL_LANGUAGES}>Toutes les langues</option>
+              </select>
+            </label>
+            <label className="field">
+              <span className="field-label">Tri</span>
+              <select value={sort} onChange={(e) => update({ tri: e.target.value === 'title' ? null : e.target.value })}>
+                {SORTS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+              </select>
+            </label>
+          </div>
+          <nav className="letters" aria-label="Première lettre du titre">
+            <button type="button" className={letter ? 'letter' : 'letter active'} aria-pressed={!letter} onClick={() => update({ lettre: null })}>Tous</button>
+            {LETTERS.map((l) => (
+              <button key={l} type="button" className={letter === l ? 'letter active' : 'letter'} aria-pressed={letter === l}
+                aria-label={l === '#' ? 'Titres qui commencent par un chiffre' : `Lettre ${l}`}
+                onClick={() => update({ lettre: letter === l ? null : l.toLowerCase() })}>
+                {l}
+              </button>
+            ))}
+          </nav>
         </div>
-        <nav className="letters" aria-label="Première lettre du titre">
-          <button type="button" className={letter ? 'letter' : 'letter active'} aria-pressed={!letter} onClick={() => update({ lettre: null })}>Tous</button>
-          {LETTERS.map((l) => (
-            <button key={l} type="button" className={letter === l ? 'letter active' : 'letter'} aria-pressed={letter === l}
-              aria-label={l === '#' ? 'Titres qui commencent par un chiffre' : `Lettre ${l}`}
-              onClick={() => update({ lettre: letter === l ? null : l.toLowerCase() })}>
-              {l}
-            </button>
-          ))}
-        </nav>
       </div>
 
       <div className="list-row">
@@ -319,12 +377,13 @@ export function Catalog() {
           {rows === null ? 'Lecture du catalogue…'
             : rows.length === 0 && page > 1 ? `Page ${page} : au-delà de la dernière page`
             : `${formatNumber(total)} jeu${total > 1 ? 'x' : ''}${pages > 1 ? ` · page ${page} sur ${pages}` : ''}`}
+          {filtered && (
+            <> · <button type="button" className="link-button" onClick={() => { setText(''); setParams(new URLSearchParams([...params].filter(([k]) => k === 'console' || k === 'zone' || k === 'par' || k === 'langue'))); }}>
+              effacer les filtres
+            </button></>
+          )}
         </p>
-        {filtered && (
-          <button type="button" className="link-button" onClick={() => { setText(''); setParams(new URLSearchParams([...params].filter(([k]) => k === 'console' || k === 'zone'))); }}>
-            Effacer les filtres
-          </button>
-        )}
+        <PageSizeSelect value={pageSize} onChange={choosePageSize} />
       </div>
 
       {origin && unknownOrigin > 0 && (
@@ -350,6 +409,7 @@ export function Catalog() {
               key={row.id}
               row={row}
               showZone={!zoneCode}
+              language={language}
               canTick={canTick}
               busyRelease={busyRelease}
               onAdd={addOwned}
@@ -360,17 +420,7 @@ export function Catalog() {
         </ul>
       )}
 
-      {pages > 1 && (
-        <nav className="pagination" aria-label="Pages du catalogue">
-          <button type="button" className="button button-small" disabled={page <= 1} onClick={() => goToPage(page - 1)}>
-            <PsSymbol shape="circle" /> Précédente
-          </button>
-          <span className="muted">Page {page} sur {pages}</span>
-          <button type="button" className="button button-small" disabled={page >= pages} onClick={() => goToPage(page + 1)}>
-            Suivante <PsSymbol shape="cross" />
-          </button>
-        </nav>
-      )}
+      {rows && rows.length > 0 && <Pagination page={page} pages={pages} onChange={goToPage} label="Pages du catalogue" />}
 
       {toast && (
         <div className={toast.error ? 'toast toast-error' : 'toast'} role="status">
@@ -403,15 +453,18 @@ function ZoneSelect({ value, onChange }: { value: string; onChange: (value: stri
   );
 }
 
-// Versions dans l'ordre habituel du site : Japon, Amérique, Europe ; la standard d'abord
-function sortReleases(releases: CatalogRelease[]): CatalogRelease[] {
+// Versions dans l'ordre habituel du site : Japon, Amérique, Europe ; la standard d'abord,
+// et parmi les versions nationales, celle dans la langue choisie
+function sortReleases(releases: CatalogRelease[], language = ''): CatalogRelease[] {
+  const inLanguage = (r: CatalogRelease) => Number(Boolean(r.languages?.includes(language)));
   return [...releases].sort((a, b) => zoneOrder(a.zone) - zoneOrder(b.zone)
-    || Number(b.edition_type === 'standard') - Number(a.edition_type === 'standard') || a.id - b.id);
+    || Number(b.edition_type === 'standard') - Number(a.edition_type === 'standard') || inLanguage(b) - inLanguage(a) || a.id - b.id);
 }
 
 interface LineProps {
   row: CatalogRow;
   showZone: boolean;
+  language: string;
   canTick: boolean;
   busyRelease: number | null;
   onAdd: (release: CatalogRelease) => void;
@@ -419,9 +472,25 @@ interface LineProps {
   onToggleWanted: (row: CatalogRow) => void;
 }
 
-function CatalogLine({ row, showZone, canTick, busyRelease, onAdd, onOpen, onToggleWanted }: LineProps) {
-  const releases = sortReleases(row.releases);
+function CatalogLine({ row, showZone, language, canTick, busyRelease, onAdd, onOpen, onToggleWanted }: LineProps) {
+  const [expanded, setExpanded] = useState(false);
+  const releases = sortReleases(row.releases, language);
   const busy = releases.some((r) => r.id === busyRelease);
+  // Versions qui se ressemblent (même zone, même édition : FF7 PAL anglais, français,
+  // allemand…) : on les distingue par leur langue. Le code produit reste sur la fiche.
+  const lookalike = (r: CatalogRelease) => `${r.zone}|${editionLabel(r)}`;
+  const groups = new Map<string, CatalogRelease[]>();
+  for (const r of releases) groups.set(lookalike(r), [...(groups.get(lookalike(r)) ?? []), r]);
+  const counts = new Map([...groups].map(([key, list]) => [key, list.length]));
+  // Dans chaque groupe, on garde la version dans la langue choisie (et celles cochées,
+  // recherchées ou de langue inconnue) ; s'il n'y en a aucune, tout le groupe reste
+  const kept = new Set<number>();
+  for (const list of groups.values()) {
+    const mine = list.filter((r) => r.owned || r.wanted || !r.languages?.length || r.languages.includes(language));
+    for (const r of (list.length === 1 || language === ALL_LANGUAGES || mine.length === 0 ? list : mine)) kept.add(r.id);
+  }
+  const hidden = releases.length - kept.size;
+  const shown = expanded ? releases : releases.filter((r) => kept.has(r.id));
   return (
     <li className={row.owned ? 'catalog-row is-owned' : 'catalog-row'}>
       <div className={row.cover_other_zone ? 'cover-other-zone' : undefined} title={row.cover_other_zone ? "Jaquette d'une autre région" : undefined}>
@@ -434,12 +503,20 @@ function CatalogLine({ row, showZone, canTick, busyRelease, onAdd, onOpen, onTog
           {row.release_date && <span className="muted small"> · {yearOf(row.release_date)}</span>}
         </p>
         <ul className="catalog-releases" aria-label="Versions">
-          {releases.map((r) => (
+          {shown.map((r) => (
             <li key={r.id}>
-              <ReleaseChip release={r} showZone={showZone} interactive={canTick} busy={busy}
+              <ReleaseChip release={r} showZone={showZone} showLanguage={(counts.get(lookalike(r)) ?? 0) > 1} interactive={canTick} busy={busy}
                 onClick={() => (r.owned && r.owned_item ? onOpen(r.owned_item) : onAdd(r))} />
             </li>
           ))}
+          {hidden > 0 && (
+            <li>
+              <button type="button" className="chip-more" aria-expanded={expanded} onClick={() => setExpanded((v) => !v)}
+                title={expanded ? 'Replier les versions dans les autres langues' : 'Afficher les versions dans les autres langues'}>
+                {expanded ? 'Moins' : `+${hidden} langue${hidden > 1 ? 's' : ''}`}
+              </button>
+            </li>
+          )}
         </ul>
       </div>
       {canTick && !row.owned && releases.length > 0 && (
@@ -452,26 +529,29 @@ function CatalogLine({ row, showZone, canTick, busyRelease, onAdd, onOpen, onTog
   );
 }
 
-function ReleaseChip({ release, showZone, interactive, busy, onClick }: {
-  release: CatalogRelease; showZone: boolean; interactive: boolean; busy: boolean; onClick: () => void;
+function ReleaseChip({ release, showZone, showLanguage, interactive, busy, onClick }: {
+  release: CatalogRelease; showZone: boolean; showLanguage: boolean; interactive: boolean; busy: boolean; onClick: () => void;
 }) {
   const edition = editionLabel(release);
+  const language = showLanguage ? languagesShort(release.languages) : '';
   const className = `release-chip${release.owned ? ' owned' : ''}${release.edition_type === 'reissue' ? ' reissue' : ''}`;
   const content = (
     <>
       <span className="chip-box" aria-hidden="true">{release.owned ? '✓' : ''}</span>
       {showZone && <span className="chip-zone">{release.zone ?? '?'}</span>}
       <span>{edition}</span>
-      {release.product_code && <span className="code chip-code">{release.product_code}</span>}
+      {language && <span className="chip-language">{language}</span>}
       {release.copies > 1 && <span className="chip-copies">×{release.copies}</span>}
     </>
   );
-  if (!interactive) return <span className={className}>{content}</span>;
-  const description = `${edition}${release.product_code ? ` ${release.product_code}` : ''}`;
+  // Au survol : la langue en toutes lettres et le code produit
+  const details = [languagesLong(release.languages), release.product_code].filter(Boolean).join(' · ');
+  if (!interactive) return <span className={className} title={details || undefined}>{content}</span>;
+  const description = [edition, languagesLong(release.languages)].filter(Boolean).join(', ');
   return (
     <button type="button" className={className} disabled={busy} aria-pressed={release.owned}
       aria-label={release.owned ? `${description} : dans ta collection, modifier l'exemplaire` : `${description} : je l'ai, ajouter à ma collection`}
-      title={release.owned ? 'Dans ta collection : cliquer pour préciser ou modifier' : "Je l'ai : cliquer pour l'ajouter à ma collection"}
+      title={`${release.owned ? 'Dans ta collection : cliquer pour préciser ou modifier' : "Je l'ai : cliquer pour l'ajouter à ma collection"}${details ? ` (${details})` : ''}`}
       onClick={onClick}>
       {content}
     </button>

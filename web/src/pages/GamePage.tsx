@@ -4,10 +4,12 @@ import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { Dialog } from '../components/Dialog';
 import { GAME_FIELDS } from '../lib/queries';
-import { countryName, editionLabel, familyLabel, formatDate, LANGUAGES, zoneLabel, zoneOrder } from '../lib/format';
+import { countryName, editionLabel, familyLabel, formatDate, languagesLong, languagesShort, zoneLabel, zoneOrder } from '../lib/format';
+import { rememberedLanguage } from '../lib/preferences';
 import { describeSpecs } from '../lib/specs';
-import type { Game, Release } from '../lib/types';
+import type { Game, ItemStatus, Release } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
+import { AddToCollection } from '../components/AddToCollection';
 import { Cover } from '../components/Cover';
 import { PsSymbol } from '../components/PsSymbol';
 import { ReportDialog } from '../components/ReportDialog';
@@ -18,13 +20,23 @@ export function GamePage() {
   const gameId = Number.parseInt(id ?? '', 10);
   const navigate = useNavigate();
   const location = useLocation();
-  const { session, isModerator } = useAuth();
+  const { session, needsMfa, isModerator } = useAuth();
   const [game, setGame] = useState<Game | null>(null);
   const [state, setState] = useState<'loading' | 'ok' | 'missing'>('loading');
   const [proposeSummary, setProposeSummary] = useState(false);
   const [reporting, setReporting] = useState(false);
+  // Résumé replié sur quelques lignes : les versions, l'essentiel, restent proches
+  const [summaryOpen, setSummaryOpen] = useState(false);
   // Pays du studio (champ calculé par la base), lu à part : la fiche s'affiche même sans lui
   const [origin, setOrigin] = useState<string | null>(null);
+  // Mes exemplaires des versions de ce jeu (possédés ou recherchés)
+  const [mine, setMine] = useState<{ id: number; release_id: number; status: ItemStatus }[]>([]);
+  const [mineVersion, setMineVersion] = useState(0);
+  const [adding, setAdding] = useState<number | null>(null);
+  const [busy, setBusy] = useState<number | null>(null);
+  const [actionError, setActionError] = useState('');
+  const userId = session?.user.id ?? null;
+  const canTick = Boolean(session) && !needsMfa;
 
   useEffect(() => {
     if (!Number.isInteger(gameId)) return setState('missing');
@@ -37,19 +49,48 @@ export function GamePage() {
       .then(({ data }) => setOrigin((data as { origin: string | null } | null)?.origin ?? null));
   }, [gameId]);
 
+  useEffect(() => {
+    const ids = game?.release.map((r) => r.id) ?? [];
+    if (!userId || ids.length === 0) return setMine([]);
+    let active = true;
+    supabase.from('collection_item').select('id, release_id, status').eq('profile_id', userId).in('release_id', ids)
+      .then(({ data }) => { if (active) setMine((data as typeof mine | null) ?? []); });
+    return () => { active = false; };
+  }, [game, userId, mineVersion]);
+
   if (state === 'loading') return <p className="loading">Lecture de la carte mémoire…</p>;
   if (state === 'missing' || !game) return <section className="panel"><h1>Jeu introuvable</h1><Link to="/"><PsSymbol shape="circle" /> Retour à la recherche</Link></section>;
 
-  const releases = [...game.release].sort((a, b) => zoneOrder(a.zone) - zoneOrder(b.zone) || a.id - b.id);
+  // Japon, Amérique, Europe ; dans chaque zone, la standard d'abord, puis la langue choisie dans le catalogue
+  const language = rememberedLanguage();
+  const releases = [...game.release].sort((a, b) => zoneOrder(a.zone) - zoneOrder(b.zone)
+    || Number(b.edition_type === 'standard') - Number(a.edition_type === 'standard')
+    || Number(b.languages.includes(language)) - Number(a.languages.includes(language)) || a.id - b.id);
+  const copies = (r: Release) => mine.filter((m) => m.release_id === r.id && m.status === 'owned').length;
+  const wantedItem = (r: Release) => mine.find((m) => m.release_id === r.id && m.status === 'wanted');
   const heroImages = releases.find((r) => r.zone === 'PAL' && r.image.length)?.image ?? releases.find((r) => r.image.length)?.image ?? [];
   // Genres (avec leurs familles, cliquables vers le catalogue) et thèmes (sans famille)
   const genres = game.game_genre.map((g) => g.genre).filter((g) => g.families.length > 0);
   const themes = game.game_genre.map((g) => g.genre).filter((g) => g.families.length === 0);
   const families = [...new Set(genres.flatMap((g) => g.families))];
 
+  // Ajout sur place (fenêtre de l'exemplaire), sans quitter la fiche
   function addToCollection(release: Release) {
-    const target = `/collection?ajouter=${release.id}`;
-    navigate(session ? target : `/connexion?next=${encodeURIComponent(target)}`);
+    if (!session) return navigate(`/connexion?next=${encodeURIComponent(location.pathname)}`);
+    if (needsMfa) return navigate(`/connexion/verification?next=${encodeURIComponent(location.pathname)}`);
+    setAdding(release.id);
+  }
+
+  async function toggleWanted(release: Release) {
+    setBusy(release.id);
+    setActionError('');
+    const item = wantedItem(release);
+    const { error } = item
+      ? await supabase.from('collection_item').delete().eq('id', item.id)
+      : await supabase.from('collection_item').insert({ release_id: release.id, status: 'wanted' });
+    setBusy(null);
+    if (error) return setActionError(errorMessage(error));
+    setMineVersion((v) => v + 1);
   }
 
   return (
@@ -87,7 +128,12 @@ export function GamePage() {
           </dl>
           {game.summary && (
             <div className="summary-block">
-              <p className="summary">{game.summary}</p>
+              <p className={summaryOpen || game.summary.length < 320 ? 'summary' : 'summary is-clamped'}>{game.summary}</p>
+              {game.summary.length >= 320 && (
+                <button type="button" className="link-button small" aria-expanded={summaryOpen} onClick={() => setSummaryOpen((v) => !v)}>
+                  {summaryOpen ? 'Réduire' : 'Lire la suite'}
+                </button>
+              )}
               {game.summary_source && (
                 <p className="summary-source">
                   Résumé extrait de Wikipédia (licence{' '}
@@ -98,22 +144,19 @@ export function GamePage() {
               )}
             </div>
           )}
-          <div className="actions">
-            <Link to={`/proposer?jeu=${game.id}`} className="button"><PsSymbol shape="square" /> Proposer une version manquante</Link>
-            <button type="button" className="button" onClick={() => (session ? setProposeSummary(true) : navigate(`/connexion?next=${encodeURIComponent(location.pathname)}`))}>
-              <PsSymbol shape="circle" /> {game.summary ? 'Proposer un meilleur résumé' : 'Proposer un résumé'}
-            </button>
-            <button type="button" className="button" onClick={() => (session ? setReporting(true) : navigate(`/connexion?next=${encodeURIComponent(location.pathname)}`))}>
-              <PsSymbol shape="circle" /> Signaler une erreur
-            </button>
-            {isModerator && <Link to={`/jeu/${game.id}/modifier`} className="button button-primary"><PsSymbol shape="triangle" /> Modifier ce jeu</Link>}
-          </div>
+          {isModerator && (
+            <div className="actions">
+              <Link to={`/jeu/${game.id}/modifier`} className="button button-primary"><PsSymbol shape="triangle" /> Modifier ce jeu</Link>
+            </div>
+          )}
           <SummaryProposal open={proposeSummary} onClose={() => setProposeSummary(false)} game={game} />
           <ReportDialog open={reporting} onClose={() => setReporting(false)} game={game} />
+          <AddToCollection open={adding !== null} initialReleaseId={adding} onClose={() => setAdding(null)} onSaved={() => setMineVersion((v) => v + 1)} />
         </div>
       </header>
 
       <h2>Versions ({releases.length})</h2>
+      {actionError && <p className="error">{actionError}</p>}
       <ul className="release-list">
         {releases.map((r) => (
           <li key={r.id} className="release-card panel">
@@ -124,7 +167,14 @@ export function GamePage() {
                 <span className={`badge badge-zone badge-${(r.zone ?? 'unknown').toLowerCase()}`}>{zoneLabel(r.zone)}</span>
                 {countryOf(r) && <span className="badge">{countryOf(r)}</span>}
                 <span className={`badge ${r.edition_type === 'reissue' ? 'badge-platinum' : 'badge-edition'}`}>{editionLabel(r)}</span>
+                {r.languages.length > 0 && (
+                  <span className="badge badge-language" title={languagesLong(r.languages)}>
+                    {r.languages.length === 1 ? languagesLong(r.languages) : languagesShort(r.languages)}
+                  </span>
+                )}
                 {!r.product_code && <span className="badge badge-todo">À compléter</span>}
+                {copies(r) > 0 && <span className="badge badge-owned">✓ Dans ta collection{copies(r) > 1 ? ` (×${copies(r)})` : ''}</span>}
+                {wantedItem(r) && <span className="badge badge-trade">♥ Recherchée</span>}
               </p>
               <dl className="facts">
                 {r.product_code && (<><dt>Code produit</dt><dd className="code">{r.product_code}</dd></>)}
@@ -135,18 +185,44 @@ export function GamePage() {
                   <><dt>Édition</dt><dd>{r.release_company.map((c) => c.company.name).join(', ')}</dd></>
                 )}
                 {r.languages.length > 0 && (
-                  <><dt>Langues</dt><dd>{r.languages.map((l) => LANGUAGES.find((x) => x.value === l)?.label ?? l).join(', ')}</dd></>
+                  <><dt>Langues</dt><dd>{languagesLong(r.languages)}</dd></>
                 )}
                 {r.media_count && r.media_count > 1 && (<><dt>Disques</dt><dd>{r.media_count}</dd></>)}
                 {describeSpecs(r.specs, r.platform.spec_fields).map((s) => (
                   <Fragment key={s.label}><dt>{s.label}</dt><dd>{s.value}</dd></Fragment>
                 ))}
               </dl>
-              <button type="button" className="button button-small button-primary" onClick={() => addToCollection(r)}><PsSymbol shape="cross" /> Ajouter à ma collection</button>
+              <div className="actions">
+                <button type="button" className={copies(r) > 0 ? 'button button-small' : 'button button-small button-primary'} onClick={() => addToCollection(r)}>
+                  <PsSymbol shape="cross" /> {copies(r) > 0 ? 'Ajouter un autre exemplaire' : 'Ajouter à ma collection'}
+                </button>
+                {canTick && copies(r) === 0 && (
+                  <button type="button" className={wantedItem(r) ? 'wish-button active' : 'wish-button'} aria-pressed={Boolean(wantedItem(r))}
+                    disabled={busy === r.id} onClick={() => toggleWanted(r)}>
+                    {wantedItem(r) ? '♥ Recherchée' : '♡ Je la cherche'}
+                  </button>
+                )}
+                {copies(r) > 0 && <Link to="/collection" className="small">Voir ma collection</Link>}
+              </div>
             </div>
           </li>
         ))}
       </ul>
+
+      {/* Contribuer : après les versions, l'essentiel pour qui consulte la fiche */}
+      <section className="panel contribute">
+        <h2>Une info manque ou est fausse ?</h2>
+        <p className="muted small">La base est collaborative : chaque proposition est relue par un modérateur avant d'apparaître.</p>
+        <div className="actions">
+          <Link to={`/proposer?jeu=${game.id}`} className="button"><PsSymbol shape="square" /> Proposer une version manquante</Link>
+          <button type="button" className="button" onClick={() => (session ? setProposeSummary(true) : navigate(`/connexion?next=${encodeURIComponent(location.pathname)}`))}>
+            <PsSymbol shape="circle" /> {game.summary ? 'Proposer un meilleur résumé' : 'Proposer un résumé'}
+          </button>
+          <button type="button" className="button" onClick={() => (session ? setReporting(true) : navigate(`/connexion?next=${encodeURIComponent(location.pathname)}`))}>
+            <PsSymbol shape="triangle" /> Signaler une erreur
+          </button>
+        </div>
+      </section>
     </article>
   );
 }

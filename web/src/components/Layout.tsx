@@ -3,6 +3,26 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { supabase } from '../lib/supabase';
 import { useConfirm } from './Confirm';
+import { NavIcon, type NavIconName } from './NavIcon';
+
+// Chaque rubrique prend la couleur d'un bouton de la manette quand on s'y trouve
+const LINKS: { to: string; label: string; short?: string; icon: NavIconName; accent: string }[] = [
+  { to: '/', label: 'Rechercher', icon: 'search', accent: 'cross' },
+  { to: '/catalogue', label: 'Catalogue', icon: 'catalog', accent: 'square' },
+  { to: '/collection', label: 'Ma collection', short: 'Collection', icon: 'collection', accent: 'triangle' },
+  { to: '/proposer', label: 'Proposer un jeu', short: 'Proposer', icon: 'propose', accent: 'circle' },
+];
+
+// Libellé long sur grand écran, court quand la place manque
+function NavLabel({ long, short }: { long: string; short?: string }) {
+  if (!short) return <span className="nav-label">{long}</span>;
+  return (
+    <>
+      <span className="nav-label nav-label-long">{long}</span>
+      <span className="nav-label nav-label-short">{short}</span>
+    </>
+  );
+}
 
 export function Layout() {
   const { session, profile, signOut, isModerator } = useAuth();
@@ -32,14 +52,20 @@ export function Layout() {
           <span className="logo-card" aria-hidden="true" />
           <span className="logo-text">Carte Mémoire</span>
         </Link>
+        {/* Ordinateur : dans la barre du haut. Téléphone et tablette : barre d'onglets
+            fixée en bas de l'écran, à portée de pouce (voir styles.css) */}
         <nav className="nav" aria-label="Navigation principale">
-          <NavLink to="/" end>Rechercher</NavLink>
-          <NavLink to="/catalogue">Catalogue</NavLink>
-          <NavLink to="/collection">Ma collection</NavLink>
-          <NavLink to="/proposer">Proposer un jeu</NavLink>
+          {LINKS.map((link) => (
+            <NavLink key={link.to} to={link.to} end={link.to === '/'} className={`nav-link nav-${link.accent}`}>
+              <NavIcon name={link.icon} />
+              <NavLabel long={link.label} short={link.short} />
+            </NavLink>
+          ))}
           {isModerator && (
-            <NavLink to="/moderation">
-              Modération{pending > 0 && <span className="count-badge" aria-label={`${pending} en attente`}>{pending}</span>}
+            <NavLink to="/moderation" className="nav-link nav-gold">
+              <NavIcon name="moderation" />
+              <NavLabel long="Modération" />
+              {pending > 0 && <span className="count-badge" aria-label={`${pending} en attente`}>{pending}</span>}
             </NavLink>
           )}
         </nav>

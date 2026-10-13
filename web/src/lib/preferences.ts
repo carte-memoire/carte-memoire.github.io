@@ -39,6 +39,29 @@ export function inRecovery(): boolean {
   try { return sessionStorage.getItem(RECOVERY_KEY) === '1'; } catch { return false; }
 }
 
+// Langue des versions : quand un jeu existe en plusieurs versions nationales semblables
+// (FF7 PAL anglais, français, allemand, espagnol), on montre d'abord celle-ci, les
+// autres sont repliées. Par défaut le français, langue du site.
+const LANGUAGE_KEY = 'carte-memoire:langue';
+export const ALL_LANGUAGES = 'toutes';
+export const DEFAULT_LANGUAGE = 'fr';
+export const rememberedLanguage = () => read(LANGUAGE_KEY, DEFAULT_LANGUAGE);
+export const rememberLanguage = (value: string) => write(LANGUAGE_KEY, value);
+
+// Nombre de jeux par page dans les listes (0 = tout afficher), retenu pour chaque liste.
+// Dans l'adresse : ?par=100 ou ?par=tout
+export const PAGE_SIZES = [10, 20, 50, 100, 200, 1000, 0];
+export const ALL_ITEMS = 'tout';
+
+export function pageSizeFrom(value: string | null): number | null {
+  if (value === ALL_ITEMS) return 0;
+  const n = Number(value);
+  return PAGE_SIZES.includes(n) && n > 0 ? n : null;
+}
+export const pageSizeParam = (size: number) => (size === 0 ? ALL_ITEMS : String(size));
+export const rememberedPageSize = (list: string, fallback: number) => pageSizeFrom(read(`carte-memoire:par-page:${list}`, '')) ?? fallback;
+export const rememberPageSize = (list: string, size: number) => write(`carte-memoire:par-page:${list}`, pageSizeParam(size));
+
 const COLLECTION_VIEW_KEY = 'carte-memoire:vue-collection';
 export type CollectionView = 'list' | 'grid';
 export const rememberedCollectionView = (): CollectionView => (read(COLLECTION_VIEW_KEY, 'list') === 'grid' ? 'grid' : 'list');

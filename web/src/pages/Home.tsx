@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { ControllerButtons } from '../components/ControllerButtons';
 import { GameSearch } from '../components/GameSearch';
 import { PlatformSelect } from '../components/PlatformSelect';
 import { PsSymbol } from '../components/PsSymbol';
@@ -36,9 +37,9 @@ export function Home() {
           {gameCount ? `Les ${formatNumber(gameCount)} jeux` : 'Les jeux'}{platformCode ? ' de la' : ''}{' '}
           <PlatformSelect value={selected} onChange={choose} />, version par version. Et ta collection.
         </p>
-        <p className="buttons-legend" aria-hidden="true">
-          <PsSymbol shape="triangle" colored /><PsSymbol shape="circle" colored />
-          <PsSymbol shape="cross" colored /><PsSymbol shape="square" colored />
+        {/* Les boutons de la manette de la console choisie (rejoués à chaque changement) */}
+        <p className="buttons-legend" aria-hidden="true" key={selected}>
+          <ControllerButtons platform={selected} />
         </p>
       </div>
 

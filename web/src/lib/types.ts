@@ -184,6 +184,8 @@ export interface CatalogRelease {
   id: number;
   local_title: string;
   product_code: string | null;
+  // Absent tant que la migration 20261010190300 n'est pas envoyée
+  languages?: string[];
   zone: Zone | null;
   edition_type: EditionType;
   edition_name: string | null;

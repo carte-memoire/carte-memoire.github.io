@@ -70,37 +70,93 @@ h3 { font-size: 1.05rem; }
 
 /* ---------- Structure ---------- */
 .app { display: flex; flex-direction: column; min-height: 100vh; }
-.main { flex: 1; width: 100%; max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
+.main {
+  flex: 1; width: 100%; max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px;
+  padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right));
+}
 
+/* Barre du haut : toujours sur une seule ligne. Le texte et les marges se resserrent
+   avec la largeur (clamp) ; en dessous de 900 px, le menu descend en bas de l'écran. */
 .topbar {
-  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
-  padding: 12px 16px;
+  display: flex; align-items: center; gap: clamp(8px, 1.6vw, 20px);
+  padding: 10px max(clamp(12px, 2.5vw, 24px), env(safe-area-inset-right)) 10px max(clamp(12px, 2.5vw, 24px), env(safe-area-inset-left));
   background: linear-gradient(to bottom, #1c2142, #13162d);
   border-bottom: 2px solid var(--bevel-dark);
   box-shadow: inset 0 -1px 0 var(--bevel-light);
 }
-.logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text); }
+.logo { display: flex; align-items: center; gap: 10px; flex: none; text-decoration: none; color: var(--text); }
 .logo-card {
-  width: 22px; height: 28px; border-radius: 2px;
+  flex: none; width: 22px; height: 28px; border-radius: 2px;
   background: linear-gradient(#c8ccd8 0 40%, #2b2f45 40%);
   border: 2px solid #2b2f45;
   box-shadow: inset 0 -6px 0 -3px var(--gold);
 }
-.logo-text { font-family: var(--pixel); font-size: 0.8rem; letter-spacing: 0.04em; }
+.logo-text { font-family: var(--pixel); font-size: clamp(0.6rem, 0.5rem + 0.4vw, 0.8rem); letter-spacing: 0.04em; white-space: nowrap; }
 
-.nav { display: flex; gap: 4px; flex-wrap: wrap; flex: 1; }
-.nav a {
-  color: var(--muted); text-decoration: none; padding: 6px 10px; border-radius: var(--radius);
-  font-size: 0.95rem;
+.nav { display: flex; align-items: center; gap: clamp(2px, 0.4vw, 6px); flex: 1; min-width: 0; }
+.nav-link {
+  position: relative; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+  color: var(--muted); text-decoration: none; padding: 7px clamp(6px, 0.9vw, 12px); border-radius: var(--radius);
+  font-size: clamp(0.85rem, 0.74rem + 0.25vw, 0.95rem);
 }
-.nav a:hover { color: var(--text); background: var(--panel); }
-.nav a.active { color: var(--text); background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--bevel-light); }
+.nav-icon { width: 1.2em; height: 1.2em; flex: none; }
+.nav-cross { --accent: var(--cross); }
+.nav-square { --accent: var(--square); }
+.nav-triangle { --accent: var(--triangle); }
+.nav-circle { --accent: var(--circle); }
+.nav-gold { --accent: var(--gold); }
+.nav-link:hover { color: var(--text); background: var(--panel); }
+.nav-link.active { color: var(--text); background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--bevel-light); }
+.nav-link.active .nav-icon { color: var(--accent); }
+.nav-label-short { display: none; }
+.nav-link .count-badge { margin-left: 0; }
 
-.account { display: flex; gap: 8px; align-items: center; }
+.account { display: flex; gap: 8px; align-items: center; flex: none; margin-left: auto; }
 .account-menu { position: relative; }
 .account-menu summary {
   list-style: none; cursor: pointer; padding: 6px 12px; border-radius: var(--radius);
   background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--bevel-light);
+  max-width: clamp(110px, 16vw, 220px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* Écran moyen : libellés courts, puis le logo sans son texte */
+@media (max-width: 1180px) {
+  .nav-label-long { display: none; }
+  .nav-label-short { display: inline; }
+}
+@media (min-width: 901px) and (max-width: 1100px) {
+  .logo-text { display: none; }
+}
+/* Très petits téléphones (320 px) : le logo se fait plus petit pour laisser la place
+   aux boutons Connexion / Inscription */
+@media (max-width: 359px) {
+  .logo { gap: 6px; }
+  .logo-text { font-size: 0.5rem; }
+}
+
+/* Téléphone et tablette : barre d'onglets en bas, icône au-dessus du libellé */
+@media (max-width: 900px) {
+  .app { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  .nav {
+    position: fixed; z-index: 60; left: 0; right: 0; bottom: 0; gap: 2px; justify-content: space-around;
+    padding: 4px max(4px, env(safe-area-inset-right)) calc(4px + env(safe-area-inset-bottom)) max(4px, env(safe-area-inset-left));
+    background: linear-gradient(to bottom, #1c2142, #13162d);
+    border-top: 2px solid var(--bevel-dark);
+    box-shadow: inset 0 1px 0 var(--bevel-light), 0 -8px 24px rgba(0, 0, 0, 0.35);
+  }
+  .nav-link {
+    flex: 1 1 0; min-width: 0; max-width: 180px; flex-direction: column; gap: 3px; padding: 6px 2px 5px;
+    font-size: clamp(0.62rem, 0.5rem + 0.6vw, 0.78rem); font-weight: 600; border-radius: 6px;
+  }
+  .nav-link .nav-icon { width: 22px; height: 22px; }
+  .nav-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .nav-link.active { background: none; box-shadow: none; }
+  .nav-link.active::before {
+    content: ''; position: absolute; top: -4px; left: 22%; right: 22%; height: 3px;
+    border-radius: 0 0 3px 3px; background: var(--accent);
+  }
+  .nav-link .count-badge { position: absolute; top: 1px; left: calc(50% + 5px); font-size: 0.65rem; }
+  .account .button-small { padding: 4px clamp(6px, 2vw, 10px); font-size: clamp(0.75rem, 0.6rem + 0.6vw, 0.85rem); min-height: 30px; }
 }
 .account-menu summary::-webkit-details-marker { display: none; }
 .account-menu summary::after { content: ' ▾'; color: var(--muted); }
@@ -297,6 +353,7 @@ ul.error { padding-left: 28px; }
 .badge-ntsc-j { color: #ffd6f1; border-color: #c4579f; }
 .badge-unknown, .badge-region_free { color: var(--muted); }
 .badge-edition { color: #e8eaf4; background: #0c0c10; border-color: #3a3a46; }
+.badge-language { color: #c9d3ff; border-color: var(--line); }
 .badge-platinum { color: #1b1d26; background: var(--platinum); border-color: #fff; }
 .badge-todo { color: #f1e2ae; border-color: var(--gold); }
 .badge-ok { color: #b5f3e1; border-color: var(--triangle); }
@@ -314,6 +371,14 @@ ul.error { padding-left: 28px; }
 .summary { white-space: pre-line; }
 .summary-block { margin: 0 0 14px; }
 .summary-block .summary { margin: 0 0 6px; }
+.summary.is-clamped { display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; }
+.summary-block .link-button { margin-bottom: 8px; }
+.contribute { display: flex; flex-direction: column; gap: 8px; }
+.contribute h2, .contribute p { margin: 0; }
+.badge-owned { color: var(--bg); background: var(--triangle); border-color: #7af0cf; }
+@media (max-width: 640px) {
+  .summary.is-clamped { -webkit-line-clamp: 4; }
+}
 .summary-source { margin: 0; font-size: 0.8rem; color: var(--muted); }
 .summary-compare { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
 .summary-compare .summary { margin: 4px 0 0; padding: 10px 12px; background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius); }
@@ -474,6 +539,8 @@ fieldset.notice { padding: 10px 12px; }
   .buttons-legend .ps-symbol:nth-child(2) { animation-delay: 820ms; }
   .buttons-legend .ps-symbol:nth-child(3) { animation-delay: 940ms; }
   .buttons-legend .ps-symbol:nth-child(4) { animation-delay: 1060ms; }
+  .buttons-legend .ps-symbol:nth-child(5) { animation-delay: 1180ms; }
+  .buttons-legend .ps-symbol:nth-child(6) { animation-delay: 1300ms; }
   .buttons-legend .ps-symbol:hover { animation: hop 400ms ease-out; }
 
   /* Listes qui arrivent en cascade */
@@ -499,18 +566,16 @@ fieldset.notice { padding: 10px 12px; }
 
 /* ---------- Petits écrans ---------- */
 @media (max-width: 640px) {
-  .topbar { gap: 10px; }
-  .nav { order: 3; flex-basis: 100%; }
-  .account { margin-left: auto; }
-  .main { padding: 16px 12px 40px; }
+  .main { padding-top: 16px; padding-bottom: 40px; padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
   .panel { padding: 16px; }
   .cover-large { width: 140px; }
   .cover-medium { width: 100px; }
   .cover-small { width: 72px; }
   .release-card { flex-direction: column; }
   .memory-card { grid-template-columns: 1fr; }
-  .facts { grid-template-columns: 1fr; }
-  .facts dt { margin-top: 4px; }
+  /* Intitulé et valeur côte à côte : deux fois moins haut qu'en une colonne */
+  .facts { grid-template-columns: minmax(0, max-content) minmax(0, 1fr); gap: 3px 12px; font-size: 0.9rem; }
+  .facts dd { overflow-wrap: anywhere; }
 }
 
 /* Code produit trouvé par la recherche */
@@ -523,6 +588,16 @@ fieldset.notice { padding: 10px 12px; }
 .catalog-filters { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; }
 .catalog-filters .row > .field { min-width: 140px; }
 .catalog-filters .row > .catalog-search { flex: 2 1 220px; }
+.more-filters { display: flex; flex-direction: column; gap: 12px; }
+.filters-toggle { display: none; }
+/* Téléphone : la recherche et un bouton « Filtres » ; le reste se déplie à la demande */
+@media (max-width: 640px) {
+  .catalog-search-row { flex-wrap: nowrap; align-items: flex-end; }
+  .catalog-filters .row > .catalog-search { flex: 1 1 auto; min-width: 0; }
+  .filters-toggle { display: inline-flex; flex: none; gap: 6px; }
+  .filters-toggle .count-badge { margin-left: 0; }
+  .more-filters:not(.is-open) { display: none; }
+}
 .letters { display: flex; flex-wrap: wrap; gap: 4px; }
 .letter {
   font: inherit; font-family: var(--pixel); font-size: 0.6rem; min-width: 30px; min-height: 30px; padding: 0 6px;
@@ -536,6 +611,8 @@ fieldset.notice { padding: 10px 12px; }
   display: flex; align-items: center; gap: 12px; padding: 8px 12px;
   background: var(--bg-2); border: 1px solid var(--line); border-left: 4px solid var(--line); border-radius: var(--radius);
 }
+/* « Tout afficher » (plusieurs milliers de lignes) : le navigateur ne dessine que celles à l'écran */
+.catalog-row { content-visibility: auto; contain-intrinsic-size: auto 96px; }
 .catalog-row.is-owned { border-left-color: var(--triangle); background: linear-gradient(90deg, rgba(47, 214, 166, 0.09), var(--bg-2) 45%); }
 .catalog-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
 .catalog-heading { margin: 0; }
@@ -545,7 +622,7 @@ fieldset.notice { padding: 10px 12px; }
 
 /* Une version = une case à cocher en forme de pastille (noire comme un Black Label, argentée pour une réédition) */
 .release-chip {
-  display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 4px; min-height: 30px;
+  display: inline-flex; align-items: center; gap: 7px; padding: 3px 12px 3px 8px; min-height: 32px;
   font: inherit; font-size: 0.8rem; color: var(--text);
   background: #0c0c10; border: 1px solid #3a3a46; border-radius: 999px;
 }
@@ -553,13 +630,21 @@ button.release-chip { cursor: pointer; }
 button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .release-chip.reissue { background: #2b2f3a; border-color: #8e95a8; }
 .release-chip.owned { border-color: var(--triangle); background: rgba(47, 214, 166, 0.13); }
+/* La case : proportionnée à la pastille (16 px dans 32 px), coins arrondis comme elle */
 .chip-box {
-  width: 20px; height: 20px; flex: none; display: inline-flex; align-items: center; justify-content: center;
-  border: 2px solid var(--muted); border-radius: 3px; font-weight: 700; font-size: 0.8rem; line-height: 1;
+  width: 16px; height: 16px; flex: none; display: inline-flex; align-items: center; justify-content: center;
+  border: 2px solid var(--muted); border-radius: 4px; font-weight: 800; font-size: 0.68rem; line-height: 1;
 }
+/* « +3 langues » : les versions nationales repliées */
+.chip-more {
+  display: inline-flex; align-items: center; min-height: 32px; padding: 3px 12px; cursor: pointer;
+  font: inherit; font-size: 0.78rem; color: var(--muted); background: none;
+  border: 1px dashed var(--line); border-radius: 999px;
+}
+.chip-more:hover { color: var(--text); border-color: var(--cross); }
 .release-chip.owned .chip-box { border-color: var(--triangle); background: var(--triangle); color: var(--bg); }
 .chip-zone { font-size: 0.7rem; font-weight: 700; color: var(--muted); }
-.chip-code { font-size: 0.75rem; color: var(--muted); }
+.chip-language { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.03em; color: #c9d3ff; }
 .chip-copies { font-weight: 700; color: var(--triangle); }
 
 .wish-button {
@@ -569,8 +654,19 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .wish-button:hover:not(:disabled) { color: var(--square); border-color: var(--square); }
 .wish-button.active { color: var(--square); border-style: solid; border-color: var(--square); background: rgba(255, 134, 217, 0.1); }
 .cover-other-zone { opacity: 0.5; }
-.pagination { display: flex; justify-content: center; align-items: center; gap: 14px; flex-wrap: wrap; }
+.pagination { display: flex; justify-content: center; align-items: center; gap: clamp(6px, 1.4vw, 14px); flex-wrap: wrap; }
+.pagination-jump, .page-size { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 0.85rem; white-space: nowrap; }
+.pagination-jump select, .page-size select { width: auto; min-height: 32px; padding: 3px 6px; font-size: 0.85rem; }
+.list-tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+@media (max-width: 480px) {
+  /* Téléphone : flèches seules, le numéro de page reste lisible */
+  .pagination-word { display: none; }
+}
 .toast .link-button { margin-left: 12px; color: var(--text); }
+/* Au-dessus de la barre d'onglets du bas (téléphone, tablette) */
+@media (max-width: 900px) {
+  .toast { bottom: calc(76px + env(safe-area-inset-bottom)); }
+}
 .toast-error { color: #ffc3cb; border-color: var(--circle); }
 
 /* ---------- Progression : une carte mémoire de 15 blocs ---------- */

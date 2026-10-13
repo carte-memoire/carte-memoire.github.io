@@ -373,9 +373,18 @@ const page1 = await catalogue(null, { zone: 'PAL', size: 10 });
 const page2 = await catalogue(null, { zone: 'PAL', size: 10, page: 2 });
 await egal('pages de 10, sans chevauchement', Promise.resolve([page1.length, page2.length, page2.some((x) => page1.some((y) => y.id === x.id))]), [10, 10, false]);
 await egal('tri par titre', Promise.resolve(page1.map((x) => sansAccent(x.display_title)).every((t, i, a) => i === 0 || a[i - 1] <= t)), true);
+await egal("pages de 1 000 : choix « 1 000 par page » de l'internaute", catalogue(null, { zone: 'PAL', size: 1000 }).then((r) => r.length), Math.min(1000, totalPal));
+await egal('au-delà, plafonné à 1 000 (« tout » se lit en plusieurs appels)', catalogue(null, { size: 100000 }).then((r) => r.length <= 1000 && r.length === Math.min(1000, r[0].total_count)), true);
+await egal('chaque version donne ses langues (versions nationales sans code produit à l\'écran)',
+  catalogue(null, { zone: 'PAL', search: 'final fantasy vii' }).then((r) => ff7(r)?.releases.map((x) => x.languages)), [['fr'], ['fr']]);
 await egal('année 1997 : uniquement des jeux sortis en 1997', catalogue(null, { zone: 'PAL', year: 1997 }).then((r) => r.length > 0 && r.every((x) => String(x.release_date).includes('1997') || new Date(x.release_date).getUTCFullYear() === 1997)), true);
 await egal('tri par date : du plus ancien au plus récent', catalogue(null, { zone: 'PAL', sort: 'date', size: 100 }).then((r) => r.filter((x) => x.release_date).every((x, i, a) => i === 0 || new Date(a[i - 1].release_date) <= new Date(x.release_date))), true);
-await egal('console inconnue : aucun jeu', catalogue(null, { console: 'XYZ' }).then((r) => r.length), 0);
+await egal('tri par date décroissante : du plus récent au plus ancien', catalogue(null, { zone: 'PAL', sort: 'date_desc', size: 100 }).then((r) => r.length > 0 && r.filter((x) => x.release_date).every((x, i, a) => i === 0 || new Date(a[i - 1].release_date) >= new Date(x.release_date))), true);
+await egal('tri par titre de Z à A', catalogue(null, { zone: 'PAL', sort: 'title_desc', size: 50 }).then((r) => r.length > 0 && r.map((x) => sansAccent(x.display_title)).every((t, i, a) => i === 0 || a[i - 1] >= t)), true);
+await egal('tri par nombre de versions : le plus de versions d\'abord', catalogue(null, { zone: 'PAL', sort: 'versions', size: 100 }).then((r) => r.length > 0 && r[0].releases.length > 1 && r.every((x, i, a) => i === 0 || a[i - 1].releases.length >= x.releases.length)), true);
+await egal('tri par ajout : le dernier jeu ajouté en tête', catalogue(null, { console: null, sort: 'added', size: 5 }).then((r) => r[0]?.id),
+  (await val(`select g.id from public.game g where exists (select 1 from public.release r where r.game_id = g.id) order by g.created_at desc, g.id desc limit 1`))[0].id);
+await egal('console inconnue : aucun jeu',catalogue(null, { console: 'XYZ' }).then((r) => r.length), 0);
 await egal("date inconnue en PAL : celle d'une autre zone PS1 (1995), pas celle de la borne d'arcade (1992, Viewpoint)",
   catalogue(null, { zone: 'PAL', search: 'viewpoint' }).then((r) => r.filter((x) => x.title === 'Viewpoint').map((x) => new Date(x.release_date).getUTCFullYear())), [1995]);
 await egal('tri par date en PAL : aucune date avant le lancement de la PS1', catalogue(null, { zone: 'PAL', sort: 'date', size: 20 })

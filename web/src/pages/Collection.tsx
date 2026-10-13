@@ -5,12 +5,14 @@ import { COLLECTION_FIELDS } from '../lib/queries';
 import { standInFor, type CoverSource, type StandIn } from '../lib/images';
 import {
   acquisitionLabel, CATALOG_ZONES, CONDITIONS, conditionLabel, editionLabel, formatNumber, formatPrice, gamePath,
-  searchKey, TRADE_STATUSES, tradeStatusLabel, zoneLabel,
+  languagesLong, languagesShort, searchKey, TRADE_STATUSES, tradeStatusLabel, zoneLabel,
 } from '../lib/format';
 import { errorMessage } from '../lib/errors';
 import { downloadCsv, toCsv } from '../lib/csv';
 import { EXPORT_HEADERS, itemToRow } from '../lib/collectionCsv';
-import { rememberCollectionView, rememberedCollectionView, type CollectionView } from '../lib/preferences';
+import {
+  pageSizeFrom, pageSizeParam, rememberCollectionView, rememberedCollectionView, rememberedPageSize, rememberPageSize, type CollectionView,
+} from '../lib/preferences';
 import type { CollectionItem, ItemStatus } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
 import { AddToCollection } from '../components/AddToCollection';
@@ -18,6 +20,7 @@ import { CollectionImport } from '../components/CollectionImport';
 import { CollectionProgress } from '../components/CollectionProgress';
 import { useConfirm } from '../components/Confirm';
 import { Cover } from '../components/Cover';
+import { PageSizeSelect, Pagination } from '../components/Pagination';
 import { PsSymbol } from '../components/PsSymbol';
 
 // L'API renvoie au plus 1 000 lignes par requête : on lit la collection par paquets
@@ -93,8 +96,12 @@ export function Collection() {
   const offer = params.get('echange') ?? '';
   const sortParam = params.get('tri') as Sort | null;
   const sort: Sort = SORTS.some((s) => s.value === sortParam && (tab === 'owned' || !s.ownedOnly)) ? sortParam! : 'recent';
+  // Nombre d'exemplaires par page (0 = tout) et page affichée
+  const pageSize = pageSizeFrom(params.get('par')) ?? rememberedPageSize('collection', 100);
+  const page = pageSize === 0 ? 1 : Math.max(1, Number.parseInt(params.get('page') ?? '1', 10) || 1);
 
-  function update(changes: Record<string, string | null>) {
+  // Tout changement de filtre ramène à la première page
+  function update(changes: Record<string, string | null>, { keepPage = false } = {}) {
     // On part de l'adresse réelle du navigateur, à jour immédiatement : `params` n'est
     // mis à jour qu'au rendu suivant, et deux changements rapprochés (zone puis tri)
     // partiraient sinon tous deux de l'ancienne adresse, effaçant le premier.
@@ -103,7 +110,18 @@ export function Collection() {
       if (value === null || value === '') next.delete(key);
       else next.set(key, value);
     }
+    if (!keepPage) next.delete('page');
     setParams(next, { replace: true });
+  }
+
+  function choosePageSize(size: number) {
+    rememberPageSize('collection', size);
+    update({ par: pageSizeParam(size) });
+  }
+
+  function goToPage(n: number) {
+    update({ page: n > 1 ? String(n) : null }, { keepPage: true });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function standInOf(item: CollectionItem): StandIn | null {
@@ -160,7 +178,7 @@ export function Collection() {
     const releaseId = Number.parseInt(params.get('ajouter') ?? '', 10);
     if (Number.isInteger(releaseId)) {
       setDialog({ open: true, releaseId });
-      update({ ajouter: null });
+      update({ ajouter: null }, { keepPage: true });
     }
   }, [params]);
 
@@ -198,6 +216,10 @@ export function Collection() {
 
   const total = tab === 'owned' ? owned.length : wanted.length;
   const filtered = Boolean(text || zone || (tab === 'owned' && (condition || content || offer)));
+  const pages = pageSize === 0 ? 1 : Math.max(1, Math.ceil(shown.length / pageSize));
+  // Page au-delà de la dernière (exemplaires retirés, filtre plus strict) : la dernière
+  const current = Math.min(page, pages);
+  const visible = pageSize === 0 ? shown : shown.slice((current - 1) * pageSize, current * pageSize);
 
   return (
     <section className="stack">
@@ -284,13 +306,17 @@ export function Collection() {
           <div className="list-row">
             <p className="muted small" aria-live="polite">
               {filtered ? `${formatNumber(shown.length)} sur ${formatNumber(total)}` : formatNumber(total)} {noun(tab, total)}
+              {pages > 1 && ` · page ${current} sur ${pages}`}
               {filtered && (
                 <> · <button type="button" className="link-button" onClick={() => { setText(''); update({ q: null, zone: null, etat: null, contenu: null, echange: null }); }}>effacer les filtres</button></>
               )}
             </p>
-            <div className="view-switch" role="group" aria-label="Affichage">
-              <button type="button" className={view === 'list' ? 'zone-option active' : 'zone-option'} aria-pressed={view === 'list'} onClick={() => chooseView('list')}>▤ Liste</button>
-              <button type="button" className={view === 'grid' ? 'zone-option active' : 'zone-option'} aria-pressed={view === 'grid'} onClick={() => chooseView('grid')}>▦ Jaquettes</button>
+            <div className="list-tools">
+              <PageSizeSelect value={pageSize} onChange={choosePageSize} />
+              <div className="view-switch" role="group" aria-label="Affichage">
+                <button type="button" className={view === 'list' ? 'zone-option active' : 'zone-option'} aria-pressed={view === 'list'} onClick={() => chooseView('list')}>▤ Liste</button>
+                <button type="button" className={view === 'grid' ? 'zone-option active' : 'zone-option'} aria-pressed={view === 'grid'} onClick={() => chooseView('grid')}>▦ Jaquettes</button>
+              </div>
             </div>
           </div>
         </div>
@@ -309,17 +335,19 @@ export function Collection() {
 
       {view === 'list' ? (
         <ul className="memory-card">
-          {shown.map((item) => (
+          {visible.map((item) => (
             <ItemBlock key={item.id} item={item} standIn={standInOf(item)} onEdit={() => setDialog({ open: true, item })} onRemove={() => remove(item)} />
           ))}
         </ul>
       ) : (
         <ul className="cover-grid">
-          {shown.map((item) => (
+          {visible.map((item) => (
             <ItemTile key={item.id} item={item} standIn={standInOf(item)} onEdit={() => setDialog({ open: true, item })} />
           ))}
         </ul>
       )}
+
+      <Pagination page={current} pages={pages} onChange={goToPage} label="Pages de la collection" />
 
       <CollectionImport open={importing} onClose={() => setImporting(false)} onImported={load} existing={items} />
 
@@ -346,6 +374,7 @@ function ItemBlock({ item, standIn, onEdit, onRemove }: { item: CollectionItem; 
         <p className="block-badges">
           <span className={`badge badge-zone badge-${(r.zone ?? 'unknown').toLowerCase()}`}>{zoneLabel(r.zone)}</span>
           <span className={`badge ${r.edition_type === 'reissue' ? 'badge-platinum' : 'badge-edition'}`}>{editionLabel(r)}</span>
+          {r.languages.length > 0 && <span className="badge badge-language" title={languagesLong(r.languages)}>{languagesShort(r.languages)}</span>}
           {item.condition && <span className={`badge badge-condition badge-${item.condition}`}>{conditionLabel(item.condition)}</span>}
           {item.trade_status && <span className="badge badge-trade">{tradeStatusLabel(item.trade_status)}</span>}
         </p>
@@ -379,7 +408,7 @@ function ItemTile({ item, standIn, onEdit }: { item: CollectionItem; standIn: St
         <span className="cover-tile-title">{r.local_title}</span>
       </Link>
       <span className="cover-tile-meta">
-        {r.zone ?? '?'} · {editionLabel(r)}
+        {r.zone ?? '?'} · {editionLabel(r)}{r.languages.length > 0 && <span title={languagesLong(r.languages)}> · {languagesShort(r.languages)}</span>}
         {item.status === 'owned' && complete && <span className="cover-tile-complete" title="Complet (boîte, notice, disque)"> · Complet</span>}
       </span>
       {(item.condition || item.trade_status) && (

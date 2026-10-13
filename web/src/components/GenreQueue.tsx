@@ -3,14 +3,16 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { CATALOG_ZONES, FAMILIES, familyLabel, formatNumber, gamePath, yearOf } from '../lib/format';
 import { errorMessage } from '../lib/errors';
-import { ALL_PLATFORMS, rememberedPlatform } from '../lib/preferences';
+import { ALL_PLATFORMS, rememberedPageSize, rememberedPlatform, rememberPageSize } from '../lib/preferences';
 import type { GenreFamily, GenreInfo } from '../lib/types';
 import { Combobox } from './Combobox';
 import { Cover } from './Cover';
+import { PageSizeSelect, Pagination } from './Pagination';
 import { PsSymbol } from './PsSymbol';
 import { useKnownPlatform } from '../lib/usePlatforms';
 
-const PAGE_SIZE = 20;
+// Files de modération : 100 au plus par page (plafond des fonctions)
+const QUEUE_SIZES = [10, 20, 50, 100];
 
 // Genre « de base » de chaque famille (identifiant Wikidata), pour classer en un clic
 const MAIN_GENRE: Record<GenreFamily, string> = {
@@ -44,6 +46,7 @@ export function GenreQueue({ onCount }: { onCount: (n: number) => void }) {
   const [text, setText] = useState('');
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(() => Math.min(rememberedPageSize('file', 20) || 100, 100));
   const [rows, setRows] = useState<QueueRow[] | null>(null);
   const [total, setTotal] = useState(0);
   const [hidden, setHidden] = useState<Set<number>>(new Set());
@@ -69,7 +72,7 @@ export function GenreQueue({ onCount }: { onCount: (n: number) => void }) {
   useEffect(() => {
     let active = true;
     supabase.rpc('games_without_genre', {
-      platform_code: platformCode, zone_code: zone || null, search: query || null, page_number: page, page_size: PAGE_SIZE,
+      platform_code: platformCode, zone_code: zone || null, search: query || null, page_number: page, page_size: pageSize,
     }).then(({ data, error }) => {
       if (!active) return;
       setError(error ? errorMessage(error) : '');
@@ -79,7 +82,7 @@ export function GenreQueue({ onCount }: { onCount: (n: number) => void }) {
       setSkipped(0);
     });
     return () => { active = false; };
-  }, [platformCode, zone, query, page, version]);
+  }, [platformCode, zone, query, page, pageSize, version]);
 
   // Jeu classé ou passé : il disparaît. Page vidée : on recharge la même page (les
   // jeux classés ont quitté la file, la suite remonte), ou la suivante si tout a été passé.
@@ -96,7 +99,7 @@ export function GenreQueue({ onCount }: { onCount: (n: number) => void }) {
   }
 
   const visible = (rows ?? []).filter((r) => !hidden.has(r.id));
-  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const pages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
     <div className="stack">
@@ -120,9 +123,12 @@ export function GenreQueue({ onCount }: { onCount: (n: number) => void }) {
       </div>
       {error && <p className="error">{error}</p>}
       {rows !== null && (
-        <p className="muted small" aria-live="polite">
-          {formatNumber(total)} jeu{total > 1 ? 'x' : ''} à classer{pages > 1 ? ` · page ${page} sur ${pages}` : ''}
-        </p>
+        <div className="list-row">
+          <p className="muted small" aria-live="polite">
+            {formatNumber(total)} jeu{total > 1 ? 'x' : ''} à classer{pages > 1 ? ` · page ${page} sur ${pages}` : ''}
+          </p>
+          <PageSizeSelect value={pageSize} sizes={QUEUE_SIZES} onChange={(size) => { rememberPageSize('file', size); setPageSize(size); setPage(1); }} />
+        </div>
       )}
       {rows !== null && total === 0 && <p className="panel empty">Plus aucun jeu à classer ici. Bravo !</p>}
 
@@ -130,13 +136,7 @@ export function GenreQueue({ onCount }: { onCount: (n: number) => void }) {
         {visible.map((row) => <QueueCard key={row.id} row={row} genres={genres} onDone={(saved) => done(row.id, saved)} />)}
       </ul>
 
-      {pages > 1 && (
-        <nav className="pagination" aria-label="Pages de la file">
-          <button type="button" className="button button-small" disabled={page <= 1} onClick={() => setPage(page - 1)}><PsSymbol shape="circle" /> Précédente</button>
-          <span className="muted">Page {page} sur {pages}</span>
-          <button type="button" className="button button-small" disabled={page >= pages} onClick={() => setPage(page + 1)}>Suivante <PsSymbol shape="cross" /></button>
-        </nav>
-      )}
+      <Pagination page={page} pages={pages} onChange={setPage} label="Pages de la file" />
     </div>
   );
 }
