@@ -5,13 +5,13 @@ import {
   CATALOG_ZONES, FAMILIES, familyLabel, formatNumber, gamePath, yearOf, genreName,
 } from '../lib/format';
 import { errorMessage } from '../lib/errors';
-import { ALL_PLATFORMS, rememberedPageSize, rememberedPlatform, rememberPageSize } from '../lib/preferences';
+import { ALL_PLATFORMS, rememberedPageSize, rememberPageSize } from '../lib/preferences';
 import type { GenreFamily, GenreInfo } from '../lib/types';
 import { Combobox } from './Combobox';
 import { Cover } from './Cover';
 import { PageSizeSelect, Pagination } from './Pagination';
 import { PsSymbol } from './PsSymbol';
-import { useKnownPlatform, usePlatforms } from '../lib/usePlatforms';
+import { usePlatforms } from '../lib/usePlatforms';
 import { tr } from '../lib/i18n';
 
 // Files de modération : 100 au plus par page (plafond des fonctions)
@@ -41,8 +41,8 @@ interface QueueRow {
 
 // File des jeux sans genre : on choisit une ou plusieurs familles (ou un genre
 // précis), on enregistre, le jeu quitte la file. Il est alors marqué « revu ».
-export function GenreQueue({ onCount }: { onCount: (n: number) => void }) {
-  const platform = useKnownPlatform(rememberedPlatform());
+// platform : console choisie en haut de la page Modération (ou « toutes »)
+export function GenreQueue({ onCount, platform }: { onCount: (n: number) => void; platform: string }) {
   const platformCode = platform === ALL_PLATFORMS ? null : platform;
   // Nom de la console pour la recherche sur le web (« PlayStation 2 »)
   const consoleName = usePlatforms().find((p) => p.short_name === platformCode)?.name ?? 'PlayStation';
@@ -58,6 +58,8 @@ export function GenreQueue({ onCount }: { onCount: (n: number) => void }) {
   const [skipped, setSkipped] = useState(0);
   const [version, setVersion] = useState(0);
   const [error, setError] = useState('');
+  // Autre console : on repart de la première page
+  useEffect(() => { setPage(1); }, [platform]);
 
   useEffect(() => {
     supabase.from('genre').select('id, name, families, wikidata_id').order('name').then(({ data }) => setGenres((data as Genre[]) ?? []));

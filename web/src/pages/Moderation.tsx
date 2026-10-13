@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
-import { EDITION_TYPES, formatDate, gamePath, LANGUAGES, yearOf, zoneLabel, zoneOrder } from '../lib/format';
-import { usePlatforms } from '../lib/usePlatforms';
+import { EDITION_TYPES, formatDate, formatNumber, gamePath, LANGUAGES, yearOf, zoneLabel, zoneOrder } from '../lib/format';
+import { ALL_PLATFORMS, rememberModerationPlatform, rememberedModerationPlatform } from '../lib/preferences';
+import { useKnownPlatform, usePlatforms } from '../lib/usePlatforms';
 import type { ReleaseImage, Submission, Zone } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
 import { useGameSearch } from '../components/GameSearch';
@@ -24,6 +25,19 @@ type Tab = 'submissions' | 'reports' | 'duplicates' | 'studios' | 'genres' | 'co
 export function Moderation() {
   const { aal } = useAuth();
   const [tab, setTab] = useState<Tab>('submissions');
+  // Console des files de jeux (doublons, jeux sans genre, jaquettes manquantes) : dans
+  // l'adresse, sinon le dernier choix fait ici, sinon celle de l'accueil
+  const [params, setParams] = useSearchParams();
+  const platform = useKnownPlatform(params.get('console') ?? rememberedModerationPlatform());
+  const consoles = usePlatforms().filter((p) => p.game_count > 0);
+  function choosePlatform(value: string) {
+    rememberModerationPlatform(value);
+    setParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('console', value);
+      return next;
+    }, { replace: true });
+  }
   const [counts, setCounts] = useState({ submissions: 0, reports: 0, duplicates: 0, studios: 0, genres: 0, covers: 0 });
   // Fonctions stables : sinon chaque affichage relancerait le chargement des listes
   const countSubmissions = useCallback((n: number) => setCounts((c) => ({ ...c, submissions: n })), []);
@@ -35,7 +49,22 @@ export function Moderation() {
 
   return (
     <section className="stack">
-      <h1>{tr('Modération')}</h1>
+      <div className="page-head">
+        <h1>{tr('Modération')}</h1>
+        {consoles.length > 1 && (
+          <div className="console-choice">
+            <span className="muted small" title={tr('Pour les doublons, les jeux sans genre et les jaquettes manquantes')}>{tr('Console :')}</span>
+            <div className="zone-switch" role="group" aria-label={tr('Console des files de jeux')}>
+              {[...consoles.map((p) => ({ value: p.short_name, label: p.short_name, title: p.name })), { value: ALL_PLATFORMS, label: tr('Toutes'), title: tr('Toutes les consoles') }].map((p) => (
+                <button key={p.value} type="button" className={platform === p.value ? 'zone-option active' : 'zone-option'} aria-pressed={platform === p.value}
+                  title={p.title} onClick={() => choosePlatform(p.value)}>
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
       {aal.current !== 'aal2' && (
         <p className="warning">
           {tr('Accepter, refuser ou fusionner demande la double authentification.')}{' '}
@@ -43,35 +72,28 @@ export function Moderation() {
         </p>
       )}
       <div className="tabs" role="tablist">
-        <button type="button" role="tab" aria-selected={tab === 'submissions'} className={tab === 'submissions' ? 'tab active' : 'tab'} onClick={() => setTab('submissions')}>
-          {tr('Propositions (')}{counts.submissions})
-        </button>
-        <button type="button" role="tab" aria-selected={tab === 'reports'} className={tab === 'reports' ? 'tab active' : 'tab'} onClick={() => setTab('reports')}>
-          {tr('Signalements (')}{counts.reports})
-        </button>
-        <button type="button" role="tab" aria-selected={tab === 'duplicates'} className={tab === 'duplicates' ? 'tab active' : 'tab'} onClick={() => setTab('duplicates')}>
-          {tr('Doublons possibles (')}{counts.duplicates})
-        </button>
-        <button type="button" role="tab" aria-selected={tab === 'studios'} className={tab === 'studios' ? 'tab active' : 'tab'} onClick={() => setTab('studios')}>
-          {tr('Studios en double (')}{counts.studios})
-        </button>
-        <button type="button" role="tab" aria-selected={tab === 'genres'} className={tab === 'genres' ? 'tab active' : 'tab'} onClick={() => setTab('genres')}>
-          {tr('Jeux sans genre (')}{counts.genres})
-        </button>
-        <button type="button" role="tab" aria-selected={tab === 'covers'} className={tab === 'covers' ? 'tab active' : 'tab'} onClick={() => setTab('covers')}>
-          {tr('Jaquettes manquantes (')}{counts.covers})
-        </button>
-        <button type="button" role="tab" aria-selected={tab === 'history'} className={tab === 'history' ? 'tab active' : 'tab'} onClick={() => setTab('history')}>
-          {tr('Historique')}
-        </button>
+        {([
+          ['submissions', tr('Propositions'), tr('Propositions des membres'), counts.submissions],
+          ['reports', tr('Signalements'), tr('Signalements d’erreurs'), counts.reports],
+          ['duplicates', tr('Doublons'), tr('Doublons possibles'), counts.duplicates],
+          ['studios', tr('Studios'), tr('Studios en double'), counts.studios],
+          ['genres', tr('Sans genre'), tr('Jeux sans genre'), counts.genres],
+          ['covers', tr('Jaquettes'), tr('Jaquettes manquantes'), counts.covers],
+          ['history', tr('Historique'), tr('Historique des modifications'), null],
+        ] as [Tab, string, string, number | null][]).map(([value, label, title, count]) => (
+          <button key={value} type="button" role="tab" aria-selected={tab === value} className={tab === value ? 'tab active' : 'tab'}
+            title={title} onClick={() => setTab(value)}>
+            {label}{count !== null && <span className="tab-count">{formatNumber(count)}</span>}
+          </button>
+        ))}
       </div>
       {/* Les onglets restent montés pour garder leurs compteurs à jour */}
       <div hidden={tab !== 'submissions'}><SubmissionQueue onCount={countSubmissions} /></div>
-      <div hidden={tab !== 'duplicates'}><DuplicateList onCount={countDuplicates} /></div>
+      <div hidden={tab !== 'duplicates'}><DuplicateList onCount={countDuplicates} platform={platform} /></div>
       <div hidden={tab !== 'studios'}><StudioQueue onCount={countStudios} /></div>
-      <div hidden={tab !== 'genres'}><GenreQueue onCount={countGenres} /></div>
+      <div hidden={tab !== 'genres'}><GenreQueue onCount={countGenres} platform={platform} /></div>
       <div hidden={tab !== 'reports'}><ReportQueue onCount={countReports} /></div>
-      <div hidden={tab !== 'covers'}><CoverQueue onCount={countCovers} active={tab === 'covers'} /></div>
+      <div hidden={tab !== 'covers'}><CoverQueue onCount={countCovers} active={tab === 'covers'} platform={platform} /></div>
       {tab === 'history' && <HistoryList limit={100} />}
     </section>
   );
@@ -344,7 +366,7 @@ interface DuplicateGame {
   release: { id: number; zone: Zone | null; image: ReleaseImage[]; platform: { short_name: string } }[];
 }
 
-function DuplicateList({ onCount }: { onCount: (n: number) => void }) {
+function DuplicateList({ onCount, platform }: { onCount: (n: number) => void; platform: string }) {
   const [groups, setGroups] = useState<DuplicateGroup[]>([]);
   const [games, setGames] = useState<Map<number, DuplicateGame>>(new Map());
   const [error, setError] = useState('');
@@ -366,11 +388,15 @@ function DuplicateList({ onCount }: { onCount: (n: number) => void }) {
     }
     setGroups(list);
     setGames(map);
-    onCount(list.length);
     setLoaded(true);
-  }, [onCount]);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Console choisie : les groupes dont au moins une fiche a une version sur cette console
+  const shown = useMemo(() => (platform === ALL_PLATFORMS ? groups : groups.filter((g) =>
+    g.game_ids.some((id) => games.get(id)?.release.some((r) => r.platform.short_name === platform)))), [groups, games, platform]);
+  useEffect(() => { if (loaded) onCount(shown.length); }, [loaded, shown, onCount]);
 
   const confirm = useConfirm();
   // Erreur affichée DANS le groupe concerné (et pas seulement en haut de page)
@@ -438,8 +464,8 @@ function DuplicateList({ onCount }: { onCount: (n: number) => void }) {
         {tr('Fiches qui portent le même titre (aux majuscules, accents et ponctuation près). Choisis la fiche à garder : les versions, développeurs et genres des autres y sont regroupés. Ou indique que ce ne sont pas des doublons.')}
       </p>
       {error && <p className="error" role="alert">{error}</p>}
-      {loaded && groups.length === 0 && <p className="panel empty">{tr('Aucun doublon possible. ')}<PsSymbol shape="triangle" /></p>}
-      {groups.map((group) => (
+      {loaded && shown.length === 0 && <p className="panel empty">{tr('Aucun doublon possible. ')}<PsSymbol shape="triangle" /></p>}
+      {shown.map((group) => (
         <article key={group.title_key} className={`panel${busyKey === group.title_key ? ' is-busy' : ''}`}>
           <div className="duplicate-row">
             {group.game_ids.map((id) => <DuplicateCard key={id} game={games.get(id)} disabled={!!busyKey} onKeep={() => keep(group, id)} />)}

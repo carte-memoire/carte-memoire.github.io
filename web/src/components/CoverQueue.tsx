@@ -4,13 +4,12 @@ import { supabase } from '../lib/supabase';
 import { CATALOG_ZONES, editionClass, editionLabel, formatNumber, gamePath, zoneLabel } from '../lib/format';
 import { errorMessage } from '../lib/errors';
 import { ACCEPT_ATTRIBUTE, imageFromClipboard, uploadReleaseImage } from '../lib/images';
-import { ALL_PLATFORMS, rememberedPageSize, rememberedPlatform, rememberPageSize } from '../lib/preferences';
+import { ALL_PLATFORMS, rememberedPageSize, rememberPageSize } from '../lib/preferences';
 import type { EditionType, Zone } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
 import { Cover } from './Cover';
 import { PageSizeSelect, Pagination } from './Pagination';
 import { PsSymbol } from './PsSymbol';
-import { useKnownPlatform } from '../lib/usePlatforms';
 import { tr } from '../lib/i18n';
 
 // Files de modération : 100 au plus par page (plafond des fonctions)
@@ -48,9 +47,9 @@ interface LastUpload {
 // recherche dans un nouvel onglet ; clic droit sur la bonne image → « Copier l'image » ;
 // retour ici → Ctrl+V. La jaquette part sur la carte ciblée, qui quitte la file, et la
 // suivante devient la cible. Un fichier peut aussi être choisi ou déposé sur la carte.
-export function CoverQueue({ onCount, active }: { onCount: (n: number) => void; active: boolean }) {
+// platform : console choisie en haut de la page Modération (ou « toutes »)
+export function CoverQueue({ onCount, active, platform }: { onCount: (n: number) => void; active: boolean; platform: string }) {
   const { session } = useAuth();
-  const platform = useKnownPlatform(rememberedPlatform());
   const platformCode = platform === ALL_PLATFORMS ? null : platform;
   const [edition, setEdition] = useState<EditionType | ''>('reissue');
   const [zone, setZone] = useState('');
@@ -68,6 +67,8 @@ export function CoverQueue({ onCount, active }: { onCount: (n: number) => void; 
   const [last, setLast] = useState<LastUpload | null>(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  // Autre console : on repart de la première page
+  useEffect(() => { setPage(1); }, [platform]);
 
   // Compteur de l'onglet : toutes les versions sans recto, sans filtre
   useEffect(() => {

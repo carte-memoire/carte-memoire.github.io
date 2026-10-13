@@ -399,8 +399,19 @@ ul.error { padding-left: 28px; }
    de l'écran (clamp) ; s'ils ne tiennent toujours pas (téléphone), la barre défile */
 .tabs {
   display: flex; gap: clamp(0px, 0.4vw, 4px); border-bottom: 1px solid var(--line);
-  overflow-x: auto; overflow-y: hidden; scrollbar-width: thin;
+  /* Sur un petit écran, les onglets glissent du doigt, sans barre de défilement */
+  overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
 }
+.tabs::-webkit-scrollbar { display: none; }
+/* Nombre d'éléments d'un onglet, dans une pastille */
+.tab-count {
+  display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 999px;
+  font-size: 0.78em; line-height: 1.55; vertical-align: 1px;
+  background: var(--panel-2); color: var(--muted); border: 1px solid var(--line);
+}
+.tab.active .tab-count { color: var(--text); border-color: var(--triangle); }
+/* Choix de la console, à droite du titre (page Modération) */
+.console-choice { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .tab {
   flex: none; white-space: nowrap;
   font: inherit; font-size: clamp(0.8rem, 0.68rem + 0.4vw, 1rem); color: var(--muted); background: none; cursor: pointer;

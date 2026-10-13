@@ -27,6 +27,12 @@ export const rememberPlatform = (value: string) => write(PLATFORM_KEY, value);
 export const rememberedZone = () => read(ZONE_KEY, DEFAULT_ZONE);
 export const rememberZone = (value: string) => write(ZONE_KEY, value);
 
+// Console des files de modération (jeux sans genre, jaquettes manquantes…) : choisie sur
+// la page Modération, indépendamment de l'accueil et du catalogue
+const MODERATION_PLATFORM_KEY = 'carte-memoire:console-moderation';
+export const rememberedModerationPlatform = () => read(MODERATION_PLATFORM_KEY, rememberedPlatform());
+export const rememberModerationPlatform = (value: string) => write(MODERATION_PLATFORM_KEY, value);
+
 // Session ouverte par un lien « mot de passe oublié » (le temps de cet onglet) : seule
 // elle donne accès à la page « nouveau mot de passe » sans code reçu par e-mail
 const RECOVERY_KEY = 'carte-memoire:recuperation';
