@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import type { EditionType, ImageType, ReleaseImage, Zone } from './types';
-import { LANGUAGES } from './format';
+import { LANGUAGES, countryName } from './format';
+import { tr } from './i18n';
 
 // Préparation d'une jaquette avant envoi :
 // - vérifie le format et le poids ;
@@ -17,18 +18,18 @@ const MIN_SIDE = 150;
 export const ACCEPT_ATTRIBUTE = ACCEPTED.join(',');
 
 export async function prepareCover(file: File): Promise<Blob> {
-  if (!ACCEPTED.includes(file.type)) throw new Error('Formats acceptés : JPEG, PNG ou WebP.');
-  if (file.size > MAX_INPUT) throw new Error('Image trop lourde (15 Mo maximum).');
+  if (!ACCEPTED.includes(file.type)) throw new Error(tr('Formats acceptés : JPEG, PNG ou WebP.'));
+  if (file.size > MAX_INPUT) throw new Error(tr('Image trop lourde (15 Mo maximum).'));
 
   let bitmap: ImageBitmap;
   try {
     bitmap = await createImageBitmap(file);
   } catch {
-    throw new Error("Ce fichier n'est pas une image lisible.");
+    throw new Error(tr("Ce fichier n'est pas une image lisible."));
   }
   if (bitmap.width < MIN_SIDE || bitmap.height < MIN_SIDE) {
     bitmap.close();
-    throw new Error(`Image trop petite (${MIN_SIDE} px minimum de côté).`);
+    throw new Error(tr('Image trop petite ({0} px minimum de côté).', MIN_SIDE));
   }
 
   const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
@@ -39,8 +40,8 @@ export async function prepareCover(file: File): Promise<Blob> {
   bitmap.close();
 
   const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.85));
-  if (!blob) throw new Error("Impossible de convertir l'image.");
-  if (blob.size > MAX_OUTPUT) throw new Error('Image encore trop lourde après conversion (5 Mo maximum).');
+  if (!blob) throw new Error(tr("Impossible de convertir l'image."));
+  if (blob.size > MAX_OUTPUT) throw new Error(tr('Image encore trop lourde après conversion (5 Mo maximum).'));
   return blob;
 }
 
@@ -113,19 +114,19 @@ export function standInFor(release: ReleaseWithoutCover, siblings: CoverSource[]
   // Jaquette d'une autre zone (américaine sur une version européenne…) : on le dit
   const parts = standInParts(release);
   if (pick.zone && pick.zone !== release.zone) parts.push(`jaquette ${ZONE_SHORT[pick.zone]}`);
-  return { path: front(pick)!.path, label: parts.join(' · ') || 'Autre version' };
+  return { path: front(pick)!.path, label: parts.join(' · ') || tr('Autre version') };
 }
 
-const ZONE_SHORT: Record<Zone, string> = { PAL: 'EU', 'NTSC-U': 'US', 'NTSC-J': 'JP', region_free: 'toutes zones' };
+const ZONE_SHORT: Record<Zone, string> = { PAL: 'EU', 'NTSC-U': 'US', 'NTSC-J': 'JP', region_free: tr('toutes zones') };
 
 // L'encart : l'édition (sauf la standard) et la langue (« Français », ou « EN · FR · DE »)
 function standInParts(release: ReleaseWithoutCover): string[] {
   const parts: string[] = [];
-  if (release.edition_type !== 'standard') parts.push(release.edition_name ?? (release.edition_type === 'reissue' ? 'Réédition' : 'Autre édition'));
+  if (release.edition_type !== 'standard') parts.push(release.edition_name ?? (release.edition_type === 'reissue' ? tr('Réédition') : tr('Autre édition')));
   const languages = release.languages ?? [];
-  if (release.box_region) parts.push(release.box_region.code === 'europe' ? 'Europe' : release.box_region.name);
+  if (release.box_region) parts.push(release.box_region.code === 'europe' ? tr('Europe') : countryName(release.box_region.code));
   else if (languages.length === 1) parts.push(LANGUAGES.find((l) => l.value === languages[0])?.label ?? languages[0].toUpperCase());
   else if (languages.length >= 2 && languages.length <= 3) parts.push(languages.map((l) => l.toUpperCase()).join(' · '));
-  else if (languages.length > 3) parts.push('Multilingue');
+  else if (languages.length > 3) parts.push(tr('Multilingue'));
   return parts;
 }

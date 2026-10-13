@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { EDITION_TYPES, gamePath, LANGUAGES, yearOf, ZONES, BOX_REGIONS, boxRegionName } from '../lib/format';
+import {
+  EDITION_TYPES, gamePath, LANGUAGES, yearOf, ZONES, BOX_REGIONS, boxRegionName, regionName,
+} from '../lib/format';
 import { errorMessage } from '../lib/errors';
 import { ACCEPT_ATTRIBUTE, prepareCover } from '../lib/images';
 import type { DatePrecision, EditionType, Region, ReleaseProposal, Zone } from '../lib/types';
@@ -10,6 +12,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useGameSearch } from '../components/GameSearch';
 import { PsSymbol } from '../components/PsSymbol';
 import { EMPTY_STUDIO, StudioField, type StudioValue } from '../components/StudioField';
+import { tr } from '../lib/i18n';
 
 // Proposer un jeu absent de la base, ou une version manquante d'un jeu existant
 // (/proposer?jeu=12). La proposition est vérifiée par un modérateur avant publication.
@@ -72,24 +75,24 @@ export function ProposeGame() {
 
   function releaseDate(): { date?: string; error?: string } {
     if (!dateValue) return {};
-    if (precision === 'year') return /^\d{4}$/.test(dateValue) ? { date: `${dateValue}-01-01` } : { error: 'Année invalide.' };
-    if (precision === 'month') return /^\d{4}-\d{2}$/.test(dateValue) ? { date: `${dateValue}-01` } : { error: 'Mois invalide.' };
-    return /^\d{4}-\d{2}-\d{2}$/.test(dateValue) ? { date: dateValue } : { error: 'Date invalide.' };
+    if (precision === 'year') return /^\d{4}$/.test(dateValue) ? { date: `${dateValue}-01-01` } : { error: tr('Année invalide.') };
+    if (precision === 'month') return /^\d{4}-\d{2}$/.test(dateValue) ? { date: `${dateValue}-01` } : { error: tr('Mois invalide.') };
+    return /^\d{4}-\d{2}-\d{2}$/.test(dateValue) ? { date: dateValue } : { error: tr('Date invalide.') };
   }
 
   async function submit(e: FormEvent) {
     e.preventDefault();
     const problems: string[] = [];
-    if (!existingGame && !title.trim()) problems.push('Indique le titre du jeu.');
-    if (!localTitle.trim()) problems.push('Indique le titre imprimé sur la boîte.');
-    if (!platformId) problems.push('Choisis la console.');
-    if (!zone) problems.push('Choisis la zone.');
-    if (!cover && !noCover) problems.push('Ajoute la jaquette, ou coche « Il n\'existe pas de jaquette ».');
+    if (!existingGame && !title.trim()) problems.push(tr('Indique le titre du jeu.'));
+    if (!localTitle.trim()) problems.push(tr('Indique le titre imprimé sur la boîte.'));
+    if (!platformId) problems.push(tr('Choisis la console.'));
+    if (!zone) problems.push(tr('Choisis la zone.'));
+    if (!cover && !noCover) problems.push(tr("Ajoute la jaquette, ou coche « Il n'existe pas de jaquette »."));
     const code = productCode.trim().toUpperCase();
-    if (code && !/^[A-Z0-9][A-Z0-9 ._-]{2,19}$/.test(code)) problems.push('Code produit invalide (exemple : SCES-00867).');
+    if (code && !/^[A-Z0-9][A-Z0-9 ._-]{2,19}$/.test(code)) problems.push(tr('Code produit invalide (exemple : SCES-00867).'));
     const date = releaseDate();
     if (date.error) problems.push(date.error);
-    if (date.date && !regionCode) problems.push('Indique le pays ou la zone de cette date de sortie.');
+    if (date.date && !regionCode) problems.push(tr('Indique le pays ou la zone de cette date de sortie.'));
     setErrors(problems);
     if (problems.length) return;
 
@@ -145,11 +148,11 @@ export function ProposeGame() {
   if (done) {
     return (
       <section className="panel narrow">
-        <h1>Merci !</h1>
-        <p>Ta proposition est enregistrée. Un modérateur va la vérifier avant de l'ajouter au catalogue.</p>
+        <h1>{tr('Merci !')}</h1>
+        <p>{tr("Ta proposition est enregistrée. Un modérateur va la vérifier avant de l'ajouter au catalogue.")}</p>
         <div className="actions">
-          <Link to="/mes-propositions" className="button">Voir mes propositions</Link>
-          <button type="button" className="button button-primary" onClick={() => window.location.reload()}><PsSymbol shape="cross" /> Proposer autre chose</button>
+          <Link to="/mes-propositions" className="button">{tr('Voir mes propositions')}</Link>
+          <button type="button" className="button button-primary" onClick={() => window.location.reload()}><PsSymbol shape="cross" />{tr(' Proposer autre chose')}</button>
         </div>
       </section>
     );
@@ -159,29 +162,29 @@ export function ProposeGame() {
 
   return (
     <section className="stack">
-      <h1>{existingGame ? 'Proposer une nouvelle version' : 'Proposer un jeu'}</h1>
+      <h1>{existingGame ? tr('Proposer une nouvelle version') : tr('Proposer un jeu')}</h1>
       <form onSubmit={submit} className="form panel" noValidate>
         {existingGame ? (
           <p>
-            Nouvelle version de <Link to={gamePath(existingGame)}><strong>{existingGame.title}</strong></Link>{' '}
-            (<Link to="/proposer">c'est un autre jeu</Link>)
+            {tr('Nouvelle version de ')}<Link to={gamePath(existingGame)}><strong>{existingGame.title}</strong></Link>{' '}
+            (<Link to="/proposer">{tr("c'est un autre jeu")}</Link>)
           </p>
         ) : (
           <>
             <label className="field">
-              <span className="field-label">Titre du jeu *</span>
+              <span className="field-label">{tr('Titre du jeu *')}</span>
               <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} required />
             </label>
             {similar.length > 0 && (
               <div className="notice">
-                <p><strong>Ce jeu existe peut-être déjà :</strong></p>
+                <p><strong>{tr('Ce jeu existe peut-être déjà :')}</strong></p>
                 <ul className="plain-list">
                   {similar.map((g) => (
                     <li key={g.id} className="list-row">
                       <span>{g.title} <span className="muted">{yearOf(g.first_release_date)}</span></span>
                       <span className="actions">
-                        <Link to={gamePath(g)} target="_blank" rel="noopener" className="button button-small">Voir</Link>
-                        <Link to={`/proposer?jeu=${g.id}`} className="button button-small">C'est lui : ajouter une version</Link>
+                        <Link to={gamePath(g)} target="_blank" rel="noopener" className="button button-small">{tr('Voir')}</Link>
+                        <Link to={`/proposer?jeu=${g.id}`} className="button button-small">{tr("C'est lui : ajouter une version")}</Link>
                       </span>
                     </li>
                   ))}
@@ -193,9 +196,9 @@ export function ProposeGame() {
 
         <div className="row">
           <label className="field">
-            <span className="field-label">Console *</span>
+            <span className="field-label">{tr('Console *')}</span>
             <select value={platformId} onChange={(e) => setPlatformId(e.target.value ? Number(e.target.value) : '')} required>
-              <option value="">Choisir…</option>
+              <option value="">{tr('Choisir…')}</option>
               {groupByManufacturer(platforms).map(([maker, list]) => (
                 <optgroup key={maker} label={maker}>
                   {list.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -204,64 +207,64 @@ export function ProposeGame() {
             </select>
           </label>
           <label className="field">
-            <span className="field-label">Zone *</span>
+            <span className="field-label">{tr('Zone *')}</span>
             <select value={zone} onChange={(e) => setZone(e.target.value as Zone | '')} required>
-              <option value="">Choisir…</option>
+              <option value="">{tr('Choisir…')}</option>
               {ZONES.map((z) => <option key={z.value} value={z.value}>{z.label}</option>)}
             </select>
           </label>
         </div>
 
         <label className="field">
-          <span className="field-label">Titre imprimé sur la boîte *</span>
+          <span className="field-label">{tr('Titre imprimé sur la boîte *')}</span>
           <input value={localTitle} onChange={(e) => { setLocalTitle(e.target.value); setLocalTitleTouched(true); }} maxLength={200} required />
-          <span className="hint">Par exemple « Biohazard » pour la version japonaise de Resident Evil.</span>
+          <span className="hint">{tr('Par exemple « Biohazard » pour la version japonaise de Resident Evil.')}</span>
         </label>
 
         <div className="row">
           <label className="field">
-            <span className="field-label">Code produit</span>
+            <span className="field-label">{tr('Code produit')}</span>
             <input value={productCode} onChange={(e) => setProductCode(e.target.value)} placeholder="SCES-00867" maxLength={20} />
-            <span className="hint">Sur la tranche du boîtier ou le disque.</span>
+            <span className="hint">{tr('Sur la tranche du boîtier ou le disque.')}</span>
           </label>
           <label className="field">
-            <span className="field-label">Édition</span>
+            <span className="field-label">{tr('Édition')}</span>
             <select value={editionType} onChange={(e) => setEditionType(e.target.value as EditionType)}>
               {EDITION_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </label>
           {editionType !== 'standard' && (
             <label className="field">
-              <span className="field-label">Nom de l'édition</span>
-              <input value={editionName} onChange={(e) => setEditionName(e.target.value)} placeholder="Platinum" maxLength={60} />
+              <span className="field-label">{tr("Nom de l'édition")}</span>
+              <input value={editionName} onChange={(e) => setEditionName(e.target.value)} placeholder={tr('Platinum')} maxLength={60} />
             </label>
           )}
         </div>
 
         <fieldset className="row">
-          <legend className="field-label">Date de sortie</legend>
+          <legend className="field-label">{tr('Date de sortie')}</legend>
           <label className="field">
-            <span className="field-label">Pays ou zone</span>
+            <span className="field-label">{tr('Pays ou zone')}</span>
             <select value={regionCode} onChange={(e) => setRegionCode(e.target.value)}>
-              <option value="">Non précisé</option>
+              <option value="">{tr('Non précisé')}</option>
               {[...zonesById.values()].map((z) => (
-                <optgroup key={z.id} label={z.name}>
-                  <option value={z.code}>{z.name} (toute la zone)</option>
-                  {regions.filter((r) => r.parent_id === z.id).map((r) => <option key={r.id} value={r.code}>{r.name}</option>)}
+                <optgroup key={z.id} label={regionName(z)}>
+                  <option value={z.code}>{regionName(z)}{tr(' (toute la zone)')}</option>
+                  {regions.filter((r) => r.parent_id === z.id).map((r) => <option key={r.id} value={r.code}>{regionName(r)}</option>)}
                 </optgroup>
               ))}
             </select>
           </label>
           <label className="field">
-            <span className="field-label">Précision</span>
+            <span className="field-label">{tr('Précision')}</span>
             <select value={precision} onChange={(e) => { setPrecision(e.target.value as DatePrecision); setDateValue(''); }}>
-              <option value="day">Jour exact</option>
-              <option value="month">Mois</option>
-              <option value="year">Année seulement</option>
+              <option value="day">{tr('Jour exact')}</option>
+              <option value="month">{tr('Mois')}</option>
+              <option value="year">{tr('Année seulement')}</option>
             </select>
           </label>
           <label className="field">
-            <span className="field-label">Date</span>
+            <span className="field-label">{tr('Date')}</span>
             {precision === 'year'
               ? <input type="number" min={1970} max={2100} value={dateValue} onChange={(e) => setDateValue(e.target.value)} placeholder="1997" />
               : <input type={precision === 'month' ? 'month' : 'date'} value={dateValue} onChange={(e) => setDateValue(e.target.value)} />}
@@ -269,7 +272,7 @@ export function ProposeGame() {
         </fieldset>
 
         <fieldset className="checks">
-          <legend className="field-label">Langues</legend>
+          <legend className="field-label">{tr('Langues')}</legend>
           {LANGUAGES.map((l) => (
             <label key={l.value}>
               <input type="checkbox" checked={languages.includes(l.value)}
@@ -280,51 +283,51 @@ export function ProposeGame() {
         </fieldset>
 
         <label className="field">
-          <span className="field-label">Boîte vendue en (facultatif)</span>
+          <span className="field-label">{tr('Boîte vendue en (facultatif)')}</span>
           <select value={boxRegion} onChange={(e) => setBoxRegion(e.target.value)}>
-            <option value="">Non précisé</option>
+            <option value="">{tr('Non précisé')}</option>
             {BOX_REGIONS.map((code) => <option key={code} value={code}>{boxRegionName(code)}</option>)}
           </select>
-          <span className="hint">Si le dos de ta boîte est écrit pour un seul pays (tout en français, par exemple) alors que le disque contient plusieurs langues.</span>
+          <span className="hint">{tr('Si le dos de ta boîte est écrit pour un seul pays (tout en français, par exemple) alors que le disque contient plusieurs langues.')}</span>
         </label>
 
         <div className="row">
-          <StudioField label="Éditeur" value={publisher} onChange={setPublisher} />
-          <StudioField label="Développeur" value={developer} onChange={setDeveloper} />
+          <StudioField label={tr('Éditeur')} value={publisher} onChange={setPublisher} />
+          <StudioField label={tr('Développeur')} value={developer} onChange={setDeveloper} />
         </div>
 
         <fieldset className="cover-field">
-          <legend className="field-label">Jaquette *</legend>
+          <legend className="field-label">{tr('Jaquette *')}</legend>
           <div className="cover-picker">
             <div className={`cover cover-medium${noCover ? ' cover-disabled' : ''}`}>
-              {preview ? <img src={preview} alt="Aperçu de la jaquette" /> : <span className="cover-empty" aria-hidden="true"><PsSymbol shape="square" /></span>}
+              {preview ? <img src={preview} alt={tr('Aperçu de la jaquette')} /> : <span className="cover-empty" aria-hidden="true"><PsSymbol shape="square" /></span>}
             </div>
             <div className="stack">
               <label className="field">
-                <span className="field-label">Photo ou scan du recto (JPEG, PNG ou WebP)</span>
+                <span className="field-label">{tr('Photo ou scan du recto (JPEG, PNG ou WebP)')}</span>
                 <input type="file" accept={ACCEPT_ATTRIBUTE} disabled={noCover}
                   onChange={(e) => setCover(e.target.files?.[0] ?? null)} />
               </label>
               <label className="switch">
                 <input type="checkbox" checked={noCover} onChange={(e) => { setNoCover(e.target.checked); if (e.target.checked) setCover(null); }} />
-                Il n'existe pas de jaquette pour ce jeu
+                {tr("Il n'existe pas de jaquette pour ce jeu")}
               </label>
-              <span className="hint">L'image est redimensionnée et ses informations cachées (position GPS…) sont supprimées avant l'envoi.</span>
+              <span className="hint">{tr("L'image est redimensionnée et ses informations cachées (position GPS…) sont supprimées avant l'envoi.")}</span>
             </div>
           </div>
         </fieldset>
 
         <label className="field">
-          <span className="field-label">Sources</span>
+          <span className="field-label">{tr('Sources')}</span>
           <textarea value={sources} onChange={(e) => setSources(e.target.value)} rows={2} maxLength={1000}
-            placeholder="J'ai le jeu entre les mains, lien vers une page de référence…" />
+            placeholder={tr("J'ai le jeu entre les mains, lien vers une page de référence…")} />
         </label>
 
         {errors.length > 0 && (
           <ul className="error" role="alert">{errors.map((m) => <li key={m}>{m}</li>)}</ul>
         )}
         <button type="submit" className="button button-primary" disabled={busy}>
-          <PsSymbol shape="cross" /> {busy ? 'Sauvegarde en cours… Ne retirez pas la carte mémoire' : 'Envoyer ma proposition'}
+          <PsSymbol shape="cross" /> {busy ? tr('Sauvegarde en cours… Ne retirez pas la carte mémoire') : tr('Envoyer ma proposition')}
         </button>
       </form>
     </section>

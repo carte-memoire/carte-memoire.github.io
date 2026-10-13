@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
+import { tr } from '../lib/i18n';
 
 // Protège une page : il faut être connecté, et avoir validé la double
 // authentification si on l'a activée. Avec `moderator`, il faut aussi
@@ -11,7 +12,7 @@ export function RequireAuth({ children, moderator = false }: { children: ReactNo
   const location = useLocation();
   const next = encodeURIComponent(location.pathname + location.search);
 
-  if (loading) return <p className="loading">Lecture de la carte mémoire…</p>;
+  if (loading) return <p className="loading">{tr('Lecture de la carte mémoire…')}</p>;
   if (!session) return <Navigate to={`/connexion?next=${next}`} replace />;
   if (needsMfa) return <Navigate to={`/connexion/verification?next=${next}`} replace />;
   if (moderator && !isModerator) return <Navigate to="/" replace />;

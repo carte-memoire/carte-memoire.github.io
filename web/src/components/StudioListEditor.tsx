@@ -5,6 +5,7 @@ import { forgetCompanies } from '../lib/useCompanies';
 import { useConfirm } from './Confirm';
 import { EMPTY_STUDIO, StudioField, type StudioValue } from './StudioField';
 import { PsSymbol } from './PsSymbol';
+import { tr } from '../lib/i18n';
 
 // Modifier les développeurs d'un jeu ou les éditeurs d'une version (modérateurs) :
 // les studios actuels en pastilles (✕ pour retirer), et un champ pour en ajouter un
@@ -28,9 +29,9 @@ export function StudioListEditor({ title, studios, onAdd, onRemove, onSaved }: {
     setError('');
     if (id === null) {
       if (!(await confirm({
-        title: 'Nouveau studio',
-        message: `« ${name} » n'est pas dans la liste des studios. Vérifie d'abord qu'il existe bien (orthographe, Wikipédia) et qu'il n'y figure pas sous un autre nom. Le créer ?`,
-        confirmLabel: 'Créer ce studio',
+        title: tr('Nouveau studio'),
+        message: tr("« {0} » n'est pas dans la liste des studios. Vérifie d'abord qu'il existe bien (orthographe, Wikipédia) et qu'il n'y figure pas sous un autre nom. Le créer ?", name),
+        confirmLabel: tr('Créer ce studio'),
       }))) return;
       setBusy(true);
       const { data, error } = await supabase.from('company').insert({ name }).select('id').single();
@@ -43,7 +44,7 @@ export function StudioListEditor({ title, studios, onAdd, onRemove, onSaved }: {
     }
     if (studios.some((s) => s.id === id)) {
       setBusy(false);
-      return setError('Ce studio est déjà dans la liste.');
+      return setError(tr('Ce studio est déjà dans la liste.'));
     }
     setBusy(true);
     const { error } = await onAdd(id);
@@ -70,14 +71,14 @@ export function StudioListEditor({ title, studios, onAdd, onRemove, onSaved }: {
           {studios.map((s) => (
             <li key={s.id} className="genre-chip">
               {s.name}
-              <button type="button" className="icon-button" onClick={() => remove(s.id)} disabled={busy} aria-label={`Retirer ${s.name}`} title="Retirer">✕</button>
+              <button type="button" className="icon-button" onClick={() => remove(s.id)} disabled={busy} aria-label={tr('Retirer {0}', s.name)} title={tr('Retirer')}>✕</button>
             </li>
           ))}
         </ul>
-      ) : <p className="muted small">Aucun pour le moment.</p>}
+      ) : <p className="muted small">{tr('Aucun pour le moment.')}</p>}
       <div className="studio-editor-add">
-        <StudioField label={`Ajouter (${title.toLowerCase()})`} value={value} onChange={setValue} />
-        <button type="button" className="button button-small" onClick={add} disabled={busy || !value.name.trim()}><PsSymbol shape="cross" /> Ajouter</button>
+        <StudioField label={tr('Ajouter ({0})', title.toLowerCase())} value={value} onChange={setValue} />
+        <button type="button" className="button button-small" onClick={add} disabled={busy || !value.name.trim()}><PsSymbol shape="cross" />{tr(' Ajouter')}</button>
       </div>
       {error && <p className="error small" role="alert">{error}</p>}
     </div>

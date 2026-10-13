@@ -6,6 +6,7 @@ import { markRecovery } from '../lib/preferences';
 import { useAuth } from '../auth/AuthContext';
 import { EmailCodeForm } from '../components/EmailCodeForm';
 import { PsSymbol } from '../components/PsSymbol';
+import { tr } from '../lib/i18n';
 
 export function ForgotPassword() {
   const navigate = useNavigate();
@@ -38,30 +39,30 @@ export function ForgotPassword() {
 
   return (
     <section className="panel narrow">
-      <h1>Mot de passe oublié</h1>
+      <h1>{tr('Mot de passe oublié')}</h1>
       {sent ? (
         <>
           <p>
-            Si un compte existe avec <strong>{email.trim()}</strong>, un e-mail vient d'être envoyé
-            {EMAIL_CODES ? ', avec un code à 6 chiffres et un lien (valables 30 minutes).' : ', avec un lien valable 30 minutes.'}
+            {tr('Si un compte existe avec ')}<strong>{email.trim()}</strong>{tr(", un e-mail vient d'être envoyé")}
+            {EMAIL_CODES ? tr(', avec un code à 6 chiffres et un lien (valables 30 minutes).') : tr(', avec un lien valable 30 minutes.')}
           </p>
           <p className="muted small">
-            {EMAIL_CODES ? "Le code marche depuis n'importe quel appareil ; le lien, seulement dans ce navigateur-ci."
-              : 'Ouvre le lien dans ce navigateur-ci : par sécurité, il ne marche pas ailleurs.'}
+            {EMAIL_CODES ? tr("Le code marche depuis n'importe quel appareil ; le lien, seulement dans ce navigateur-ci.")
+              : tr('Ouvre le lien dans ce navigateur-ci : par sécurité, il ne marche pas ailleurs.')}
           </p>
           <EmailCodeForm email={email.trim()} type="recovery" onVerified={verified} onResend={send} />
         </>
       ) : (
         <form onSubmit={submit} className="form">
           <label className="field">
-            <span className="field-label">Adresse e-mail</span>
+            <span className="field-label">{tr('Adresse e-mail')}</span>
             <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} maxLength={254} />
           </label>
           {error && <p className="error" role="alert">{error}</p>}
-          <button type="submit" className="button button-primary button-block" disabled={busy}><PsSymbol shape="cross" /> {EMAIL_CODES ? 'Recevoir un code' : 'Recevoir un lien'}</button>
+          <button type="submit" className="button button-primary button-block" disabled={busy}><PsSymbol shape="cross" /> {EMAIL_CODES ? tr('Recevoir un code') : tr('Recevoir un lien')}</button>
         </form>
       )}
-      <p className="small center"><Link to="/connexion"><PsSymbol shape="circle" /> Retour à la connexion</Link></p>
+      <p className="small center"><Link to="/connexion"><PsSymbol shape="circle" />{tr(' Retour à la connexion')}</Link></p>
     </section>
   );
 }

@@ -1,3 +1,4 @@
+import { lang } from './i18n';
 // Préférences retenues dans ce navigateur (simple confort : si le stockage
 // est indisponible, on retombe sur les valeurs par défaut)
 
@@ -44,7 +45,8 @@ export function inRecovery(): boolean {
 // autres sont repliées. Par défaut le français, langue du site.
 const LANGUAGE_KEY = 'carte-memoire:langue';
 export const ALL_LANGUAGES = 'toutes';
-export const DEFAULT_LANGUAGE = 'fr';
+// Par défaut, la langue du site (français ou anglais)
+export const DEFAULT_LANGUAGE: string = lang;
 export const rememberedLanguage = () => read(LANGUAGE_KEY, DEFAULT_LANGUAGE);
 export const rememberLanguage = (value: string) => write(LANGUAGE_KEY, value);
 

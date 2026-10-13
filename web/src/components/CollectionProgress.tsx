@@ -8,6 +8,7 @@ import { ALL_PLATFORMS, ALL_ZONES, rememberZone, rememberedPlatform, rememberedZ
 import type { CollectionItem, ProgressRow, Zone } from '../lib/types';
 import { MemoryBar } from './MemoryBar';
 import { useKnownPlatform } from '../lib/usePlatforms';
+import { tr } from '../lib/i18n';
 
 function initialZone(): string {
   const zone = rememberedZone();
@@ -97,9 +98,9 @@ export function CollectionProgress({ items }: { items: CollectionItem[] }) {
   return (
     <section className="panel progress-panel" aria-labelledby="progress-title">
       <div className="progress-head">
-        <h2 id="progress-title">Progression</h2>
-        <div className="zone-switch" role="group" aria-label="Région">
-          {[...CATALOG_ZONES.map((z) => ({ value: z.value as string, label: z.short })), { value: ALL_ZONES, label: 'Toutes' }].map((z) => (
+        <h2 id="progress-title">{tr('Progression')}</h2>
+        <div className="zone-switch" role="group" aria-label={tr('Région')}>
+          {[...CATALOG_ZONES.map((z) => ({ value: z.value as string, label: z.short })), { value: ALL_ZONES, label: tr('Toutes') }].map((z) => (
             <button key={z.value} type="button" className={zone === z.value ? 'zone-option active' : 'zone-option'} aria-pressed={zone === z.value} onClick={() => choose(z.value)}>
               {z.label}
             </button>
@@ -110,42 +111,42 @@ export function CollectionProgress({ items }: { items: CollectionItem[] }) {
       {main && (
         <div className="progress-main">
           <p className="progress-figure">
-            <strong>{formatNumber(main.owned)}</strong> / {formatNumber(main.total)} jeux{zoneInfo ? ` ${zoneInfo.short}` : ''}
+            <strong>{formatNumber(main.owned)}</strong> / {formatNumber(main.total)}{tr(' jeux')}{zoneInfo ? ` ${zoneInfo.short}` : ''}
             <span className="muted"> · {formatPercent(main.owned, main.total)}</span>
           </p>
-          <MemoryBar owned={main.owned} total={main.total} label="Jeux possédés" />
+          <MemoryBar owned={main.owned} total={main.total} label={tr('Jeux possédés')} />
           <p className="small">
-            <Link to={catalogLink({ possession: 'missing' })}>Voir ceux qui me manquent</Link>
+            <Link to={catalogLink({ possession: 'missing' })}>{tr('Voir ceux qui me manquent')}</Link>
           </p>
         </div>
       )}
 
       <dl className="progress-stats">
-        <div><dt>Exemplaires</dt><dd>{formatNumber(owned.length)}</dd></div>
-        <div><dt>Complets</dt><dd>{formatNumber(complete)}</dd></div>
-        <div><dt>Neufs sous blister</dt><dd>{formatNumber(sealed)}</dd></div>
-        <div><dt>Recherchés</dt><dd>{formatNumber(main?.wanted ?? 0)}</dd></div>
-        <div><dt>À échanger ou vendre</dt><dd>{formatNumber(offered)}</dd></div>
-        <div><dt>Dépensé</dt><dd>{formatPrice(spent)}</dd></div>
+        <div><dt>{tr('Exemplaires')}</dt><dd>{formatNumber(owned.length)}</dd></div>
+        <div><dt>{tr('Complets')}</dt><dd>{formatNumber(complete)}</dd></div>
+        <div><dt>{tr('Neufs sous blister')}</dt><dd>{formatNumber(sealed)}</dd></div>
+        <div><dt>{tr('Recherchés')}</dt><dd>{formatNumber(main?.wanted ?? 0)}</dd></div>
+        <div><dt>{tr('À échanger ou vendre')}</dt><dd>{formatNumber(offered)}</dd></div>
+        <div><dt>{tr('Dépensé')}</dt><dd>{formatPrice(spent)}</dd></div>
       </dl>
 
       {series.length > 0 && (
         <>
-          <h3>Par série</h3>
+          <h3>{tr('Par série')}</h3>
           <ul className="family-list">
             {shownSeries.map((s) => (
               <li key={s.series_id}>
                 <Link to={catalogLink({ serie: String(s.series_id) })} className="family-row">
                   <span className="family-name">{s.name}</span>
                   <span className="family-count">{formatNumber(s.owned)} / {formatNumber(s.total)}</span>
-                  <MemoryBar size="small" owned={s.owned} total={s.total} label={`${s.name} : jeux possédés`} />
+                  <MemoryBar size="small" owned={s.owned} total={s.total} label={tr('{0} : jeux possédés', s.name)} />
                 </Link>
               </li>
             ))}
           </ul>
           {series.length > 8 && (
             <button type="button" className="link-button small" onClick={() => setAllSeries((v) => !v)}>
-              {allSeries ? 'Moins de séries' : `Voir les ${formatNumber(series.length)} séries commencées`}
+              {allSeries ? tr('Moins de séries') : tr('Voir les {0} séries commencées', formatNumber(series.length))}
             </button>
           )}
         </>
@@ -153,18 +154,18 @@ export function CollectionProgress({ items }: { items: CollectionItem[] }) {
 
       {priced.length > 0 && (
         <div className="spending">
-          <h3>Dépenses</h3>
+          <h3>{tr('Dépenses')}</h3>
           <dl className="progress-stats">
-            <div><dt>Total payé</dt><dd>{formatPrice(spent)}</dd></div>
-            <div><dt>Prix moyen</dt><dd>{formatPrice(Math.round(average * 100) / 100)}</dd></div>
-            <div><dt>Avec un prix noté</dt><dd>{formatNumber(priced.length)} / {formatNumber(owned.length)}</dd></div>
+            <div><dt>{tr('Total payé')}</dt><dd>{formatPrice(spent)}</dd></div>
+            <div><dt>{tr('Prix moyen')}</dt><dd>{formatPrice(Math.round(average * 100) / 100)}</dd></div>
+            <div><dt>{tr('Avec un prix noté')}</dt><dd>{formatNumber(priced.length)} / {formatNumber(owned.length)}</dd></div>
           </dl>
           <div className="spending-grid">
             <div>
-              <h4>Par année d'achat</h4>
+              <h4>{tr("Par année d'achat")}</h4>
               <ul className="bar-list">
                 {byYear.map(([year, y]) => (
-                  <li key={year} title={`${year} : ${formatPrice(y.sum)} pour ${y.count} exemplaire${y.count > 1 ? 's' : ''}`}>
+                  <li key={year} title={tr('{0} : {1} pour {2} exemplaire{3?s}', year, formatPrice(y.sum), y.count, y.count > 1)}>
                     <span className="bar-label">{year}</span>
                     <span className="bar-track" aria-hidden="true"><span className="bar-fill" style={{ width: `${Math.max(2, (y.sum / maxYear) * 100)}%` }} /></span>
                     <span className="bar-value">{formatPrice(y.sum)} <span className="muted">· {y.count}</span></span>
@@ -173,7 +174,7 @@ export function CollectionProgress({ items }: { items: CollectionItem[] }) {
               </ul>
             </div>
             <div>
-              <h4>Les plus chers</h4>
+              <h4>{tr('Les plus chers')}</h4>
               <ol className="priciest">
                 {priciest.map((i) => (
                   <li key={i.id}>
@@ -183,7 +184,7 @@ export function CollectionProgress({ items }: { items: CollectionItem[] }) {
               </ol>
               {byAcquisition.length > 0 && (
                 <>
-                  <h4>Selon l'achat</h4>
+                  <h4>{tr("Selon l'achat")}</h4>
                   <ul className="plain-list small">
                     {byAcquisition.map((a) => (
                       <li key={a.label}>{a.label} : {formatPrice(a.sum)} <span className="muted">({formatNumber(a.count)})</span></li>
@@ -194,7 +195,7 @@ export function CollectionProgress({ items }: { items: CollectionItem[] }) {
             </div>
           </div>
           {priced.length < owned.length && (
-            <p className="hint">Les exemplaires sans prix ne sont pas comptés : ajoute le prix payé dans « Modifier » pour des chiffres complets.</p>
+            <p className="hint">{tr('Les exemplaires sans prix ne sont pas comptés : ajoute le prix payé dans « Modifier » pour des chiffres complets.')}</p>
           )}
         </div>
       )}
@@ -202,9 +203,9 @@ export function CollectionProgress({ items }: { items: CollectionItem[] }) {
       {(families.length > 0 || origin) && (
         <>
           <div className="progress-head">
-            <h3>Par genre</h3>
-            <div className="zone-switch" role="group" aria-label="Origine du studio">
-              {[{ value: null, label: 'Toutes origines' }, ...ORIGINS.map((o) => ({ value: o.value, label: o.label }))].map((o) => (
+            <h3>{tr('Par genre')}</h3>
+            <div className="zone-switch" role="group" aria-label={tr('Origine du studio')}>
+              {[{ value: null, label: tr('Toutes origines') }, ...ORIGINS.map((o) => ({ value: o.value, label: o.label }))].map((o) => (
                 <button key={o.label} type="button" className={origin === o.value ? 'zone-option active' : 'zone-option'} aria-pressed={origin === o.value} onClick={() => setOrigin(o.value)}>
                   {o.label}
                 </button>
@@ -217,20 +218,19 @@ export function CollectionProgress({ items }: { items: CollectionItem[] }) {
                 <Link to={catalogLink({ genre: f.code, ...(origin ? { origine: originParam(origin)! } : {}) })} className="family-row">
                   <span className="family-name">{familyOriginLabel(f.code, origin)}</span>
                   <span className="family-count">{formatNumber(f.owned)} / {formatNumber(f.total)}</span>
-                  <MemoryBar size="small" owned={f.owned} total={f.total} label={`${familyOriginLabel(f.code, origin)} : jeux possédés`} />
+                  <MemoryBar size="small" owned={f.owned} total={f.total} label={tr('{0} : jeux possédés', familyOriginLabel(f.code, origin))} />
                 </Link>
               </li>
             ))}
           </ul>
           {known && main && !origin && (
             <p className="hint">
-              Genre connu pour {formatNumber(known.total)} jeux sur {formatNumber(main.total)} : les totaux par genre grandiront à mesure que la base se complète.
+              {tr('Genre connu pour ')}{formatNumber(known.total)}{tr(' jeux sur ')}{formatNumber(main.total)}{tr(' : les totaux par genre grandiront à mesure que la base se complète.')}
             </p>
           )}
           {origin && unknownOrigin && main && (
             <p className="hint">
-              Origine du studio connue pour {formatNumber(main.total - unknownOrigin.total)} jeux sur {formatNumber(main.total)} : elle se déduit
-              du pays des studios et se complète au fil des fiches.
+              {tr('Origine du studio connue pour ')}{formatNumber(main.total - unknownOrigin.total)}{tr(' jeux sur ')}{formatNumber(main.total)}{tr(' : elle se déduit du pays des studios et se complète au fil des fiches.')}
             </p>
           )}
         </>

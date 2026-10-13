@@ -7,6 +7,7 @@ import { PsSymbol } from '../components/PsSymbol';
 import { EmailCodeForm } from '../components/EmailCodeForm';
 import { useAuth } from '../auth/AuthContext';
 import { TERMS_VERSION } from './Legal';
+import { tr } from '../lib/i18n';
 
 const USERNAME = /^[A-Za-z0-9_-]{3,30}$/;
 
@@ -24,10 +25,10 @@ export function Signup() {
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    if (!USERNAME.test(username)) return setError('Pseudo : 3 à 30 caractères, lettres, chiffres, « _ » ou « - ».');
-    if (!passwordIsValid(password)) return setError('Le mot de passe ne respecte pas toutes les règles.');
-    if (password !== confirm) return setError('Les deux mots de passe ne sont pas identiques.');
-    if (!accepted) return setError("Pour créer un compte, accepte les conditions d'utilisation.");
+    if (!USERNAME.test(username)) return setError(tr('Pseudo : 3 à 30 caractères, lettres, chiffres, « _ » ou « - ».'));
+    if (!passwordIsValid(password)) return setError(tr('Le mot de passe ne respecte pas toutes les règles.'));
+    if (password !== confirm) return setError(tr('Les deux mots de passe ne sont pas identiques.'));
+    if (!accepted) return setError(tr("Pour créer un compte, accepte les conditions d'utilisation."));
     setBusy(true);
     setError('');
     const { error } = await supabase.auth.signUp({
@@ -48,11 +49,11 @@ export function Signup() {
   if (sent) {
     return (
       <section className="panel narrow">
-        <h1>Vérifie ta boîte mail</h1>
+        <h1>{tr('Vérifie ta boîte mail')}</h1>
         <p>
-          Si <strong>{email.trim()}</strong> n'a pas encore de compte, un e-mail vient de t'être envoyé
-          {EMAIL_CODES ? ', avec un code à 6 chiffres et un lien de confirmation (valables 30 minutes).'
-            : ' : clique sur son lien pour confirmer ton adresse (valable 30 minutes).'}
+          Si <strong>{email.trim()}</strong>{tr(" n'a pas encore de compte, un e-mail vient de t'être envoyé")}
+          {EMAIL_CODES ? tr(', avec un code à 6 chiffres et un lien de confirmation (valables 30 minutes).')
+            : tr(' : clique sur son lien pour confirmer ton adresse (valable 30 minutes).')}
         </p>
         <EmailCodeForm
           email={email.trim()}
@@ -60,44 +61,43 @@ export function Signup() {
           onVerified={async () => { await refresh(); navigate('/collection', { replace: true }); }}
           onResend={() => supabase.auth.resend({ type: 'signup', email: email.trim(), options: { emailRedirectTo: `${window.location.origin}/connexion?confirme=1` } })}
         />
-        <p className="small center"><Link to="/connexion"><PsSymbol shape="circle" /> Retour à la connexion</Link></p>
+        <p className="small center"><Link to="/connexion"><PsSymbol shape="circle" />{tr(' Retour à la connexion')}</Link></p>
       </section>
     );
   }
 
   return (
     <section className="panel narrow">
-      <h1>Créer un compte</h1>
+      <h1>{tr('Créer un compte')}</h1>
       <form onSubmit={submit} className="form">
         <label className="field">
-          <span className="field-label">Pseudo</span>
+          <span className="field-label">{tr('Pseudo')}</span>
           <input autoComplete="nickname" required value={username} onChange={(e) => setUsername(e.target.value)} maxLength={30} />
-          <span className="hint">Visible par les autres. 3 à 30 caractères : lettres, chiffres, « _ » ou « - ».</span>
+          <span className="hint">{tr('Visible par les autres. 3 à 30 caractères : lettres, chiffres, « _ » ou « - ».')}</span>
         </label>
         <label className="field">
-          <span className="field-label">Adresse e-mail</span>
+          <span className="field-label">{tr('Adresse e-mail')}</span>
           <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} maxLength={254} />
-          <span className="hint">Jamais affichée : elle sert uniquement à te connecter.</span>
+          <span className="hint">{tr('Jamais affichée : elle sert uniquement à te connecter.')}</span>
         </label>
         <label className="field">
-          <span className="field-label">Mot de passe</span>
+          <span className="field-label">{tr('Mot de passe')}</span>
           <input type="password" autoComplete="new-password" required value={password} onChange={(e) => setPassword(e.target.value)} maxLength={128} />
         </label>
         <PasswordRules password={password} />
         <label className="field">
-          <span className="field-label">Confirmer le mot de passe</span>
+          <span className="field-label">{tr('Confirmer le mot de passe')}</span>
           <input type="password" autoComplete="new-password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} maxLength={128} />
         </label>
         <label className="consent">
           <input type="checkbox" required checked={accepted} onChange={(e) => setAccepted(e.target.checked)} />
           <span>
-            J'ai lu et j'accepte les <Link to="/conditions" target="_blank">conditions d'utilisation</Link> ; mes données sont
-            traitées comme l'explique la page <Link to="/confidentialite" target="_blank">confidentialité</Link>.
+            {tr("J'ai lu et j'accepte les ")}<Link to="/conditions" target="_blank">{tr("conditions d'utilisation")}</Link>{tr(" ; mes données sont traitées comme l'explique la page ")}<Link to="/confidentialite" target="_blank">{tr('confidentialité')}</Link>.
           </span>
         </label>
         {error && <p className="error" role="alert">{error}</p>}
-        <button type="submit" className="button button-primary button-block" disabled={busy}><PsSymbol shape="cross" /> Créer mon compte</button>
-        <p className="muted small">Une fois connecté, tu pourras ajouter une passkey et la double authentification dans « Mon compte ».</p>
+        <button type="submit" className="button button-primary button-block" disabled={busy}><PsSymbol shape="cross" />{tr(' Créer mon compte')}</button>
+        <p className="muted small">{tr('Une fois connecté, tu pourras ajouter une passkey et la double authentification dans « Mon compte ».')}</p>
       </form>
     </section>
   );

@@ -4,7 +4,9 @@ import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { Dialog } from '../components/Dialog';
 import { GAME_FIELDS } from '../lib/queries';
-import { boxRegionName, countryName, editionLabel, familyLabel, formatDate, languagesLong, languagesShort, speaksLanguage, zoneLabel, zoneOrder } from '../lib/format';
+import {
+  boxRegionName, countryName, editionLabel, familyLabel, formatDate, languagesLong, languagesShort, speaksLanguage, zoneLabel, zoneOrder, genreName, regionName,
+} from '../lib/format';
 import { rememberedLanguage } from '../lib/preferences';
 import { describeSpecs } from '../lib/specs';
 import type { Game, ItemStatus, Release } from '../lib/types';
@@ -15,6 +17,7 @@ import { PsSymbol } from '../components/PsSymbol';
 import { ReportDialog } from '../components/ReportDialog';
 import { standInFor } from '../lib/images';
 import { formatBarcode, normalizeBarcode } from '../lib/barcode';
+import { lang, tr } from '../lib/i18n';
 
 export function GamePage() {
   const { id } = useParams();
@@ -94,8 +97,8 @@ export function GamePage() {
     return () => clearTimeout(timer);
   }, [state, focusId]);
 
-  if (state === 'loading') return <p className="loading">Lecture de la carte mémoire…</p>;
-  if (state === 'missing' || !game) return <section className="panel"><h1>Jeu introuvable</h1><Link to="/"><PsSymbol shape="circle" /> Retour à la recherche</Link></section>;
+  if (state === 'loading') return <p className="loading">{tr('Lecture de la carte mémoire…')}</p>;
+  if (state === 'missing' || !game) return <section className="panel"><h1>{tr('Jeu introuvable')}</h1><Link to="/"><PsSymbol shape="circle" />{tr(' Retour à la recherche')}</Link></section>;
 
   // Japon, Amérique, Europe ; dans chaque zone, la standard d'abord, puis la langue choisie dans le catalogue
   const language = rememberedLanguage();
@@ -131,7 +134,7 @@ export function GamePage() {
     const { error } = await supabase.rpc('add_release_barcode', { target_release: release.id, code: scanned });
     setBusy(null);
     if (error) return setActionError(errorMessage(error));
-    setThanks(`Merci ! Le code ${formatBarcode(scanned)} mène maintenant directement à cette version, pour tous les collectionneurs.`);
+    setThanks(tr('Merci ! Le code {0} mène maintenant directement à cette version, pour tous les collectionneurs.', formatBarcode(scanned)));
     setBarcodesVersion((v) => v + 1);
     setParams({ version: String(release.id) }, { replace: true });
   }
@@ -162,18 +165,18 @@ export function GamePage() {
         <div className="game-info">
           <h1>{game.title}</h1>
           <dl className="facts">
-            {game.first_release_date && (<><dt>Première sortie</dt><dd>{formatDate(game.first_release_date, game.first_release_precision)}</dd></>)}
+            {game.first_release_date && (<><dt>{tr('Première sortie')}</dt><dd>{formatDate(game.first_release_date, game.first_release_precision)}</dd></>)}
             {game.game_developer.length > 0 && (
-              <><dt>Développement</dt><dd><StudioLinks companies={game.game_developer.map((d) => d.company)} /></dd></>
+              <><dt>{tr('Développement')}</dt><dd><StudioLinks companies={game.game_developer.map((d) => d.company)} /></dd></>
             )}
             {game.game_series.length > 0 && (
               <>
-                <dt>Série</dt>
+                <dt>{tr('Série')}</dt>
                 <dd>
                   {game.game_series.map((g, i) => (
                     <Fragment key={g.series.id}>
                       {i > 0 && ', '}
-                      <Link to={`/catalogue?serie=${g.series.id}`} title={`Tous les jeux de la série ${g.series.name}`}>{g.series.name}</Link>
+                      <Link to={`/catalogue?serie=${g.series.id}`} title={tr('Tous les jeux de la série {0}', g.series.name)}>{g.series.name}</Link>
                     </Fragment>
                   ))}
                 </dd>
@@ -181,55 +184,56 @@ export function GamePage() {
             )}
             {gameStats && gameStats.owners + gameStats.seekers > 0 && (
               <>
-                <dt>Collectionneurs</dt>
+                <dt>{tr('Collectionneurs')}</dt>
                 <dd>{popularityText(gameStats.owners, gameStats.seekers)}</dd>
               </>
             )}
             {origin && (
               <>
-                <dt>Origine</dt>
+                <dt>{tr('Origine')}</dt>
                 <dd>
                   {countryName(origin)}
                   {origin === 'JP' && families.includes('rpg') && (
-                    <> <Link to="/catalogue?genre=rpg&origine=japon" className="badge badge-family">JRPG</Link></>
+                    <> <Link to="/catalogue?genre=rpg&origine=japon" className="badge badge-family">{tr('JRPG')}</Link></>
                   )}
                 </dd>
               </>
             )}
             {families.length > 0 && (
               <>
-                <dt>Genre</dt>
+                <dt>{tr('Genre')}</dt>
                 <dd>
                   <span className="family-tags">
                     {families.map((f) => <Link key={f} to={`/catalogue?genre=${f}`} className="badge badge-family">{familyLabel(f)}</Link>)}
                   </span>
-                  <span className="muted small"> {genres.map((g) => g.name).join(', ')}</span>
+                  <span className="muted small"> {genres.map((g) => genreName(g.name)).join(', ')}</span>
                 </dd>
               </>
             )}
-            {themes.length > 0 && (<><dt>Thèmes</dt><dd>{themes.map((g) => g.name).join(', ')}</dd></>)}
+            {themes.length > 0 && (<><dt>{tr('Thèmes')}</dt><dd>{themes.map((g) => genreName(g.name)).join(', ')}</dd></>)}
           </dl>
           {game.summary && (
             <div className="summary-block">
               <p className={summaryOpen || game.summary.length < 320 ? 'summary' : 'summary is-clamped'}>{game.summary}</p>
               {game.summary.length >= 320 && (
                 <button type="button" className="link-button small" aria-expanded={summaryOpen} onClick={() => setSummaryOpen((v) => !v)}>
-                  {summaryOpen ? 'Réduire' : 'Lire la suite'}
+                  {summaryOpen ? tr('Réduire') : tr('Lire la suite')}
                 </button>
               )}
+              {lang === 'en' && <p className="summary-source">Summary in French: English summaries will come later.</p>}
               {game.summary_source && (
                 <p className="summary-source">
-                  Résumé extrait de Wikipédia (licence{' '}
-                  <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.fr" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a>)
+                  {tr('Résumé extrait de Wikipédia (licence')}{' '}
+                  <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.fr" target="_blank" rel="noopener noreferrer">{tr('CC BY-SA 4.0')}</a>)
                   {' · '}
-                  <a href={game.summary_source} target="_blank" rel="noopener noreferrer">lire l'article</a>
+                  <a href={game.summary_source} target="_blank" rel="noopener noreferrer">{tr("lire l'article")}</a>
                 </p>
               )}
             </div>
           )}
           {isModerator && (
             <div className="actions">
-              <Link to={`/jeu/${game.id}/modifier`} className="button button-primary"><PsSymbol shape="triangle" /> Modifier ce jeu</Link>
+              <Link to={`/jeu/${game.id}/modifier`} className="button button-primary"><PsSymbol shape="triangle" />{tr(' Modifier ce jeu')}</Link>
             </div>
           )}
           <SummaryProposal open={proposeSummary} onClose={() => setProposeSummary(false)} game={game} />
@@ -240,27 +244,26 @@ export function GamePage() {
 
       {scanned && (
         <p className="notice scan-banner" aria-live="polite">
-          <strong>Code-barres {formatBarcode(scanned)}</strong> : quelle version as-tu en main ? Touche « C'est ma version » sur la bonne
-          fiche ci-dessous{session ? '' : ' (après connexion)'}. Le prochain qui scannera ce code tombera directement dessus.
+          <strong>{tr('Code-barres ')}{formatBarcode(scanned)}</strong>{tr(" : quelle version as-tu en main ? Touche « C'est ma version » sur la bonne fiche ci-dessous")}{session ? '' : tr(' (après connexion)')}{tr('. Le prochain qui scannera ce code tombera directement dessus.')}
         </p>
       )}
       {thanks && <p className="success" role="status">{thanks}</p>}
       {focused && !scanned && (
         <div className="panel scan-banner scan-found">
           <p>
-            <strong>Ta version :</strong> {focused.local_title} · {zoneLabel(focused.zone)} · {editionLabel(focused)}
+            <strong>{tr('Ta version :')}</strong> {focused.local_title} · {zoneLabel(focused.zone)} · {editionLabel(focused)}
             {focused.languages.length > 0 && ` · ${languagesLong(focused.languages)}`}
           </p>
           <div className="actions">
             {copies(focused) > 0
-              ? <span className="badge badge-owned">✓ Déjà dans ta collection{copies(focused) > 1 ? ` (×${copies(focused)})` : ''}</span>
-              : <button type="button" className="button button-primary" onClick={() => addToCollection(focused)}><PsSymbol shape="cross" /> Ajouter à ma collection</button>}
-            <button type="button" className="link-button small" onClick={() => { setThanks(''); setParams({}, { replace: true }); }}>Voir toutes les versions</button>
+              ? <span className="badge badge-owned">{tr('✓ Déjà dans ta collection')}{copies(focused) > 1 ? tr(' (×{0})', copies(focused)) : ''}</span>
+              : <button type="button" className="button button-primary" onClick={() => addToCollection(focused)}><PsSymbol shape="cross" />{tr(' Ajouter à ma collection')}</button>}
+            <button type="button" className="link-button small" onClick={() => { setThanks(''); setParams({}, { replace: true }); }}>{tr('Voir toutes les versions')}</button>
           </div>
         </div>
       )}
 
-      <h2>Versions ({releases.length})</h2>
+      <h2>{tr('Versions (')}{releases.length})</h2>
       {actionError && <p className="error">{actionError}</p>}
       <ul className="release-list">
         {releases.map((r) => (
@@ -272,36 +275,36 @@ export function GamePage() {
                 <span className={`badge badge-zone badge-${(r.zone ?? 'unknown').toLowerCase()}`}>{zoneLabel(r.zone)}</span>
                 {countryOf(r) && <span className="badge">{countryOf(r)}</span>}
                 <span className={`badge ${r.edition_type === 'reissue' ? 'badge-platinum' : 'badge-edition'}`}>{editionLabel(r)}</span>
-                {r.box_region && <span className="badge badge-language" title="Boîte imprimée pour ce pays">Boîte : {boxRegionName(r.box_region.code)}</span>}
+                {r.box_region && <span className="badge badge-language" title={tr('Boîte imprimée pour ce pays')}>{tr('Boîte : ')}{boxRegionName(r.box_region.code)}</span>}
                 {r.languages.length > 0 && (
                   <span className="badge badge-language" title={languagesLong(r.languages)}>
                     {r.languages.length === 1 ? languagesLong(r.languages) : languagesShort(r.languages)}
                   </span>
                 )}
-                {!r.product_code && <span className="badge badge-todo">À compléter</span>}
-                {copies(r) > 0 && <span className="badge badge-owned">✓ Dans ta collection{copies(r) > 1 ? ` (×${copies(r)})` : ''}</span>}
-                {wantedItem(r) && <span className="badge badge-trade">♥ Recherchée</span>}
+                {!r.product_code && <span className="badge badge-todo">{tr('À compléter')}</span>}
+                {copies(r) > 0 && <span className="badge badge-owned">{tr('✓ Dans ta collection')}{copies(r) > 1 ? tr(' (×{0})', copies(r)) : ''}</span>}
+                {wantedItem(r) && <span className="badge badge-trade">{tr('♥ Recherchée')}</span>}
               </p>
               <dl className="facts">
-                {r.product_code && (<><dt>Code produit</dt><dd className="code">{r.product_code}</dd></>)}
+                {r.product_code && (<><dt>{tr('Code produit')}</dt><dd className="code">{r.product_code}</dd></>)}
                 {r.release_region.length > 0 && (
-                  <><dt>Sortie</dt><dd>{r.release_region.map((rr) => `${rr.region.name}${rr.release_date ? ` : ${formatDate(rr.release_date, rr.date_precision)}` : ''}`).join(' · ')}</dd></>
+                  <><dt>{tr('Sortie')}</dt><dd>{r.release_region.map((rr) => `${regionName(rr.region)}${rr.release_date ? ` : ${formatDate(rr.release_date, rr.date_precision)}` : ''}`).join(' · ')}</dd></>
                 )}
                 {r.release_company.length > 0 && (
-                  <><dt>Édition</dt><dd><StudioLinks companies={r.release_company.map((c) => c.company)} /></dd></>
+                  <><dt>{tr('Éditeur')}</dt><dd><StudioLinks companies={r.release_company.map((c) => c.company)} /></dd></>
                 )}
                 {(statsOf(r)?.owners ?? 0) + (statsOf(r)?.seekers ?? 0) > 0 && (
-                  <><dt>Collectionneurs</dt><dd>{popularityText(statsOf(r)!.owners, statsOf(r)!.seekers)}</dd></>
+                  <><dt>{tr('Collectionneurs')}</dt><dd>{popularityText(statsOf(r)!.owners, statsOf(r)!.seekers)}</dd></>
                 )}
                 {codesOf(r).length > 0 && (
                   <>
-                    <dt>Code-barres</dt>
+                    <dt>{tr('Code-barres')}</dt>
                     <dd>
                       {codesOf(r).map((b) => (
                         <span key={b} className="barcode-value">
                           <span className="code">{formatBarcode(b)}</span>
                           {isModerator && (
-                            <button type="button" className="link-button danger small" onClick={() => removeBarcode(r, b)} title="Retirer ce code-barres (faux)">retirer</button>
+                            <button type="button" className="link-button danger small" onClick={() => removeBarcode(r, b)} title={tr('Retirer ce code-barres (faux)')}>{tr('retirer')}</button>
                           )}
                         </span>
                       ))}
@@ -309,9 +312,9 @@ export function GamePage() {
                   </>
                 )}
                 {r.languages.length > 0 && (
-                  <><dt>Langues</dt><dd>{languagesLong(r.languages)}</dd></>
+                  <><dt>{tr('Langues')}</dt><dd>{languagesLong(r.languages)}</dd></>
                 )}
-                {r.media_count && r.media_count > 1 && (<><dt>Disques</dt><dd>{r.media_count}</dd></>)}
+                {r.media_count && r.media_count > 1 && (<><dt>{tr('Disques')}</dt><dd>{r.media_count}</dd></>)}
                 {describeSpecs(r.specs, r.platform.spec_fields).map((s) => (
                   <Fragment key={s.label}><dt>{s.label}</dt><dd>{s.value}</dd></Fragment>
                 ))}
@@ -319,19 +322,19 @@ export function GamePage() {
               <div className="actions">
                 {scanned && !codesOf(r).includes(scanned) && (
                   <button type="button" className="button button-small button-primary" disabled={busy === r.id} onClick={() => associate(r)}>
-                    <PsSymbol shape="triangle" /> C'est ma version
+                    <PsSymbol shape="triangle" />{tr(" C'est ma version")}
                   </button>
                 )}
                 <button type="button" className={copies(r) > 0 || scanned ? 'button button-small' : 'button button-small button-primary'} onClick={() => addToCollection(r)}>
-                  <PsSymbol shape="cross" /> {copies(r) > 0 ? 'Ajouter un autre exemplaire' : 'Ajouter à ma collection'}
+                  <PsSymbol shape="cross" /> {copies(r) > 0 ? tr('Ajouter un autre exemplaire') : tr('Ajouter à ma collection')}
                 </button>
                 {canTick && copies(r) === 0 && (
                   <button type="button" className={wantedItem(r) ? 'wish-button active' : 'wish-button'} aria-pressed={Boolean(wantedItem(r))}
                     disabled={busy === r.id} onClick={() => toggleWanted(r)}>
-                    {wantedItem(r) ? '♥ Recherchée' : '♡ Je la cherche'}
+                    {wantedItem(r) ? tr('♥ Recherchée') : tr('♡ Je la cherche')}
                   </button>
                 )}
-                {copies(r) > 0 && <Link to="/collection" className="small">Voir ma collection</Link>}
+                {copies(r) > 0 && <Link to="/collection" className="small">{tr('Voir ma collection')}</Link>}
               </div>
             </div>
           </li>
@@ -340,15 +343,15 @@ export function GamePage() {
 
       {/* Contribuer : après les versions, l'essentiel pour qui consulte la fiche */}
       <section className="panel contribute">
-        <h2>Une info manque ou est fausse ?</h2>
-        <p className="muted small">La base est collaborative : chaque proposition est relue par un modérateur avant d'apparaître.</p>
+        <h2>{tr('Une info manque ou est fausse ?')}</h2>
+        <p className="muted small">{tr("La base est collaborative : chaque proposition est relue par un modérateur avant d'apparaître.")}</p>
         <div className="actions">
-          <Link to={`/proposer?jeu=${game.id}`} className="button"><PsSymbol shape="square" /> Proposer une version manquante</Link>
+          <Link to={`/proposer?jeu=${game.id}`} className="button"><PsSymbol shape="square" />{tr(' Proposer une version manquante')}</Link>
           <button type="button" className="button" onClick={() => (session ? setProposeSummary(true) : navigate(`/connexion?next=${encodeURIComponent(location.pathname)}`))}>
-            <PsSymbol shape="circle" /> {game.summary ? 'Proposer un meilleur résumé' : 'Proposer un résumé'}
+            <PsSymbol shape="circle" /> {game.summary ? tr('Proposer un meilleur résumé') : tr('Proposer un résumé')}
           </button>
           <button type="button" className="button" onClick={() => (session ? setReporting(true) : navigate(`/connexion?next=${encodeURIComponent(location.pathname)}`))}>
-            <PsSymbol shape="triangle" /> Signaler une erreur
+            <PsSymbol shape="triangle" />{tr(' Signaler une erreur')}
           </button>
         </div>
       </section>
@@ -359,8 +362,8 @@ export function GamePage() {
 // « 12 membres l'ont · 3 le cherchent »
 function popularityText(owners: number, seekers: number): string {
   return [
-    owners > 0 && `${owners} membre${owners > 1 ? 's l’ont' : ' l’a'}`,
-    seekers > 0 && `${seekers} ${seekers > 1 ? 'le cherchent' : 'le cherche'}`,
+    owners > 0 && (owners > 1 ? tr('{0} membres l’ont', owners) : tr('{0} membre l’a', owners)),
+    seekers > 0 && (seekers > 1 ? tr('{0} le cherchent', seekers) : tr('{0} le cherche', seekers)),
   ].filter(Boolean).join(' · ');
 }
 
@@ -371,7 +374,7 @@ function StudioLinks({ companies }: { companies: { id: number; name: string }[] 
       {companies.map((c, i) => (
         <Fragment key={c.id}>
           {i > 0 && ', '}
-          <Link to={`/catalogue?studio=${c.id}`} title={`Tous les jeux de ${c.name}`}>{c.name}</Link>
+          <Link to={`/catalogue?studio=${c.id}`} title={tr('Tous les jeux de {0}', c.name)}>{c.name}</Link>
         </Fragment>
       ))}
     </>
@@ -389,7 +392,7 @@ function SummaryProposal({ open, onClose, game }: { open: boolean; onClose: () =
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    if (length < 20) return setError('Le résumé doit faire au moins 20 caractères.');
+    if (length < 20) return setError(tr('Le résumé doit faire au moins 20 caractères.'));
     setBusy(true);
     setError('');
     const { error } = await supabase.from('submission').insert({
@@ -410,30 +413,30 @@ function SummaryProposal({ open, onClose, game }: { open: boolean; onClose: () =
   }
 
   return (
-    <Dialog open={open} onClose={close} title={`Résumé de « ${game.title} »`}>
+    <Dialog open={open} onClose={close} title={tr('Résumé de « {0} »', game.title)}>
       {sent ? (
         <>
-          <p className="success">Merci ! Ton résumé sera publié après validation par un modérateur.</p>
-          <div className="actions"><button type="button" className="button" onClick={close}><PsSymbol shape="circle" /> Fermer</button></div>
+          <p className="success">{tr('Merci ! Ton résumé sera publié après validation par un modérateur.')}</p>
+          <div className="actions"><button type="button" className="button" onClick={close}><PsSymbol shape="circle" />{tr(' Fermer')}</button></div>
         </>
       ) : (
         <form onSubmit={submit} className="form">
           <p className="muted small">
-            Écris avec tes propres mots : pas de copier-coller d'un autre site (droits d'auteur).
-            {game.summary_source && ' Une fois validé, ton texte remplacera celui de Wikipédia.'}
+            {tr("Écris avec tes propres mots : pas de copier-coller d'un autre site (droits d'auteur).")}
+            {game.summary_source && tr(' Une fois validé, ton texte remplacera celui de Wikipédia.')}
           </p>
           <label className="field">
-            <span className="field-label">Résumé ({length} / 3000 caractères)</span>
+            <span className="field-label">{tr('Résumé ({0} / 3000 caractères)', length)}</span>
             <textarea value={text} onChange={(e) => setText(e.target.value)} rows={8} maxLength={3000} required autoFocus />
           </label>
           <label className="field">
-            <span className="field-label">Sources (facultatif)</span>
-            <input value={sources} onChange={(e) => setSources(e.target.value)} maxLength={1000} placeholder="J'ai fini le jeu, notice du jeu…" />
+            <span className="field-label">{tr('Sources (facultatif)')}</span>
+            <input value={sources} onChange={(e) => setSources(e.target.value)} maxLength={1000} placeholder={tr("J'ai fini le jeu, notice du jeu…")} />
           </label>
           {error && <p className="error" role="alert">{error}</p>}
           <div className="actions">
-            <button type="button" className="button" onClick={close}><PsSymbol shape="circle" /> Annuler</button>
-            <button type="submit" className="button button-primary" disabled={busy || length < 20}><PsSymbol shape="cross" /> Envoyer</button>
+            <button type="button" className="button" onClick={close}><PsSymbol shape="circle" />{tr(' Annuler')}</button>
+            <button type="submit" className="button button-primary" disabled={busy || length < 20}><PsSymbol shape="cross" />{tr(' Envoyer')}</button>
           </div>
         </form>
       )}
@@ -446,7 +449,7 @@ function SummaryProposal({ open, onClose, game }: { open: boolean; onClose: () =
 // (sauf s'il répète la zone : le Japon pour le NTSC-J, les États-Unis pour le NTSC-U)
 function countryOf(release: Release): string | null {
   const countries = [...new Map(release.release_region.filter((rr) => /^[A-Z]{2}$/.test(rr.region.code))
-    .map((rr) => [rr.region.code, rr.region.name])).entries()];
+    .map((rr) => [rr.region.code, regionName(rr.region)])).entries()];
   if (countries.length !== 1) return null;
   const [code, name] = countries[0];
   return (release.zone === 'NTSC-J' && code === 'JP') || (release.zone === 'NTSC-U' && code === 'US') ? null : name;

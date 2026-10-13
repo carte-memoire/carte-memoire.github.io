@@ -7,6 +7,7 @@ import type { CompanyResult } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
 import { useConfirm } from './Confirm';
 import { studioCounts } from './GameSearch';
+import { tr } from '../lib/i18n';
 
 // Formes juridiques et mots génériques, ignorés pour comparer les noms
 // (« Success » et « Success Corp. », « Silicon Dreams » et « Silicon Dreams Studios »)
@@ -75,9 +76,9 @@ export function StudioQueue({ onCount }: { onCount: (n: number) => void }) {
 
   async function merge(keep: CompanyResult, duplicate: CompanyResult) {
     if (!(await confirm({
-      title: 'Fusionner deux studios',
-      message: `Les jeux de « ${duplicate.name} » passent à « ${keep.name} », puis « ${duplicate.name} » disparaît. Son nom restera reconnu dans les propositions. La fusion ne s'annule pas.`,
-      confirmLabel: `Garder « ${keep.name} »`,
+      title: tr('Fusionner deux studios'),
+      message: tr("Les jeux de « {0} » passent à « {1} », puis « {2} » disparaît. Son nom restera reconnu dans les propositions. La fusion ne s'annule pas.", duplicate.name, keep.name, duplicate.name),
+      confirmLabel: tr('Garder « {0} »', keep.name),
     }))) return;
     setBusy(true);
     const { error } = await supabase.rpc('merge_companies', { keep_id: keep.id, duplicate_id: duplicate.id });
@@ -97,18 +98,17 @@ export function StudioQueue({ onCount }: { onCount: (n: number) => void }) {
   return (
     <div className="stack">
       <p className="hint">
-        Noms presque identiques repérés automatiquement : même nom une fois « Inc. », « Ltd. », « Studios »… retirés, ou une
-        à deux lettres d'écart. Garde le bon nom, ou écarte la paire si ce sont deux sociétés différentes.
+        {tr("Noms presque identiques repérés automatiquement : même nom une fois « Inc. », « Ltd. », « Studios »… retirés, ou une à deux lettres d'écart. Garde le bon nom, ou écarte la paire si ce sont deux sociétés différentes.")}
       </p>
       {error && <p className="error" role="alert">{error}</p>}
       <RenameStudio canAct={canAct} onRenamed={() => setVersion((v) => v + 1)} />
-      {studios === null && <p className="loading">Lecture des studios…</p>}
-      {studios !== null && pairs.length === 0 && <p className="panel empty">Aucun doublon de studio en vue. Bravo !</p>}
+      {studios === null && <p className="loading">{tr('Lecture des studios…')}</p>}
+      {studios !== null && pairs.length === 0 && <p className="panel empty">{tr('Aucun doublon de studio en vue. Bravo !')}</p>}
       <ul className="plain-list queue-list">
         {pairs.map(([a, b]) => (
           <li key={pairKey(a.id, b.id)} className="panel studio-pair">
             {a.wikidata_id && b.wikidata_id && a.wikidata_id !== b.wikidata_id && (
-              <p className="warning small">Deux fiches Wikidata différentes : ce sont souvent deux sociétés distinctes. Vérifie avant de fusionner.</p>
+              <p className="warning small">{tr('Deux fiches Wikidata différentes : ce sont souvent deux sociétés distinctes. Vérifie avant de fusionner.')}</p>
             )}
             <div className="studio-pair-cards">
               {[a, b].map((s, i) => (
@@ -116,16 +116,16 @@ export function StudioQueue({ onCount }: { onCount: (n: number) => void }) {
                   <div>
                     <p><strong>{s.name}</strong></p>
                     <p className="small muted">
-                      {[s.country && countryName(s.country), studioCounts(s) || 'aucun jeu'].filter(Boolean).join(' · ')}
+                      {[s.country && countryName(s.country), studioCounts(s) || tr('aucun jeu')].filter(Boolean).join(' · ')}
                       {s.wikidata_id && <> · <a href={`https://www.wikidata.org/wiki/${s.wikidata_id}`} target="_blank" rel="noopener noreferrer">{s.wikidata_id}</a></>}
                     </p>
-                    <p className="small"><Link to={`/catalogue?studio=${s.id}&zone=toutes`} target="_blank">Voir ses jeux</Link></p>
+                    <p className="small"><Link to={`/catalogue?studio=${s.id}&zone=toutes`} target="_blank">{tr('Voir ses jeux')}</Link></p>
                   </div>
-                  <button type="button" className="button button-small" disabled={!canAct || busy} onClick={() => merge(s, i === 0 ? b : a)}>Garder ce nom</button>
+                  <button type="button" className="button button-small" disabled={!canAct || busy} onClick={() => merge(s, i === 0 ? b : a)}>{tr('Garder ce nom')}</button>
                 </div>
               ))}
             </div>
-            <button type="button" className="link-button small" disabled={!canAct || busy} onClick={() => dismiss(a, b)}>Ce ne sont pas des doublons</button>
+            <button type="button" className="link-button small" disabled={!canAct || busy} onClick={() => dismiss(a, b)}>{tr('Ce ne sont pas des doublons')}</button>
           </li>
         ))}
       </ul>
@@ -155,7 +155,7 @@ function RenameStudio({ canAct, onRenamed }: { canAct: boolean; onRenamed: () =>
     e.preventDefault();
     if (!editing) return;
     const name = editing.name.trim();
-    if (name.length < 1 || name.length > 200) return setError('Le nom doit faire entre 1 et 200 caractères.');
+    if (name.length < 1 || name.length > 200) return setError(tr('Le nom doit faire entre 1 et 200 caractères.'));
     const { error } = await supabase.from('company').update({ name, updated_at: new Date().toISOString() }).eq('id', editing.id);
     if (error) return setError(errorMessage(error));
     setError('');
@@ -166,10 +166,10 @@ function RenameStudio({ canAct, onRenamed }: { canAct: boolean; onRenamed: () =>
 
   return (
     <details className="panel rename-studio">
-      <summary>Corriger le nom d'un studio</summary>
+      <summary>{tr("Corriger le nom d'un studio")}</summary>
       <label className="field">
-        <span className="field-label">Studio à corriger</span>
-        <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Phygnosis, Adrenlin…" maxLength={120} autoComplete="off" />
+        <span className="field-label">{tr('Studio à corriger')}</span>
+        <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tr('Phygnosis, Adrenlin…')} maxLength={120} autoComplete="off" />
       </label>
       {error && <p className="error small">{error}</p>}
       <ul className="plain-list">
@@ -177,14 +177,14 @@ function RenameStudio({ canAct, onRenamed }: { canAct: boolean; onRenamed: () =>
           <li key={s.id} className="list-row">
             {editing?.id === s.id ? (
               <form className="inline-form form" onSubmit={save}>
-                <input value={editing.name} onChange={(e) => setEditing({ id: s.id, name: e.target.value })} maxLength={200} aria-label="Nouveau nom" />
-                <button type="submit" className="button button-small button-primary" disabled={!canAct}>Enregistrer</button>
-                <button type="button" className="link-button small" onClick={() => setEditing(null)}>Annuler</button>
+                <input value={editing.name} onChange={(e) => setEditing({ id: s.id, name: e.target.value })} maxLength={200} aria-label={tr('Nouveau nom')} />
+                <button type="submit" className="button button-small button-primary" disabled={!canAct}>{tr('Enregistrer')}</button>
+                <button type="button" className="link-button small" onClick={() => setEditing(null)}>{tr('Annuler')}</button>
               </form>
             ) : (
               <>
-                <span>{s.name} <span className="muted small">· {formatNumber(s.developed + s.published)} jeu{s.developed + s.published > 1 ? 'x' : ''}</span></span>
-                <button type="button" className="link-button small" disabled={!canAct} onClick={() => setEditing({ id: s.id, name: s.name })}>Renommer</button>
+                <span>{s.name} <span className="muted small">· {formatNumber(s.developed + s.published)}{tr(' jeu{0?x}', s.developed + s.published > 1)}</span></span>
+                <button type="button" className="link-button small" disabled={!canAct} onClick={() => setEditing({ id: s.id, name: s.name })}>{tr('Renommer')}</button>
               </>
             )}
           </li>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from './supabase';
 import type { PlatformInfo } from './types';
 import { ALL_PLATFORMS, DEFAULT_PLATFORM } from './preferences';
+import { tr } from './i18n';
 
 // Liste des consoles (avec constructeur et nombre de jeux), chargée une seule fois
 let cache: Promise<PlatformInfo[]> | null = null;
@@ -37,7 +38,7 @@ export function useKnownPlatform(requested: string): string {
 export function groupByManufacturer(platforms: PlatformInfo[]): [string, PlatformInfo[]][] {
   const groups = new Map<string, PlatformInfo[]>();
   for (const p of platforms) {
-    const key = p.manufacturer ?? 'Autres';
+    const key = p.manufacturer ?? tr('Autres');
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(p);
   }

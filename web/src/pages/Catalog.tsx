@@ -20,24 +20,25 @@ import { PageSizeSelect, Pagination } from '../components/Pagination';
 import { PlatformSelect } from '../components/PlatformSelect';
 import { PsSymbol } from '../components/PsSymbol';
 import { useKnownPlatform } from '../lib/usePlatforms';
+import { tr } from '../lib/i18n';
 
 // L'API renvoie au plus 1 000 jeux par appel : « tout » est lu en plusieurs fois
 const MAX_PER_CALL = 1000;
 const LETTERS = ['#', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'];
 // Tris du catalogue (le premier est celui par défaut, absent de l'adresse)
 const SORTS = [
-  { value: 'title', label: 'Titre (A → Z)' },
-  { value: 'title_desc', label: 'Titre (Z → A)' },
-  { value: 'date', label: 'Date de sortie (les plus anciens)' },
-  { value: 'date_desc', label: 'Date de sortie (les plus récents)' },
-  { value: 'versions', label: 'Nombre de versions' },
-  { value: 'added', label: 'Ajouts récents à la base' },
+  { value: 'title', label: tr('Titre (A → Z)') },
+  { value: 'title_desc', label: tr('Titre (Z → A)') },
+  { value: 'date', label: tr('Date de sortie (les plus anciens)') },
+  { value: 'date_desc', label: tr('Date de sortie (les plus récents)') },
+  { value: 'versions', label: tr('Nombre de versions') },
+  { value: 'added', label: tr('Ajouts récents à la base') },
 ];
 
 const OWNERSHIP: { value: Ownership; label: string }[] = [
-  { value: 'owned', label: "Ceux que j'ai" },
-  { value: 'missing', label: 'Ceux qui me manquent' },
-  { value: 'wanted', label: 'Ceux que je cherche' },
+  { value: 'owned', label: tr("Ceux que j'ai") },
+  { value: 'missing', label: tr('Ceux qui me manquent') },
+  { value: 'wanted', label: tr('Ceux que je cherche') },
 ];
 
 // Années proposées : celles de la vie de la console (PS1 : 1994 à 2006)
@@ -224,7 +225,7 @@ export function Catalog() {
     }
     setBusyRelease(null);
     if (error) return showToast({ text: errorMessage(error), error: true });
-    showToast({ text: `« ${release.local_title} » (${editionLabel(release)}) est dans ta collection.`, itemId: data.id });
+    showToast({ text: tr('« {0} » ({1}) est dans ta collection.', release.local_title, editionLabel(release)), itemId: data.id });
     setVersion((v) => v + 1);
   }
 
@@ -272,19 +273,19 @@ export function Catalog() {
     <section className="stack">
       <div className="page-head">
         <div>
-          <h1>Catalogue</h1>
+          <h1>{tr('Catalogue')}</h1>
           <p className="catalog-subtitle">
-            Les jeux <PlatformSelect value={platform} onChange={choosePlatform} /> sortis <ZoneSelect value={zone} onChange={chooseZone} />
+            {tr('Les jeux ')}<PlatformSelect value={platform} onChange={choosePlatform} />{tr(' sortis ')}<ZoneSelect value={zone} onChange={chooseZone} />
           </p>
         </div>
         {zoneProgress && (
           <div className="catalog-progress">
             <p>
-              <strong>{formatNumber(zoneProgress.owned)}</strong> / {formatNumber(zoneProgress.total)} jeux{zoneInfo ? ` ${zoneInfo.short}` : ''}
-              {origin && ` (${ORIGINS.find((o) => o.value === origin)!.adjective})`} dans ta collection
+              <strong>{formatNumber(zoneProgress.owned)}</strong> / {formatNumber(zoneProgress.total)}{tr(' jeux')}{zoneInfo ? ` ${zoneInfo.short}` : ''}
+              {origin && ` (${ORIGINS.find((o) => o.value === origin)!.adjective})`}{tr(' dans ta collection')}
               <span className="muted"> · {formatPercent(zoneProgress.owned, zoneProgress.total)}</span>
             </p>
-            <MemoryBar owned={zoneProgress.owned} total={zoneProgress.total} label="Ta progression" />
+            <MemoryBar owned={zoneProgress.owned} total={zoneProgress.total} label={tr('Ta progression')} />
             {familyProgress && (
               <p className="small muted">{familyOriginLabel(familyProgress.code, origin)} : {formatNumber(familyProgress.owned)} / {formatNumber(familyProgress.total)}</p>
             )}
@@ -303,82 +304,82 @@ export function Catalog() {
 
       {!session && (
         <p className="notice">
-          <Link to={`/connexion?next=${next}`}>Connecte-toi</Link> pour cocher les jeux que tu possèdes et suivre ta progression.
+          <Link to={`/connexion?next=${next}`}>{tr('Connecte-toi')}</Link>{tr(' pour cocher les jeux que tu possèdes et suivre ta progression.')}
         </p>
       )}
       {session && needsMfa && (
         <p className="warning">
-          Ta session attend la double authentification : <Link to={`/connexion/verification?next=${next}`}>valide-la</Link> pour cocher tes jeux.
+          {tr('Ta session attend la double authentification : ')}<Link to={`/connexion/verification?next=${next}`}>valide-la</Link>{tr(' pour cocher tes jeux.')}
         </p>
       )}
 
       <div className="panel catalog-filters">
         <div className="row catalog-search-row">
           <label className="field catalog-search">
-            <span className="field-label">Filtrer</span>
-            <input type="search" value={text} onChange={(e) => setText(e.target.value)} placeholder="Titre ou code produit" maxLength={120} autoComplete="off" />
+            <span className="field-label">{tr('Filtrer')}</span>
+            <input type="search" value={text} onChange={(e) => setText(e.target.value)} placeholder={tr('Titre ou code produit')} maxLength={120} autoComplete="off" />
           </label>
           <button type="button" className="button filters-toggle" aria-expanded={filtersOpen} aria-controls="catalog-more-filters"
             onClick={() => setFiltersOpen((v) => !v)}>
-            Filtres{activeFilters > 0 && <span className="count-badge">{activeFilters}</span>} <span aria-hidden="true">{filtersOpen ? '▴' : '▾'}</span>
+            {tr('Filtres')}{activeFilters > 0 && <span className="count-badge">{activeFilters}</span>} <span aria-hidden="true">{filtersOpen ? '▴' : '▾'}</span>
           </button>
         </div>
         <div id="catalog-more-filters" className={filtersOpen ? 'more-filters is-open' : 'more-filters'}>
           <div className="row">
             <label className="field">
-              <span className="field-label">Genre</span>
+              <span className="field-label">{tr('Genre')}</span>
               <select value={family ?? ''} onChange={(e) => update({ genre: e.target.value || null })}>
-                <option value="">Tous les genres</option>
+                <option value="">{tr('Tous les genres')}</option>
                 {FAMILIES.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
               </select>
             </label>
             <label className="field">
-              <span className="field-label">Origine du studio</span>
+              <span className="field-label">{tr('Origine du studio')}</span>
               <select value={originParam(origin) ?? ''} onChange={(e) => update({ origine: e.target.value || null })}>
-                <option value="">Toutes</option>
+                <option value="">{tr('Toutes')}</option>
                 {ORIGINS.map((o) => (
                   <option key={o.value} value={o.param}>
-                    {o.label}{family === 'rpg' ? (o.value === 'japan' ? ' (JRPG)' : ' (RPG occidentaux)') : ''}
+                    {o.label}{family === 'rpg' ? (o.value === 'japan' ? tr(' (JRPG)') : tr(' (RPG occidentaux)')) : ''}
                   </option>
                 ))}
               </select>
             </label>
             <label className="field">
-              <span className="field-label">Année</span>
+              <span className="field-label">{tr('Année')}</span>
               <select value={year ?? ''} onChange={(e) => update({ annee: e.target.value || null })}>
-                <option value="">Toutes</option>
+                <option value="">{tr('Toutes')}</option>
                 {yearsFor(platform).map((y) => <option key={y} value={y}>{y}</option>)}
               </select>
             </label>
             {session && (
               <label className="field">
-                <span className="field-label">Ma collection</span>
+                <span className="field-label">{tr('Ma collection')}</span>
                 <select value={ownership ?? ''} onChange={(e) => update({ possession: e.target.value || null })}>
-                  <option value="">Tous les jeux</option>
+                  <option value="">{tr('Tous les jeux')}</option>
                   {OWNERSHIP.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </label>
             )}
             <label className="field">
-              <span className="field-label">Langue des versions</span>
+              <span className="field-label">{tr('Langue des versions')}</span>
               <select value={language} onChange={(e) => update({ langue: e.target.value === DEFAULT_LANGUAGE ? null : e.target.value }, { keepPage: true })}
-                title="Quand un jeu existe en plusieurs versions nationales (anglaise, française, allemande…), celle-ci s'affiche d'abord ; les autres restent à un clic">
+                title={tr("Quand un jeu existe en plusieurs versions nationales (anglaise, française, allemande…), celle-ci s'affiche d'abord ; les autres restent à un clic")}>
                 {LANGUAGES.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
-                <option value={ALL_LANGUAGES}>Toutes les langues</option>
+                <option value={ALL_LANGUAGES}>{tr('Toutes les langues')}</option>
               </select>
             </label>
             <label className="field">
-              <span className="field-label">Tri</span>
+              <span className="field-label">{tr('Tri')}</span>
               <select value={sort} onChange={(e) => update({ tri: e.target.value === 'title' ? null : e.target.value })}>
                 {SORTS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
             </label>
           </div>
-          <nav className="letters" aria-label="Première lettre du titre">
-            <button type="button" className={letter ? 'letter' : 'letter active'} aria-pressed={!letter} onClick={() => update({ lettre: null })}>Tous</button>
+          <nav className="letters" aria-label={tr('Première lettre du titre')}>
+            <button type="button" className={letter ? 'letter' : 'letter active'} aria-pressed={!letter} onClick={() => update({ lettre: null })}>{tr('Tous')}</button>
             {LETTERS.map((l) => (
               <button key={l} type="button" className={letter === l ? 'letter active' : 'letter'} aria-pressed={letter === l}
-                aria-label={l === '#' ? 'Titres qui commencent par un chiffre' : `Lettre ${l}`}
+                aria-label={l === '#' ? tr('Titres qui commencent par un chiffre') : tr('Lettre {0}', l)}
                 onClick={() => update({ lettre: letter === l ? null : l.toLowerCase() })}>
                 {l}
               </button>
@@ -389,12 +390,12 @@ export function Catalog() {
 
       <div className="list-row">
         <p className="muted" aria-live="polite">
-          {rows === null ? 'Lecture du catalogue…'
-            : rows.length === 0 && page > 1 ? `Page ${page} : au-delà de la dernière page`
-            : `${formatNumber(total)} jeu${total > 1 ? 'x' : ''}${pages > 1 ? ` · page ${page} sur ${pages}` : ''}`}
+          {rows === null ? tr('Lecture du catalogue…')
+            : rows.length === 0 && page > 1 ? tr('Page {0} : au-delà de la dernière page', page)
+            : tr('{0} jeu{1?x}', formatNumber(total), total > 1) + (pages > 1 ? tr(' · page {0} sur {1}', page, pages) : '')}
           {filtered && (
             <> · <button type="button" className="link-button" onClick={() => { setText(''); setParams(new URLSearchParams([...params].filter(([k]) => k === 'console' || k === 'zone' || k === 'par' || k === 'langue'))); }}>
-              effacer les filtres
+              {tr('effacer les filtres')}
             </button></>
           )}
         </p>
@@ -403,8 +404,7 @@ export function Catalog() {
 
       {origin && unknownOrigin > 0 && (
         <p className="hint">
-          Origine connue pour {formatNumber(allOrigins - unknownOrigin)} jeux sur {formatNumber(allOrigins)} : les {formatNumber(unknownOrigin)} autres
-          n'apparaissent pas avec ce filtre. Elle se déduit du pays des studios, et se complète au fil des fiches.
+          {tr('Origine connue pour ')}{formatNumber(allOrigins - unknownOrigin)}{tr(' jeux sur ')}{formatNumber(allOrigins)}{tr(' : les ')}{formatNumber(unknownOrigin)}{tr(" autres n'apparaissent pas avec ce filtre. Elle se déduit du pays des studios, et se complète au fil des fiches.")}
         </p>
       )}
 
@@ -412,8 +412,8 @@ export function Catalog() {
 
       {rows && rows.length === 0 && !loading && !error && (
         <div className="panel empty">
-          <p>{page > 1 ? 'Plus aucun jeu sur cette page.' : ownership === 'owned' ? 'Aucun jeu coché pour le moment : à toi de jouer !' : 'Aucun jeu ne correspond à ces filtres.'}</p>
-          {page > 1 && <button type="button" className="button" onClick={() => goToPage(1)}><PsSymbol shape="circle" /> Première page</button>}
+          <p>{page > 1 ? tr('Plus aucun jeu sur cette page.') : ownership === 'owned' ? tr('Aucun jeu coché pour le moment : à toi de jouer !') : tr('Aucun jeu ne correspond à ces filtres.')}</p>
+          {page > 1 && <button type="button" className="button" onClick={() => goToPage(1)}><PsSymbol shape="circle" />{tr(' Première page')}</button>}
         </div>
       )}
 
@@ -435,13 +435,13 @@ export function Catalog() {
         </ul>
       )}
 
-      {rows && rows.length > 0 && <Pagination page={page} pages={pages} onChange={goToPage} label="Pages du catalogue" />}
+      {rows && rows.length > 0 && <Pagination page={page} pages={pages} onChange={goToPage} label={tr('Pages du catalogue')} />}
 
       {toast && (
         <div className={toast.error ? 'toast toast-error' : 'toast'} role="status">
           {toast.text}
           {toast.itemId && (
-            <button type="button" className="link-button" onClick={() => openItem(toast.itemId!)}>Préciser l'état</button>
+            <button type="button" className="link-button" onClick={() => openItem(toast.itemId!)}>{tr("Préciser l'état")}</button>
           )}
         </div>
       )}
@@ -496,21 +496,21 @@ function FocusBanner({ kind, id, platformCode, zoneCode, zoneShort, userId, vers
     return () => { active = false; };
   }, [kind, id, platformCode, zoneCode, userId, version]);
 
-  const label = kind === 'studio' ? 'Studio' : 'Série';
-  if (info === undefined) return <div className="panel studio-banner"><p className="muted">Lecture…</p></div>;
+  const label = kind === 'studio' ? tr('Studio') : tr('Série');
+  if (info === undefined) return <div className="panel studio-banner"><p className="muted">{tr('Lecture…')}</p></div>;
   if (info === null) {
     return (
       <div className="panel studio-banner">
-        <p>{kind === 'studio' ? "Ce studio n'existe plus (fusionné avec un autre, peut-être)." : "Cette série n'existe plus."}</p>
-        <button type="button" className="link-button" onClick={onClose}>Retirer ce filtre</button>
+        <p>{kind === 'studio' ? tr("Ce studio n'existe plus (fusionné avec un autre, peut-être).") : tr("Cette série n'existe plus.")}</p>
+        <button type="button" className="link-button" onClick={onClose}>{tr('Retirer ce filtre')}</button>
       </div>
     );
   }
   const years = info.first_year && info.last_year ? (info.first_year === info.last_year ? String(info.first_year) : `${info.first_year} – ${info.last_year}`) : '';
   const facts = kind === 'studio'
-    ? [info.developed ? `développeur de ${formatNumber(info.developed)} jeu${info.developed > 1 ? 'x' : ''}` : '',
-       info.published ? `éditeur de ${formatNumber(info.published)}` : '', years]
-    : [info.games ? `${formatNumber(info.games)} jeu${info.games > 1 ? 'x' : ''} sur cette console` : '', years];
+    ? [info.developed ? tr('développeur de {0} jeu{1?x}', formatNumber(info.developed), info.developed > 1) : '',
+       info.published ? tr('éditeur de {0}', formatNumber(info.published)) : '', years]
+    : [info.games ? tr('{0} jeu{1?x} sur cette console', formatNumber(info.games), info.games > 1) : '', years];
   return (
     <div className="panel studio-banner">
       <div className="studio-banner-head">
@@ -518,18 +518,18 @@ function FocusBanner({ kind, id, platformCode, zoneCode, zoneShort, userId, vers
           <span className="badge badge-studio">{label}</span> <strong>{info.name}</strong>
           {info.country && <span className="muted"> · {countryName(info.country)}</span>}
         </p>
-        <button type="button" className="link-button small" onClick={onClose}>Retirer ce filtre</button>
+        <button type="button" className="link-button small" onClick={onClose}>{tr('Retirer ce filtre')}</button>
       </div>
       <p className="small muted">
         {facts.filter(Boolean).join(' · ')}
         {info.wikidata_id && (
-          <> · <a href={`https://www.wikidata.org/wiki/${info.wikidata_id}`} target="_blank" rel="noopener noreferrer">Wikidata</a></>
+          <> · <a href={`https://www.wikidata.org/wiki/${info.wikidata_id}`} target="_blank" rel="noopener noreferrer">{tr('Wikidata')}</a></>
         )}
       </p>
       {counts && counts.all > 0 && (
         <div className="studio-progress">
-          <p className="small"><strong>{formatNumber(counts.owned)}</strong> / {formatNumber(counts.all)} de ses jeux{zoneShort ? ` ${zoneShort}` : ''} dans ta collection</p>
-          <MemoryBar owned={counts.owned} total={counts.all} label={`Ta progression : ${info.name}`} />
+          <p className="small"><strong>{formatNumber(counts.owned)}</strong> / {formatNumber(counts.all)}{tr(' de ses jeux')}{zoneShort ? ` ${zoneShort}` : ''}{tr(' dans ta collection')}</p>
+          <MemoryBar owned={counts.owned} total={counts.all} label={tr('Ta progression : {0}', info.name)} />
         </div>
       )}
     </div>
@@ -540,9 +540,9 @@ function FocusBanner({ kind, id, platformCode, zoneCode, zoneShort, userId, vers
 function ZoneSelect({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   return (
     <span className="inline-select-wrap">
-      <select className="inline-select" value={value} onChange={(e) => onChange(e.target.value)} aria-label="Choisir la région">
+      <select className="inline-select" value={value} onChange={(e) => onChange(e.target.value)} aria-label={tr('Choisir la région')}>
         {CATALOG_ZONES.map((z) => <option key={z.value} value={z.value}>{z.phrase}</option>)}
-        <option value={ALL_ZONES}>dans toutes les régions</option>
+        <option value={ALL_ZONES}>{tr('dans toutes les régions')}</option>
       </select>
     </span>
   );
@@ -588,7 +588,7 @@ function CatalogLine({ row, showZone, language, canTick, busyRelease, onAdd, onO
   const shown = expanded ? releases : releases.filter((r) => kept.has(r.id));
   return (
     <li className={row.owned ? 'catalog-row is-owned' : 'catalog-row'}>
-      <div className={row.cover_other_zone ? 'cover-other-zone' : undefined} title={row.cover_other_zone ? "Jaquette d'une autre région" : undefined}>
+      <div className={row.cover_other_zone ? 'cover-other-zone' : undefined} title={row.cover_other_zone ? tr("Jaquette d'une autre région") : undefined}>
         <Cover images={row.cover_path ? [{ id: 0, type: 'front', path: row.cover_path }] : []} title={row.display_title} size="small" />
       </div>
       <div className="catalog-main">
@@ -597,7 +597,7 @@ function CatalogLine({ row, showZone, language, canTick, busyRelease, onAdd, onO
           {row.display_title !== row.title && <span className="result-alt"> · {row.title}</span>}
           {row.release_date && <span className="muted small"> · {yearOf(row.release_date)}</span>}
         </p>
-        <ul className="catalog-releases" aria-label="Versions">
+        <ul className="catalog-releases" aria-label={tr('Versions')}>
           {shown.map((r) => (
             <li key={r.id}>
               <ReleaseChip release={r} showZone={showZone} showLanguage={(counts.get(lookalike(r)) ?? 0) > 1} interactive={canTick} busy={busy}
@@ -607,8 +607,8 @@ function CatalogLine({ row, showZone, language, canTick, busyRelease, onAdd, onO
           {hidden > 0 && (
             <li>
               <button type="button" className="chip-more" aria-expanded={expanded} onClick={() => setExpanded((v) => !v)}
-                title={expanded ? 'Replier les versions dans les autres langues' : 'Afficher les versions dans les autres langues'}>
-                {expanded ? 'Moins' : `+${hidden} langue${hidden > 1 ? 's' : ''}`}
+                title={expanded ? tr('Replier les versions dans les autres langues') : tr('Afficher les versions dans les autres langues')}>
+                {expanded ? tr('Moins') : tr('+{0} langue{1?s}', hidden, hidden > 1)}
               </button>
             </li>
           )}
@@ -616,8 +616,8 @@ function CatalogLine({ row, showZone, language, canTick, busyRelease, onAdd, onO
       </div>
       {canTick && !row.owned && releases.length > 0 && (
         <button type="button" className={row.wanted ? 'wish-button active' : 'wish-button'} aria-pressed={row.wanted} disabled={busy}
-          onClick={() => onToggleWanted(row)} title={row.wanted ? 'Retirer de ma liste de recherche' : 'Ajouter à ma liste de recherche'}>
-          {row.wanted ? '♥ Recherché' : '♡ Je le cherche'}
+          onClick={() => onToggleWanted(row)} title={row.wanted ? tr('Retirer de ma liste de recherche') : tr('Ajouter à ma liste de recherche')}>
+          {row.wanted ? tr('♥ Recherché') : tr('♡ Je le cherche')}
         </button>
       )}
     </li>
@@ -641,13 +641,13 @@ function ReleaseChip({ release, showZone, showLanguage, interactive, busy, onCli
     </>
   );
   // Au survol : la langue en toutes lettres et le code produit
-  const details = [release.box_country && `boîte : ${boxRegionName(release.box_country)}`, languagesLong(release.languages), release.product_code].filter(Boolean).join(' · ');
+  const details = [release.box_country && tr('boîte : {0}', boxRegionName(release.box_country)), languagesLong(release.languages), release.product_code].filter(Boolean).join(' · ');
   if (!interactive) return <span className={className} title={details || undefined}>{content}</span>;
   const description = [edition, languagesLong(release.languages)].filter(Boolean).join(', ');
   return (
     <button type="button" className={className} disabled={busy} aria-pressed={release.owned}
-      aria-label={release.owned ? `${description} : dans ta collection, modifier l'exemplaire` : `${description} : je l'ai, ajouter à ma collection`}
-      title={`${release.owned ? 'Dans ta collection : cliquer pour préciser ou modifier' : "Je l'ai : cliquer pour l'ajouter à ma collection"}${details ? ` (${details})` : ''}`}
+      aria-label={release.owned ? tr("{0} : dans ta collection, modifier l'exemplaire", description) : tr("{0} : je l'ai, ajouter à ma collection", description)}
+      title={`${release.owned ? tr('Dans ta collection : cliquer pour préciser ou modifier') : tr("Je l'ai : cliquer pour l'ajouter à ma collection")}${details ? ` (${details})` : ''}`}
       onClick={onClick}>
       {content}
     </button>

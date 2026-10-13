@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { GAME_FIELDS } from '../lib/queries';
 import {
-  countryName, EDITION_TYPES, familyLabel, gamePath, LANGUAGES, slugify, ZONES, zoneLabel, zoneOrder, BOX_REGIONS, boxRegionName, editionLabel, languagesLong,
+  countryName, EDITION_TYPES, familyLabel, gamePath, LANGUAGES, slugify, ZONES, zoneLabel, zoneOrder, BOX_REGIONS, boxRegionName, editionLabel, languagesLong, genreName, regionName,
 } from '../lib/format';
 import { errorMessage } from '../lib/errors';
 import { ACCEPT_ATTRIBUTE, imageFromClipboard, uploadReleaseImage } from '../lib/images';
@@ -18,14 +18,15 @@ import { Dialog } from '../components/Dialog';
 import { Cover } from '../components/Cover';
 import { useConfirm } from '../components/Confirm';
 import { PsSymbol } from '../components/PsSymbol';
+import { tr } from '../lib/i18n';
 
 const IMAGE_TYPES: { value: ImageType; label: string }[] = [
-  { value: 'front', label: 'Recto' },
-  { value: 'back', label: 'Verso' },
-  { value: 'spine', label: 'Tranche' },
-  { value: 'disc', label: 'Disque' },
-  { value: 'manual', label: 'Notice' },
-  { value: 'screenshot', label: "Capture d'écran" },
+  { value: 'front', label: tr('Recto') },
+  { value: 'back', label: tr('Verso') },
+  { value: 'spine', label: tr('Tranche') },
+  { value: 'disc', label: tr('Disque') },
+  { value: 'manual', label: tr('Notice') },
+  { value: 'screenshot', label: tr("Capture d'écran") },
 ];
 
 // Modification d'un jeu par un modérateur ou un admin (en double authentification :
@@ -49,35 +50,35 @@ export function EditGame() {
   if (deleted) {
     return (
       <section className="panel stack">
-        <h1>Jeu supprimé</h1>
-        <p className="success">« {deleted} » a été supprimé du catalogue. La suppression est notée dans le journal.</p>
-        <p><Link to="/" className="button"><PsSymbol shape="circle" /> Retour à la recherche</Link></p>
+        <h1>{tr('Jeu supprimé')}</h1>
+        <p className="success">« {deleted}{tr(' » a été supprimé du catalogue. La suppression est notée dans le journal.')}</p>
+        <p><Link to="/" className="button"><PsSymbol shape="circle" />{tr(' Retour à la recherche')}</Link></p>
       </section>
     );
   }
-  if (missing) return <section className="panel"><h1>Jeu introuvable</h1></section>;
-  if (!game) return <p className="loading">Lecture de la carte mémoire…</p>;
+  if (missing) return <section className="panel"><h1>{tr('Jeu introuvable')}</h1></section>;
+  if (!game) return <p className="loading">{tr('Lecture de la carte mémoire…')}</p>;
 
   const releases = [...game.release].sort((a, b) => zoneOrder(a.zone) - zoneOrder(b.zone) || a.id - b.id);
 
   return (
     <section className="stack">
       <div className="page-head">
-        <h1>Modifier « {game.title} »</h1>
-        <Link to={gamePath(game)} className="button"><PsSymbol shape="circle" /> Retour à la fiche</Link>
+        <h1>{tr('Modifier « ')}{game.title} »</h1>
+        <Link to={gamePath(game)} className="button"><PsSymbol shape="circle" />{tr(' Retour à la fiche')}</Link>
       </div>
       {aal.current !== 'aal2' && (
         <p className="warning">
-          Les modifications du catalogue demandent la double authentification.{' '}
-          <Link to="/compte">Active-la ou valide-la dans « Mon compte »</Link>.
+          {tr('Les modifications du catalogue demandent la double authentification.')}{' '}
+          <Link to="/compte">{tr('Active-la ou valide-la dans « Mon compte »')}</Link>.
         </p>
       )}
       <GameForm game={game} onSaved={load} />
       <GenreEditor key={`${game.game_genre.map((g) => g.genre.id).join()}-${game.genres_reviewed}`} game={game} onSaved={load} />
       <section className="panel stack">
-        <h2>Développeurs</h2>
+        <h2>{tr('Développeurs')}</h2>
         <StudioListEditor
-          title="Développeurs du jeu"
+          title={tr('Développeurs du jeu')}
           studios={game.game_developer.map((d) => d.company)}
           onAdd={(companyId) => supabase.from('game_developer').insert({ game_id: game.id, company_id: companyId })}
           onRemove={(companyId) => supabase.from('game_developer').delete().eq('game_id', game.id).eq('company_id', companyId)}
@@ -85,12 +86,12 @@ export function EditGame() {
         />
       </section>
       <OriginEditor key={game.game_developer.map((d) => d.company.id).join()} gameId={game.id} onSaved={load} />
-      <h2>Versions</h2>
+      <h2>{tr('Versions')}</h2>
       {releases.map((r) => (
         <ReleaseEditor key={r.id} release={r} siblings={releases} onSaved={load} canDelete={releases.length > 1} possibleDuplicate={isEmptyTwin(r, releases)} />
       ))}
       <section className="panel stack">
-        <h2>Historique</h2>
+        <h2>{tr('Historique')}</h2>
         <HistoryList gameId={game.id} onUndone={load} refresh={game} />
       </section>
       <MergeGame game={game} onMerged={load} />
@@ -130,9 +131,9 @@ function OriginEditor({ gameId, onSaved }: { gameId: number; onSaved: () => void
   const studios = info.game_developer.map((d) => d.company);
   const countries = [...new Set(studios.map((c) => c.country))];
   const deduced = studios.length > 0 && countries.length === 1 && countries[0] ? countries[0] : null;
-  const why = studios.length === 0 ? 'aucun studio connu'
-    : countries.includes(null) ? "pays d'un studio inconnu"
-    : 'studios de plusieurs pays';
+  const why = studios.length === 0 ? tr('aucun studio connu')
+    : countries.includes(null) ? tr("pays d'un studio inconnu")
+    : tr('studios de plusieurs pays');
 
   async function save(e: FormEvent) {
     e.preventDefault();
@@ -140,32 +141,32 @@ function OriginEditor({ gameId, onSaved }: { gameId: number; onSaved: () => void
     const { error } = await supabase.from('game').update({ origin_country: choice || null }).eq('id', gameId);
     if (error) return setError(errorMessage(error));
     setError('');
-    setMessage('Origine enregistrée.');
+    setMessage(tr('Origine enregistrée.'));
     await load();
     onSaved();
   }
 
   return (
     <form onSubmit={save} className="form panel">
-      <h2>Origine</h2>
+      <h2>{tr('Origine')}</h2>
       <p className="muted">
-        Le pays du studio de développement. Avec la famille RPG, « Japon » range le jeu parmi les JRPG ; un autre pays, parmi les RPG occidentaux.
+        {tr('Le pays du studio de développement. Avec la famille RPG, « Japon » range le jeu parmi les JRPG ; un autre pays, parmi les RPG occidentaux.')}
       </p>
       <p className="small">
-        Studios : {studios.length ? studios.map((c) => `${c.name} (${c.country ? countryName(c.country) : 'pays inconnu'})`).join(', ') : 'aucun'}.
-        {' '}Origine actuelle : <strong>{info.origin ? countryName(info.origin) : 'inconnue'}</strong>.
+        {tr('Studios : ')}{studios.length ? studios.map((c) => `${c.name} (${c.country ? countryName(c.country) : tr('pays inconnu')})`).join(', ') : tr('aucun')}.
+        {' '}{tr('Origine actuelle : ')}<strong>{info.origin ? countryName(info.origin) : tr('inconnue')}</strong>.
       </p>
       <label className="field">
-        <span className="field-label">Origine</span>
+        <span className="field-label">{tr('Origine')}</span>
         <select value={choice} onChange={(e) => setChoice(e.target.value)}>
-          <option value="">{deduced ? `Déduite des studios : ${countryName(deduced)}` : `Déduite des studios : inconnue (${why})`}</option>
+          <option value="">{deduced ? tr('Déduite des studios : {0}', countryName(deduced)) : tr('Déduite des studios : inconnue ({0})', why)}</option>
           {ORIGIN_COUNTRIES.map((c) => <option key={c} value={c}>{countryName(c)}</option>)}
         </select>
       </label>
       {error && <p className="error" role="alert">{error}</p>}
       {message && <p className="success">{message}</p>}
       <div className="actions">
-        <button type="submit" className="button button-primary" disabled={choice === (info.origin_country ?? '')}><PsSymbol shape="cross" /> Enregistrer</button>
+        <button type="submit" className="button button-primary" disabled={choice === (info.origin_country ?? '')}><PsSymbol shape="cross" />{tr(' Enregistrer')}</button>
       </div>
     </form>
   );
@@ -182,7 +183,7 @@ function GameForm({ game, onSaved }: { game: Game; onSaved: () => void }) {
   async function save(e: FormEvent) {
     e.preventDefault();
     setMessage('');
-    if (!title.trim()) return setError('Le titre est obligatoire.');
+    if (!title.trim()) return setError(tr('Le titre est obligatoire.'));
     // Conventions de la base : « mois » → le 1er du mois, « année » → le 1er janvier
     const normalized = !date ? null : precision === 'year' ? `${date.slice(0, 4)}-01-01` : precision === 'month' ? `${date.slice(0, 7)}-01` : date;
     // Un résumé modifié n'est plus celui de Wikipédia : on retire le lien source
@@ -197,44 +198,43 @@ function GameForm({ game, onSaved }: { game: Game; onSaved: () => void }) {
     }).eq('id', game.id);
     if (error) return setError(errorMessage(error));
     setError('');
-    setMessage('Jeu enregistré.');
+    setMessage(tr('Jeu enregistré.'));
     onSaved();
   }
 
   return (
     <form onSubmit={save} className="form panel">
-      <h2>Le jeu</h2>
+      <h2>{tr('Le jeu')}</h2>
       <label className="field">
-        <span className="field-label">Titre de référence</span>
+        <span className="field-label">{tr('Titre de référence')}</span>
         <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} required />
       </label>
       <label className="field">
-        <span className="field-label">Résumé</span>
+        <span className="field-label">{tr('Résumé')}</span>
         <textarea value={summary} onChange={(e) => setSummary(e.target.value)} rows={6} maxLength={3000} />
         {game.summary_source && (
           <span className="hint">
-            Texte actuel extrait de <a href={game.summary_source} target="_blank" rel="noopener noreferrer">Wikipédia</a>.
-            Le modifier en fait un texte de la communauté : le lien vers Wikipédia sera retiré.
+            {tr('Texte actuel extrait de ')}<a href={game.summary_source} target="_blank" rel="noopener noreferrer">{tr('Wikipédia')}</a>{tr('. Le modifier en fait un texte de la communauté : le lien vers Wikipédia sera retiré.')}
           </span>
         )}
       </label>
       <div className="row">
         <label className="field">
-          <span className="field-label">Première sortie (toutes plateformes)</span>
+          <span className="field-label">{tr('Première sortie (toutes plateformes)')}</span>
           <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </label>
         <label className="field">
-          <span className="field-label">Précision</span>
+          <span className="field-label">{tr('Précision')}</span>
           <select value={precision} onChange={(e) => setPrecision(e.target.value as DatePrecision)}>
-            <option value="day">Jour exact</option>
-            <option value="month">Mois</option>
-            <option value="year">Année seulement</option>
+            <option value="day">{tr('Jour exact')}</option>
+            <option value="month">{tr('Mois')}</option>
+            <option value="year">{tr('Année seulement')}</option>
           </select>
         </label>
       </div>
       {message && <p className="success">{message}</p>}
       {error && <p className="error" role="alert">{error}</p>}
-      <button type="submit" className="button button-primary"><PsSymbol shape="cross" /> Enregistrer le jeu</button>
+      <button type="submit" className="button button-primary"><PsSymbol shape="cross" />{tr(' Enregistrer le jeu')}</button>
     </form>
   );
 }
@@ -259,7 +259,7 @@ function GenreEditor({ game, onSaved }: { game: Game; onSaved: () => void }) {
   // Genres proposés à l'ajout, avec leurs familles (cherchées elles aussi : « stratégie » trouve Tactical RPG)
   const options = all
     .filter((g) => !chosen.has(g.id))
-    .map((g) => ({ value: g.id, label: g.name, detail: g.families.length ? g.families.map(familyLabel).join(' + ') : 'thème' }));
+    .map((g) => ({ value: g.id, label: genreName(g.name), detail: g.families.length ? g.families.map(familyLabel).join(' + ') : tr('thème') }));
 
   async function save() {
     setSaving(true);
@@ -279,7 +279,7 @@ function GenreEditor({ game, onSaved }: { game: Game; onSaved: () => void }) {
       }
       const { error } = await supabase.from('game').update({ genres_reviewed: true }).eq('id', game.id);
       if (error) throw error;
-      setMessage("Genres enregistrés. Le jeu est marqué « revu » : les imports automatiques n'y toucheront plus.");
+      setMessage(tr("Genres enregistrés. Le jeu est marqué « revu » : les imports automatiques n'y toucheront plus."));
       onSaved();
     } catch (err) {
       setError(errorMessage(err));
@@ -290,32 +290,32 @@ function GenreEditor({ game, onSaved }: { game: Game; onSaved: () => void }) {
 
   return (
     <section className="form panel">
-      <h2>Genres</h2>
+      <h2>{tr('Genres')}</h2>
       <p className="hint">
-        Familles : {families.length ? families.map(familyLabel).join(', ') : 'aucune'}.{' '}
-        {game.genres_reviewed ? 'Genres déjà revus par un modérateur.' : "Pas encore revus : enregistrer (même sans changement) confirme qu'ils sont justes."}
+        {tr('Familles : ')}{families.length ? families.map(familyLabel).join(', ') : tr('aucune')}.{' '}
+        {game.genres_reviewed ? tr('Genres déjà revus par un modérateur.') : tr("Pas encore revus : enregistrer (même sans changement) confirme qu'ils sont justes.")}
       </p>
       <ul className="genre-chips">
         {selected.map((g) => (
           <li key={g.id} className={g.families.length ? 'genre-chip' : 'genre-chip is-theme'}>
-            {g.name}
-            <span className="muted small">{g.families.length ? g.families.map(familyLabel).join(' + ') : 'thème'}</span>
-            <button type="button" className="icon-button" aria-label={`Retirer ${g.name}`} onClick={() => setSelected(selected.filter((x) => x.id !== g.id))}>✕</button>
+            {genreName(g.name)}
+            <span className="muted small">{g.families.length ? g.families.map(familyLabel).join(' + ') : tr('thème')}</span>
+            <button type="button" className="icon-button" aria-label={tr('Retirer {0}', g.name)} onClick={() => setSelected(selected.filter((x) => x.id !== g.id))}>✕</button>
           </li>
         ))}
-        {selected.length === 0 && <li className="muted">Aucun genre.</li>}
+        {selected.length === 0 && <li className="muted">{tr('Aucun genre.')}</li>}
       </ul>
       <Combobox
-        label="Ajouter un genre"
-        placeholder="Tape pour chercher : plates-formes, stratégie, RPG…"
+        label={tr('Ajouter un genre')}
+        placeholder={tr('Tape pour chercher : plates-formes, stratégie, RPG…')}
         options={options}
-        emptyText="Aucun genre ne correspond"
+        emptyText={tr('Aucun genre ne correspond')}
         onSelect={(o) => { const g = all.find((x) => x.id === o.value); if (g) setSelected([...selected, g]); }}
       />
       {message && <p className="success">{message}</p>}
       {error && <p className="error" role="alert">{error}</p>}
       <button type="button" className="button button-primary" onClick={save} disabled={saving || (!changed && game.genres_reviewed)}>
-        <PsSymbol shape="cross" /> {changed ? 'Enregistrer les genres' : 'Confirmer : les genres sont justes'}
+        <PsSymbol shape="cross" /> {changed ? tr('Enregistrer les genres') : tr('Confirmer : les genres sont justes')}
       </button>
     </section>
   );
@@ -349,10 +349,10 @@ function MergeGame({ game, onMerged }: { game: Game; onMerged: () => void }) {
 
   async function choose(other: SearchResult) {
     setError('');
-    if (other.id === game.id) return setError('Choisis un autre jeu que celui-ci.');
+    if (other.id === game.id) return setError(tr('Choisis un autre jeu que celui-ci.'));
     const { data, error } = await supabase.from('game')
       .select('id, title, wikidata_id, release(id, zone, product_code, image(id))').in('id', [game.id, other.id]);
-    if (error || !data || data.length !== 2) return setError(errorMessage(error) || 'Jeu introuvable.');
+    if (error || !data || data.length !== 2) return setError(errorMessage(error) || tr('Jeu introuvable.'));
     const list = data as unknown as MergeCandidate[];
     const self = list.find((g) => g.id === game.id)!;
     const target = list.find((g) => g.id === other.id)!;
@@ -381,36 +381,35 @@ function MergeGame({ game, onMerged }: { game: Game; onMerged: () => void }) {
 
   return (
     <section className="panel stack">
-      <h2>Fusionner avec un autre jeu</h2>
+      <h2>{tr('Fusionner avec un autre jeu')}</h2>
       <p className="muted">
-        Pour un doublon : les versions de la fiche supprimée (et donc les exemplaires des membres), ses genres, ses
-        développeurs et ses propositions passent sur la fiche gardée. La fusion est définitive.
+        {tr('Pour un doublon : les versions de la fiche supprimée (et donc les exemplaires des membres), ses genres, ses développeurs et ses propositions passent sur la fiche gardée. La fusion est définitive.')}
       </p>
       <div>
         <button type="button" className="button" onClick={() => { setOpen(true); setPair(null); setError(''); }}>
-          <PsSymbol shape="square" /> Fusionner avec…
+          <PsSymbol shape="square" />{tr(' Fusionner avec…')}
         </button>
       </div>
-      <Dialog open={open} onClose={() => setOpen(false)} title={`Fusionner « ${game.title} »`} wide>
+      <Dialog open={open} onClose={() => setOpen(false)} title={tr('Fusionner « {0} »', game.title)} wide>
         {!pair && (
           <>
-            <GameSearch onSelect={choose} autoFocus label="Avec quel jeu ? (titre ou code produit)" />
+            <GameSearch onSelect={choose} autoFocus label={tr('Avec quel jeu ? (titre ou code produit)')} />
             {error && <p className="error" role="alert">{error}</p>}
           </>
         )}
         {pair && (
           <form onSubmit={merge} className="form">
             <fieldset className="merge-choice">
-              <legend className="field-label">Quelle fiche garder ?</legend>
+              <legend className="field-label">{tr('Quelle fiche garder ?')}</legend>
               {pair.map((g) => (
                 <label key={g.id} className={keepId === g.id ? 'merge-option active' : 'merge-option'}>
                   <input type="radio" name="keep" checked={keepId === g.id} onChange={() => setKeepId(g.id)} />
                   <span>
-                    <strong>{g.title}</strong>{g.id === game.id && <span className="muted"> (cette fiche)</span>}
+                    <strong>{g.title}</strong>{g.id === game.id && <span className="muted">{tr(' (cette fiche)')}</span>}
                     <span className="muted small">
-                      {' '}· n° {g.id} · {g.release.length} version{g.release.length > 1 ? 's' : ''}
+                      {' '}{tr('· n° ')}{g.id} · {g.release.length}{tr(' version{0?s}', g.release.length > 1)}
                       {' '}({[...new Set(g.release.map((r) => r.zone ?? '?'))].join(', ')})
-                      {g.wikidata_id ? ` · Wikidata ${g.wikidata_id}` : ' · sans Wikidata'}
+                      {g.wikidata_id ? tr(' · Wikidata {0}', g.wikidata_id) : tr(' · sans Wikidata')}
                     </span>
                     <span className="muted small"> {g.release.map((r) => r.product_code).filter(Boolean).join(', ')}</span>
                   </span>
@@ -420,19 +419,17 @@ function MergeGame({ game, onMerged }: { game: Game; onMerged: () => void }) {
             {conflict && (
               <label className="warning switch">
                 <input type="checkbox" checked={force} onChange={(e) => setForce(e.target.checked)} />
-                Ces deux fiches sont reliées à des fiches Wikidata différentes : ce sont peut-être deux jeux distincts.
-                Coche pour confirmer qu'il s'agit bien du même jeu.
+                {tr("Ces deux fiches sont reliées à des fiches Wikidata différentes : ce sont peut-être deux jeux distincts. Coche pour confirmer qu'il s'agit bien du même jeu.")}
               </label>
             )}
             <p className="warning">
-              La fiche « {pair.find((g) => g.id !== keepId)?.title} » (n° {pair.find((g) => g.id !== keepId)?.id}) disparaîtra :
-              ses versions rejoignent « {pair.find((g) => g.id === keepId)?.title} ».
+              {tr('La fiche « ')}{pair.find((g) => g.id !== keepId)?.title}{tr(' » (n° ')}{pair.find((g) => g.id !== keepId)?.id}{tr(') disparaîtra : ses versions rejoignent « ')}{pair.find((g) => g.id === keepId)?.title} ».
             </p>
             {error && <p className="error" role="alert">{error}</p>}
             <div className="actions">
-              <button type="button" className="button" onClick={() => setPair(null)}><PsSymbol shape="circle" /> Autre jeu</button>
+              <button type="button" className="button" onClick={() => setPair(null)}><PsSymbol shape="circle" />{tr(' Autre jeu')}</button>
               <button type="submit" className="button button-danger" disabled={busy || Boolean(conflict && !force)}>
-                {busy ? 'Fusion…' : 'Fusionner'}
+                {busy ? tr('Fusion…') : tr('Fusionner')}
               </button>
             </div>
           </form>
@@ -466,31 +463,29 @@ function DeleteGame({ game, onDeleted }: { game: Game; onDeleted: () => void }) 
 
   return (
     <section className="panel danger-zone">
-      <h2>Zone dangereuse</h2>
+      <h2>{tr('Zone dangereuse')}</h2>
       <p className="muted">
-        Supprimer ce jeu efface aussi ses {game.release.length} version{game.release.length > 1 ? 's' : ''} et {images} image{images > 1 ? 's' : ''}.
-        C'est impossible si un membre l'a dans sa collection : pour un doublon, utilise plutôt la fusion (Modération → Doublons).
+        {tr('Supprimer ce jeu efface aussi ses ')}{game.release.length}{tr(' version{0?s} et ', game.release.length > 1)}{images}{tr(" image{0?s}. C'est impossible si un membre l'a dans sa collection : pour un doublon, utilise plutôt la fusion (Modération → Doublons).", images > 1)}
       </p>
-      <button type="button" className="button button-danger" onClick={() => { setOpen(true); setTyped(''); setError(''); }}>Supprimer ce jeu…</button>
-      <Dialog open={open} onClose={() => setOpen(false)} title="Supprimer ce jeu">
+      <button type="button" className="button button-danger" onClick={() => { setOpen(true); setTyped(''); setError(''); }}>{tr('Supprimer ce jeu…')}</button>
+      <Dialog open={open} onClose={() => setOpen(false)} title={tr('Supprimer ce jeu')}>
         <form onSubmit={remove} className="form">
           <p className="warning">
-            Suppression <strong>définitive</strong> de « {game.title} », de ses versions, dates, images et genres.
-            Elle sera notée dans le journal des suppressions.
+            {tr('Suppression ')}<strong>{tr('définitive')}</strong>{tr(' de « ')}{game.title}{tr(' », de ses versions, dates, images et genres. Elle sera notée dans le journal des suppressions.')}
           </p>
           <label className="field">
-            <span className="field-label">Motif (facultatif)</span>
-            <input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={500} placeholder="Jeu inexistant, doublon sans exemplaire…" />
+            <span className="field-label">{tr('Motif (facultatif)')}</span>
+            <input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={500} placeholder={tr('Jeu inexistant, doublon sans exemplaire…')} />
           </label>
           <label className="field">
-            <span className="field-label">Pour confirmer, tape le titre exact : {game.title}</span>
+            <span className="field-label">{tr('Pour confirmer, tape le titre exact : ')}{game.title}</span>
             <input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" />
           </label>
           {error && <p className="error" role="alert">{error}</p>}
           <div className="actions">
-            <button type="button" className="button" onClick={() => setOpen(false)}><PsSymbol shape="circle" /> Annuler</button>
+            <button type="button" className="button" onClick={() => setOpen(false)}><PsSymbol shape="circle" />{tr(' Annuler')}</button>
             <button type="submit" className="button button-danger" disabled={busy || typed.trim() !== game.title.trim()}>
-              {busy ? 'Suppression…' : 'Supprimer définitivement'}
+              {busy ? tr('Suppression…') : tr('Supprimer définitivement')}
             </button>
           </div>
         </form>
@@ -532,8 +527,8 @@ function ReleaseEditor({ release, siblings, onSaved, canDelete, possibleDuplicat
     e.preventDefault();
     setMessage('');
     const code = productCode.trim().toUpperCase();
-    if (!localTitle.trim()) return setError('Le titre est obligatoire.');
-    if (code && !/^[A-Z0-9][A-Z0-9 ._-]{2,19}$/.test(code)) return setError('Code produit invalide (exemple : SCES-00867).');
+    if (!localTitle.trim()) return setError(tr('Le titre est obligatoire.'));
+    if (code && !/^[A-Z0-9][A-Z0-9 ._-]{2,19}$/.test(code)) return setError(tr('Code produit invalide (exemple : SCES-00867).'));
     const count = Number.parseInt(mediaCount, 10);
     const { error } = await supabase.from('release').update({
       local_title: localTitle.trim(),
@@ -548,7 +543,7 @@ function ReleaseEditor({ release, siblings, onSaved, canDelete, possibleDuplicat
     }).eq('id', release.id);
     if (error) return setError(errorMessage(error));
     setError('');
-    setMessage('Version enregistrée.');
+    setMessage(tr('Version enregistrée.'));
     onSaved();
   }
 
@@ -559,7 +554,7 @@ function ReleaseEditor({ release, siblings, onSaved, canDelete, possibleDuplicat
     setMessage('');
     try {
       await uploadReleaseImage(release.id, imageType, file, session!.user.id);
-      setMessage(`Image ajoutée (${IMAGE_TYPES.find((t) => t.value === imageType)?.label.toLowerCase()}).`);
+      setMessage(tr('Image ajoutée ({0}).', IMAGE_TYPES.find((t) => t.value === imageType)?.label.toLowerCase()));
       onSaved();
     } catch (err) {
       setError(errorMessage(err));
@@ -570,9 +565,9 @@ function ReleaseEditor({ release, siblings, onSaved, canDelete, possibleDuplicat
 
   async function removeRelease() {
     if (!(await confirm({
-      title: 'Supprimer cette version',
-      message: `« ${release.local_title} » (${zoneLabel(release.zone)}) sera définitivement supprimée, avec ses ${release.image.length} image(s). C'est impossible si un membre l'a dans sa collection.`,
-      confirmLabel: 'Supprimer',
+      title: tr('Supprimer cette version'),
+      message: tr("« {0} » ({1}) sera définitivement supprimée, avec ses {2} image(s). C'est impossible si un membre l'a dans sa collection.", release.local_title, zoneLabel(release.zone), release.image.length),
+      confirmLabel: tr('Supprimer'),
       danger: true,
     }))) return;
     const { data, error } = await supabase.rpc('delete_release', { target_release: release.id });
@@ -587,7 +582,7 @@ function ReleaseEditor({ release, siblings, onSaved, canDelete, possibleDuplicat
   async function downloadImage(path: string, type: ImageType) {
     setError('');
     const { data, error } = await supabase.storage.from('covers').download(path);
-    if (error || !data) return setError(errorMessage(error) || 'Téléchargement impossible.');
+    if (error || !data) return setError(errorMessage(error) || tr('Téléchargement impossible.'));
     const label = IMAGE_TYPES.find((t) => t.value === type)?.label ?? type;
     const extension = path.split('.').pop() ?? 'webp';
     const url = URL.createObjectURL(data);
@@ -601,7 +596,7 @@ function ReleaseEditor({ release, siblings, onSaved, canDelete, possibleDuplicat
   }
 
   async function removeImage(imageId: number, path: string) {
-    if (!(await confirm({ title: "Supprimer l'image", message: 'Cette image sera définitivement retirée du site.', confirmLabel: 'Supprimer', danger: true }))) return;
+    if (!(await confirm({ title: tr("Supprimer l'image"), message: tr('Cette image sera définitivement retirée du site.'), confirmLabel: tr('Supprimer'), danger: true }))) return;
     const { error } = await supabase.from('image').delete().eq('id', imageId);
     if (error) return setError(errorMessage(error));
     await supabase.storage.from('covers').remove([path]);
@@ -610,13 +605,12 @@ function ReleaseEditor({ release, siblings, onSaved, canDelete, possibleDuplicat
 
   return (
     <div className="panel release-editor">
-      <h3>{release.local_title} <span className="muted small">· {zoneLabel(release.zone)} · n° {release.id}</span></h3>
+      <h3>{release.local_title} <span className="muted small">· {zoneLabel(release.zone)}{tr(' · n° ')}{release.id}</span></h3>
       {possibleDuplicate && (
         <p className="warning">
-          Doublon possible de « {possibleDuplicate.local_title} » (n° {possibleDuplicate.id}, {possibleDuplicate.product_code}) : même zone,
-          même édition, mais sans code produit.
-          {possibleDuplicate.local_title.trim().toLowerCase() !== release.local_title.trim().toLowerCase() && ' Le titre diffère : ce peut aussi être une version nationale (française, allemande…).'}
-          {' '}Vérifie, puis supprime-la si c'est un doublon.
+          {tr('Doublon possible de « ')}{possibleDuplicate.local_title}{tr(' » (n° ')}{possibleDuplicate.id}, {possibleDuplicate.product_code}{tr(') : même zone, même édition, mais sans code produit.')}
+          {possibleDuplicate.local_title.trim().toLowerCase() !== release.local_title.trim().toLowerCase() && tr(' Le titre diffère : ce peut aussi être une version nationale (française, allemande…).')}
+          {' '}{tr("Vérifie, puis supprime-la si c'est un doublon.")}
         </p>
       )}
 
@@ -625,11 +619,11 @@ function ReleaseEditor({ release, siblings, onSaved, canDelete, possibleDuplicat
       <div
         className="images-editor paste-target"
         tabIndex={0}
-        aria-label={`Images de ${release.local_title} : clique ici puis colle une image (Ctrl+V), ou dépose un fichier`}
+        aria-label={tr('Images de {0} : clique ici puis colle une image (Ctrl+V), ou dépose un fichier', release.local_title)}
         onPaste={(e) => {
           const file = imageFromClipboard(e.clipboardData);
           if (file) { e.preventDefault(); uploadImage(file); }
-          else setError("Le presse-papiers ne contient pas d'image : sur l'autre site, fais un clic droit sur l'image puis « Copier l'image ».");
+          else setError(tr("Le presse-papiers ne contient pas d'image : sur l'autre site, fais un clic droit sur l'image puis « Copier l'image »."));
         }}
         onDragOver={(e) => { if (e.dataTransfer.types.includes('Files')) e.preventDefault(); }}
         onDrop={(e) => { const file = imageFromClipboard(e.dataTransfer); if (file) { e.preventDefault(); uploadImage(file); } }}
@@ -639,27 +633,27 @@ function ReleaseEditor({ release, siblings, onSaved, canDelete, possibleDuplicat
             <Cover images={[{ ...img, type: 'front' }]} title={release.local_title} size="small" />
             <figcaption>
               {IMAGE_TYPES.find((t) => t.value === img.type)?.label}
-              <button type="button" className="link-button" onClick={() => downloadImage(img.path, img.type)}>Télécharger</button>
-              <button type="button" className="link-button danger" onClick={() => removeImage(img.id, img.path)}>Supprimer</button>
+              <button type="button" className="link-button" onClick={() => downloadImage(img.path, img.type)}>{tr('Télécharger')}</button>
+              <button type="button" className="link-button danger" onClick={() => removeImage(img.id, img.path)}>{tr('Supprimer')}</button>
             </figcaption>
           </figure>
         ))}
         <div className="image-upload">
-          <select value={imageType} onChange={(e) => setImageType(e.target.value as ImageType)} aria-label="Type d'image">
+          <select value={imageType} onChange={(e) => setImageType(e.target.value as ImageType)} aria-label={tr("Type d'image")}>
             {IMAGE_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
           <label className="button button-small">
-            {busy ? 'Envoi…' : <><PsSymbol shape="square" /> Ajouter une image</>}
+            {busy ? tr('Envoi…') : <><PsSymbol shape="square" />{tr(' Ajouter une image')}</>}
             <input type="file" accept={ACCEPT_ATTRIBUTE} className="sr-only" disabled={busy}
               onChange={(e) => { uploadImage(e.target.files?.[0]); e.target.value = ''; }} />
           </label>
-          <span className="muted small">ou clique dans ce cadre et colle (Ctrl+V)</span>
+          <span className="muted small">{tr('ou clique dans ce cadre et colle (Ctrl+V)')}</span>
         </div>
       </div>
 
       <ReleaseDates release={release} onSaved={onSaved} />
       <StudioListEditor
-        title="Éditeurs de cette version"
+        title={tr('Éditeurs de cette version')}
         studios={release.release_company.filter((c) => c.role === 'publisher').map((c) => c.company)}
         onAdd={(companyId) => supabase.from('release_company').insert({ release_id: release.id, company_id: companyId, role: 'publisher' })}
         onRemove={(companyId) => supabase.from('release_company').delete().eq('release_id', release.id).eq('company_id', companyId).eq('role', 'publisher')}
@@ -669,34 +663,34 @@ function ReleaseEditor({ release, siblings, onSaved, canDelete, possibleDuplicat
       <form onSubmit={save} className="form">
         <div className="row">
           <label className="field">
-            <span className="field-label">Titre sur la boîte</span>
+            <span className="field-label">{tr('Titre sur la boîte')}</span>
             <input value={localTitle} onChange={(e) => setLocalTitle(e.target.value)} maxLength={200} required />
           </label>
           <label className="field">
-            <span className="field-label">Zone</span>
+            <span className="field-label">{tr('Zone')}</span>
             <select value={zone} onChange={(e) => setZone(e.target.value as Zone | '')}>
-              <option value="">À compléter</option>
+              <option value="">{tr('À compléter')}</option>
               {ZONES.map((z) => <option key={z.value} value={z.value}>{z.label}</option>)}
             </select>
           </label>
         </div>
         <div className="row">
           <label className="field">
-            <span className="field-label">Code produit</span>
+            <span className="field-label">{tr('Code produit')}</span>
             <input value={productCode} onChange={(e) => setProductCode(e.target.value)} placeholder="SCES-00867" maxLength={20} />
           </label>
           <label className="field">
-            <span className="field-label">Édition</span>
+            <span className="field-label">{tr('Édition')}</span>
             <select value={editionType} onChange={(e) => setEditionType(e.target.value as EditionType)}>
               {EDITION_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </label>
           <label className="field">
-            <span className="field-label">Nom de l'édition</span>
-            <input value={editionName} onChange={(e) => setEditionName(e.target.value)} placeholder="Platinum" maxLength={60} />
+            <span className="field-label">{tr("Nom de l'édition")}</span>
+            <input value={editionName} onChange={(e) => setEditionName(e.target.value)} placeholder={tr('Platinum')} maxLength={60} />
           </label>
           <label className="field field-narrow">
-            <span className="field-label">Disques</span>
+            <span className="field-label">{tr('Disques')}</span>
             <input type="number" min={1} max={20} value={mediaCount} onChange={(e) => setMediaCount(e.target.value)} />
           </label>
         </div>
@@ -704,7 +698,7 @@ function ReleaseEditor({ release, siblings, onSaved, canDelete, possibleDuplicat
           <SpecsEditor fields={release.platform.spec_fields} value={specs} onChange={setSpecs} />
         )}
         <fieldset className="checks">
-          <legend className="field-label">Langues du disque</legend>
+          <legend className="field-label">{tr('Langues du disque')}</legend>
           {LANGUAGES.map((l) => (
             <label key={l.value}>
               <input type="checkbox" checked={languages.includes(l.value)}
@@ -714,20 +708,20 @@ function ReleaseEditor({ release, siblings, onSaved, canDelete, possibleDuplicat
           ))}
         </fieldset>
         <label className="field field-box-region">
-          <span className="field-label">Boîte vendue en</span>
+          <span className="field-label">{tr('Boîte vendue en')}</span>
           <select value={boxRegion} onChange={(e) => setBoxRegion(e.target.value)}>
-            <option value="">Non précisé</option>
+            <option value="">{tr('Non précisé')}</option>
             {BOX_REGIONS.map((code) => <option key={code} value={code}>{boxRegionName(code)}</option>)}
           </select>
-          <span className="hint">Seulement quand le même disque a eu des boîtes différentes selon le pays (Crash Bash Platinum : boîte française, allemande…).</span>
+          <span className="hint">{tr('Seulement quand le même disque a eu des boîtes différentes selon le pays (Crash Bash Platinum : boîte française, allemande…).')}</span>
         </label>
         {message && <p className="success">{message}</p>}
         {error && <p className="error" role="alert">{error}</p>}
         <div className="actions">
-          <button type="submit" className="button button-primary"><PsSymbol shape="cross" /> Enregistrer cette version</button>
+          <button type="submit" className="button button-primary"><PsSymbol shape="cross" />{tr(' Enregistrer cette version')}</button>
           <DeclineRelease release={release} siblings={siblings} onDone={onSaved} />
           {canDelete && <MoveRelease release={release} onMoved={onSaved} />}
-          {canDelete && <button type="button" className="button button-small button-danger" onClick={removeRelease}>Supprimer cette version</button>}
+          {canDelete && <button type="button" className="button button-small button-danger" onClick={removeRelease}>{tr('Supprimer cette version')}</button>}
         </div>
       </form>
     </div>
@@ -791,15 +785,14 @@ function DeclineRelease({ release, siblings, onDone }: { release: Release; sibli
   if (languageChoices.length === 0 && countryChoices.length === 0) return null;
   return (
     <>
-      <button type="button" className="button button-small" onClick={() => setOpen(true)}>Décliner par langue ou par pays</button>
-      <Dialog open={open} onClose={() => setOpen(false)} title={`Décliner « ${release.local_title} » (${editionLabel(release)})`}>
+      <button type="button" className="button button-small" onClick={() => setOpen(true)}>{tr('Décliner par langue ou par pays')}</button>
+      <Dialog open={open} onClose={() => setOpen(false)} title={tr('Décliner « {0} » ({1})', release.local_title, editionLabel(release))}>
         <p className="small">
-          Coche seulement les variantes qui existent vraiment (boîte en main, photo, fiche fiable) : rien n'est créé d'office.
-          Ensuite, si cette version générique ne sert plus, supprime-la.
+          {tr("Coche seulement les variantes qui existent vraiment (boîte en main, photo, fiche fiable) : rien n'est créé d'office. Ensuite, si cette version générique ne sert plus, supprime-la.")}
         </p>
         {languageChoices.length > 0 && (
           <fieldset className="checks">
-            <legend className="field-label">Par langue (le disque change avec la langue)</legend>
+            <legend className="field-label">{tr('Par langue (le disque change avec la langue)')}</legend>
             {languageChoices.map((s) => (
               <label key={s.id}>
                 <input type="checkbox" checked={byLanguage.includes(s.id)}
@@ -810,7 +803,7 @@ function DeclineRelease({ release, siblings, onDone }: { release: Release; sibli
           </fieldset>
         )}
         <fieldset className="checks">
-          <legend className="field-label">Par pays (même disque, boîte imprimée pour ce pays)</legend>
+          <legend className="field-label">{tr('Par pays (même disque, boîte imprimée pour ce pays)')}</legend>
           {countryChoices.map((code) => (
             <label key={code}>
               <input type="checkbox" checked={byCountry.includes(code)}
@@ -822,7 +815,7 @@ function DeclineRelease({ release, siblings, onDone }: { release: Release; sibli
         {error && <p className="error" role="alert">{error}</p>}
         <div className="actions">
           <button type="button" className="button button-primary" onClick={create} disabled={busy || byLanguage.length + byCountry.length === 0}>
-            <PsSymbol shape="cross" /> Créer {byLanguage.length + byCountry.length || ''} variante{byLanguage.length + byCountry.length > 1 ? 's' : ''}
+            <PsSymbol shape="cross" />{tr(' Créer ')}{byLanguage.length + byCountry.length || ''}{tr(' variante{0?s}', byLanguage.length + byCountry.length > 1)}
           </button>
         </div>
       </Dialog>
@@ -839,7 +832,7 @@ function DeclineRelease({ release, siblings, onDone }: { release: Release; sibli
 // ---------------------------------------------------------------------
 type Precision = DatePrecision | '';
 const PRECISIONS: { value: Precision; label: string }[] = [
-  { value: 'day', label: 'Jour' }, { value: 'month', label: 'Mois' }, { value: 'year', label: 'Année' }, { value: '', label: 'Inconnue' },
+  { value: 'day', label: tr('Jour') }, { value: 'month', label: tr('Mois') }, { value: 'year', label: tr('Année') }, { value: '', label: tr('Inconnue') },
 ];
 
 // Date stockée → valeur du champ, selon la précision (et l'inverse)
@@ -863,12 +856,12 @@ function DateFields({ value, precision, onValue, onPrecision, label }: {
   }
   return (
     <>
-      <select value={precision} onChange={(e) => choose(e.target.value as Precision)} aria-label={`Précision de la date (${label})`}>
+      <select value={precision} onChange={(e) => choose(e.target.value as Precision)} aria-label={tr('Précision de la date ({0})', label)}>
         {PRECISIONS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
       </select>
-      {precision === 'day' && <input type="date" value={value} onChange={(e) => onValue(e.target.value)} aria-label={`Date (${label})`} />}
-      {precision === 'month' && <input type="month" value={value} onChange={(e) => onValue(e.target.value)} aria-label={`Mois (${label})`} />}
-      {precision === 'year' && <input type="number" min={1970} max={2100} value={value} onChange={(e) => onValue(e.target.value)} aria-label={`Année (${label})`} />}
+      {precision === 'day' && <input type="date" value={value} onChange={(e) => onValue(e.target.value)} aria-label={tr('Date ({0})', label)} />}
+      {precision === 'month' && <input type="month" value={value} onChange={(e) => onValue(e.target.value)} aria-label={tr('Mois ({0})', label)} />}
+      {precision === 'year' && <input type="number" min={1970} max={2100} value={value} onChange={(e) => onValue(e.target.value)} aria-label={tr('Année ({0})', label)} />}
     </>
   );
 }
@@ -885,8 +878,8 @@ function ReleaseDates({ release, onSaved }: { release: Release; onSaved: () => v
   async function add(e: FormEvent) {
     e.preventDefault();
     const date = toStored(value, precision);
-    if (!regionId) return setError('Choisis un pays ou une zone.');
-    if (precision && !date) return setError('Date incomplète ou invalide.');
+    if (!regionId) return setError(tr('Choisis un pays ou une zone.'));
+    if (precision && !date) return setError(tr('Date incomplète ou invalide.'));
     const { error } = await supabase.from('release_region')
       .insert({ release_id: release.id, region_id: Number(regionId), release_date: date, date_precision: precision || null });
     if (error) return setError(errorMessage(error));
@@ -898,24 +891,24 @@ function ReleaseDates({ release, onSaved }: { release: Release; onSaved: () => v
 
   return (
     <div className="release-dates">
-      <h4>Dates de sortie</h4>
-      {rows.length === 0 && <p className="muted small">Aucune date pour l'instant.</p>}
+      <h4>{tr('Dates de sortie')}</h4>
+      {rows.length === 0 && <p className="muted small">{tr("Aucune date pour l'instant.")}</p>}
       <ul className="plain-list release-dates-list">
         {rows.map((rr) => (
           <DateRow key={`${rr.region.id}-${rr.release_date}-${rr.date_precision}`} releaseId={release.id} row={rr} onSaved={onSaved} onError={setError} />
         ))}
       </ul>
       <form onSubmit={add} className="release-date-row">
-        <select value={regionId} onChange={(e) => setRegionId(e.target.value)} aria-label="Pays ou zone de la nouvelle date">
-          <option value="">Ajouter un pays ou une zone…</option>
+        <select value={regionId} onChange={(e) => setRegionId(e.target.value)} aria-label={tr('Pays ou zone de la nouvelle date')}>
+          <option value="">{tr('Ajouter un pays ou une zone…')}</option>
           {(['zone', 'country', 'world'] as const).map((type) => (
-            <optgroup key={type} label={type === 'zone' ? 'Zones' : type === 'country' ? 'Pays' : 'Monde'}>
-              {regions.filter((r) => r.type === type && !used.has(r.id)).map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+            <optgroup key={type} label={type === 'zone' ? tr('Zones') : type === 'country' ? tr('Pays') : tr('Monde')}>
+              {regions.filter((r) => r.type === type && !used.has(r.id)).map((r) => <option key={r.id} value={r.id}>{regionName(r)}</option>)}
             </optgroup>
           ))}
         </select>
-        <DateFields value={value} precision={precision} onValue={setValue} onPrecision={setPrecision} label="nouvelle date" />
-        <button type="submit" className="button button-small" disabled={!regionId}><PsSymbol shape="square" /> Ajouter</button>
+        <DateFields value={value} precision={precision} onValue={setValue} onPrecision={setPrecision} label={tr('nouvelle date')} />
+        <button type="submit" className="button button-small" disabled={!regionId}><PsSymbol shape="square" />{tr(' Ajouter')}</button>
       </form>
       {error && <p className="error" role="alert">{error}</p>}
     </div>
@@ -932,7 +925,7 @@ function DateRow({ releaseId, row, onSaved, onError }: {
   const changed = (precision || null) !== row.date_precision || date !== row.release_date;
 
   async function save() {
-    if (precision && !date) return onError('Date incomplète ou invalide.');
+    if (precision && !date) return onError(tr('Date incomplète ou invalide.'));
     const { error } = await supabase.from('release_region').update({ release_date: date, date_precision: precision || null })
       .eq('release_id', releaseId).eq('region_id', row.region.id!);
     if (error) return onError(errorMessage(error));
@@ -941,7 +934,7 @@ function DateRow({ releaseId, row, onSaved, onError }: {
   }
 
   async function remove() {
-    if (!(await confirm({ title: 'Retirer cette date', message: `La sortie « ${row.region.name} » sera retirée de cette version.`, confirmLabel: 'Retirer', danger: true }))) return;
+    if (!(await confirm({ title: tr('Retirer cette date'), message: tr('La sortie « {0} » sera retirée de cette version.', regionName(row.region)), confirmLabel: tr('Retirer'), danger: true }))) return;
     const { error } = await supabase.from('release_region').delete().eq('release_id', releaseId).eq('region_id', row.region.id!);
     if (error) return onError(errorMessage(error));
     onSaved();
@@ -949,10 +942,10 @@ function DateRow({ releaseId, row, onSaved, onError }: {
 
   return (
     <li className="release-date-row">
-      <span className="release-date-region">{row.region.name}</span>
-      <DateFields value={value} precision={precision} onValue={setValue} onPrecision={setPrecision} label={row.region.name} />
-      <button type="button" className="button button-small" disabled={!changed} onClick={save}>Enregistrer</button>
-      <button type="button" className="link-button danger" onClick={remove}>Retirer</button>
+      <span className="release-date-region">{regionName(row.region)}</span>
+      <DateFields value={value} precision={precision} onValue={setValue} onPrecision={setPrecision} label={regionName(row.region)} />
+      <button type="button" className="button button-small" disabled={!changed} onClick={save}>{tr('Enregistrer')}</button>
+      <button type="button" className="link-button danger" onClick={remove}>{tr('Retirer')}</button>
     </li>
   );
 }
@@ -966,26 +959,26 @@ function SpecsEditor({ fields, value, onChange }: { fields: SpecField[]; value: 
   }
   return (
     <fieldset className="specs-editor">
-      <legend className="field-label">Caractéristiques</legend>
+      <legend className="field-label">{tr('Caractéristiques')}</legend>
       <div className="row">
         {fields.filter((f) => f.type !== 'multi_choice').map((f) => (
           <label key={f.key} className="field">
             <span className="field-label">{f.label}</span>
             {f.type === 'integer' && (
               <input type="number" min={f.min} max={f.max} value={value[f.key] === undefined ? '' : String(value[f.key])}
-                onChange={(e) => set(f.key, e.target.value === '' ? undefined : Number(e.target.value))} placeholder="Non précisé" />
+                onChange={(e) => set(f.key, e.target.value === '' ? undefined : Number(e.target.value))} placeholder={tr('Non précisé')} />
             )}
             {f.type === 'boolean' && (
               <select value={value[f.key] === true ? 'yes' : value[f.key] === false ? 'no' : ''}
                 onChange={(e) => set(f.key, e.target.value === '' ? undefined : e.target.value === 'yes')}>
-                <option value="">Non précisé</option>
-                <option value="yes">Oui</option>
-                <option value="no">Non</option>
+                <option value="">{tr('Non précisé')}</option>
+                <option value="yes">{tr('Oui')}</option>
+                <option value="no">{tr('Non')}</option>
               </select>
             )}
             {f.type === 'choice' && (
               <select value={typeof value[f.key] === 'string' ? (value[f.key] as string) : ''} onChange={(e) => set(f.key, e.target.value || undefined)}>
-                <option value="">Non précisé</option>
+                <option value="">{tr('Non précisé')}</option>
                 {f.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             )}
@@ -1022,11 +1015,11 @@ function MoveRelease({ release, onMoved }: { release: Release; onMoved: () => vo
 
   async function move(target: SearchResult) {
     setError('');
-    if (target.id === release.game_id) return setError('Cette version appartient déjà à ce jeu.');
+    if (target.id === release.game_id) return setError(tr('Cette version appartient déjà à ce jeu.'));
     if (!(await confirm({
-      title: 'Déplacer cette version',
-      message: `« ${release.local_title} » (${zoneLabel(release.zone)}) rejoindra « ${target.title} », avec ses images, ses dates et les exemplaires des membres.`,
-      confirmLabel: 'Déplacer',
+      title: tr('Déplacer cette version'),
+      message: tr('« {0} » ({1}) rejoindra « {2} », avec ses images, ses dates et les exemplaires des membres.', release.local_title, zoneLabel(release.zone), target.title),
+      confirmLabel: tr('Déplacer'),
     }))) return;
     const { error } = await supabase.rpc('move_release', { target_release: release.id, to_game: target.id });
     if (error) return setError(errorMessage(error));
@@ -1036,9 +1029,9 @@ function MoveRelease({ release, onMoved }: { release: Release; onMoved: () => vo
 
   return (
     <>
-      <button type="button" className="button button-small" onClick={() => { setOpen(true); setError(''); }}>Déplacer vers un autre jeu…</button>
-      <Dialog open={open} onClose={() => setOpen(false)} title={`Déplacer « ${release.local_title} »`}>
-        <GameSearch onSelect={move} autoFocus label="Vers quel jeu ? (titre ou code produit)" />
+      <button type="button" className="button button-small" onClick={() => { setOpen(true); setError(''); }}>{tr('Déplacer vers un autre jeu…')}</button>
+      <Dialog open={open} onClose={() => setOpen(false)} title={tr('Déplacer « {0} »', release.local_title)}>
+        <GameSearch onSelect={move} autoFocus label={tr('Vers quel jeu ? (titre ou code produit)')} />
         {error && <p className="error" role="alert">{error}</p>}
       </Dialog>
     </>

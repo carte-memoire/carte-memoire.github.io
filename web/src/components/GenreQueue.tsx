@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { CATALOG_ZONES, FAMILIES, familyLabel, formatNumber, gamePath, yearOf } from '../lib/format';
+import {
+  CATALOG_ZONES, FAMILIES, familyLabel, formatNumber, gamePath, yearOf, genreName,
+} from '../lib/format';
 import { errorMessage } from '../lib/errors';
 import { ALL_PLATFORMS, rememberedPageSize, rememberedPlatform, rememberPageSize } from '../lib/preferences';
 import type { GenreFamily, GenreInfo } from '../lib/types';
@@ -10,6 +12,7 @@ import { Cover } from './Cover';
 import { PageSizeSelect, Pagination } from './Pagination';
 import { PsSymbol } from './PsSymbol';
 import { useKnownPlatform } from '../lib/usePlatforms';
+import { tr } from '../lib/i18n';
 
 // Files de modération : 100 au plus par page (plafond des fonctions)
 const QUEUE_SIZES = [10, 20, 50, 100];
@@ -104,19 +107,17 @@ export function GenreQueue({ onCount }: { onCount: (n: number) => void }) {
   return (
     <div className="stack">
       <p className="muted">
-        Jeux sans aucun genre, que personne n'a encore classés. Choisis une ou plusieurs familles (ou un genre précis),
-        puis enregistre : le jeu est marqué « revu » et quitte la file. En cas de doute, « Chercher sur le web » ouvre
-        une recherche dans un nouvel onglet.
+        {tr("Jeux sans aucun genre, que personne n'a encore classés. Choisis une ou plusieurs familles (ou un genre précis), puis enregistre : le jeu est marqué « revu » et quitte la file. En cas de doute, « Chercher sur le web » ouvre une recherche dans un nouvel onglet.")}
       </p>
       <div className="row">
         <label className="field catalog-search">
-          <span className="field-label">Filtrer</span>
-          <input type="search" value={text} onChange={(e) => setText(e.target.value)} placeholder="Titre…" autoComplete="off" />
+          <span className="field-label">{tr('Filtrer')}</span>
+          <input type="search" value={text} onChange={(e) => setText(e.target.value)} placeholder={tr('Titre…')} autoComplete="off" />
         </label>
         <label className="field">
-          <span className="field-label">Zone</span>
+          <span className="field-label">{tr('Zone')}</span>
           <select value={zone} onChange={(e) => { setZone(e.target.value); setPage(1); }}>
-            <option value="">Toutes</option>
+            <option value="">{tr('Toutes')}</option>
             {CATALOG_ZONES.map((z) => <option key={z.value} value={z.value}>{z.label}</option>)}
           </select>
         </label>
@@ -125,18 +126,18 @@ export function GenreQueue({ onCount }: { onCount: (n: number) => void }) {
       {rows !== null && (
         <div className="list-row">
           <p className="muted small" aria-live="polite">
-            {formatNumber(total)} jeu{total > 1 ? 'x' : ''} à classer{pages > 1 ? ` · page ${page} sur ${pages}` : ''}
+            {formatNumber(total)}{tr(' jeu{0?x} à classer', total > 1)}{pages > 1 ? tr(' · page {0} sur {1}', page, pages) : ''}
           </p>
           <PageSizeSelect value={pageSize} sizes={QUEUE_SIZES} onChange={(size) => { rememberPageSize('file', size); setPageSize(size); setPage(1); }} />
         </div>
       )}
-      {rows !== null && total === 0 && <p className="panel empty">Plus aucun jeu à classer ici. Bravo !</p>}
+      {rows !== null && total === 0 && <p className="panel empty">{tr('Plus aucun jeu à classer ici. Bravo !')}</p>}
 
       <ul className="plain-list queue-list">
         {visible.map((row) => <QueueCard key={row.id} row={row} genres={genres} onDone={(saved) => done(row.id, saved)} />)}
       </ul>
 
-      <Pagination page={page} pages={pages} onChange={setPage} label="Pages de la file" />
+      <Pagination page={page} pages={pages} onChange={setPage} label={tr('Pages de la file')} />
     </div>
   );
 }
@@ -148,7 +149,7 @@ function QueueCard({ row, genres, onDone }: { row: QueueRow; genres: Genre[]; on
   const mainOf = (family: GenreFamily) => genres.find((g) => g.wikidata_id === MAIN_GENRE[family]);
   const has = (g: Genre | undefined) => Boolean(g && chosen.some((c) => c.id === g.id));
   const toggle = (g: Genre | undefined) => g && setChosen(has(g) ? chosen.filter((c) => c.id !== g.id) : [...chosen, g]);
-  const search = `https://www.google.com/search?q=${encodeURIComponent(`"${row.local_title ?? row.title}" PlayStation jeu genre`)}`;
+  const search = `https://www.google.com/search?q=${encodeURIComponent(tr('"{0}" PlayStation jeu genre', row.local_title ?? row.title))}`;
 
   async function save() {
     setBusy(true);
@@ -175,9 +176,9 @@ function QueueCard({ row, genres, onDone }: { row: QueueRow; genres: Genre[]; on
         </p>
         <p className="muted small">
           {[yearOf(row.release_date), row.zones?.join(', '), row.publisher].filter(Boolean).join(' · ')}
-          {' · '}<a href={search} target="_blank" rel="noopener noreferrer">Chercher sur le web</a>
+          {' · '}<a href={search} target="_blank" rel="noopener noreferrer">{tr('Chercher sur le web')}</a>
         </p>
-        <div className="pills" role="group" aria-label={`Familles de ${row.title}`}>
+        <div className="pills" role="group" aria-label={tr('Familles de {0}', row.title)}>
           {FAMILIES.map((f) => {
             const g = mainOf(f.value);
             return (
@@ -189,10 +190,10 @@ function QueueCard({ row, genres, onDone }: { row: QueueRow; genres: Genre[]; on
         </div>
         <div className="queue-precise">
           <Combobox
-            label="Ou un genre précis"
-            placeholder="Mahjong, plates-formes 3D, tactical RPG…"
-            options={genres.filter((g) => !has(g)).map((g) => ({ value: g.id, label: g.name, detail: g.families.length ? g.families.map(familyLabel).join(' + ') : 'thème' }))}
-            emptyText="Aucun genre ne correspond"
+            label={tr('Ou un genre précis')}
+            placeholder={tr('Mahjong, plates-formes 3D, tactical RPG…')}
+            options={genres.filter((g) => !has(g)).map((g) => ({ value: g.id, label: genreName(g.name), detail: g.families.length ? g.families.map(familyLabel).join(' + ') : tr('thème') }))}
+            emptyText={tr('Aucun genre ne correspond')}
             onSelect={(o) => toggle(genres.find((g) => g.id === o.value))}
           />
         </div>
@@ -200,8 +201,8 @@ function QueueCard({ row, genres, onDone }: { row: QueueRow; genres: Genre[]; on
           <ul className="genre-chips">
             {chosen.filter((g) => !Object.values(MAIN_GENRE).includes(g.wikidata_id ?? '')).map((g) => (
               <li key={g.id} className="genre-chip">
-                {g.name}
-                <button type="button" className="icon-button" aria-label={`Retirer ${g.name}`} onClick={() => toggle(g)}>✕</button>
+                {genreName(g.name)}
+                <button type="button" className="icon-button" aria-label={tr('Retirer {0}', g.name)} onClick={() => toggle(g)}>✕</button>
               </li>
             ))}
           </ul>
@@ -209,9 +210,9 @@ function QueueCard({ row, genres, onDone }: { row: QueueRow; genres: Genre[]; on
         {error && <p className="error" role="alert">{error}</p>}
         <div className="actions">
           <button type="button" className="button button-small button-primary" disabled={chosen.length === 0 || busy} onClick={save}>
-            <PsSymbol shape="cross" /> Enregistrer{chosen.length ? ` (${chosen.map((g) => g.families.map(familyLabel)[0] ?? g.name).filter((v, i, a) => a.indexOf(v) === i).join(', ')})` : ''}
+            <PsSymbol shape="cross" />{tr(' Enregistrer')}{chosen.length ? ` (${chosen.map((g) => g.families.map(familyLabel)[0] ?? g.name).filter((v, i, a) => a.indexOf(v) === i).join(', ')})` : ''}
           </button>
-          <button type="button" className="button button-small" disabled={busy} onClick={() => onDone(false)}>Passer</button>
+          <button type="button" className="button button-small" disabled={busy} onClick={() => onDone(false)}>{tr('Passer')}</button>
         </div>
       </div>
     </li>

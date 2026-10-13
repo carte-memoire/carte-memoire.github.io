@@ -1,11 +1,6 @@
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
 import '@fontsource/press-start-2p/400.css';
 import './styles.css';
-import { AuthProvider } from './auth/AuthContext';
-import { ConfirmProvider } from './components/Confirm';
-import { App } from './App';
+import { loadLanguage, tr } from './lib/i18n';
 
 const root = document.getElementById('root')!;
 
@@ -18,18 +13,12 @@ if (import.meta.env.PROD && window.top !== window.self) {
   link.href = window.location.href;
   link.target = '_top';
   link.rel = 'noopener';
-  link.textContent = 'Ouvrir Carte Mémoire dans son propre onglet';
+  link.textContent = tr('Ouvrir Carte Mémoire dans son propre onglet');
   root.append(link);
 } else {
-  createRoot(root).render(
-    <StrictMode>
-      <BrowserRouter>
-        <AuthProvider>
-          <ConfirmProvider>
-            <App />
-          </ConfirmProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </StrictMode>,
-  );
+  // La langue d'abord (dictionnaire anglais si besoin), puis le site : ses libellés
+  // calculés au chargement sont ainsi déjà dans la bonne langue
+  await loadLanguage();
+  const { start } = await import('./start');
+  start(root);
 }

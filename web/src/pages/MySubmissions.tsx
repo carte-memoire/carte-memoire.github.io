@@ -7,11 +7,12 @@ import type { Report, Submission } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
 import { PsSymbol } from '../components/PsSymbol';
 import { useConfirm } from '../components/Confirm';
+import { tr, locale } from '../lib/i18n';
 
 const STATUS: Record<Submission['status'], { label: string; className: string }> = {
-  pending: { label: 'En attente', className: 'badge-todo' },
-  approved: { label: 'Acceptée', className: 'badge-ok' },
-  rejected: { label: 'Refusée', className: 'badge-ko' },
+  pending: { label: tr('En attente'), className: 'badge-todo' },
+  approved: { label: tr('Acceptée'), className: 'badge-ok' },
+  rejected: { label: tr('Refusée'), className: 'badge-ko' },
 };
 
 export function MySubmissions() {
@@ -51,7 +52,7 @@ export function MySubmissions() {
   useEffect(() => { load(); }, [load]);
 
   async function withdraw(s: Submission) {
-    if (!(await confirm({ title: 'Retirer la proposition', message: 'Elle ne sera pas examinée par les modérateurs.', confirmLabel: 'Retirer', danger: true }))) return;
+    if (!(await confirm({ title: tr('Retirer la proposition'), message: tr('Elle ne sera pas examinée par les modérateurs.'), confirmLabel: tr('Retirer'), danger: true }))) return;
     const { error } = await supabase.from('submission').delete().eq('id', s.id);
     if (error) return setError(errorMessage(error));
     if (s.data.cover_path) await supabase.storage.from('submission-images').remove([s.data.cover_path]);
@@ -61,35 +62,35 @@ export function MySubmissions() {
   return (
     <section className="stack">
       <div className="page-head">
-        <h1>Mes propositions</h1>
-        <Link to="/proposer" className="button button-primary"><PsSymbol shape="cross" /> Proposer un jeu</Link>
+        <h1>{tr('Mes propositions')}</h1>
+        <Link to="/proposer" className="button button-primary"><PsSymbol shape="cross" />{tr(' Proposer un jeu')}</Link>
       </div>
       {error && <p className="error">{error}</p>}
-      {loaded && items.length === 0 && <p className="panel empty">Aucune proposition pour le moment.</p>}
+      {loaded && items.length === 0 && <p className="panel empty">{tr('Aucune proposition pour le moment.')}</p>}
       <ul className="plain-list">
         {items.map((s) => {
           const isSummary = s.action === 'update' && s.target === 'game';
           const gameTitle = titles.get((s.target_id ?? s.data.game_id) as number);
-          const name = s.data.game?.title ?? gameTitle ?? s.data.release?.local_title ?? 'Proposition';
+          const name = s.data.game?.title ?? gameTitle ?? s.data.release?.local_title ?? tr('Proposition');
           return (
             <li key={s.id} className="panel list-row">
               <span>
                 <strong>{name}</strong>{' '}
                 <span className="muted small">
-                  {isSummary ? 'résumé' : s.target === 'release' ? 'nouvelle version' : 'nouveau jeu'}
+                  {isSummary ? tr('résumé') : s.target === 'release' ? tr('nouvelle version') : tr('nouveau jeu')}
                   {s.data.release?.zone !== undefined && ` · ${zoneLabel(s.data.release.zone)}`}
-                  {' · '}{new Date(s.created_at).toLocaleDateString('fr-FR')}
-                  {s.data.no_cover && ' · sans jaquette'}
+                  {' · '}{new Date(s.created_at).toLocaleDateString(locale)}
+                  {s.data.no_cover && tr(' · sans jaquette')}
                 </span>
-                {s.review_note && <span className="block-notes">Modération : {s.review_note}</span>}
+                {s.review_note && <span className="block-notes">{tr('Modération : ')}{s.review_note}</span>}
               </span>
               <span className="actions">
                 <span className={`badge ${STATUS[s.status].className}`}>{STATUS[s.status].label}</span>
                 {s.status === 'approved' && s.created_game_id && (
-                  <Link to={`/jeu/${s.created_game_id}`} className="button button-small">Voir le jeu</Link>
+                  <Link to={`/jeu/${s.created_game_id}`} className="button button-small">{tr('Voir le jeu')}</Link>
                 )}
                 {s.status === 'pending' && (
-                  <button type="button" className="button button-small button-danger" onClick={() => withdraw(s)}>Retirer</button>
+                  <button type="button" className="button button-small button-danger" onClick={() => withdraw(s)}>{tr('Retirer')}</button>
                 )}
               </span>
             </li>
@@ -98,18 +99,18 @@ export function MySubmissions() {
       </ul>
       {reports.length > 0 && (
         <>
-          <h2>Mes signalements</h2>
+          <h2>{tr('Mes signalements')}</h2>
           <ul className="plain-list">
             {reports.map((r) => (
               <li key={r.id} className="panel list-row">
                 <span>
-                  <strong>{r.game ? <Link to={gamePath(r.game)}>{r.game.title}</Link> : 'Jeu supprimé'}</strong>{' '}
+                  <strong>{r.game ? <Link to={gamePath(r.game)}>{r.game.title}</Link> : tr('Jeu supprimé')}</strong>{' '}
                   <span className="muted small">{reportKindLabel(r.kind)} · {formatDateTime(r.created_at)}</span>
                   <span className="block-notes">{r.message}</span>
-                  {r.review_note && <span className="block-notes">Modération : {r.review_note}</span>}
+                  {r.review_note && <span className="block-notes">{tr('Modération : ')}{r.review_note}</span>}
                 </span>
                 <span className={`badge ${r.status === 'open' ? 'badge-todo' : r.status === 'resolved' ? 'badge-ok' : 'badge-ko'}`}>
-                  {r.status === 'open' ? 'En attente' : r.status === 'resolved' ? 'Corrigé' : 'Rejeté'}
+                  {r.status === 'open' ? tr('En attente') : r.status === 'resolved' ? tr('Corrigé') : tr('Rejeté')}
                 </span>
               </li>
             ))}

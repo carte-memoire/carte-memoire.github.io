@@ -4,8 +4,7 @@ import { supabase } from '../lib/supabase';
 import { COLLECTION_FIELDS } from '../lib/queries';
 import { standInFor, type CoverSource, type StandIn } from '../lib/images';
 import {
-  acquisitionLabel, CATALOG_ZONES, CONDITIONS, conditionLabel, editionLabel, formatNumber, formatPrice, gamePath,
-  languagesLong, languagesShort, searchKey, TRADE_STATUSES, tradeStatusLabel, zoneLabel,
+  acquisitionLabel, CATALOG_ZONES, CONDITIONS, conditionLabel, editionLabel, formatNumber, formatPrice, gamePath, languagesLong, languagesShort, searchKey, TRADE_STATUSES, tradeStatusLabel, zoneLabel, boxRegionName,
 } from '../lib/format';
 import { errorMessage } from '../lib/errors';
 import { downloadCsv, toCsv } from '../lib/csv';
@@ -22,26 +21,27 @@ import { useConfirm } from '../components/Confirm';
 import { Cover } from '../components/Cover';
 import { PageSizeSelect, Pagination } from '../components/Pagination';
 import { PsSymbol } from '../components/PsSymbol';
+import { tr } from '../lib/i18n';
 
 // L'API renvoie au plus 1 000 lignes par requête : on lit la collection par paquets
 const BATCH = 1000;
 
 type Sort = 'recent' | 'title' | 'release' | 'condition' | 'price' | 'purchase';
 const SORTS: { value: Sort; label: string; ownedOnly?: boolean }[] = [
-  { value: 'recent', label: 'Ajoutés récemment' },
-  { value: 'title', label: 'Titre (A → Z)' },
-  { value: 'release', label: 'Année de sortie' },
-  { value: 'condition', label: "État (le meilleur d'abord)", ownedOnly: true },
-  { value: 'price', label: "Prix payé (le plus cher d'abord)", ownedOnly: true },
-  { value: 'purchase', label: "Date d'achat (la plus récente d'abord)", ownedOnly: true },
+  { value: 'recent', label: tr('Ajoutés récemment') },
+  { value: 'title', label: tr('Titre (A → Z)') },
+  { value: 'release', label: tr('Année de sortie') },
+  { value: 'condition', label: tr("État (le meilleur d'abord)"), ownedOnly: true },
+  { value: 'price', label: tr("Prix payé (le plus cher d'abord)"), ownedOnly: true },
+  { value: 'purchase', label: tr("Date d'achat (la plus récente d'abord)"), ownedOnly: true },
 ];
 
 type Content = 'complete' | 'incomplete' | 'loose' | 'unknown';
 const CONTENTS: { value: Content; label: string }[] = [
-  { value: 'complete', label: 'Complets (boîte, notice, disque)' },
-  { value: 'incomplete', label: 'Incomplets' },
-  { value: 'loose', label: 'Disque seul' },
-  { value: 'unknown', label: 'Contenu non précisé' },
+  { value: 'complete', label: tr('Complets (boîte, notice, disque)') },
+  { value: 'incomplete', label: tr('Incomplets') },
+  { value: 'loose', label: tr('Disque seul') },
+  { value: 'unknown', label: tr('Contenu non précisé') },
 ];
 
 const UNKNOWN_CONDITION = 'inconnu';
@@ -59,7 +59,7 @@ const COMPARE: Record<Sort, ((a: CollectionItem, b: CollectionItem) => number) |
 };
 
 const noun = (tab: ItemStatus, n: number) =>
-  tab === 'owned' ? (n > 1 ? 'exemplaires' : 'exemplaire') : (n > 1 ? 'jeux recherchés' : 'jeu recherché');
+  tab === 'owned' ? (n > 1 ? 'exemplaires' : 'exemplaire') : (n > 1 ? tr('jeux recherchés') : tr('jeu recherché'));
 
 function hasContent(item: CollectionItem, content: Content): boolean {
   const parts = [item.has_box, item.has_manual, item.has_media];
@@ -183,7 +183,7 @@ export function Collection() {
   }, [params]);
 
   async function remove(item: CollectionItem) {
-    if (!(await confirm({ title: 'Retirer de ma collection', message: `Retirer « ${item.release.local_title} » de ta collection ?`, confirmLabel: 'Retirer', danger: true }))) return;
+    if (!(await confirm({ title: tr('Retirer de ma collection'), message: tr('Retirer « {0} » de ta collection ?', item.release.local_title), confirmLabel: tr('Retirer'), danger: true }))) return;
     const { error } = await supabase.from('collection_item').delete().eq('id', item.id);
     if (error) return setError(errorMessage(error));
     await load();
@@ -192,7 +192,7 @@ export function Collection() {
   // Toute la collection (sans tenir compte des filtres) : possédés puis recherchés, par titre
   function exportCsv() {
     const sorted = [...items].sort((a, b) => Number(a.status === 'wanted') - Number(b.status === 'wanted') || byTitle(a, b));
-    downloadCsv(`carte-memoire-collection-${new Date().toISOString().slice(0, 10)}.csv`, toCsv([EXPORT_HEADERS, ...sorted.map(itemToRow)]));
+    downloadCsv(tr('carte-memoire-collection-{0}.csv', new Date().toISOString().slice(0, 10)), toCsv([EXPORT_HEADERS, ...sorted.map(itemToRow)]));
   }
 
   const owned = items.filter((i) => i.status === 'owned');
@@ -225,22 +225,22 @@ export function Collection() {
     <section className="stack">
       <div className="page-head">
         <div>
-          <h1>Ma collection</h1>
+          <h1>{tr('Ma collection')}</h1>
           <p className="muted">
-            {profile?.public_collection ? 'Visible par tout le monde' : 'Privée (visible par toi seul)'} ·{' '}
-            <Link to="/compte">changer</Link>
-            {profile && <> · <Link to={`/membre/${encodeURIComponent(profile.username)}`}>{profile.public_collection ? 'voir et partager ma page publique' : 'voir ma page publique'}</Link></>}
+            {profile?.public_collection ? tr('Visible par tout le monde') : tr('Privée (visible par toi seul)')} ·{' '}
+            <Link to="/compte">{tr('changer')}</Link>
+            {profile && <> · <Link to={`/membre/${encodeURIComponent(profile.username)}`}>{profile.public_collection ? tr('voir et partager ma page publique') : tr('voir ma page publique')}</Link></>}
           </p>
         </div>
         <div className="actions">
-          <Link to="/catalogue" className="button"><PsSymbol shape="square" /> Cocher dans le catalogue</Link>
-          <button type="button" className="button" onClick={() => setImporting(true)} title="Ajouter des jeux depuis un fichier CSV (Excel, LibreOffice…)">
-            <PsSymbol shape="triangle" /> Importer
+          <Link to="/catalogue" className="button"><PsSymbol shape="square" />{tr(' Cocher dans le catalogue')}</Link>
+          <button type="button" className="button" onClick={() => setImporting(true)} title={tr('Ajouter des jeux depuis un fichier CSV (Excel, LibreOffice…)')}>
+            <PsSymbol shape="triangle" />{tr(' Importer')}
           </button>
-          <button type="button" className="button" onClick={exportCsv} disabled={items.length === 0} title="Télécharger toute ta collection en CSV (sauvegarde, tableur)">
-            <PsSymbol shape="circle" /> Exporter
+          <button type="button" className="button" onClick={exportCsv} disabled={items.length === 0} title={tr('Télécharger toute ta collection en CSV (sauvegarde, tableur)')}>
+            <PsSymbol shape="circle" />{tr(' Exporter')}
           </button>
-          <button type="button" className="button button-primary" onClick={() => setDialog({ open: true })}><PsSymbol shape="cross" /> Ajouter un jeu</button>
+          <button type="button" className="button button-primary" onClick={() => setDialog({ open: true })}><PsSymbol shape="cross" />{tr(' Ajouter un jeu')}</button>
         </div>
       </div>
 
@@ -249,11 +249,11 @@ export function Collection() {
       <div className="tabs" role="tablist">
         <button type="button" role="tab" aria-selected={tab === 'owned'} className={tab === 'owned' ? 'tab active' : 'tab'}
           onClick={() => update({ onglet: null, tri: null })}>
-          Mes jeux ({formatNumber(owned.length)})
+          {tr('Mes jeux (')}{formatNumber(owned.length)})
         </button>
         <button type="button" role="tab" aria-selected={tab === 'wanted'} className={tab === 'wanted' ? 'tab active' : 'tab'}
           onClick={() => update({ onglet: 'recherches', tri: null })}>
-          Recherchés ({formatNumber(wanted.length)})
+          {tr('Recherchés (')}{formatNumber(wanted.length)})
         </button>
       </div>
 
@@ -261,44 +261,44 @@ export function Collection() {
         <div className="panel catalog-filters">
           <div className="row">
             <label className="field catalog-search">
-              <span className="field-label">Rechercher</span>
-              <input type="search" value={text} onChange={(e) => { setText(e.target.value); update({ q: e.target.value }); }} placeholder="Titre ou code produit" maxLength={120} autoComplete="off" />
+              <span className="field-label">{tr('Rechercher')}</span>
+              <input type="search" value={text} onChange={(e) => { setText(e.target.value); update({ q: e.target.value }); }} placeholder={tr('Titre ou code produit')} maxLength={120} autoComplete="off" />
             </label>
             <label className="field">
-              <span className="field-label">Zone</span>
+              <span className="field-label">{tr('Zone')}</span>
               <select value={zone} onChange={(e) => update({ zone: e.target.value })}>
-                <option value="">Toutes</option>
+                <option value="">{tr('Toutes')}</option>
                 {CATALOG_ZONES.map((z) => <option key={z.value} value={z.value}>{z.label}</option>)}
               </select>
             </label>
             {tab === 'owned' && (
               <>
                 <label className="field">
-                  <span className="field-label">État</span>
+                  <span className="field-label">{tr('État')}</span>
                   <select value={condition} onChange={(e) => update({ etat: e.target.value })}>
-                    <option value="">Tous</option>
+                    <option value="">{tr('Tous')}</option>
                     {CONDITIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-                    <option value={UNKNOWN_CONDITION}>État non précisé</option>
+                    <option value={UNKNOWN_CONDITION}>{tr('État non précisé')}</option>
                   </select>
                 </label>
                 <label className="field">
-                  <span className="field-label">Contenu</span>
+                  <span className="field-label">{tr('Contenu')}</span>
                   <select value={content} onChange={(e) => update({ contenu: e.target.value })}>
-                    <option value="">Tous</option>
+                    <option value="">{tr('Tous')}</option>
                     {CONTENTS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
                   </select>
                 </label>
                 <label className="field">
-                  <span className="field-label">Échange</span>
+                  <span className="field-label">{tr('Échange')}</span>
                   <select value={offer} onChange={(e) => update({ echange: e.target.value })}>
-                    <option value="">Tous</option>
+                    <option value="">{tr('Tous')}</option>
                     {TRADE_STATUSES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
                 </label>
               </>
             )}
             <label className="field">
-              <span className="field-label">Tri</span>
+              <span className="field-label">{tr('Tri')}</span>
               <select value={sort} onChange={(e) => update({ tri: e.target.value === 'recent' ? null : e.target.value })}>
                 {SORTS.filter((s) => tab === 'owned' || !s.ownedOnly).map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
@@ -307,16 +307,16 @@ export function Collection() {
           <div className="list-row">
             <p className="muted small" aria-live="polite">
               {filtered ? `${formatNumber(shown.length)} sur ${formatNumber(total)}` : formatNumber(total)} {noun(tab, total)}
-              {pages > 1 && ` · page ${current} sur ${pages}`}
+              {pages > 1 && tr(' · page {0} sur {1}', current, pages)}
               {filtered && (
-                <> · <button type="button" className="link-button" onClick={() => { setText(''); update({ q: null, zone: null, etat: null, contenu: null, echange: null }); }}>effacer les filtres</button></>
+                <> · <button type="button" className="link-button" onClick={() => { setText(''); update({ q: null, zone: null, etat: null, contenu: null, echange: null }); }}>{tr('effacer les filtres')}</button></>
               )}
             </p>
             <div className="list-tools">
               <PageSizeSelect value={pageSize} onChange={choosePageSize} />
-              <div className="view-switch" role="group" aria-label="Affichage">
-                <button type="button" className={view === 'list' ? 'zone-option active' : 'zone-option'} aria-pressed={view === 'list'} onClick={() => chooseView('list')}>▤ Liste</button>
-                <button type="button" className={view === 'grid' ? 'zone-option active' : 'zone-option'} aria-pressed={view === 'grid'} onClick={() => chooseView('grid')}>▦ Jaquettes</button>
+              <div className="view-switch" role="group" aria-label={tr('Affichage')}>
+                <button type="button" className={view === 'list' ? 'zone-option active' : 'zone-option'} aria-pressed={view === 'list'} onClick={() => chooseView('list')}>{tr('▤ Liste')}</button>
+                <button type="button" className={view === 'grid' ? 'zone-option active' : 'zone-option'} aria-pressed={view === 'grid'} onClick={() => chooseView('grid')}>{tr('▦ Jaquettes')}</button>
               </div>
             </div>
           </div>
@@ -326,12 +326,12 @@ export function Collection() {
       {error && <p className="error">{error}</p>}
       {loaded && total === 0 && (
         <div className="panel empty">
-          <p>{tab === 'owned' ? 'Aucun jeu pour le moment : ta carte mémoire est vide !' : 'Aucun jeu dans ta liste de recherche.'}</p>
-          <button type="button" className="button button-primary" onClick={() => setDialog({ open: true })}><PsSymbol shape="cross" /> Ajouter un jeu</button>
+          <p>{tab === 'owned' ? tr('Aucun jeu pour le moment : ta carte mémoire est vide !') : tr('Aucun jeu dans ta liste de recherche.')}</p>
+          <button type="button" className="button button-primary" onClick={() => setDialog({ open: true })}><PsSymbol shape="cross" />{tr(' Ajouter un jeu')}</button>
         </div>
       )}
       {loaded && total > 0 && shown.length === 0 && (
-        <p className="panel empty">Aucun exemplaire ne correspond à ces filtres.</p>
+        <p className="panel empty">{tr('Aucun exemplaire ne correspond à ces filtres.')}</p>
       )}
 
       {view === 'list' ? (
@@ -348,7 +348,7 @@ export function Collection() {
         </ul>
       )}
 
-      <Pagination page={current} pages={pages} onChange={goToPage} label="Pages de la collection" />
+      <Pagination page={current} pages={pages} onChange={goToPage} label={tr('Pages de la collection')} />
 
       <CollectionImport open={importing} onClose={() => setImporting(false)} onImported={load} existing={items} />
 
@@ -376,15 +376,15 @@ function ItemBlock({ item, standIn, onEdit, onRemove }: { item: CollectionItem; 
           <span className={`badge badge-zone badge-${(r.zone ?? 'unknown').toLowerCase()}`}>{zoneLabel(r.zone)}</span>
           <span className={`badge ${r.edition_type === 'reissue' ? 'badge-platinum' : 'badge-edition'}`}>{editionLabel(r)}</span>
           {r.box_region
-            ? <span className="badge badge-language" title={`Boîte : ${r.box_region.name}`}>Boîte {r.box_region.code === 'europe' ? 'EU' : r.box_region.code}</span>
+            ? <span className="badge badge-language" title={tr('Boîte : {0}', boxRegionName(r.box_region.code))}>{tr('Boîte ')}{r.box_region.code === 'europe' ? 'EU' : r.box_region.code}</span>
             : r.languages.length > 0 && <span className="badge badge-language" title={languagesLong(r.languages)}>{languagesShort(r.languages)}</span>}
           {item.condition && <span className={`badge badge-condition badge-${item.condition}`}>{conditionLabel(item.condition)}</span>}
           {item.trade_status && <span className="badge badge-trade">{tradeStatusLabel(item.trade_status)}</span>}
         </p>
         {item.status === 'owned' && (
           <p className="block-meta">
-            {complete ? 'Complet' : [item.has_box && 'Boîte', item.has_manual && 'Notice', item.has_media && 'Disque'].filter(Boolean).join(' + ') || 'Contenu non précisé'}
-            {item.has_spine_card && ' + spine card'}
+            {complete ? tr('Complet') : [item.has_box && tr('Boîte'), item.has_manual && tr('Notice'), item.has_media && tr('Disque')].filter(Boolean).join(' + ') || tr('Contenu non précisé')}
+            {item.has_spine_card && tr(' + spine card')}
             {item.acquisition && ` · ${acquisitionLabel(item.acquisition)}`}
             {item.purchase_place && ` (${item.purchase_place})`}
             {item.purchase_price !== null && ` · ${formatPrice(item.purchase_price)}`}
@@ -392,8 +392,8 @@ function ItemBlock({ item, standIn, onEdit, onRemove }: { item: CollectionItem; 
         )}
         {item.notes && <p className="block-notes">{item.notes}</p>}
         <div className="block-actions">
-          <button type="button" className="button button-small" onClick={onEdit}><PsSymbol shape="triangle" /> Modifier</button>
-          <button type="button" className="button button-small button-danger" onClick={onRemove}>Retirer</button>
+          <button type="button" className="button button-small" onClick={onEdit}><PsSymbol shape="triangle" />{tr(' Modifier')}</button>
+          <button type="button" className="button button-small button-danger" onClick={onRemove}>{tr('Retirer')}</button>
         </div>
       </div>
     </li>
@@ -412,7 +412,7 @@ function ItemTile({ item, standIn, onEdit }: { item: CollectionItem; standIn: St
       </Link>
       <span className="cover-tile-meta">
         {r.zone ?? '?'} · {editionLabel(r)}{r.languages.length > 0 && <span title={languagesLong(r.languages)}> · {languagesShort(r.languages)}</span>}
-        {item.status === 'owned' && complete && <span className="cover-tile-complete" title="Complet (boîte, notice, disque)"> · Complet</span>}
+        {item.status === 'owned' && complete && <span className="cover-tile-complete" title={tr('Complet (boîte, notice, disque)')}>{tr(' · Complet')}</span>}
       </span>
       {(item.condition || item.trade_status) && (
         <span className="cover-tile-badges">
@@ -420,7 +420,7 @@ function ItemTile({ item, standIn, onEdit }: { item: CollectionItem; standIn: St
           {item.trade_status && <span className="badge badge-trade">{tradeStatusLabel(item.trade_status)}</span>}
         </span>
       )}
-      <button type="button" className="link-button small" onClick={onEdit}>Modifier</button>
+      <button type="button" className="link-button small" onClick={onEdit}>{tr('Modifier')}</button>
     </li>
   );
 }

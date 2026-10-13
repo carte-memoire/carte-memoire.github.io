@@ -10,6 +10,7 @@ import { useAuth } from '../auth/AuthContext';
 import { Cover } from '../components/Cover';
 import { MemoryBar } from '../components/MemoryBar';
 import { PageSizeSelect, Pagination } from '../components/Pagination';
+import { tr, locale } from '../lib/i18n';
 
 interface PublicProfile {
   username: string;
@@ -47,7 +48,7 @@ interface PublicItem {
 }
 
 type Tab = 'owned' | 'wanted' | 'offered';
-const monthYear = new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+const monthYear = new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' });
 
 // La page publique d'une collection, à partager : chiffres, progression par région,
 // jaquettes, jeux recherchés et à échanger. Jamais les prix, lieux, dates ni notes.
@@ -100,13 +101,13 @@ export function MemberPage() {
     return [...map.values()];
   }, [items, tab, zone, query]);
 
-  if (profile === undefined) return <p className="loading">Lecture de la carte mémoire…</p>;
+  if (profile === undefined) return <p className="loading">{tr('Lecture de la carte mémoire…')}</p>;
   if (profile === null) {
     return (
       <section className="panel narrow">
-        <h1>Membre introuvable</h1>
-        {error ? <p className="error">{error}</p> : <p>Aucun membre ne s'appelle « {pseudo} ».</p>}
-        <Link to="/">Retour à l'accueil</Link>
+        <h1>{tr('Membre introuvable')}</h1>
+        {error ? <p className="error">{error}</p> : <p>{tr("Aucun membre ne s'appelle « ")}{pseudo} ».</p>}
+        <Link to="/">{tr("Retour à l'accueil")}</Link>
       </section>
     );
   }
@@ -119,7 +120,7 @@ export function MemberPage() {
   const ownedPs1 = (z: Zone) => new Set(items.filter((i) => i.status === 'owned' && i.platform === 'PS1' && i.zone === z).map((i) => i.game_id)).size;
 
   async function share() {
-    const title = `La collection de ${profile!.username} · Carte Mémoire`;
+    const title = tr('La collection de {0} · Carte Mémoire', profile!.username);
     if (navigator.share) {
       try {
         await navigator.share({ title, url });
@@ -128,9 +129,9 @@ export function MemberPage() {
     }
     try {
       await navigator.clipboard.writeText(url);
-      setShared('Lien copié : colle-le où tu veux (message, forum, réseau social).');
+      setShared(tr('Lien copié : colle-le où tu veux (message, forum, réseau social).'));
     } catch {
-      setShared(`Copie ce lien : ${url}`);
+      setShared(tr('Copie ce lien : {0}', url));
     }
   }
 
@@ -145,12 +146,12 @@ export function MemberPage() {
     <section className="stack">
       <div className="page-head">
         <div>
-          <h1>Collection de {profile.username}</h1>
-          <p className="muted">Membre depuis {monthYear.format(new Date(`${profile.member_since}T00:00:00Z`))}</p>
+          <h1>{tr('Collection de ')}{profile.username}</h1>
+          <p className="muted">{tr('Membre depuis ')}{monthYear.format(new Date(`${profile.member_since}T00:00:00Z`))}</p>
         </div>
         {profile.is_public && (
           <div className="actions">
-            <button type="button" className="button button-primary" onClick={share}>Partager cette collection</button>
+            <button type="button" className="button button-primary" onClick={share}>{tr('Partager cette collection')}</button>
           </div>
         )}
       </div>
@@ -159,29 +160,29 @@ export function MemberPage() {
 
       {profile.is_me && !profile.is_public && (
         <div className="warning">
-          <p>Ta collection est privée : personne d'autre ne voit cette page. Rends-la publique pour la partager (les prix, lieux et dates d'achat, et tes notes restent toujours privés).</p>
-          <button type="button" className="button button-small" onClick={makePublic}>Rendre ma collection publique</button>
+          <p>{tr("Ta collection est privée : personne d'autre ne voit cette page. Rends-la publique pour la partager (les prix, lieux et dates d'achat, et tes notes restent toujours privés).")}</p>
+          <button type="button" className="button button-small" onClick={makePublic}>{tr('Rendre ma collection publique')}</button>
         </div>
       )}
       {profile.is_me && profile.is_public && (
-        <p className="notice">C'est ta page publique, telle que les autres la voient. Prix, lieux et dates d'achat, et notes n'y figurent jamais. <Link to="/compte">Rendre ma collection privée</Link></p>
+        <p className="notice">{tr("C'est ta page publique, telle que les autres la voient. Prix, lieux et dates d'achat, et notes n'y figurent jamais. ")}<Link to="/compte">{tr('Rendre ma collection privée')}</Link></p>
       )}
 
       {!visible ? (
-        <div className="panel empty"><p>La collection de {profile.username} est privée.</p></div>
+        <div className="panel empty"><p>{tr('La collection de ')}{profile.username}{tr(' est privée.')}</p></div>
       ) : (
         <>
           <dl className="progress-stats panel">
-            <div><dt>Jeux possédés</dt><dd>{formatNumber(profile.owned_games ?? 0)}</dd></div>
-            <div><dt>Exemplaires</dt><dd>{formatNumber(profile.owned_copies ?? 0)}</dd></div>
-            <div><dt>Complets</dt><dd>{formatNumber(profile.complete_copies ?? 0)}</dd></div>
-            <div><dt>Sous blister</dt><dd>{formatNumber(profile.sealed_copies ?? 0)}</dd></div>
-            <div><dt>Recherchés</dt><dd>{formatNumber(profile.wanted_games ?? 0)}</dd></div>
-            <div><dt>À échanger ou vendre</dt><dd>{formatNumber(profile.offered ?? 0)}</dd></div>
+            <div><dt>{tr('Jeux possédés')}</dt><dd>{formatNumber(profile.owned_games ?? 0)}</dd></div>
+            <div><dt>{tr('Exemplaires')}</dt><dd>{formatNumber(profile.owned_copies ?? 0)}</dd></div>
+            <div><dt>{tr('Complets')}</dt><dd>{formatNumber(profile.complete_copies ?? 0)}</dd></div>
+            <div><dt>{tr('Sous blister')}</dt><dd>{formatNumber(profile.sealed_copies ?? 0)}</dd></div>
+            <div><dt>{tr('Recherchés')}</dt><dd>{formatNumber(profile.wanted_games ?? 0)}</dd></div>
+            <div><dt>{tr('À échanger ou vendre')}</dt><dd>{formatNumber(profile.offered ?? 0)}</dd></div>
           </dl>
 
           <div className="panel progress-panel">
-            <h2>PlayStation, région par région</h2>
+            <h2>{tr('PlayStation, région par région')}</h2>
             <ul className="family-list">
               {CATALOG_ZONES.map((z) => {
                 const total = totals.find((t) => t.scope === 'zone' && t.code === z.value)?.total ?? 0;
@@ -190,7 +191,7 @@ export function MemberPage() {
                   <li key={z.value} className="family-row">
                     <span className="family-name">{z.label}</span>
                     <span className="family-count">{formatNumber(owned)} / {formatNumber(total)} · {formatPercent(owned, total)}</span>
-                    <MemoryBar size="small" owned={owned} total={total} label={`${z.label} : jeux possédés`} />
+                    <MemoryBar size="small" owned={owned} total={total} label={tr('{0} : jeux possédés', z.label)} />
                   </li>
                 );
               })}
@@ -198,7 +199,7 @@ export function MemberPage() {
           </div>
 
           <div className="tabs" role="tablist">
-            {([['owned', `Sa collection (${formatNumber(profile.owned_copies ?? 0)})`], ['wanted', `Recherchés (${formatNumber(profile.wanted_games ?? 0)})`], ['offered', `À échanger ou vendre (${formatNumber(profile.offered ?? 0)})`]] as [Tab, string][]).map(([value, label]) => (
+            {([['owned', tr('Sa collection ({0})', formatNumber(profile.owned_copies ?? 0))], ['wanted', tr('Recherchés ({0})', formatNumber(profile.wanted_games ?? 0))], ['offered', tr('À échanger ou vendre ({0})', formatNumber(profile.offered ?? 0))]] as [Tab, string][]).map(([value, label]) => (
               <button key={value} type="button" role="tab" aria-selected={tab === value} className={tab === value ? 'tab active' : 'tab'}
                 onClick={() => { setTab(value); setPage(1); }}>{label}</button>
             ))}
@@ -207,25 +208,25 @@ export function MemberPage() {
           <div className="panel catalog-filters">
             <div className="row">
               <label className="field catalog-search">
-                <span className="field-label">Rechercher</span>
-                <input type="search" value={query} onChange={(e) => { setQuery(e.target.value); setPage(1); }} placeholder="Titre" maxLength={120} autoComplete="off" />
+                <span className="field-label">{tr('Rechercher')}</span>
+                <input type="search" value={query} onChange={(e) => { setQuery(e.target.value); setPage(1); }} placeholder={tr('Titre')} maxLength={120} autoComplete="off" />
               </label>
               <label className="field">
-                <span className="field-label">Zone</span>
+                <span className="field-label">{tr('Zone')}</span>
                 <select value={zone} onChange={(e) => { setZone(e.target.value); setPage(1); }}>
-                  <option value="">Toutes</option>
+                  <option value="">{tr('Toutes')}</option>
                   {CATALOG_ZONES.map((z) => <option key={z.value} value={z.value}>{z.label}</option>)}
                 </select>
               </label>
             </div>
             <div className="list-row">
-              <p className="muted small">{formatNumber(groups.length)} version{groups.length > 1 ? 's' : ''}{pages > 1 ? ` · page ${current} sur ${pages}` : ''}</p>
+              <p className="muted small">{formatNumber(groups.length)}{tr(' version{0?s}', groups.length > 1)}{pages > 1 ? tr(' · page {0} sur {1}', current, pages) : ''}</p>
               <PageSizeSelect value={pageSize} onChange={(n) => { setPageSize(n); setPage(1); }} />
             </div>
           </div>
 
           {groups.length === 0 ? (
-            <p className="panel empty">{tab === 'offered' ? 'Rien à échanger pour le moment.' : 'Aucun jeu ici pour le moment.'}</p>
+            <p className="panel empty">{tab === 'offered' ? tr('Rien à échanger pour le moment.') : tr('Aucun jeu ici pour le moment.')}</p>
           ) : (
             <ul className="cover-grid">
               {shown.map(({ item: i, count }) => (
@@ -237,7 +238,7 @@ export function MemberPage() {
                   <span className="cover-tile-meta">
                     {i.zone ?? '?'} · {editionLabel({ ...i, platform: { short_name: i.platform } })}
                     {i.languages.length > 0 && <span title={languagesLong(i.languages)}> · {languagesShort(i.languages)}</span>}
-                    {i.status === 'owned' && i.has_box && i.has_manual && i.has_media && <span className="cover-tile-complete"> · Complet</span>}
+                    {i.status === 'owned' && i.has_box && i.has_manual && i.has_media && <span className="cover-tile-complete">{tr(' · Complet')}</span>}
                   </span>
                   {(i.condition || i.trade_status) && (
                     <span className="cover-tile-badges">
@@ -249,7 +250,7 @@ export function MemberPage() {
               ))}
             </ul>
           )}
-          <Pagination page={current} pages={pages} onChange={(n) => { setPage(n); window.scrollTo({ top: 0, behavior: 'smooth' }); }} label="Pages de la collection" />
+          <Pagination page={current} pages={pages} onChange={(n) => { setPage(n); window.scrollTo({ top: 0, behavior: 'smooth' }); }} label={tr('Pages de la collection')} />
         </>
       )}
     </section>

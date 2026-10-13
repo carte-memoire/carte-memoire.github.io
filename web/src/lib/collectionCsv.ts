@@ -109,6 +109,10 @@ function parseZone(value: string): Zone | null | undefined {
 
 const CONDITION_WORDS: Record<string, ItemCondition> = {
   ...Object.fromEntries(CONDITIONS.flatMap((c) => [[searchKey(c.label), c.value], [searchKey(c.value), c.value]])),
+  // Libellés du site dans les deux langues : un fichier exporté en français se réimporte
+  // aussi en anglais, et inversement
+  neufsousblister: 'sealed', commeneuf: 'like_new', tresbonetat: 'very_good', bonetat: 'good', etatmoyen: 'fair', mauvaisetat: 'poor',
+  newsealed: 'sealed', sealed: 'sealed', resealed: 'resealed', verygood: 'very_good', good: 'good', fair: 'fair', poor: 'poor',
   neuf: 'sealed', sousblister: 'sealed', blister: 'sealed', scelle: 'sealed', neufscelle: 'sealed',
   rebliste: 'resealed', reblister: 'resealed',
   quasineuf: 'like_new', mint: 'like_new', likenew: 'like_new',
@@ -135,16 +139,16 @@ function parseBool(value: string): boolean | null | undefined {
 function parseAcquisition(value: string): AcquisitionType | null | undefined {
   const k = searchKey(value);
   if (!k) return null;
-  if (k.includes('occasion') || k === 'used') return 'used';
-  if (k.includes('cadeau') || k.includes('offert') || k === 'gift') return 'gift';
-  if (k.includes('echang') || k === 'trade') return 'trade';
-  if (k.includes('neuf') || k === 'new') return 'new';
+  if (k.includes('occasion') || k.includes('used') || k.includes('secondhand')) return 'used';
+  if (k.includes('cadeau') || k.includes('offert') || k.includes('gift')) return 'gift';
+  if (k.includes('echang') || k.includes('trade')) return 'trade';
+  if (k.includes('neuf') || k.includes('new')) return 'new';
   return undefined;
 }
 
 function parseTrade(value: string): TradeStatus | null | undefined {
   const k = searchKey(value);
-  if (!k || ['non', 'no', 'garde', 'jelegarde'].includes(k)) return null;
+  if (!k || ['non', 'no', 'garde', 'jelegarde', 'keep', 'imkeepingit'].includes(k)) return null;
   if (k.includes('vend') || k.includes('sale')) return 'for_sale';
   if (k.includes('echang') || k.includes('trade')) return 'for_trade';
   return undefined;

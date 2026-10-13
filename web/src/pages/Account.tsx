@@ -9,6 +9,7 @@ import { useConfirm } from '../components/Confirm';
 import { CodeInput } from '../components/CodeInput';
 import { PsSymbol } from '../components/PsSymbol';
 import { Dialog } from '../components/Dialog';
+import { tr, locale } from '../lib/i18n';
 
 export function Account() {
   const { profile, isModerator, aal } = useAuth();
@@ -16,11 +17,10 @@ export function Account() {
 
   return (
     <section className="stack">
-      <h1>Mon compte et sécurité</h1>
+      <h1>{tr('Mon compte et sécurité')}</h1>
       {isModerator && !mfaActive && (
         <p className="warning">
-          Tu es {profile?.role === 'admin' ? 'admin' : 'modérateur'} : active la double authentification
-          ci-dessous pour pouvoir modifier le catalogue. C'est obligatoire pour les comptes qui ont ce pouvoir.
+          {tr('Tu es ')}{profile?.role === 'admin' ? 'admin' : tr('modérateur')}{tr(" : active la double authentification ci-dessous pour pouvoir modifier le catalogue. C'est obligatoire pour les comptes qui ont ce pouvoir.")}
         </p>
       )}
       <ProfileSection />
@@ -44,11 +44,11 @@ function ProfileSection() {
   async function save(e: FormEvent) {
     e.preventDefault();
     setMessage('');
-    if (!/^[A-Za-z0-9_-]{3,30}$/.test(username)) return setError('Pseudo : 3 à 30 caractères, lettres, chiffres, « _ » ou « - ».');
+    if (!/^[A-Za-z0-9_-]{3,30}$/.test(username)) return setError(tr('Pseudo : 3 à 30 caractères, lettres, chiffres, « _ » ou « - ».'));
     const { error } = await supabase.from('profile').update({ username }).eq('id', session!.user.id);
-    if (error) return setError(error.code === '23505' ? 'Ce pseudo est déjà pris.' : errorMessage(error));
+    if (error) return setError(error.code === '23505' ? tr('Ce pseudo est déjà pris.') : errorMessage(error));
     setError('');
-    setMessage('Pseudo enregistré.');
+    setMessage(tr('Pseudo enregistré.'));
     await refresh();
   }
 
@@ -60,18 +60,18 @@ function ProfileSection() {
 
   return (
     <div className="panel">
-      <h2>Profil</h2>
-      <p className="muted small">Connecté avec {session?.user.email}</p>
+      <h2>{tr('Profil')}</h2>
+      <p className="muted small">{tr('Connecté avec ')}{session?.user.email}</p>
       <form onSubmit={save} className="form inline-form">
         <label className="field">
-          <span className="field-label">Pseudo</span>
+          <span className="field-label">{tr('Pseudo')}</span>
           <input value={username} onChange={(e) => setUsername(e.target.value)} maxLength={30} />
         </label>
-        <button type="submit" className="button"><PsSymbol shape="cross" /> Enregistrer</button>
+        <button type="submit" className="button"><PsSymbol shape="cross" />{tr(' Enregistrer')}</button>
       </form>
       <label className="switch">
         <input type="checkbox" checked={profile?.public_collection ?? false} onChange={(e) => togglePublic(e.target.checked)} />
-        Rendre ma collection visible par tout le monde
+        {tr('Rendre ma collection visible par tout le monde')}
       </label>
       {message && <p className="success">{message}</p>}
       {error && <p className="error" role="alert">{error}</p>}
@@ -106,7 +106,7 @@ function PasskeySection() {
   }
 
   async function remove(id: string) {
-    if (!(await confirm({ title: 'Supprimer la passkey', message: 'Tu ne pourras plus te connecter avec cette passkey.', confirmLabel: 'Supprimer', danger: true }))) return;
+    if (!(await confirm({ title: tr('Supprimer la passkey'), message: tr('Tu ne pourras plus te connecter avec cette passkey.'), confirmLabel: tr('Supprimer'), danger: true }))) return;
     const { error } = await supabase.auth.passkey.delete({ passkeyId: id });
     if (error) return setError(errorMessage(error));
     await load();
@@ -114,26 +114,25 @@ function PasskeySection() {
 
   return (
     <div className="panel">
-      <h2>Passkeys</h2>
+      <h2>{tr('Passkeys')}</h2>
       <p className="muted">
-        Connexion sans mot de passe avec ton empreinte, ton visage, Windows Hello ou une clé de sécurité.
-        Impossible à voler par hameçonnage (phishing) : c'est la méthode la plus sûre.
+        {tr("Connexion sans mot de passe avec ton empreinte, ton visage, Windows Hello ou une clé de sécurité. Impossible à voler par hameçonnage (phishing) : c'est la méthode la plus sûre.")}
       </p>
-      {!supported && <p className="warning">Ce navigateur ne gère pas les passkeys.</p>}
+      {!supported && <p className="warning">{tr('Ce navigateur ne gère pas les passkeys.')}</p>}
       {passkeys.length > 0 && (
         <ul className="plain-list">
           {passkeys.map((p) => (
             <li key={p.id} className="list-row">
               <span>
-                {p.friendly_name || 'Passkey'}{' '}
-                <span className="muted small">ajoutée le {new Date(p.created_at).toLocaleDateString('fr-FR')}</span>
+                {p.friendly_name || tr('Passkey')}{' '}
+                <span className="muted small">{tr('ajoutée le ')}{new Date(p.created_at).toLocaleDateString(locale)}</span>
               </span>
-              <button type="button" className="button button-small button-danger" onClick={() => remove(p.id)}>Supprimer</button>
+              <button type="button" className="button button-small button-danger" onClick={() => remove(p.id)}>{tr('Supprimer')}</button>
             </li>
           ))}
         </ul>
       )}
-      {supported && <button type="button" className="button button-primary" onClick={add} disabled={busy}><PsSymbol shape="triangle" /> Ajouter une passkey</button>}
+      {supported && <button type="button" className="button button-primary" onClick={add} disabled={busy}><PsSymbol shape="triangle" />{tr(' Ajouter une passkey')}</button>}
       {error && <p className="error" role="alert">{error}</p>}
     </div>
   );
@@ -161,7 +160,7 @@ function TotpSection() {
     for (const f of all?.all ?? []) {
       if (f.factor_type === 'totp' && f.status === 'unverified') await supabase.auth.mfa.unenroll({ factorId: f.id });
     }
-    const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: `Application (${new Date().toLocaleDateString('fr-FR')})` });
+    const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: tr('Application ({0})', new Date().toLocaleDateString(locale)) });
     if (error) return setError(errorMessage(error));
     setEnrolling({ id: data.id, qr: data.totp.qr_code, secret: data.totp.secret });
   }
@@ -185,7 +184,7 @@ function TotpSection() {
   }
 
   async function disable(id: string) {
-    if (!(await confirm({ title: 'Désactiver la double authentification', message: 'Ton compte sera moins protégé. Si tu es modérateur, tu ne pourras plus modifier le catalogue.', confirmLabel: 'Désactiver', danger: true }))) return;
+    if (!(await confirm({ title: tr('Désactiver la double authentification'), message: tr('Ton compte sera moins protégé. Si tu es modérateur, tu ne pourras plus modifier le catalogue.'), confirmLabel: tr('Désactiver'), danger: true }))) return;
     const { error } = await supabase.auth.mfa.unenroll({ factorId: id });
     if (error) return setError(errorMessage(error));
     await supabase.auth.refreshSession();
@@ -195,41 +194,39 @@ function TotpSection() {
 
   return (
     <div className="panel">
-      <h2>Double authentification</h2>
+      <h2>{tr('Double authentification')}</h2>
       <p className="muted">
-        En plus du mot de passe, un code à 6 chiffres généré par une application (Google Authenticator,
-        Microsoft Authenticator, Aegis, 2FAS…). Même si quelqu'un vole ton mot de passe, il ne peut pas
-        modifier tes données.
+        {tr("En plus du mot de passe, un code à 6 chiffres généré par une application (Google Authenticator, Microsoft Authenticator, Aegis, 2FAS…). Même si quelqu'un vole ton mot de passe, il ne peut pas modifier tes données.")}
       </p>
 
       {factors.length > 0 ? (
         <>
-          <p className="success">Activée{aal.current === 'aal2' ? ' et validée pour cette session' : ''}.</p>
+          <p className="success">{tr('Activée')}{aal.current === 'aal2' ? tr(' et validée pour cette session') : ''}.</p>
           {factors.map((f) => (
             <div key={f.id} className="list-row">
-              <span>{f.friendly_name ?? 'Application'}</span>
-              <button type="button" className="button button-small button-danger" onClick={() => disable(f.id)}>Désactiver</button>
+              <span>{f.friendly_name ?? tr('Application')}</span>
+              <button type="button" className="button button-small button-danger" onClick={() => disable(f.id)}>{tr('Désactiver')}</button>
             </div>
           ))}
         </>
       ) : enrolling ? (
         <form onSubmit={confirmEnrollment} className="form">
           <ol className="steps">
-            <li>Scanne ce QR code avec ton application :</li>
+            <li>{tr('Scanne ce QR code avec ton application :')}</li>
           </ol>
-          <img className="qr" src={enrolling.qr} alt="QR code de configuration de la double authentification" width={180} height={180} />
-          <p className="small">Ou saisis cette clé à la main : <code className="secret">{enrolling.secret}</code></p>
+          <img className="qr" src={enrolling.qr} alt={tr('QR code de configuration de la double authentification')} width={180} height={180} />
+          <p className="small">{tr('Ou saisis cette clé à la main : ')}<code className="secret">{enrolling.secret}</code></p>
           <div className="field">
-            <span className="field-label">Puis entre le code affiché par l'application</span>
-            <CodeInput label="Code affiché par l'application" value={code} onChange={setCode} onComplete={verifyEnrollment} />
+            <span className="field-label">{tr("Puis entre le code affiché par l'application")}</span>
+            <CodeInput label={tr("Code affiché par l'application")} value={code} onChange={setCode} onComplete={verifyEnrollment} />
           </div>
           <div className="actions">
-            <button type="button" className="button" onClick={() => setEnrolling(null)}><PsSymbol shape="circle" /> Annuler</button>
-            <button type="submit" className="button button-primary" disabled={code.length !== 6}><PsSymbol shape="cross" /> Activer</button>
+            <button type="button" className="button" onClick={() => setEnrolling(null)}><PsSymbol shape="circle" />{tr(' Annuler')}</button>
+            <button type="submit" className="button button-primary" disabled={code.length !== 6}><PsSymbol shape="cross" />{tr(' Activer')}</button>
           </div>
         </form>
       ) : (
-        <button type="button" className="button button-primary" onClick={start}><PsSymbol shape="triangle" /> Activer la double authentification</button>
+        <button type="button" className="button button-primary" onClick={start}><PsSymbol shape="triangle" />{tr(' Activer la double authentification')}</button>
       )}
       {error && <p className="error" role="alert">{error}</p>}
     </div>
@@ -254,39 +251,39 @@ function PasswordSection() {
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    if (!passwordIsValid(password)) return setError('Le mot de passe ne respecte pas toutes les règles.');
-    if (password !== confirm) return setError('Les deux mots de passe ne sont pas identiques.');
+    if (!passwordIsValid(password)) return setError(tr('Le mot de passe ne respecte pas toutes les règles.'));
+    if (password !== confirm) return setError(tr('Les deux mots de passe ne sont pas identiques.'));
     const { error } = await supabase.auth.updateUser({ password, nonce: code.trim() });
     if (error) return setError(errorMessage(error));
     await supabase.auth.signOut({ scope: 'others' });
     setStep('idle');
     setCode(''); setPassword(''); setConfirm(''); setError('');
-    setMessage('Mot de passe changé. Les autres appareils ont été déconnectés.');
+    setMessage(tr('Mot de passe changé. Les autres appareils ont été déconnectés.'));
   }
 
   return (
     <div className="panel">
-      <h2>Mot de passe</h2>
+      <h2>{tr('Mot de passe')}</h2>
       {step === 'idle' ? (
-        <button type="button" className="button" onClick={sendCode}>Changer mon mot de passe</button>
+        <button type="button" className="button" onClick={sendCode}>{tr('Changer mon mot de passe')}</button>
       ) : (
         <form onSubmit={submit} className="form">
           <div className="field">
-            <span className="field-label">Code à 6 chiffres reçu par e-mail</span>
-            <CodeInput label="Code à 6 chiffres reçu par e-mail" value={code} onChange={setCode} />
+            <span className="field-label">{tr('Code à 6 chiffres reçu par e-mail')}</span>
+            <CodeInput label={tr('Code à 6 chiffres reçu par e-mail')} value={code} onChange={setCode} />
           </div>
           <label className="field">
-            <span className="field-label">Nouveau mot de passe</span>
+            <span className="field-label">{tr('Nouveau mot de passe')}</span>
             <input type="password" autoComplete="new-password" required value={password} onChange={(e) => setPassword(e.target.value)} maxLength={128} />
           </label>
           <PasswordRules password={password} />
           <label className="field">
-            <span className="field-label">Confirmer</span>
+            <span className="field-label">{tr('Confirmer')}</span>
             <input type="password" autoComplete="new-password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} maxLength={128} />
           </label>
           <div className="actions">
-            <button type="button" className="button" onClick={() => setStep('idle')}><PsSymbol shape="circle" /> Annuler</button>
-            <button type="submit" className="button button-primary"><PsSymbol shape="cross" /> Changer</button>
+            <button type="button" className="button" onClick={() => setStep('idle')}><PsSymbol shape="circle" />{tr(' Annuler')}</button>
+            <button type="submit" className="button button-primary"><PsSymbol shape="cross" />{tr(' Changer')}</button>
           </div>
         </form>
       )}
@@ -303,15 +300,15 @@ function IdleSetting() {
   const label = (m: number) => (m < 60 ? `${m} minutes` : m < 1440 ? `${m / 60} heure${m > 60 ? 's' : ''}` : `${m / 1440} jour${m > 1440 ? 's' : ''}`);
   return (
     <label className="field">
-      <span className="field-label">Déconnexion automatique sur cet appareil, après</span>
+      <span className="field-label">{tr('Déconnexion automatique sur cet appareil, après')}</span>
       <select value={minutes} onChange={(e) => { const m = Number(e.target.value); rememberIdleMinutes(m); setMinutes(m); }}>
         {IDLE_CHOICES.filter((m) => !isModerator || m <= MODERATOR_MAX_IDLE_MINUTES).map((m) => (
-          <option key={m} value={m}>{label(m)} sans activité{m === DEFAULT_IDLE_MINUTES ? ' (conseillé)' : ''}</option>
+          <option key={m} value={m}>{label(m)}{tr(' sans activité')}{m === DEFAULT_IDLE_MINUTES ? tr(' (conseillé)') : ''}</option>
         ))}
       </select>
       <span className="hint">
-        Court sur un ordinateur partagé, plus long sur ton téléphone personnel.
-        {isModerator && ' Modérateurs : une heure au plus, car votre compte peut modifier le catalogue.'}
+        {tr('Court sur un ordinateur partagé, plus long sur ton téléphone personnel.')}
+        {isModerator && tr(' Modérateurs : une heure au plus, car votre compte peut modifier le catalogue.')}
       </span>
     </label>
   );
@@ -323,18 +320,18 @@ function SessionsSection() {
 
   async function signOutEverywhere() {
     if (await confirm({
-      title: 'Se déconnecter de tous les appareils',
-      message: 'Toutes les sessions ouvertes (ordinateurs, téléphones…) seront fermées, celle-ci comprise. Utile si tu as oublié de te déconnecter quelque part, ou en cas de doute.',
-      confirmLabel: 'Tout déconnecter',
+      title: tr('Se déconnecter de tous les appareils'),
+      message: tr('Toutes les sessions ouvertes (ordinateurs, téléphones…) seront fermées, celle-ci comprise. Utile si tu as oublié de te déconnecter quelque part, ou en cas de doute.'),
+      confirmLabel: tr('Tout déconnecter'),
       danger: true,
     })) await signOut(true);
   }
   return (
     <div className="panel stack">
-      <h2>Sessions</h2>
+      <h2>{tr('Sessions')}</h2>
       <IdleSetting />
-      <p className="muted">Un doute sur un appareil (ordinateur partagé, téléphone perdu) ? Déconnecte-les tous d'un coup.</p>
-      <button type="button" className="button button-danger" onClick={signOutEverywhere}>Se déconnecter de tous les appareils</button>
+      <p className="muted">{tr("Un doute sur un appareil (ordinateur partagé, téléphone perdu) ? Déconnecte-les tous d'un coup.")}</p>
+      <button type="button" className="button button-danger" onClick={signOutEverywhere}>{tr('Se déconnecter de tous les appareils')}</button>
     </div>
   );
 }
@@ -368,25 +365,23 @@ function DeleteAccountSection() {
 
   return (
     <section className="panel danger-zone">
-      <h2>Supprimer mon compte</h2>
+      <h2>{tr('Supprimer mon compte')}</h2>
       <p className="muted">
-        Ton compte, ton profil et ta collection seront effacés définitivement, ainsi que tes passkeys et ta double
-        authentification. Tes propositions déjà traitées, tes signalements et tes modifications du catalogue restent, sans
-        ton nom (« compte supprimé »). Pense à <Link to="/collection">exporter ta collection</Link> avant.
+        {tr('Ton compte, ton profil et ta collection seront effacés définitivement, ainsi que tes passkeys et ta double authentification. Tes propositions déjà traitées, tes signalements et tes modifications du catalogue restent, sans ton nom (« compte supprimé »). Pense à ')}<Link to="/collection">{tr('exporter ta collection')}</Link>{tr(' avant.')}
       </p>
-      <button type="button" className="button button-danger" onClick={() => { setOpen(true); setTyped(''); setError(''); }}>Supprimer mon compte…</button>
-      <Dialog open={open} onClose={() => setOpen(false)} title="Supprimer mon compte">
+      <button type="button" className="button button-danger" onClick={() => { setOpen(true); setTyped(''); setError(''); }}>{tr('Supprimer mon compte…')}</button>
+      <Dialog open={open} onClose={() => setOpen(false)} title={tr('Supprimer mon compte')}>
         <form onSubmit={remove} className="form">
-          <p className="warning">Suppression <strong>définitive</strong> : impossible de revenir en arrière.</p>
+          <p className="warning">{tr('Suppression ')}<strong>{tr('définitive')}</strong>{tr(' : impossible de revenir en arrière.')}</p>
           <label className="field">
-            <span className="field-label">Pour confirmer, tape SUPPRIMER</span>
+            <span className="field-label">{tr('Pour confirmer, tape SUPPRIMER')}</span>
             <input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" data-autofocus="" />
           </label>
           {error && <p className="error" role="alert">{error}</p>}
           <div className="actions">
-            <button type="button" className="button" onClick={() => setOpen(false)}><PsSymbol shape="circle" /> Annuler</button>
+            <button type="button" className="button" onClick={() => setOpen(false)}><PsSymbol shape="circle" />{tr(' Annuler')}</button>
             <button type="submit" className="button button-danger" disabled={busy || typed.trim() !== 'SUPPRIMER'}>
-              {busy ? 'Suppression…' : 'Supprimer définitivement'}
+              {busy ? tr('Suppression…') : tr('Supprimer définitivement')}
             </button>
           </div>
         </form>

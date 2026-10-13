@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { searchKey } from '../lib/format';
+import { tr } from '../lib/i18n';
 
 export interface ComboboxOption<T> {
   value: T;
@@ -11,7 +12,7 @@ const MAX_SHOWN = 60;
 
 // Champ à autocomplétion (« combobox ») : on tape, la liste se filtre ; flèches,
 // Entrée et Échap au clavier. Les accents et majuscules ne comptent pas.
-export function Combobox<T>({ label, options, onSelect, placeholder, emptyText = 'Aucun résultat' }: {
+export function Combobox<T>({ label, options, onSelect, placeholder, emptyText = tr('Aucun résultat') }: {
   label: string;
   options: ComboboxOption<T>[];
   onSelect: (option: ComboboxOption<T>) => void;

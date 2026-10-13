@@ -1,6 +1,7 @@
 import { useId, useRef, useState, type KeyboardEvent } from 'react';
 import { countryName, searchKey } from '../lib/format';
 import { findCompany, useCompanies, type CompanyOption } from '../lib/useCompanies';
+import { tr } from '../lib/i18n';
 
 // Un studio choisi : dans la liste (id), ou un nom tapé qui n'y est pas (id vide,
 // « nouveau studio », vérifié par un modérateur avant d'entrer dans la base)
@@ -84,7 +85,7 @@ export function StudioField({ label, value, onChange, hint, autoFocus }: {
         aria-autocomplete="list"
         autoComplete="off"
         maxLength={200}
-        placeholder="Tape pour chercher dans la liste"
+        placeholder={tr('Tape pour chercher dans la liste')}
         autoFocus={autoFocus}
       />
       {open && matches.length > 0 && (
@@ -98,10 +99,10 @@ export function StudioField({ label, value, onChange, hint, autoFocus }: {
           ))}
         </ul>
       )}
-      {value.id !== null && <span className="hint studio-known">✓ Studio de la liste</span>}
+      {value.id !== null && <span className="hint studio-known">{tr('✓ Studio de la liste')}</span>}
       {isNew && (
         <span className="hint studio-new">
-          Nouveau studio : il ne sera ajouté qu'après vérification par un modérateur. Vérifie l'orthographe (et la liste) avant.
+          {tr("Nouveau studio : il ne sera ajouté qu'après vérification par un modérateur. Vérifie l'orthographe (et la liste) avant.")}
         </span>
       )}
       {hint && !isNew && value.id === null && <span className="hint">{hint}</span>}

@@ -8,6 +8,7 @@ import type { BarcodeMatch } from '../lib/types';
 import { Dialog } from './Dialog';
 import { GameSearch } from './GameSearch';
 import { ScanCamera } from './ScanCamera';
+import { tr } from '../lib/i18n';
 
 // Scan du code-barres d'une boîte de jeu, pour ouvrir directement la fiche de sa version.
 // - Téléphone : l'appareil photo s'ouvre dans la fenêtre.
@@ -36,7 +37,7 @@ const ScannerContext = createContext<ScannerApi | null>(null);
 
 export function useScanner(): ScannerApi {
   const api = useContext(ScannerContext);
-  if (!api) throw new Error('useScanner doit être utilisé dans <ScannerProvider>');
+  if (!api) throw new Error(tr('useScanner doit être utilisé dans <ScannerProvider>'));
   return api;
 }
 
@@ -71,7 +72,7 @@ export function ScannerProvider({ children }: { children: ReactNode }) {
       navigate(versionPath(matches[0]));
       if (fromPhone) {
         clearTimeout(noticeTimer.current);
-        setNotice(`Code reçu du téléphone : ${matches[0].local_title}`);
+        setNotice(tr('Code reçu du téléphone : {0}', matches[0].local_title));
         noticeTimer.current = setTimeout(() => setNotice(''), 4000);
       }
       return;
@@ -127,7 +128,7 @@ export function ScannerProvider({ children }: { children: ReactNode }) {
   return (
     <ScannerContext.Provider value={api}>
       {children}
-      <Dialog open={open} onClose={close} title="Scanner un jeu">
+      <Dialog open={open} onClose={close} title={tr('Scanner un jeu')}>
         <ScannerView
           view={view}
           link={link}
@@ -159,7 +160,7 @@ function ScannerView({ view, link, phoneReady, onCode, onView, onPick, onUnknown
         <>
           <ScanCamera onCode={onCode} />
           <ManualCode onCode={onCode} />
-          {!touch && <button type="button" className="link-button small" onClick={() => onView({ kind: 'phone' })}>Scanner plutôt avec mon téléphone</button>}
+          {!touch && <button type="button" className="link-button small" onClick={() => onView({ kind: 'phone' })}>{tr('Scanner plutôt avec mon téléphone')}</button>}
         </>
       );
     case 'phone':
@@ -167,23 +168,23 @@ function ScannerView({ view, link, phoneReady, onCode, onView, onPick, onUnknown
         <>
           {link && <PhoneQr link={link} />}
           <p className={phoneReady ? 'success' : 'notice'} aria-live="polite">
-            {phoneReady ? 'Téléphone relié : scanne le code-barres de ton jeu, sa fiche s’ouvrira ici.' : 'En attente du téléphone…'}
+            {phoneReady ? tr('Téléphone relié : scanne le code-barres de ton jeu, sa fiche s’ouvrira ici.') : tr('En attente du téléphone…')}
           </p>
           <ol className="steps small">
-            <li>Ouvre l'appareil photo de ton téléphone et vise ce QR code.</li>
-            <li>Touche le lien qui apparaît : le scanner du site s'ouvre.</li>
-            <li>Scanne le code-barres au dos de la boîte : la fiche de ta version s'ouvre sur cet ordinateur. Tu peux enchaîner les jeux.</li>
+            <li>{tr("Ouvre l'appareil photo de ton téléphone et vise ce QR code.")}</li>
+            <li>{tr("Touche le lien qui apparaît : le scanner du site s'ouvre.")}</li>
+            <li>{tr("Scanne le code-barres au dos de la boîte : la fiche de ta version s'ouvre sur cet ordinateur. Tu peux enchaîner les jeux.")}</li>
           </ol>
           <ManualCode onCode={onCode} />
-          {cameraAvailable() && <button type="button" className="link-button small" onClick={() => onView({ kind: 'camera' })}>Utiliser plutôt la webcam de cet ordinateur</button>}
+          {cameraAvailable() && <button type="button" className="link-button small" onClick={() => onView({ kind: 'camera' })}>{tr('Utiliser plutôt la webcam de cet ordinateur')}</button>}
         </>
       );
     case 'looking':
-      return <p className="loading">Recherche du code {formatBarcode(view.code)}…</p>;
+      return <p className="loading">{tr('Recherche du code ')}{formatBarcode(view.code)}…</p>;
     case 'choices':
       return (
         <>
-          <p>Le code <span className="code">{formatBarcode(view.code)}</span> correspond à plusieurs versions : laquelle as-tu ?</p>
+          <p>{tr('Le code ')}<span className="code">{formatBarcode(view.code)}</span>{tr(' correspond à plusieurs versions : laquelle as-tu ?')}</p>
           <ul className="choice-list">
             {view.matches.map((m) => (
               <li key={m.release_id}><button type="button" className="choice" onClick={() => onPick(m)}>{matchLabel(m)}</button></li>
@@ -195,18 +196,17 @@ function ScannerView({ view, link, phoneReady, onCode, onView, onPick, onUnknown
       return (
         <>
           <p className="notice">
-            Le code <span className="code">{formatBarcode(view.code)}</span> n'est pas encore dans la base. Aide les autres collectionneurs :
-            retrouve ton jeu, puis choisis ta version sur sa fiche. Le prochain qui scannera ce code tombera directement dessus.
+            {tr('Le code ')}<span className="code">{formatBarcode(view.code)}</span>{tr(" n'est pas encore dans la base. Aide les autres collectionneurs : retrouve ton jeu, puis choisis ta version sur sa fiche. Le prochain qui scannera ce code tombera directement dessus.")}
           </p>
-          <GameSearch autoFocus label="Quel est ce jeu ?" onSelect={(g) => onUnknownGame(`${gamePath(g)}?code=${view.code}`)} />
-          <button type="button" className="link-button small" onClick={() => onView({ kind: touch ? 'camera' : 'phone' })}>Scanner un autre code</button>
+          <GameSearch autoFocus label={tr('Quel est ce jeu ?')} onSelect={(g) => onUnknownGame(`${gamePath(g)}?code=${view.code}`)} />
+          <button type="button" className="link-button small" onClick={() => onView({ kind: touch ? 'camera' : 'phone' })}>{tr('Scanner un autre code')}</button>
         </>
       );
     case 'error':
       return (
         <>
           <p className="error">{view.message}</p>
-          <button type="button" className="button" onClick={() => onView({ kind: touch ? 'camera' : 'phone' })}>Réessayer</button>
+          <button type="button" className="button" onClick={() => onView({ kind: touch ? 'camera' : 'phone' })}>{tr('Réessayer')}</button>
         </>
       );
   }
@@ -229,8 +229,8 @@ function PhoneQr({ link }: { link: string }) {
   return (
     <p className="center">
       {src
-        ? <img className="qr" src={src} alt="QR code à viser avec le téléphone pour ouvrir le scanner" width={220} height={220} />
-        : <span className="loading">Préparation du QR code…</span>}
+        ? <img className="qr" src={src} alt={tr('QR code à viser avec le téléphone pour ouvrir le scanner')} width={220} height={220} />
+        : <span className="loading">{tr('Préparation du QR code…')}</span>}
     </p>
   );
 }
@@ -242,17 +242,17 @@ export function ManualCode({ onCode }: { onCode: (code: string) => void }) {
   function submit(e: FormEvent) {
     e.preventDefault();
     const code = normalizeBarcode(text);
-    if (!code) return setError('Code incomplet ou mal recopié : vérifie les chiffres (13 pour un jeu européen ou japonais, 12 pour un jeu américain).');
+    if (!code) return setError(tr('Code incomplet ou mal recopié : vérifie les chiffres (13 pour un jeu européen ou japonais, 12 pour un jeu américain).'));
     setError('');
     onCode(code);
   }
   return (
     <form className="manual-code" onSubmit={submit}>
       <label className="field">
-        <span className="field-label">Ou tape les chiffres sous le code-barres</span>
+        <span className="field-label">{tr('Ou tape les chiffres sous le code-barres')}</span>
         <span className="manual-code-row">
           <input inputMode="numeric" autoComplete="off" maxLength={20} value={text} onChange={(e) => setText(e.target.value)} placeholder="5 028587 080131" />
-          <button type="submit" className="button">Chercher</button>
+          <button type="submit" className="button">{tr('Chercher')}</button>
         </span>
       </label>
       {error && <p className="error small">{error}</p>}

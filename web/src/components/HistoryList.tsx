@@ -7,18 +7,19 @@ import { errorMessage } from '../lib/errors';
 import type { CatalogChange, DatePrecision } from '../lib/types';
 import { useConfirm } from './Confirm';
 import { formatBarcode } from '../lib/barcode';
+import { tr } from '../lib/i18n';
 
 // Noms lisibles des champs modifiés
 const FIELDS: Record<string, string> = {
-  title: 'Titre', summary: 'Résumé', summary_source: 'Source du résumé', first_release_date: 'Première sortie',
-  first_release_precision: 'Précision de la date', wikidata_id: 'Wikidata', genres_reviewed: 'Genres revus',
-  local_title: 'Titre sur la boîte', zone: 'Zone', product_code: 'Code produit', edition_type: 'Édition',
-  edition_name: "Nom de l'édition", media_count: 'Disques', languages: 'Langues', specs: 'Caractéristiques',
-  game_id: 'Jeu (fusion ou déplacement)', reissue_of: "Réédition de", barcode: 'Code-barres', box_region_id: 'Boîte vendue en',
+  title: tr('Titre'), summary: tr('Résumé'), summary_source: tr('Source du résumé'), first_release_date: tr('Première sortie'),
+  first_release_precision: tr('Précision de la date'), wikidata_id: tr('Wikidata'), genres_reviewed: tr('Genres revus'),
+  local_title: tr('Titre sur la boîte'), zone: tr('Zone'), product_code: tr('Code produit'), edition_type: tr('Édition'),
+  edition_name: tr("Nom de l'édition"), media_count: tr('Disques'), languages: tr('Langues'), specs: tr('Caractéristiques'),
+  game_id: tr('Jeu (fusion ou déplacement)'), reissue_of: tr('Réédition de'), barcode: 'Code-barres', box_region_id: tr('Boîte vendue en'),
 };
 const TABLES: Record<CatalogChange['table_name'], string> = {
-  game: 'Jeu', release: 'Version', game_genre: 'Genre', image: 'Image', release_region: 'Date de sortie', release_barcode: 'Code-barres',
-  game_developer: 'Développeur', release_company: 'Éditeur',
+  game: tr('Jeu'), release: tr('Version'), game_genre: tr('Genre'), image: tr('Image'), release_region: tr('Date de sortie'), release_barcode: 'Code-barres',
+  game_developer: tr('Développeur'), release_company: tr('Éditeur'),
 };
 const ACTIONS: Record<CatalogChange['action'], string> = { insert: 'ajout', update: 'modification', delete: 'suppression' };
 
@@ -64,7 +65,7 @@ export function HistoryList({ gameId, onUndone, limit = 50, refresh }: { gameId?
   useEffect(() => { load(); }, [load, refresh]);
 
   async function undo(c: CatalogChange) {
-    if (!(await confirm({ title: 'Annuler cette modification', message: "Les valeurs d'avant seront rétablies. L'annulation sera elle-même notée dans l'historique.", confirmLabel: 'Oui, rétablir' }))) return;
+    if (!(await confirm({ title: tr('Annuler cette modification'), message: tr("Les valeurs d'avant seront rétablies. L'annulation sera elle-même notée dans l'historique."), confirmLabel: tr('Oui, rétablir') }))) return;
     const { error } = await supabase.rpc('undo_catalog_change', { change_id: c.id });
     if (error) return setError(errorMessage(error));
     await load();
@@ -73,20 +74,20 @@ export function HistoryList({ gameId, onUndone, limit = 50, refresh }: { gameId?
 
   function describe(c: CatalogChange): string[] {
     const v = c.new_values ?? c.old_values ?? {};
-    if (c.table_name === 'game_genre') return [`${c.action === 'insert' ? 'Ajouté' : 'Retiré'} : ${genres.get(Number(c.row_key.split(':')[1])) ?? `genre n° ${c.row_key.split(':')[1]}`}`];
-    if (c.table_name === 'image') return [`${c.action === 'insert' ? 'Ajoutée' : 'Supprimée'} (${show(v.type)})`];
+    if (c.table_name === 'game_genre') return [`${c.action === 'insert' ? tr('Ajouté') : tr('Retiré')} : ${genres.get(Number(c.row_key.split(':')[1])) ?? tr('genre n° {0}', c.row_key.split(':')[1])}`];
+    if (c.table_name === 'image') return [`${c.action === 'insert' ? tr('Ajoutée') : tr('Supprimée')} (${show(v.type)})`];
     if (c.table_name === 'release_region') {
-      const region = regions.find((r) => r.id === Number(c.row_key.split(':')[1]))?.name ?? 'région inconnue';
+      const region = regions.find((r) => r.id === Number(c.row_key.split(':')[1]))?.name ?? tr('région inconnue');
       // Une modification ne garde que les champs changés : la précision inchangée est prise de l'autre côté
       const precision = (x: Record<string, unknown> | null) => (x?.date_precision ?? c.new_values?.date_precision ?? c.old_values?.date_precision ?? null) as DatePrecision | null;
-      const when = (x: Record<string, unknown> | null) => formatDate((x?.release_date as string) ?? null, precision(x)) || 'date inconnue';
+      const when = (x: Record<string, unknown> | null) => formatDate((x?.release_date as string) ?? null, precision(x)) || tr('date inconnue');
       if (c.action === 'update') return [`${region} : ${when(c.old_values)} → ${when(c.new_values)}`];
-      return [`${c.action === 'insert' ? 'Ajoutée' : 'Retirée'} : ${region}, ${when(v)}`];
+      return [`${c.action === 'insert' ? tr('Ajoutée') : tr('Retirée')} : ${region}, ${when(v)}`];
     }
     if (c.table_name === 'game_developer' || c.table_name === 'release_company') {
-      return [`${c.action === 'insert' ? 'Ajouté' : 'Retiré'} : ${show(v.company_name ?? `studio n° ${v.company_id}`)}${c.table_name === 'release_company' ? ` (version n° ${show(v.release_id)})` : ''}`];
+      return [`${c.action === 'insert' ? tr('Ajouté') : tr('Retiré')} : ${show(v.company_name ?? tr('studio n° {0}', v.company_id))}${c.table_name === 'release_company' ? tr(' (version n° {0})', show(v.release_id)) : ''}`];
     }
-    if (c.table_name === 'release_barcode') return [`${c.action === 'insert' ? 'Associé' : 'Retiré'} : ${formatBarcode(String(v.barcode ?? ''))} (version n° ${show(v.release_id)})`];
+    if (c.table_name === 'release_barcode') return [tr('{0} : {1} (version n° {2})', c.action === 'insert' ? tr('Associé') : tr('Retiré'), formatBarcode(String(v.barcode ?? '')), show(v.release_id))];
     if (c.action !== 'update') return [`« ${show(v.title ?? v.local_title)} »${v.zone ? ` (${show(v.zone)})` : ''}`];
     const value = (k: string, v: unknown) => (k === 'box_region_id' && v ? regions.find((r) => r.id === Number(v))?.name ?? v : v);
     return Object.keys(c.new_values ?? {}).map((k) => `${FIELDS[k] ?? k} : ${show(value(k, c.old_values?.[k]))} → ${show(value(k, c.new_values?.[k]))}`);
@@ -95,26 +96,26 @@ export function HistoryList({ gameId, onUndone, limit = 50, refresh }: { gameId?
   const undoable = (c: CatalogChange) => !c.undone_at
     && ((c.action === 'update' && (c.table_name === 'game' || c.table_name === 'release')) || ['game_genre', 'release_barcode', 'game_developer', 'release_company'].includes(c.table_name));
 
-  if (changes === null) return <p className="loading">Lecture de l'historique…</p>;
+  if (changes === null) return <p className="loading">{tr("Lecture de l'historique…")}</p>;
   return (
     <div className="stack">
       {error && <p className="error" role="alert">{error}</p>}
-      {changes.length === 0 && <p className="muted">Aucune modification enregistrée{gameId ? ' pour ce jeu' : ''}.</p>}
+      {changes.length === 0 && <p className="muted">{tr('Aucune modification enregistrée')}{gameId ? tr(' pour ce jeu') : ''}.</p>}
       <ul className="history-list">
         {changes.map((c) => (
           <li key={c.id} className={c.undone_at ? 'history-item is-undone' : 'history-item'}>
             <p className="history-head">
               <strong>{TABLES[c.table_name]}</strong> · {ACTIONS[c.action]}
               {!gameId && c.game_id && (
-                <> · {titles.has(c.game_id) ? <Link to={gamePath({ id: c.game_id, title: titles.get(c.game_id)! })}>{titles.get(c.game_id)}</Link> : <span className="muted">jeu n° {c.game_id} (supprimé)</span>}</>
+                <> · {titles.has(c.game_id) ? <Link to={gamePath({ id: c.game_id, title: titles.get(c.game_id)! })}>{titles.get(c.game_id)}</Link> : <span className="muted">{tr('jeu n° ')}{c.game_id}{tr(' (supprimé)')}</span>}</>
               )}
-              <span className="muted small"> · {c.author?.username ?? 'compte supprimé'}, {formatDateTime(c.changed_at)}</span>
+              <span className="muted small"> · {c.author?.username ?? tr('compte supprimé')}, {formatDateTime(c.changed_at)}</span>
             </p>
             <ul className="history-details">
               {describe(c).map((line) => <li key={line}>{line}</li>)}
             </ul>
-            {c.undone_at && <p className="muted small">Annulée par {c.undoer?.username ?? '?'} le {formatDateTime(c.undone_at)}</p>}
-            {undoable(c) && <button type="button" className="link-button small" onClick={() => undo(c)}>Annuler</button>}
+            {c.undone_at && <p className="muted small">{tr('Annulée par ')}{c.undoer?.username ?? '?'} le {formatDateTime(c.undone_at)}</p>}
+            {undoable(c) && <button type="button" className="link-button small" onClick={() => undo(c)}>{tr('Annuler')}</button>}
           </li>
         ))}
       </ul>

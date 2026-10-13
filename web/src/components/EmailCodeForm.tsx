@@ -3,6 +3,7 @@ import { EMAIL_CODES, supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { PsSymbol } from './PsSymbol';
 import { CodeInput } from './CodeInput';
+import { tr } from '../lib/i18n';
 
 // Code à 6 chiffres reçu par e-mail (inscription, mot de passe oublié). Contrairement au
 // lien, il marche dans n'importe quel navigateur ou appareil : il suffit de le recopier.
@@ -54,9 +55,9 @@ export function EmailCodeForm({ email, type, onVerified, onResend }: {
 
   const resendLine = (
     <p className="muted small center">
-      Rien reçu ? Regarde dans les indésirables, ou{' '}
+      {tr('Rien reçu ? Regarde dans les indésirables, ou')}{' '}
       <button type="button" className="link-button" disabled={wait > 0} onClick={resend}>
-        renvoie l'e-mail{wait > 0 ? ` (dans ${wait} s)` : ''}
+        {tr("renvoie l'e-mail")}{wait > 0 ? tr(' (dans {0} s)', wait) : ''}
       </button>.
     </p>
   );
@@ -66,7 +67,7 @@ export function EmailCodeForm({ email, type, onVerified, onResend }: {
     return (
       <div className="form">
         {error && <p className="error" role="alert">{error}</p>}
-        {resent && <p className="success">Nouvel e-mail envoyé.</p>}
+        {resent && <p className="success">{tr('Nouvel e-mail envoyé.')}</p>}
         {resendLine}
       </div>
     );
@@ -75,13 +76,13 @@ export function EmailCodeForm({ email, type, onVerified, onResend }: {
   return (
     <form onSubmit={submit} className="form">
       <div className="field">
-        <span className="field-label center">Code à 6 chiffres reçu par e-mail</span>
-        <CodeInput label="Code à 6 chiffres reçu par e-mail" value={code} onChange={setCode} onComplete={verify} disabled={busy} autoFocus />
+        <span className="field-label center">{tr('Code à 6 chiffres reçu par e-mail')}</span>
+        <CodeInput label={tr('Code à 6 chiffres reçu par e-mail')} value={code} onChange={setCode} onComplete={verify} disabled={busy} autoFocus />
       </div>
       {error && <p className="error" role="alert">{error}</p>}
-      {resent && <p className="success">Nouvel e-mail envoyé.</p>}
+      {resent && <p className="success">{tr('Nouvel e-mail envoyé.')}</p>}
       <button type="submit" className="button button-primary button-block" disabled={busy || code.length !== 6}>
-        <PsSymbol shape="cross" /> {busy ? 'Vérification…' : 'Valider le code'}
+        <PsSymbol shape="cross" /> {busy ? tr('Vérification…') : tr('Valider le code')}
       </button>
       {resendLine}
     </form>

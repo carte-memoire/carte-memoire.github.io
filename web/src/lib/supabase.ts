@@ -1,10 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
+import { tr } from './i18n';
 
 const url = import.meta.env.VITE_SUPABASE_URL;
 const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 if (!url || !publishableKey) {
-  throw new Error('Configuration Supabase manquante : copier web/.env.example en web/.env.local et le remplir.');
+  throw new Error(tr('Configuration Supabase manquante : copier web/.env.example en web/.env.local et le remplir.'));
 }
 
 export const supabase = createClient(url, publishableKey, {

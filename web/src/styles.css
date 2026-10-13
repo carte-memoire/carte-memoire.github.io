@@ -976,3 +976,17 @@ fieldset.studio-decision { padding: 10px 12px; display: flex; flex-direction: co
 
 /* Pays de la boîte (Modifier ce jeu) */
 .field-box-region select { max-width: 340px; }
+
+/* ---------- Langue du site (FR / EN) ---------- */
+.lang-switch {
+  flex: none; font: inherit; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; cursor: pointer;
+  min-height: 30px; padding: 4px 8px; color: var(--text); background: var(--panel);
+  border: 1px solid var(--bevel-light); border-radius: var(--radius);
+}
+.lang-switch:hover { border-color: var(--cross); }
+@media (max-width: 420px) {
+  .account { gap: 6px; }
+  .lang-switch { padding: 4px 6px; }
+  .logo { gap: 6px; }
+  .logo-text { font-size: 0.55rem; }
+}

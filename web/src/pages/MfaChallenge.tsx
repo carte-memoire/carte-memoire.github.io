@@ -6,6 +6,7 @@ import { useAuth } from '../auth/AuthContext';
 import { safeNext } from '../auth/RequireAuth';
 import { PsSymbol } from '../components/PsSymbol';
 import { CodeInput } from '../components/CodeInput';
+import { tr } from '../lib/i18n';
 
 // Deuxième étape de connexion : code à 6 chiffres de l'application d'authentification
 export function MfaChallenge() {
@@ -48,15 +49,15 @@ export function MfaChallenge() {
 
   return (
     <section className="panel narrow">
-      <h1>Double authentification</h1>
-      <p>Saisis le code à 6 chiffres affiché par ton application d'authentification.</p>
+      <h1>{tr('Double authentification')}</h1>
+      <p>{tr("Saisis le code à 6 chiffres affiché par ton application d'authentification.")}</p>
       <form onSubmit={submit} className="form">
-        <CodeInput label="Code de l'application d'authentification" value={code} onChange={setCode} onComplete={verify} disabled={busy} autoFocus />
+        <CodeInput label={tr("Code de l'application d'authentification")} value={code} onChange={setCode} onComplete={verify} disabled={busy} autoFocus />
         {error && <p className="error" role="alert">{error}</p>}
-        <button type="submit" className="button button-primary button-block" disabled={busy || code.length !== 6}><PsSymbol shape="cross" /> Valider</button>
+        <button type="submit" className="button button-primary button-block" disabled={busy || code.length !== 6}><PsSymbol shape="cross" />{tr(' Valider')}</button>
       </form>
       <p className="small center">
-        <button type="button" className="link-button" onClick={() => signOut()}>Annuler et se déconnecter</button>
+        <button type="button" className="link-button" onClick={() => signOut()}>{tr('Annuler et se déconnecter')}</button>
       </p>
     </section>
   );

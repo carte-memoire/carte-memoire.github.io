@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { findCompany, useCompanies, type CompanyOption } from '../lib/useCompanies';
 import { StudioField, EMPTY_STUDIO, type StudioValue } from './StudioField';
+import { tr } from '../lib/i18n';
 
 // Décision du modérateur pour un studio proposé : créé, remplacé par un studio
 // existant (faute de frappe), ou retiré. null = rien à décider (studio connu).
@@ -29,38 +30,38 @@ export function StudioDecision({ label, id, name, choice, onChoice }: {
   if (chosen || same) {
     return (
       <p className="studio-decision">
-        <strong>{label} :</strong> {(chosen ?? same)!.name} <span className="hint studio-known">✓ {chosen ? 'choisi dans la liste' : 'existe déjà'}</span>
+        <strong>{label} :</strong> {(chosen ?? same)!.name} <span className="hint studio-known">✓ {chosen ? tr('choisi dans la liste') : tr('existe déjà')}</span>
       </p>
     );
   }
-  if (id) return <p className="studio-decision"><strong>{label} :</strong> studio n° {id} (lecture de la liste…)</p>;
+  if (id) return <p className="studio-decision"><strong>{label} :</strong>{tr(' studio n° ')}{id}{tr(' (lecture de la liste…)')}</p>;
 
   const search = encodeURIComponent(name!);
   return (
     <fieldset className="warning studio-decision">
-      <legend className="field-label">{label} : nouveau studio « {name} »</legend>
+      <legend className="field-label">{label}{tr(' : nouveau studio « ')}{name} »</legend>
       <p className="small">
-        Vérifie qu'il existe bien et que son nom est bien écrit :{' '}
-        <a href={`https://fr.wikipedia.org/w/index.php?search=${search}`} target="_blank" rel="noopener noreferrer">Wikipédia</a>,{' '}
-        <a href={`https://en.wikipedia.org/w/index.php?search=${search}`} target="_blank" rel="noopener noreferrer">Wikipedia (anglais)</a>.
+        {tr("Vérifie qu'il existe bien et que son nom est bien écrit :")}{' '}
+        <a href={`https://fr.wikipedia.org/w/index.php?search=${search}`} target="_blank" rel="noopener noreferrer">{tr('Wikipédia')}</a>,{' '}
+        <a href={`https://en.wikipedia.org/w/index.php?search=${search}`} target="_blank" rel="noopener noreferrer">{tr('Wikipedia (anglais)')}</a>.
       </p>
       <label className="radio-row">
         <input type="radio" checked={mode === 'create'} onChange={() => pick('create')} />
-        Il existe : créer le studio « {name} »
+        {tr('Il existe : créer le studio « ')}{name} »
       </label>
       <label className="radio-row">
         <input type="radio" checked={mode === 'existing'} onChange={() => pick('existing')} />
-        C'est un studio déjà connu (faute de frappe, autre nom)
+        {tr("C'est un studio déjà connu (faute de frappe, autre nom)")}
       </label>
       {mode === 'existing' && (
         <>
-          <StudioField label="Studio existant" value={other} onChange={(v) => { setOther(v); onChoice(v.id ?? undefined); }} autoFocus />
-          {choice === undefined && <span className="hint">Choisis le studio dans la liste.</span>}
+          <StudioField label={tr('Studio existant')} value={other} onChange={(v) => { setOther(v); onChoice(v.id ?? undefined); }} autoFocus />
+          {choice === undefined && <span className="hint">{tr('Choisis le studio dans la liste.')}</span>}
         </>
       )}
       <label className="radio-row">
         <input type="radio" checked={mode === 'skip'} onChange={() => pick('skip')} />
-        Ne pas renseigner ce studio
+        {tr('Ne pas renseigner ce studio')}
       </label>
     </fieldset>
   );

@@ -17,6 +17,7 @@ import { ReportQueue } from '../components/ReportQueue';
 import { StudioQueue } from '../components/StudioQueue';
 import { needsStudioDecision, StudioDecision, type StudioChoice } from '../components/StudioDecision';
 import { forgetCompanies, useCompanies } from '../lib/useCompanies';
+import { tr, locale } from '../lib/i18n';
 
 type Tab = 'submissions' | 'reports' | 'duplicates' | 'studios' | 'genres' | 'covers' | 'history';
 
@@ -34,34 +35,34 @@ export function Moderation() {
 
   return (
     <section className="stack">
-      <h1>Modération</h1>
+      <h1>{tr('Modération')}</h1>
       {aal.current !== 'aal2' && (
         <p className="warning">
-          Accepter, refuser ou fusionner demande la double authentification.{' '}
-          <Link to="/compte">Active-la ou valide-la dans « Mon compte »</Link>.
+          {tr('Accepter, refuser ou fusionner demande la double authentification.')}{' '}
+          <Link to="/compte">{tr('Active-la ou valide-la dans « Mon compte »')}</Link>.
         </p>
       )}
       <div className="tabs" role="tablist">
         <button type="button" role="tab" aria-selected={tab === 'submissions'} className={tab === 'submissions' ? 'tab active' : 'tab'} onClick={() => setTab('submissions')}>
-          Propositions ({counts.submissions})
+          {tr('Propositions (')}{counts.submissions})
         </button>
         <button type="button" role="tab" aria-selected={tab === 'reports'} className={tab === 'reports' ? 'tab active' : 'tab'} onClick={() => setTab('reports')}>
-          Signalements ({counts.reports})
+          {tr('Signalements (')}{counts.reports})
         </button>
         <button type="button" role="tab" aria-selected={tab === 'duplicates'} className={tab === 'duplicates' ? 'tab active' : 'tab'} onClick={() => setTab('duplicates')}>
-          Doublons possibles ({counts.duplicates})
+          {tr('Doublons possibles (')}{counts.duplicates})
         </button>
         <button type="button" role="tab" aria-selected={tab === 'studios'} className={tab === 'studios' ? 'tab active' : 'tab'} onClick={() => setTab('studios')}>
-          Studios en double ({counts.studios})
+          {tr('Studios en double (')}{counts.studios})
         </button>
         <button type="button" role="tab" aria-selected={tab === 'genres'} className={tab === 'genres' ? 'tab active' : 'tab'} onClick={() => setTab('genres')}>
-          Jeux sans genre ({counts.genres})
+          {tr('Jeux sans genre (')}{counts.genres})
         </button>
         <button type="button" role="tab" aria-selected={tab === 'covers'} className={tab === 'covers' ? 'tab active' : 'tab'} onClick={() => setTab('covers')}>
-          Jaquettes manquantes ({counts.covers})
+          {tr('Jaquettes manquantes (')}{counts.covers})
         </button>
         <button type="button" role="tab" aria-selected={tab === 'history'} className={tab === 'history' ? 'tab active' : 'tab'} onClick={() => setTab('history')}>
-          Historique
+          {tr('Historique')}
         </button>
       </div>
       {/* Les onglets restent montés pour garder leurs compteurs à jour */}
@@ -102,8 +103,8 @@ function SubmissionQueue({ onCount }: { onCount: (n: number) => void }) {
   useEffect(() => { load(); }, [load]);
 
   function finished(s: Submission, result: { approved: boolean; gameId?: number }) {
-    const name = s.data.game?.title ?? s.data.release?.local_title ?? (s.data.summary ? 'Résumé' : 'Proposition');
-    setDone((d) => [{ text: `${name} : ${result.approved ? 'ajouté au catalogue' : 'refusé'}`, gameId: result.gameId }, ...d].slice(0, 5));
+    const name = s.data.game?.title ?? s.data.release?.local_title ?? (s.data.summary ? tr('Résumé') : tr('Proposition'));
+    setDone((d) => [{ text: `${name} : ${result.approved ? tr('ajouté au catalogue') : tr('refusé')}`, gameId: result.gameId }, ...d].slice(0, 5));
     load();
   }
 
@@ -111,11 +112,11 @@ function SubmissionQueue({ onCount }: { onCount: (n: number) => void }) {
     <div className="stack">
       {done.map((d, i) => (
         <p key={i} className="success">
-          {d.text}{d.gameId && <> · <Link to={`/jeu/${d.gameId}`}>voir la fiche</Link></>}
+          {d.text}{d.gameId && <> · <Link to={`/jeu/${d.gameId}`}>{tr('voir la fiche')}</Link></>}
         </p>
       ))}
       {error && <p className="error">{error}</p>}
-      {loaded && items.length === 0 && <p className="panel empty">Aucune proposition en attente. <PsSymbol shape="triangle" /></p>}
+      {loaded && items.length === 0 && <p className="panel empty">{tr('Aucune proposition en attente. ')}<PsSymbol shape="triangle" /></p>}
       {items.map((s) => s.action === 'update' && s.target === 'game'
         ? <SummaryCard key={s.id} submission={s} onDone={(r) => finished(s, r)} />
         : <SubmissionCard key={s.id} submission={s} onDone={(r) => finished(s, r)} />)}
@@ -187,7 +188,7 @@ function SubmissionCard({ submission: s, onDone }: { submission: Submission; onD
   }
 
   async function reject() {
-    if (!note.trim()) return setError("Indique le motif du refus : il sera affiché à l'auteur.");
+    if (!note.trim()) return setError(tr("Indique le motif du refus : il sera affiché à l'auteur."));
     setBusy(true);
     setError('');
     const { error } = await supabase.rpc('review_submission', { submission_id: s.id, approve: false, note: note.trim() });
@@ -205,49 +206,49 @@ function SubmissionCard({ submission: s, onDone }: { submission: Submission; onD
     <article className="panel submission-card">
       <div className="submission-head">
         <div className={`cover cover-medium${s.data.no_cover ? ' cover-disabled' : ''}`}>
-          {coverUrl ? <img src={coverUrl} alt="Jaquette proposée" /> : <span className="cover-empty" aria-hidden="true"><PsSymbol shape="square" /></span>}
+          {coverUrl ? <img src={coverUrl} alt={tr('Jaquette proposée')} /> : <span className="cover-empty" aria-hidden="true"><PsSymbol shape="square" /></span>}
         </div>
         <div className="submission-info">
           <p className="muted small">
-            {isNewGame ? 'Nouveau jeu' : 'Nouvelle version'} · proposé par <strong>{s.author?.username ?? 'compte supprimé'}</strong> le {new Date(s.created_at).toLocaleDateString('fr-FR')}
+            {isNewGame ? tr('Nouveau jeu') : tr('Nouvelle version')}{tr(' · proposé par ')}<strong>{s.author?.username ?? tr('compte supprimé')}</strong> le {new Date(s.created_at).toLocaleDateString(locale)}
           </p>
           <h2>{isNewGame ? s.data.game?.title : existingGame ? <Link to={gamePath(existingGame)}>{existingGame.title}</Link> : '…'}</h2>
-          {s.data.no_cover && <p className="badge badge-todo">Déclaré sans jaquette</p>}
+          {s.data.no_cover && <p className="badge badge-todo">{tr('Déclaré sans jaquette')}</p>}
           {r && (
             <dl className="facts">
-              <dt>Console</dt><dd>{platformName}</dd>
-              <dt>Zone</dt><dd>{zoneLabel((r.zone ?? null) as Zone | null)}</dd>
-              <dt>Titre sur la boîte</dt><dd>{r.local_title}</dd>
-              {r.product_code && (<><dt>Code produit</dt><dd className="code">{r.product_code.toUpperCase()}</dd></>)}
-              <dt>Édition</dt><dd>{EDITION_TYPES.find((t) => t.value === r.edition_type)?.label.split(' (')[0]}{r.edition_name ? ` · ${r.edition_name}` : ''}</dd>
-              {r.release_date && (<><dt>Sortie</dt><dd>{formatDate(r.release_date, r.date_precision ?? 'day')}{r.region_code ? ` (${r.region_code})` : ''}</dd></>)}
-              {r.languages && r.languages.length > 0 && (<><dt>Langues</dt><dd>{r.languages.map((l) => LANGUAGES.find((x) => x.value === l)?.label ?? l).join(', ')}</dd></>)}
+              <dt>{tr('Console')}</dt><dd>{platformName}</dd>
+              <dt>{tr('Zone')}</dt><dd>{zoneLabel((r.zone ?? null) as Zone | null)}</dd>
+              <dt>{tr('Titre sur la boîte')}</dt><dd>{r.local_title}</dd>
+              {r.product_code && (<><dt>{tr('Code produit')}</dt><dd className="code">{r.product_code.toUpperCase()}</dd></>)}
+              <dt>{tr('Édition')}</dt><dd>{EDITION_TYPES.find((t) => t.value === r.edition_type)?.label.split(' (')[0]}{r.edition_name ? ` · ${r.edition_name}` : ''}</dd>
+              {r.release_date && (<><dt>{tr('Sortie')}</dt><dd>{formatDate(r.release_date, r.date_precision ?? 'day')}{r.region_code ? ` (${r.region_code})` : ''}</dd></>)}
+              {r.languages && r.languages.length > 0 && (<><dt>{tr('Langues')}</dt><dd>{r.languages.map((l) => LANGUAGES.find((x) => x.value === l)?.label ?? l).join(', ')}</dd></>)}
             </dl>
           )}
-          {s.sources && <p className="block-notes">Sources : {s.sources}</p>}
+          {s.sources && <p className="block-notes">{tr('Sources : ')}{s.sources}</p>}
         </div>
       </div>
 
       {r && (
         <div className="stack studio-decisions">
-          <StudioDecision label="Éditeur" id={r.publisher_id} name={r.publisher_name} choice={studios.publisher}
+          <StudioDecision label={tr('Éditeur')} id={r.publisher_id} name={r.publisher_name} choice={studios.publisher}
             onChoice={(c) => setStudios((d) => ({ ...d, publisher: c }))} />
-          <StudioDecision label="Développeur" id={r.developer_id} name={r.developer_name} choice={studios.developer}
+          <StudioDecision label={tr('Développeur')} id={r.developer_id} name={r.developer_name} choice={studios.developer}
             onChoice={(c) => setStudios((d) => ({ ...d, developer: c }))} />
         </div>
       )}
 
       {isNewGame && similar.length > 0 && (
         <fieldset className="notice">
-          <legend className="field-label">Ce jeu existe peut-être déjà</legend>
+          <legend className="field-label">{tr('Ce jeu existe peut-être déjà')}</legend>
           <label className="radio-row">
             <input type="radio" name={`attach-${s.id}`} checked={attachTo === null} onChange={() => setAttachTo(null)} />
-            Non, c'est un nouveau jeu
+            {tr("Non, c'est un nouveau jeu")}
           </label>
           {similar.map((g) => (
             <label key={g.id} className="radio-row">
               <input type="radio" name={`attach-${s.id}`} checked={attachTo === g.id} onChange={() => setAttachTo(g.id)} />
-              Oui : ajouter seulement la version à <Link to={gamePath(g)} target="_blank" rel="noopener">{g.title}</Link>
+              {tr('Oui : ajouter seulement la version à ')}<Link to={gamePath(g)} target="_blank" rel="noopener">{g.title}</Link>
               <span className="muted"> {yearOf(g.first_release_date)}</span>
             </label>
           ))}
@@ -255,17 +256,17 @@ function SubmissionCard({ submission: s, onDone }: { submission: Submission; onD
       )}
 
       <label className="field">
-        <span className="field-label">Commentaire (obligatoire pour un refus, visible par l'auteur)</span>
+        <span className="field-label">{tr("Commentaire (obligatoire pour un refus, visible par l'auteur)")}</span>
         <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} maxLength={2000} />
       </label>
       {error && <p className="error" role="alert">{error}</p>}
       <div className="actions">
         <button type="button" className="button button-primary" onClick={approve} disabled={busy || undecided}
-          title={undecided ? "Décide d'abord du nouveau studio" : undefined}>
-          <PsSymbol shape="cross" /> {attachTo ? 'Accepter (version du jeu choisi)' : 'Accepter'}
+          title={undecided ? tr("Décide d'abord du nouveau studio") : undefined}>
+          <PsSymbol shape="cross" /> {attachTo ? tr('Accepter (version du jeu choisi)') : tr('Accepter')}
         </button>
         <button type="button" className="button button-danger" onClick={reject} disabled={busy}>
-          <PsSymbol shape="circle" /> Refuser
+          <PsSymbol shape="circle" />{tr(' Refuser')}
         </button>
       </div>
     </article>
@@ -285,7 +286,7 @@ function SummaryCard({ submission: s, onDone }: { submission: Submission; onDone
   }, [s.target_id]);
 
   async function review(approve: boolean) {
-    if (!approve && !note.trim()) return setError("Indique le motif du refus : il sera affiché à l'auteur.");
+    if (!approve && !note.trim()) return setError(tr("Indique le motif du refus : il sera affiché à l'auteur."));
     setBusy(true);
     setError('');
     const { data, error } = await supabase.rpc('review_submission', { submission_id: s.id, approve, note: note.trim() || null });
@@ -299,31 +300,31 @@ function SummaryCard({ submission: s, onDone }: { submission: Submission; onDone
   return (
     <article className="panel submission-card">
       <p className="muted small">
-        Résumé · proposé par <strong>{s.author?.username ?? 'compte supprimé'}</strong> le {new Date(s.created_at).toLocaleDateString('fr-FR')}
+        {tr('Résumé · proposé par ')}<strong>{s.author?.username ?? tr('compte supprimé')}</strong> le {new Date(s.created_at).toLocaleDateString(locale)}
       </p>
       <h2>{game ? <Link to={gamePath(game)} target="_blank" rel="noopener">{game.title}</Link> : '…'}</h2>
       <div className="summary-compare">
         <div>
-          <p className="field-label">Résumé actuel{game?.summary_source ? ' (Wikipédia)' : ''}</p>
-          <p className="summary muted">{game?.summary ?? 'Aucun résumé pour le moment.'}</p>
+          <p className="field-label">{tr('Résumé actuel')}{game?.summary_source ? tr(' (Wikipédia)') : ''}</p>
+          <p className="summary muted">{game?.summary ?? tr('Aucun résumé pour le moment.')}</p>
         </div>
         <div>
-          <p className="field-label">Résumé proposé</p>
+          <p className="field-label">{tr('Résumé proposé')}</p>
           <p className="summary">{s.data.summary}</p>
         </div>
       </div>
-      {s.sources && <p className="block-notes">Sources : {s.sources}</p>}
+      {s.sources && <p className="block-notes">{tr('Sources : ')}{s.sources}</p>}
       <label className="field">
-        <span className="field-label">Commentaire (obligatoire pour un refus, visible par l'auteur)</span>
+        <span className="field-label">{tr("Commentaire (obligatoire pour un refus, visible par l'auteur)")}</span>
         <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} maxLength={2000} />
       </label>
       {error && <p className="error" role="alert">{error}</p>}
       <div className="actions">
         <button type="button" className="button button-primary" onClick={() => review(true)} disabled={busy}>
-          <PsSymbol shape="cross" /> Accepter ce résumé
+          <PsSymbol shape="cross" />{tr(' Accepter ce résumé')}
         </button>
         <button type="button" className="button button-danger" onClick={() => review(false)} disabled={busy}>
-          <PsSymbol shape="circle" /> Refuser
+          <PsSymbol shape="circle" />{tr(' Refuser')}
         </button>
       </div>
     </article>
@@ -392,19 +393,18 @@ function DuplicateList({ onCount }: { onCount: (n: number) => void }) {
         if (error?.message.includes('identifiants Wikidata différents')) {
           const b = games.get(other);
           const ok = await confirm({
-            title: 'Fiches Wikidata différentes',
+            title: tr('Fiches Wikidata différentes'),
             message: (
               <>
                 <p>
-                  « {kept?.title} » ({kept?.wikidata_id}) et « {b?.title} » ({b?.wikidata_id}) ont chacun leur fiche Wikidata.
+                  « {kept?.title} » ({kept?.wikidata_id}{tr(') et « ')}{b?.title} » ({b?.wikidata_id}{tr(') ont chacun leur fiche Wikidata.')}
                 </p>
                 <p className="muted">
-                  Ce sont souvent deux jeux distincts (un original et son remake…), mais Wikidata a aussi des doublons.
-                  Vérifie avec les liens Wikidata en cas de doute. La fiche gardée conserve son identifiant.
+                  {tr('Ce sont souvent deux jeux distincts (un original et son remake…), mais Wikidata a aussi des doublons. Vérifie avec les liens Wikidata en cas de doute. La fiche gardée conserve son identifiant.')}
                 </p>
               </>
             ),
-            confirmLabel: 'Fusionner quand même',
+            confirmLabel: tr('Fusionner quand même'),
           });
           if (!ok) continue;
           ({ error } = await supabase.rpc('merge_games', { keep_id: keepId, duplicate_id: other, force: true }));
@@ -412,7 +412,7 @@ function DuplicateList({ onCount }: { onCount: (n: number) => void }) {
         if (error) throw error;
         merged++;
       }
-      if (merged > 0) notify(`« ${kept?.title} » : ${merged + 1} fiches fusionnées en une.`);
+      if (merged > 0) notify(tr('« {0} » : {1} fiches fusionnées en une.', kept?.title, merged + 1));
       await load();
     } catch (err) {
       setGroupError({ key: group.title_key, text: errorMessage(err) });
@@ -428,18 +428,17 @@ function DuplicateList({ onCount }: { onCount: (n: number) => void }) {
     const { error } = await supabase.from('dismissed_duplicate').insert({ title_key: group.title_key, game_ids: group.game_ids });
     setBusyKey('');
     if (error) return setGroupError({ key: group.title_key, text: errorMessage(error) });
-    notify(`« ${group.titles[0]} » : marqué comme « pas des doublons ».`);
+    notify(tr('« {0} » : marqué comme « pas des doublons ».', group.titles[0]));
     await load();
   }
 
   return (
     <div className="stack">
       <p className="muted">
-        Fiches qui portent le même titre (aux majuscules, accents et ponctuation près). Choisis la fiche à garder :
-        les versions, développeurs et genres des autres y sont regroupés. Ou indique que ce ne sont pas des doublons.
+        {tr('Fiches qui portent le même titre (aux majuscules, accents et ponctuation près). Choisis la fiche à garder : les versions, développeurs et genres des autres y sont regroupés. Ou indique que ce ne sont pas des doublons.')}
       </p>
       {error && <p className="error" role="alert">{error}</p>}
-      {loaded && groups.length === 0 && <p className="panel empty">Aucun doublon possible. <PsSymbol shape="triangle" /></p>}
+      {loaded && groups.length === 0 && <p className="panel empty">{tr('Aucun doublon possible. ')}<PsSymbol shape="triangle" /></p>}
       {groups.map((group) => (
         <article key={group.title_key} className={`panel${busyKey === group.title_key ? ' is-busy' : ''}`}>
           <div className="duplicate-row">
@@ -448,9 +447,9 @@ function DuplicateList({ onCount }: { onCount: (n: number) => void }) {
           {groupError?.key === group.title_key && <p className="error" role="alert">{groupError.text}</p>}
           <div className="actions">
             <button type="button" className="button button-small" onClick={() => dismiss(group)} disabled={!!busyKey}>
-              <PsSymbol shape="circle" /> Ce ne sont pas des doublons
+              <PsSymbol shape="circle" />{tr(' Ce ne sont pas des doublons')}
             </button>
-            {busyKey === group.title_key && <span className="muted small">Fusion en cours…</span>}
+            {busyKey === group.title_key && <span className="muted small">{tr('Fusion en cours…')}</span>}
           </div>
         </article>
       ))}
@@ -475,15 +474,15 @@ function DuplicateCard({ game, disabled, onKeep }: { game?: DuplicateGame; disab
       <div>
         <Link to={gamePath(game)} target="_blank" rel="noopener" className="block-title">{game.title}</Link>
         <p className="muted small">
-          {yearOf(game.first_release_date) || 'année inconnue'} · {game.release.length} version{game.release.length > 1 ? 's' : ''} : {summary || 'aucune'}
+          {yearOf(game.first_release_date) || tr('année inconnue')} · {game.release.length}{tr(' version{0?s} : ', game.release.length > 1)}{summary || tr('aucune')}
         </p>
         <p className="muted small">
           {game.wikidata_id
-            ? <a href={`https://www.wikidata.org/wiki/${game.wikidata_id}`} target="_blank" rel="noopener noreferrer">Wikidata {game.wikidata_id}</a>
-            : 'Sans fiche Wikidata'}
+            ? <a href={`https://www.wikidata.org/wiki/${game.wikidata_id}`} target="_blank" rel="noopener noreferrer">{tr('Wikidata ')}{game.wikidata_id}</a>
+            : tr('Sans fiche Wikidata')}
         </p>
         <button type="button" className="button button-small button-primary" onClick={onKeep} disabled={disabled}>
-          <PsSymbol shape="cross" /> Garder celle-ci
+          <PsSymbol shape="cross" />{tr(' Garder celle-ci')}
         </button>
       </div>
     </div>

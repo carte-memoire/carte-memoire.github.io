@@ -6,6 +6,7 @@ import { errorMessage } from '../lib/errors';
 import type { Game, ReportKind } from '../lib/types';
 import { Dialog } from './Dialog';
 import { PsSymbol } from './PsSymbol';
+import { tr } from '../lib/i18n';
 
 // « Signaler une erreur » sur la fiche d'un jeu : un modérateur la corrigera
 export function ReportDialog({ game, open, onClose }: { game: Game; open: boolean; onClose: () => void }) {
@@ -18,7 +19,7 @@ export function ReportDialog({ game, open, onClose }: { game: Game; open: boolea
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    if (message.trim().length < 10) return setError('Décris l\'erreur en quelques mots (10 caractères au moins).');
+    if (message.trim().length < 10) return setError(tr("Décris l'erreur en quelques mots (10 caractères au moins)."));
     setBusy(true);
     setError('');
     const { error } = await supabase.from('report').insert({
@@ -37,28 +38,28 @@ export function ReportDialog({ game, open, onClose }: { game: Game; open: boolea
   }
 
   return (
-    <Dialog open={open} onClose={close} title={`Signaler une erreur : ${game.title}`}>
+    <Dialog open={open} onClose={close} title={tr('Signaler une erreur : {0}', game.title)}>
       {sent ? (
         <>
-          <p className="success">Merci ! Un modérateur va vérifier. Tu suivras la réponse dans « Mes propositions ».</p>
+          <p className="success">{tr('Merci ! Un modérateur va vérifier. Tu suivras la réponse dans « Mes propositions ».')}</p>
           <div className="actions">
-            <Link to="/mes-propositions" className="button" onClick={close}>Mes propositions</Link>
-            <button type="button" className="button button-primary" onClick={close}><PsSymbol shape="cross" /> Fermer</button>
+            <Link to="/mes-propositions" className="button" onClick={close}>{tr('Mes propositions')}</Link>
+            <button type="button" className="button button-primary" onClick={close}><PsSymbol shape="cross" />{tr(' Fermer')}</button>
           </div>
         </>
       ) : (
         <form onSubmit={submit} className="form">
           <label className="field">
-            <span className="field-label">Qu'est-ce qui est faux ?</span>
+            <span className="field-label">{tr("Qu'est-ce qui est faux ?")}</span>
             <select value={kind} onChange={(e) => setKind(e.target.value as ReportKind)}>
               {REPORT_KINDS.map((k) => <option key={k.value} value={k.value}>{k.label}</option>)}
             </select>
           </label>
           {game.release.length > 1 && (
             <label className="field">
-              <span className="field-label">Version concernée (facultatif)</span>
+              <span className="field-label">{tr('Version concernée (facultatif)')}</span>
               <select value={releaseId} onChange={(e) => setReleaseId(e.target.value)}>
-                <option value="">Le jeu en général</option>
+                <option value="">{tr('Le jeu en général')}</option>
                 {game.release.map((r) => (
                   <option key={r.id} value={r.id}>{r.local_title} · {zoneLabel(r.zone)}{r.product_code ? ` · ${r.product_code}` : ''}</option>
                 ))}
@@ -66,14 +67,14 @@ export function ReportDialog({ game, open, onClose }: { game: Game; open: boolea
             </label>
           )}
           <label className="field">
-            <span className="field-label">Explique (et donne ta source si tu en as une)</span>
+            <span className="field-label">{tr('Explique (et donne ta source si tu en as une)')}</span>
             <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={4} maxLength={1000} required data-autofocus=""
-              placeholder="Ex. : c'est un jeu de plates-formes, pas un RPG (voir la notice / Wikipédia…)" />
+              placeholder={tr("Ex. : c'est un jeu de plates-formes, pas un RPG (voir la notice / Wikipédia…)")} />
           </label>
           {error && <p className="error" role="alert">{error}</p>}
           <div className="actions">
-            <button type="button" className="button" onClick={close}><PsSymbol shape="circle" /> Annuler</button>
-            <button type="submit" className="button button-primary" disabled={busy}><PsSymbol shape="cross" /> Envoyer</button>
+            <button type="button" className="button" onClick={close}><PsSymbol shape="circle" />{tr(' Annuler')}</button>
+            <button type="submit" className="button button-primary" disabled={busy}><PsSymbol shape="cross" />{tr(' Envoyer')}</button>
           </div>
         </form>
       )}

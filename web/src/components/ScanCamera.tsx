@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { normalizeBarcode } from '../lib/barcode';
+import { tr } from '../lib/i18n';
 
 // Lecture des codes-barres dans l'image de l'appareil photo. Tout se passe dans le
 // navigateur : aucune image ne quitte l'appareil. Le lecteur intégré au navigateur
@@ -18,10 +19,10 @@ const FORMATS = ['ean_13', 'ean_8', 'upc_a'];
 
 function cameraError(e: unknown): string {
   const name = e instanceof DOMException ? e.name : '';
-  if (name === 'NotAllowedError' || name === 'SecurityError') return "Accès à l'appareil photo refusé. Autorise-le dans les réglages du navigateur (icône à gauche de l'adresse), puis réessaie.";
-  if (name === 'NotFoundError' || name === 'OverconstrainedError') return 'Aucun appareil photo trouvé sur cet appareil.';
-  if (name === 'NotReadableError') return "L'appareil photo est déjà utilisé par une autre application.";
-  return "Impossible d'ouvrir l'appareil photo.";
+  if (name === 'NotAllowedError' || name === 'SecurityError') return tr("Accès à l'appareil photo refusé. Autorise-le dans les réglages du navigateur (icône à gauche de l'adresse), puis réessaie.");
+  if (name === 'NotFoundError' || name === 'OverconstrainedError') return tr('Aucun appareil photo trouvé sur cet appareil.');
+  if (name === 'NotReadableError') return tr("L'appareil photo est déjà utilisé par une autre application.");
+  return tr("Impossible d'ouvrir l'appareil photo.");
 }
 
 // continuous : continue après chaque code (scan d'une pile de jeux) ; sinon s'arrête au premier
@@ -36,7 +37,7 @@ export function ScanCamera({ onCode, continuous = false }: { onCode: (code: stri
 
   useEffect(() => {
     if (!navigator.mediaDevices?.getUserMedia) {
-      setError("Ce navigateur ne permet pas d'utiliser l'appareil photo (il faut une page sécurisée en https).");
+      setError(tr("Ce navigateur ne permet pas d'utiliser l'appareil photo (il faut une page sécurisée en https)."));
       return;
     }
     let stopped = false;
@@ -118,12 +119,12 @@ export function ScanCamera({ onCode, continuous = false }: { onCode: (code: stri
         <p className="error">{error}</p>
       ) : (
         <div className={flash ? 'scan-view is-flash' : 'scan-view'}>
-          <video ref={video} muted playsInline aria-label="Image de l'appareil photo" />
+          <video ref={video} muted playsInline aria-label={tr("Image de l'appareil photo")} />
           <span className="scan-frame" aria-hidden="true" />
-          {!ready && <span className="scan-wait">Ouverture de l'appareil photo…</span>}
+          {!ready && <span className="scan-wait">{tr("Ouverture de l'appareil photo…")}</span>}
         </div>
       )}
-      {!error && <p className="hint center">Place le code-barres de la boîte dans le cadre, bien à plat et éclairé.</p>}
+      {!error && <p className="hint center">{tr('Place le code-barres de la boîte dans le cadre, bien à plat et éclairé.')}</p>}
     </div>
   );
 }

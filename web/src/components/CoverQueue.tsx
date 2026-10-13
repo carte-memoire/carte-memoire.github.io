@@ -11,14 +11,15 @@ import { Cover } from './Cover';
 import { PageSizeSelect, Pagination } from './Pagination';
 import { PsSymbol } from './PsSymbol';
 import { useKnownPlatform } from '../lib/usePlatforms';
+import { tr } from '../lib/i18n';
 
 // Files de modération : 100 au plus par page (plafond des fonctions)
 const QUEUE_SIZES = [10, 20, 50, 100];
 
 const EDITIONS: { value: EditionType | ''; label: string }[] = [
-  { value: 'reissue', label: 'Rééditions (Platinum…)' },
-  { value: 'standard', label: 'Éditions standard' },
-  { value: '', label: 'Toutes' },
+  { value: 'reissue', label: tr('Rééditions (Platinum…)') },
+  { value: 'standard', label: tr('Éditions standard') },
+  { value: '', label: tr('Toutes') },
 ];
 
 interface CoverRow {
@@ -118,7 +119,7 @@ export function CoverQueue({ onCount, active }: { onCount: (n: number) => void; 
 
   async function send(row: CoverRow, file: File | null) {
     if (!file) {
-      setError("Le presse-papiers ne contient pas d'image : sur l'autre site, fais un clic droit sur l'image puis « Copier l'image ».");
+      setError(tr("Le presse-papiers ne contient pas d'image : sur l'autre site, fais un clic droit sur l'image puis « Copier l'image »."));
       return;
     }
     if (busyId !== null) return;
@@ -128,7 +129,7 @@ export function CoverQueue({ onCount, active }: { onCount: (n: number) => void; 
     try {
       const { id, path } = await uploadReleaseImage(row.id, 'front', file, session!.user.id);
       setLast({ row, imageId: id, path });
-      setMessage(`Jaquette ajoutée à « ${row.local_title} » (${zoneLabel(row.zone)}, ${label(row)}).`);
+      setMessage(tr('Jaquette ajoutée à « {0} » ({1}, {2}).', row.local_title, zoneLabel(row.zone), label(row)));
       done(row.id, true);
     } catch (err) {
       setError(`${row.local_title} : ${errorMessage(err)}`);
@@ -148,7 +149,7 @@ export function CoverQueue({ onCount, active }: { onCount: (n: number) => void; 
       }
       send(row, null);
     } catch {
-      setError('Le navigateur ne laisse pas lire le presse-papiers : appuie sur Ctrl+V, la jaquette ira sur la carte encadrée.');
+      setError(tr('Le navigateur ne laisse pas lire le presse-papiers : appuie sur Ctrl+V, la jaquette ira sur la carte encadrée.'));
     }
   }
 
@@ -157,7 +158,7 @@ export function CoverQueue({ onCount, active }: { onCount: (n: number) => void; 
     const { error } = await supabase.from('image').delete().eq('id', last.imageId);
     if (error) return setError(errorMessage(error));
     await supabase.storage.from('covers').remove([last.path]);
-    setMessage(`Jaquette retirée de « ${last.row.local_title} ».`);
+    setMessage(tr('Jaquette retirée de « {0} ».', last.row.local_title));
     const back = new Set(hidden);
     back.delete(last.row.id);
     setHidden(back);
@@ -182,26 +183,24 @@ export function CoverQueue({ onCount, active }: { onCount: (n: number) => void; 
   return (
     <div className="stack">
       <p className="muted">
-        Versions qui n'ont pas encore de recto. Pour chacune : « Chercher l'image » ouvre une recherche dans un nouvel
-        onglet ; fais un clic droit sur la bonne jaquette → « Copier l'image », reviens ici et appuie sur{' '}
-        <kbd>Ctrl</kbd>+<kbd>V</kbd>. L'image va sur la carte encadrée, qui quitte la file. En attendant, une Platinum
-        affiche la jaquette de sa version d'origine, avec un bandeau.
+        {tr("Versions qui n'ont pas encore de recto. Pour chacune : « Chercher l'image » ouvre une recherche dans un nouvel onglet ; fais un clic droit sur la bonne jaquette → « Copier l'image », reviens ici et appuie sur")}{' '}
+        <kbd>{tr('Ctrl')}</kbd>+<kbd>V</kbd>{tr(". L'image va sur la carte encadrée, qui quitte la file. En attendant, une Platinum affiche la jaquette de sa version d'origine, avec un bandeau.")}
       </p>
       <div className="row">
         <label className="field catalog-search">
-          <span className="field-label">Filtrer</span>
-          <input type="search" value={text} onChange={(e) => setText(e.target.value)} placeholder="Titre ou code produit…" autoComplete="off" />
+          <span className="field-label">{tr('Filtrer')}</span>
+          <input type="search" value={text} onChange={(e) => setText(e.target.value)} placeholder={tr('Titre ou code produit…')} autoComplete="off" />
         </label>
         <label className="field">
-          <span className="field-label">Édition</span>
+          <span className="field-label">{tr('Édition')}</span>
           <select value={edition} onChange={(e) => { setEdition(e.target.value as EditionType | ''); setPage(1); }}>
             {EDITIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </label>
         <label className="field">
-          <span className="field-label">Zone</span>
+          <span className="field-label">{tr('Zone')}</span>
           <select value={zone} onChange={(e) => { setZone(e.target.value); setPage(1); }}>
-            <option value="">Toutes</option>
+            <option value="">{tr('Toutes')}</option>
             {CATALOG_ZONES.map((z) => <option key={z.value} value={z.value}>{z.label}</option>)}
           </select>
         </label>
@@ -211,7 +210,7 @@ export function CoverQueue({ onCount, active }: { onCount: (n: number) => void; 
         {message && (
           <p className="success">
             {message}{' '}
-            {last && <button type="button" className="link-button" onClick={undo}>Annuler</button>}
+            {last && <button type="button" className="link-button" onClick={undo}>{tr('Annuler')}</button>}
           </p>
         )}
         {error && <p className="error">{error}</p>}
@@ -219,12 +218,12 @@ export function CoverQueue({ onCount, active }: { onCount: (n: number) => void; 
       {rows !== null && (
         <div className="list-row">
           <p className="muted small">
-            {formatNumber(total)} version{total > 1 ? 's' : ''} sans jaquette{pages > 1 ? ` · page ${page} sur ${pages}` : ''}
+            {formatNumber(total)}{tr(' version{0?s} sans jaquette', total > 1)}{pages > 1 ? tr(' · page {0} sur {1}', page, pages) : ''}
           </p>
           <PageSizeSelect value={pageSize} sizes={QUEUE_SIZES} onChange={(size) => { rememberPageSize('file', size); setPageSize(size); setPage(1); }} />
         </div>
       )}
-      {rows !== null && !error && total === 0 && <p className="panel empty">Plus aucune jaquette à trouver ici. Bravo !</p>}
+      {rows !== null && !error && total === 0 && <p className="panel empty">{tr('Plus aucune jaquette à trouver ici. Bravo !')}</p>}
 
       <ul className="plain-list queue-list">
         {visible.map((row) => (
@@ -242,7 +241,7 @@ export function CoverQueue({ onCount, active }: { onCount: (n: number) => void; 
         ))}
       </ul>
 
-      <Pagination page={page} pages={pages} onChange={setPage} label="Pages de la file" />
+      <Pagination page={page} pages={pages} onChange={setPage} label={tr('Pages de la file')} />
     </div>
   );
 }
@@ -266,7 +265,7 @@ function CoverCard({ row, platform, isTarget, busy, onTarget, onFile, onPaste, o
     `"${row.local_title}" ${row.edition_type === 'standard' ? '' : edition} ${platform === 'PS1' ? 'PS1' : platform} ${row.zone ?? ''} cover`.replace(/\s+/g, ' '),
   )}`;
   const standIn = row.stand_in_path
-    ? { path: row.stand_in_path, label: row.edition_type === 'reissue' ? edition : 'Autre version' }
+    ? { path: row.stand_in_path, label: row.edition_type === 'reissue' ? edition : tr('Autre version') }
     : null;
 
   return (
@@ -288,21 +287,21 @@ function CoverCard({ row, platform, isTarget, busy, onTarget, onFile, onPaste, o
           {row.product_code && <span className="muted small">{row.product_code}</span>}
         </p>
         <p className="muted small">
-          <a href={search} target="_blank" rel="noopener noreferrer">Chercher l'image</a>
-          {' · '}<Link to={`/jeu/${row.game_id}/modifier`} target="_blank" rel="noopener">Modifier le jeu</Link>
+          <a href={search} target="_blank" rel="noopener noreferrer">{tr("Chercher l'image")}</a>
+          {' · '}<Link to={`/jeu/${row.game_id}/modifier`} target="_blank" rel="noopener">{tr('Modifier le jeu')}</Link>
         </p>
         <div className="actions">
           <button type="button" className={isTarget ? 'button button-small button-primary' : 'button button-small'} disabled={busy} onClick={(e) => { e.stopPropagation(); onPaste(); }}>
-            <PsSymbol shape="cross" /> {busy ? 'Envoi…' : "Coller l'image"}
+            <PsSymbol shape="cross" /> {busy ? tr('Envoi…') : tr("Coller l'image")}
           </button>
           <label className="button button-small">
-            <PsSymbol shape="square" /> Fichier…
+            <PsSymbol shape="square" />{tr(' Fichier…')}
             <input type="file" accept={ACCEPT_ATTRIBUTE} className="sr-only" disabled={busy}
               onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ''; if (file) { onTarget(); onFile(file); } }} />
           </label>
-          <button type="button" className="button button-small" disabled={busy} onClick={(e) => { e.stopPropagation(); onSkip(); }}>Passer</button>
+          <button type="button" className="button button-small" disabled={busy} onClick={(e) => { e.stopPropagation(); onSkip(); }}>{tr('Passer')}</button>
         </div>
-        {isTarget && <p className="paste-hint small">Cible du collage : <kbd>Ctrl</kbd>+<kbd>V</kbd> envoie l'image ici.</p>}
+        {isTarget && <p className="paste-hint small">{tr('Cible du collage : ')}<kbd>{tr('Ctrl')}</kbd>+<kbd>V</kbd>{tr(" envoie l'image ici.")}</p>}
       </div>
     </li>
   );

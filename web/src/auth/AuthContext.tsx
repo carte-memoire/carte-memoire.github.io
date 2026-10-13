@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { Profile } from '../lib/types';
 import { markRecovery } from '../lib/preferences';
+import { tr } from '../lib/i18n';
 
 type Aal = 'aal1' | 'aal2' | null;
 
@@ -84,6 +85,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth(): AuthState {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth doit être utilisé dans <AuthProvider>');
+  if (!ctx) throw new Error(tr('useAuth doit être utilisé dans <AuthProvider>'));
   return ctx;
 }

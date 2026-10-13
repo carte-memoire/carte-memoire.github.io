@@ -6,6 +6,7 @@ import { useAuth } from '../auth/AuthContext';
 import { PasswordRules, passwordIsValid } from '../components/PasswordRules';
 import { PsSymbol } from '../components/PsSymbol';
 import { inRecovery, markRecovery } from '../lib/preferences';
+import { tr } from '../lib/i18n';
 
 // Page ouverte depuis le lien « mot de passe oublié » : le lien a déjà ouvert
 // une session temporaire, il ne reste qu'à choisir le nouveau mot de passe.
@@ -17,17 +18,16 @@ export function ResetPassword() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
-  if (loading) return <p className="loading">Lecture de la carte mémoire…</p>;
+  if (loading) return <p className="loading">{tr('Lecture de la carte mémoire…')}</p>;
   if (!session) {
     return (
       <section className="panel narrow">
-        <h1>Lien invalide ou expiré</h1>
+        <h1>{tr('Lien invalide ou expiré')}</h1>
         <p>
-          Le lien a peut-être déjà servi, ou expiré (il est valable 30 minutes). Par sécurité, il doit aussi être ouvert
-          dans le navigateur où tu as fait la demande : sur un autre appareil ou dans un autre navigateur, il ne marche pas.
+          {tr('Le lien a peut-être déjà servi, ou expiré (il est valable 30 minutes). Par sécurité, il doit aussi être ouvert dans le navigateur où tu as fait la demande : sur un autre appareil ou dans un autre navigateur, il ne marche pas.')}
         </p>
-        <p>Demande un nouvel e-mail, et ouvre son lien dans le navigateur de la demande.</p>
-        <Link to="/mot-de-passe-oublie" className="button"><PsSymbol shape="cross" /> Nouvel e-mail</Link>
+        <p>{tr('Demande un nouvel e-mail, et ouvre son lien dans le navigateur de la demande.')}</p>
+        <Link to="/mot-de-passe-oublie" className="button"><PsSymbol shape="cross" />{tr(' Nouvel e-mail')}</Link>
       </section>
     );
   }
@@ -38,17 +38,17 @@ export function ResetPassword() {
   if (!inRecovery()) {
     return (
       <section className="panel narrow">
-        <h1>Changer de mot de passe</h1>
-        <p>Tu es déjà connecté : change ton mot de passe dans « Mon compte », avec un code envoyé par e-mail.</p>
-        <Link to="/compte" className="button"><PsSymbol shape="cross" /> Mon compte</Link>
+        <h1>{tr('Changer de mot de passe')}</h1>
+        <p>{tr('Tu es déjà connecté : change ton mot de passe dans « Mon compte », avec un code envoyé par e-mail.')}</p>
+        <Link to="/compte" className="button"><PsSymbol shape="cross" />{tr(' Mon compte')}</Link>
       </section>
     );
   }
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    if (!passwordIsValid(password)) return setError('Le mot de passe ne respecte pas toutes les règles.');
-    if (password !== confirm) return setError('Les deux mots de passe ne sont pas identiques.');
+    if (!passwordIsValid(password)) return setError(tr('Le mot de passe ne respecte pas toutes les règles.'));
+    if (password !== confirm) return setError(tr('Les deux mots de passe ne sont pas identiques.'));
     setBusy(true);
     const { error } = await supabase.auth.updateUser({ password });
     if (error) {
@@ -63,19 +63,19 @@ export function ResetPassword() {
 
   return (
     <section className="panel narrow">
-      <h1>Nouveau mot de passe</h1>
+      <h1>{tr('Nouveau mot de passe')}</h1>
       <form onSubmit={submit} className="form">
         <label className="field">
-          <span className="field-label">Nouveau mot de passe</span>
+          <span className="field-label">{tr('Nouveau mot de passe')}</span>
           <input type="password" autoComplete="new-password" required value={password} onChange={(e) => setPassword(e.target.value)} maxLength={128} />
         </label>
         <PasswordRules password={password} />
         <label className="field">
-          <span className="field-label">Confirmer</span>
+          <span className="field-label">{tr('Confirmer')}</span>
           <input type="password" autoComplete="new-password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} maxLength={128} />
         </label>
         {error && <p className="error" role="alert">{error}</p>}
-        <button type="submit" className="button button-primary button-block" disabled={busy}><PsSymbol shape="cross" /> Enregistrer</button>
+        <button type="submit" className="button button-primary button-block" disabled={busy}><PsSymbol shape="cross" />{tr(' Enregistrer')}</button>
       </form>
     </section>
   );

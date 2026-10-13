@@ -7,6 +7,7 @@ import { errorMessage } from '../lib/errors';
 import type { CatalogRelease, CollectionItem } from '../lib/types';
 import { Dialog } from './Dialog';
 import { PsSymbol } from './PsSymbol';
+import { tr } from '../lib/i18n';
 
 const MAX_SIZE = 2 * 1024 * 1024; // 2 Mo
 const MAX_ROWS = 5000;
@@ -32,7 +33,7 @@ interface MatchResult {
   choices: Choice[];
 }
 
-const choiceLabel = (c: Choice) => [c.local_title, c.zone ?? 'zone ?', editionLabel(c), c.product_code].filter(Boolean).join(' · ');
+const choiceLabel = (c: Choice) => [c.local_title, c.zone ?? tr('zone ?'), editionLabel(c), c.product_code].filter(Boolean).join(' · ');
 
 // Import d'une collection depuis un fichier CSV : lecture, aperçu à vérifier, ajout
 export function CollectionImport({ open, onClose, onImported, existing }: {
@@ -69,22 +70,22 @@ export function CollectionImport({ open, onClose, onImported, existing }: {
   async function readFile(file: File | undefined) {
     if (!file) return;
     setError('');
-    if (file.size > MAX_SIZE) return setError('Fichier trop lourd (2 Mo au plus).');
-    setBusy('Lecture du fichier…');
+    if (file.size > MAX_SIZE) return setError(tr('Fichier trop lourd (2 Mo au plus).'));
+    setBusy(tr('Lecture du fichier…'));
     try {
       const table = parseCsv(await readTextFile(file));
-      if (table.length < 2) throw new Error("Le fichier est vide, ou il n'a qu'une ligne : la première ligne doit contenir les noms des colonnes.");
+      if (table.length < 2) throw new Error(tr("Le fichier est vide, ou il n'a qu'une ligne : la première ligne doit contenir les noms des colonnes."));
       const map = mapColumns(table[0]);
       if (!canMatch(map)) {
-        throw new Error('Aucune colonne pour retrouver les jeux : il faut au moins « titre », « code_produit » ou « id_version » (voir le modèle).');
+        throw new Error(tr('Aucune colonne pour retrouver les jeux : il faut au moins « titre », « code_produit » ou « id_version » (voir le modèle).'));
       }
       const data = table.slice(1);
-      if (data.length > MAX_ROWS) throw new Error(`${formatNumber(data.length)} lignes : ${formatNumber(MAX_ROWS)} au plus par import.`);
+      if (data.length > MAX_ROWS) throw new Error(tr('{0} lignes : {1} au plus par import.', formatNumber(data.length), formatNumber(MAX_ROWS)));
       const parsed = data.map((cells, i) => parseRow(cells, map, i + 2));
 
       const review: ReviewRow[] = parsed.map((row) => ({ ...row, releaseId: null, method: null, needsReview: false, choices: [], include: false }));
       for (let start = 0; start < parsed.length; start += MATCH_BATCH) {
-        setBusy(`Recherche des jeux… ${formatNumber(Math.min(start + MATCH_BATCH, parsed.length))} / ${formatNumber(parsed.length)}`);
+        setBusy(tr('Recherche des jeux… {0} / {1}', formatNumber(Math.min(start + MATCH_BATCH, parsed.length)), formatNumber(parsed.length)));
         const { data: found, error } = await supabase.rpc('match_import_rows', { rows: parsed.slice(start, start + MATCH_BATCH).map((r) => r.match) });
         if (error) throw error;
         for (const m of found as MatchResult[]) {
@@ -114,7 +115,7 @@ export function CollectionImport({ open, onClose, onImported, existing }: {
     let done = 0;
     try {
       for (let start = 0; start < selected.length; start += INSERT_BATCH) {
-        setBusy(`Ajout à ta collection… ${formatNumber(done)} / ${formatNumber(selected.length)}`);
+        setBusy(tr('Ajout à ta collection… {0} / {1}', formatNumber(done), formatNumber(selected.length)));
         const batch = selected.slice(start, start + INSERT_BATCH).map((r) => toInsert(r.values, r.releaseId!));
         const { error } = await supabase.from('collection_item').insert(batch);
         if (error) throw error;
@@ -124,7 +125,7 @@ export function CollectionImport({ open, onClose, onImported, existing }: {
       setStep('done');
       onImported();
     } catch (err) {
-      setError(`${errorMessage(err)}${done ? ` (${formatNumber(done)} lignes ajoutées avant l'erreur)` : ''}`);
+      setError(`${errorMessage(err)}${done ? tr(" ({0} lignes ajoutées avant l'erreur)", formatNumber(done)) : ''}`);
       if (done) onImported();
     } finally {
       setBusy('');
@@ -146,29 +147,25 @@ export function CollectionImport({ open, onClose, onImported, existing }: {
   const leftovers = rows.filter((r) => !willImport(r) && !(skipExisting && isDuplicate(r))).length;
 
   return (
-    <Dialog open={open} onClose={onClose} title="Importer une collection (CSV)" wide>
+    <Dialog open={open} onClose={onClose} title={tr('Importer une collection (CSV)')} wide>
       {error && <p className="error" role="alert">{error}</p>}
       {busy && <p className="loading">{busy}</p>}
 
       {step === 'file' && !busy && (
         <>
           <p>
-            Choisis un fichier CSV (enregistré depuis Excel, LibreOffice ou Google Sheets). La première ligne doit donner le nom
-            des colonnes. Pour retrouver chaque jeu, le site utilise dans l'ordre l'<strong>identifiant</strong> (fichier exporté
-            depuis Carte Mémoire), le <strong>code produit</strong> (SCES-00867…) ou le <strong>titre exact</strong>, aidé par la
-            zone et l'édition.
+            {tr("Choisis un fichier CSV (enregistré depuis Excel, LibreOffice ou Google Sheets). La première ligne doit donner le nom des colonnes. Pour retrouver chaque jeu, le site utilise dans l'ordre l'")}<strong>{tr('identifiant')}</strong>{tr(' (fichier exporté depuis Carte Mémoire), le ')}<strong>{tr('code produit')}</strong>{tr(' (SCES-00867…) ou le ')}<strong>{tr('titre exact')}</strong>{tr(", aidé par la zone et l'édition.")}
           </p>
           <p className="muted small">
-            Colonnes reconnues : titre, jeu, code_produit, zone, edition, console, statut (possédé / recherché), etat, boite,
-            notice, disque, spine_card, obtenu, lieu_achat, prix_achat, date_achat, echange, notes. Les autres sont ignorées.
+            {tr('Colonnes reconnues : titre, jeu, code_produit, zone, edition, console, statut (possédé / recherché), etat, boite, notice, disque, spine_card, obtenu, lieu_achat, prix_achat, date_achat, echange, notes. Les autres sont ignorées.')}
           </p>
           <div className="actions">
             <label className="button button-primary">
-              <PsSymbol shape="cross" /> Choisir un fichier
+              <PsSymbol shape="cross" />{tr(' Choisir un fichier')}
               <input type="file" accept=".csv,.txt,text/csv" className="sr-only" onChange={(e) => { readFile(e.target.files?.[0]); e.target.value = ''; }} />
             </label>
             <button type="button" className="button" onClick={() => downloadCsv('carte-memoire-modele.csv', toCsv(TEMPLATE_ROWS))}>
-              <PsSymbol shape="square" /> Télécharger un modèle
+              <PsSymbol shape="square" />{tr(' Télécharger un modèle')}
             </button>
           </div>
         </>
@@ -177,20 +174,20 @@ export function CollectionImport({ open, onClose, onImported, existing }: {
       {step === 'review' && !busy && (
         <>
           <p className="import-summary">
-            <span className="import-ok">✓ {formatNumber(found)} trouvé{found > 1 ? 's' : ''}</span>
-            <span className="import-review">⚠ {formatNumber(toReview)} à vérifier</span>
-            <span className="import-missing">✕ {formatNumber(missing)} introuvable{missing > 1 ? 's' : ''}</span>
+            <span className="import-ok">✓ {formatNumber(found)}{tr(' trouvé{0?s}', found > 1)}</span>
+            <span className="import-review">⚠ {formatNumber(toReview)}{tr(' à vérifier')}</span>
+            <span className="import-missing">✕ {formatNumber(missing)}{tr(' introuvable{0?s}', missing > 1)}</span>
           </p>
-          <p className="muted small">Colonnes reconnues : {columns.map((c) => FIELD_LABELS[c]).join(', ')}.</p>
+          <p className="muted small">{tr('Colonnes reconnues : ')}{columns.map((c) => tr(FIELD_LABELS[c])).join(', ')}.</p>
           {duplicates > 0 && (
             <label className="switch">
               <input type="checkbox" checked={skipExisting} onChange={(e) => setSkipExisting(e.target.checked)} />
-              Ignorer les {formatNumber(duplicates)} ligne{duplicates > 1 ? 's' : ''} déjà dans ma collection (pour ne pas créer de doubles)
+              {tr('Ignorer les ')}{formatNumber(duplicates)}{tr(' ligne{0?s} déjà dans ma collection (pour ne pas créer de doubles)', duplicates > 1)}
             </label>
           )}
 
-          <div className="zone-switch" role="group" aria-label="Lignes affichées">
-            {([['all', `Toutes (${formatNumber(rows.length)})`], ['review', `À vérifier (${formatNumber(toReview)})`], ['missing', `Introuvables (${formatNumber(missing)})`]] as const).map(([value, label]) => (
+          <div className="zone-switch" role="group" aria-label={tr('Lignes affichées')}>
+            {([['all', tr('Toutes ({0})', formatNumber(rows.length))], ['review', tr('À vérifier ({0})', formatNumber(toReview))], ['missing', tr('Introuvables ({0})', formatNumber(missing))]] as const).map(([value, label]) => (
               <button key={value} type="button" className={filter === value ? 'zone-option active' : 'zone-option'} aria-pressed={filter === value} onClick={() => setFilter(value)}>
                 {label}
               </button>
@@ -204,22 +201,22 @@ export function CollectionImport({ open, onClose, onImported, existing }: {
               return (
                 <li key={row.line} className={`import-row import-${state}${duplicate ? ' is-duplicate' : ''}`}>
                   <input type="checkbox" checked={row.include && !duplicate} disabled={row.releaseId === null || duplicate}
-                    onChange={(e) => updateRow(row.line, { include: e.target.checked })} aria-label={`Importer la ligne ${row.line}`} />
+                    onChange={(e) => updateRow(row.line, { include: e.target.checked })} aria-label={tr('Importer la ligne {0}', row.line)} />
                   <span className="import-line">L{row.line}</span>
                   <span className="import-source">
                     <span className="import-label">{row.label}</span>
-                    {row.values.status === 'wanted' && <span className="badge">recherché</span>}
+                    {row.values.status === 'wanted' && <span className="badge">{tr('recherché')}</span>}
                   </span>
                   <span className="import-target">
-                    {row.releaseId === null && <span className="muted">Introuvable dans le catalogue</span>}
+                    {row.releaseId === null && <span className="muted">{tr('Introuvable dans le catalogue')}</span>}
                     {row.releaseId !== null && row.choices.length > 1 && (
                       <select value={row.releaseId} onChange={(e) => updateRow(row.line, { releaseId: Number(e.target.value), needsReview: false })}
-                        aria-label={`Version pour la ligne ${row.line}`}>
+                        aria-label={tr('Version pour la ligne {0}', row.line)}>
                         {row.choices.map((c) => <option key={c.id} value={c.id}>{choiceLabel(c)}</option>)}
                       </select>
                     )}
                     {row.releaseId !== null && row.choices.length === 1 && <span>{choiceLabel(row.choices[0])}</span>}
-                    {duplicate && <span className="muted small">Déjà dans ta collection</span>}
+                    {duplicate && <span className="muted small">{tr('Déjà dans ta collection')}</span>}
                     {row.warnings.map((w) => <span key={w} className="import-warning">{w}</span>)}
                   </span>
                 </li>
@@ -227,13 +224,13 @@ export function CollectionImport({ open, onClose, onImported, existing }: {
             })}
           </ul>
           {visible.length > SHOWN && (
-            <p className="muted small">… et {formatNumber(visible.length - SHOWN)} autres lignes, traitées de la même façon.</p>
+            <p className="muted small">{tr('… et ')}{formatNumber(visible.length - SHOWN)}{tr(' autres lignes, traitées de la même façon.')}</p>
           )}
 
           <div className="actions">
-            <button type="button" className="button" onClick={() => setStep('file')}><PsSymbol shape="circle" /> Autre fichier</button>
+            <button type="button" className="button" onClick={() => setStep('file')}><PsSymbol shape="circle" />{tr(' Autre fichier')}</button>
             <button type="button" className="button button-primary" disabled={count === 0} onClick={runImport}>
-              <PsSymbol shape="cross" /> Importer {formatNumber(count)} ligne{count > 1 ? 's' : ''}
+              <PsSymbol shape="cross" />{tr(' Importer ')}{formatNumber(count)}{tr(' ligne{0?s}', count > 1)}
             </button>
           </div>
         </>
@@ -241,16 +238,15 @@ export function CollectionImport({ open, onClose, onImported, existing }: {
 
       {step === 'done' && !busy && (
         <>
-          <p className="success">{formatNumber(added)} ligne{added > 1 ? 's' : ''} ajoutée{added > 1 ? 's' : ''} à ta collection.</p>
+          <p className="success">{formatNumber(added)}{tr(' ligne{0?s} ajoutée{1?s} à ta collection.', added > 1, added > 1)}</p>
           {leftovers > 0 && (
             <p>
-              {formatNumber(leftovers)} ligne{leftovers > 1 ? 's' : ''} n'{leftovers > 1 ? 'ont' : 'a'} pas été importée{leftovers > 1 ? 's' : ''}.{' '}
-              <button type="button" className="link-button" onClick={downloadLeftovers}>Les télécharger</button> pour les corriger
-              ou les proposer au catalogue.
+              {formatNumber(leftovers)}{tr(" ligne{0?s} n'{1?ont:a} pas été importée{2?s}.", leftovers > 1, leftovers > 1, leftovers > 1)}{' '}
+              <button type="button" className="link-button" onClick={downloadLeftovers}>{tr('Les télécharger')}</button>{tr(' pour les corriger ou les proposer au catalogue.')}
             </p>
           )}
           <div className="actions">
-            <button type="button" className="button button-primary" onClick={onClose}><PsSymbol shape="cross" /> Terminer</button>
+            <button type="button" className="button button-primary" onClick={onClose}><PsSymbol shape="cross" />{tr(' Terminer')}</button>
           </div>
         </>
       )}

@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { idleMinutes, lastActivity, touchActivity } from '../lib/preferences';
 import { Dialog } from '../components/Dialog';
 import { useAuth } from './AuthContext';
+import { tr } from '../lib/i18n';
 
 // Déconnexion automatique après une période sans activité (clic, toucher, clavier,
 // défilement), pour qu'un appareil oublié ouvert (PC partagé, téléphone posé) ne
@@ -73,13 +74,13 @@ export function IdleLogout() {
   }
 
   return (
-    <Dialog open={secondsLeft !== null} onClose={stay} title="Toujours là ?">
+    <Dialog open={secondsLeft !== null} onClose={stay} title={tr('Toujours là ?')}>
       <p aria-live="polite">
-        Sans activité de ta part, tu seras déconnecté dans <strong>{secondsLeft ?? 0} s</strong>, pour protéger ton compte.
+        {tr('Sans activité de ta part, tu seras déconnecté dans ')}<strong>{secondsLeft ?? 0} s</strong>{tr(', pour protéger ton compte.')}
       </p>
       <div className="actions">
-        <button type="button" className="button button-primary" onClick={stay} data-autofocus>Rester connecté</button>
-        <button type="button" className="link-button" onClick={() => { setSecondsLeft(null); signOut(); }}>Me déconnecter maintenant</button>
+        <button type="button" className="button button-primary" onClick={stay} data-autofocus>{tr('Rester connecté')}</button>
+        <button type="button" className="link-button" onClick={() => { setSecondsLeft(null); signOut(); }}>{tr('Me déconnecter maintenant')}</button>
       </div>
     </Dialog>
   );

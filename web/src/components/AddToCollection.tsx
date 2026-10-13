@@ -11,6 +11,7 @@ import { GameSearch } from './GameSearch';
 import { Cover } from './Cover';
 import { ReleaseSummary } from './ReleaseSummary';
 import { PsSymbol } from './PsSymbol';
+import { tr } from '../lib/i18n';
 
 interface Props {
   open: boolean;
@@ -42,7 +43,7 @@ export function AddToCollection({ open, onClose, onSaved, initialReleaseId, edit
     if (releaseId) {
       supabase.from('release').select(`${RELEASE_FIELDS}, game(id, title)`).eq('id', releaseId).single()
         .then(({ data, error }) => {
-          if (error || !data) return setError("Cette version n'existe plus.");
+          if (error || !data) return setError(tr("Cette version n'existe plus."));
           setRelease(data as unknown as Release);
           setStep('details');
         });
@@ -63,7 +64,7 @@ export function AddToCollection({ open, onClose, onSaved, initialReleaseId, edit
     }
   }
 
-  const title = editItem ? 'Modifier cet exemplaire' : 'Ajouter un jeu à ma collection';
+  const title = editItem ? tr('Modifier cet exemplaire') : tr('Ajouter un jeu à ma collection');
 
   return (
     <Dialog open={open} onClose={onClose} title={title}>
@@ -71,16 +72,16 @@ export function AddToCollection({ open, onClose, onSaved, initialReleaseId, edit
 
       {step === 'search' && !initialReleaseId && !editItem && (
         <>
-          <GameSearch onSelect={chooseGame} autoFocus label="Quel jeu veux-tu ajouter ?" />
+          <GameSearch onSelect={chooseGame} autoFocus label={tr('Quel jeu veux-tu ajouter ?')} />
           <p className="muted small">
-            Ton jeu n'est pas dans la base ? <Link to="/proposer" onClick={onClose}>Propose-le</Link>.
+            {tr("Ton jeu n'est pas dans la base ? ")}<Link to="/proposer" onClick={onClose}>{tr('Propose-le')}</Link>.
           </p>
         </>
       )}
 
       {step === 'release' && game && (
         <>
-          <p>Quelle version de <strong>{game.title}</strong> as-tu ?</p>
+          <p>{tr('Quelle version de ')}<strong>{game.title}</strong>{tr(' as-tu ?')}</p>
           <ul className="choice-list">
             {releases.map((r) => (
               <li key={r.id}>
@@ -95,10 +96,10 @@ export function AddToCollection({ open, onClose, onSaved, initialReleaseId, edit
             ))}
           </ul>
           <p className="muted small">
-            Ta version n'est pas dans la liste ?{' '}
-            <Link to={`/proposer?jeu=${game.id}`} onClick={onClose}>Propose cette version</Link>.
+            {tr("Ta version n'est pas dans la liste ?")}{' '}
+            <Link to={`/proposer?jeu=${game.id}`} onClick={onClose}>{tr('Propose cette version')}</Link>.
           </p>
-          <button type="button" className="button" onClick={() => setStep('search')}><PsSymbol shape="circle" /> Retour</button>
+          <button type="button" className="button" onClick={() => setStep('search')}><PsSymbol shape="circle" />{tr(' Retour')}</button>
         </>
       )}
 
@@ -142,7 +143,7 @@ function ItemForm({ release, item, onBack, onSaved }: { release: Release; item: 
     e.preventDefault();
     const priceValue = price.trim() === '' ? null : Number(price.replace(',', '.'));
     if (priceValue !== null && (Number.isNaN(priceValue) || priceValue < 0 || priceValue > 99999)) {
-      return setError('Prix invalide.');
+      return setError(tr('Prix invalide.'));
     }
     setSaving(true);
     setError('');
@@ -181,15 +182,15 @@ function ItemForm({ release, item, onBack, onSaved }: { release: Release; item: 
       </div>
 
       <fieldset className="segmented">
-        <legend className="field-label">Statut</legend>
-        <label><input type="radio" name="status" checked={status === 'owned'} onChange={() => setStatus('owned')} /> Je l'ai</label>
-        <label><input type="radio" name="status" checked={status === 'wanted'} onChange={() => setStatus('wanted')} /> Je le cherche</label>
+        <legend className="field-label">{tr('Statut')}</legend>
+        <label><input type="radio" name="status" checked={status === 'owned'} onChange={() => setStatus('owned')} />{tr(" Je l'ai")}</label>
+        <label><input type="radio" name="status" checked={status === 'wanted'} onChange={() => setStatus('wanted')} />{tr(' Je le cherche')}</label>
       </fieldset>
 
       {status === 'owned' && (
         <>
           <PillChoice
-            legend="État"
+            legend={tr('État')}
             name="condition"
             value={condition}
             options={CONDITIONS}
@@ -197,28 +198,28 @@ function ItemForm({ release, item, onBack, onSaved }: { release: Release; item: 
             hint={CONDITIONS.find((c) => c.value === condition)?.hint}
           />
           <fieldset className="checks">
-            <legend className="field-label">Contenu</legend>
-            <label><input type="checkbox" checked={hasBox} onChange={(e) => setHasBox(e.target.checked)} /> Boîte</label>
-            <label><input type="checkbox" checked={hasManual} onChange={(e) => setHasManual(e.target.checked)} /> Notice</label>
-            <label><input type="checkbox" checked={hasMedia} onChange={(e) => setHasMedia(e.target.checked)} /> Disque</label>
+            <legend className="field-label">{tr('Contenu')}</legend>
+            <label><input type="checkbox" checked={hasBox} onChange={(e) => setHasBox(e.target.checked)} />{tr(' Boîte')}</label>
+            <label><input type="checkbox" checked={hasManual} onChange={(e) => setHasManual(e.target.checked)} />{tr(' Notice')}</label>
+            <label><input type="checkbox" checked={hasMedia} onChange={(e) => setHasMedia(e.target.checked)} />{tr(' Disque')}</label>
             {spineCard && (
-              <label title="Bande cartonnée glissée sur la tranche des boîtes japonaises">
-                <input type="checkbox" checked={hasSpineCard} onChange={(e) => setHasSpineCard(e.target.checked)} /> Spine card
+              <label title={tr('Bande cartonnée glissée sur la tranche des boîtes japonaises')}>
+                <input type="checkbox" checked={hasSpineCard} onChange={(e) => setHasSpineCard(e.target.checked)} />{tr(' Spine card')}
               </label>
             )}
           </fieldset>
-          <PillChoice legend="Obtenu" name="acquisition" value={acquisition} options={ACQUISITIONS} onChange={(v) => setAcquisition(v as AcquisitionType | '')} />
+          <PillChoice legend={tr('Obtenu')} name="acquisition" value={acquisition} options={ACQUISITIONS} onChange={(v) => setAcquisition(v as AcquisitionType | '')} />
           <label className="field">
-            <span className="field-label">Où ?</span>
-            <input value={place} onChange={(e) => setPlace(e.target.value)} placeholder="Brocante, boutique, Leboncoin, eBay…" maxLength={80} />
+            <span className="field-label">{tr('Où ?')}</span>
+            <input value={place} onChange={(e) => setPlace(e.target.value)} placeholder={tr('Brocante, boutique, Leboncoin, eBay…')} maxLength={80} />
           </label>
           <div className="row">
             <label className="field">
-              <span className="field-label">Prix d'achat (€)</span>
+              <span className="field-label">{tr("Prix d'achat (€)")}</span>
               <input type="text" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="15,00" maxLength={10} />
             </label>
             <label className="field">
-              <span className="field-label">Date d'achat</span>
+              <span className="field-label">{tr("Date d'achat")}</span>
               <input type="date" value={date} onChange={(e) => setDate(e.target.value)} max={new Date().toISOString().slice(0, 10)} />
             </label>
           </div>
@@ -226,20 +227,20 @@ function ItemForm({ release, item, onBack, onSaved }: { release: Release; item: 
       )}
 
       {status === 'owned' && (
-        <PillChoice legend="Cet exemplaire" name="trade" value={tradeStatus} options={TRADE_STATUSES} emptyLabel="Je le garde"
+        <PillChoice legend={tr('Cet exemplaire')} name="trade" value={tradeStatus} options={TRADE_STATUSES} emptyLabel={tr('Je le garde')}
           onChange={(v) => setTradeStatus(v as TradeStatus | '')} />
       )}
 
       <label className="field">
-        <span className="field-label">Notes personnelles</span>
+        <span className="field-label">{tr('Notes personnelles')}</span>
         <textarea value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={500} rows={2} />
       </label>
 
       {error && <p className="error">{error}</p>}
       <div className="actions">
-        {onBack && <button type="button" className="button" onClick={onBack}><PsSymbol shape="circle" /> Retour</button>}
+        {onBack && <button type="button" className="button" onClick={onBack}><PsSymbol shape="circle" />{tr(' Retour')}</button>}
         <button type="submit" className="button button-primary" disabled={saving}>
-          <PsSymbol shape="cross" /> {saving ? 'Sauvegarde en cours… Ne retirez pas la carte mémoire' : item ? 'Enregistrer' : 'Ajouter à ma collection'}
+          <PsSymbol shape="cross" /> {saving ? tr('Sauvegarde en cours… Ne retirez pas la carte mémoire') : item ? tr('Enregistrer') : tr('Ajouter à ma collection')}
         </button>
       </div>
     </form>

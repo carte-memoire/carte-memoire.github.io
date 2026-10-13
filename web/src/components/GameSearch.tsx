@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { countryName, formatNumber, yearOf } from '../lib/format';
 import type { CompanyResult, SearchResult } from '../lib/types';
 import { Cover } from './Cover';
+import { tr } from '../lib/i18n';
 
 interface Props {
   onSelect: (game: SearchResult) => void;
@@ -19,7 +20,7 @@ interface Props {
 }
 
 // Champ de recherche de jeux : interroge la base pendant la frappe (après une courte pause)
-export function GameSearch({ onSelect, placeholder = 'Final Fantasy VII, Crash, Biohazard, SCES-00867…', autoFocus, initialQuery = '', label = 'Rechercher un jeu', platform = null, action, onSelectStudio }: Props) {
+export function GameSearch({ onSelect, placeholder = tr('Final Fantasy VII, Crash, Biohazard, SCES-00867…'), autoFocus, initialQuery = '', label = tr('Rechercher un jeu'), platform = null, action, onSelectStudio }: Props) {
   const [query, setQuery] = useState(initialQuery);
   const { results, loading, error } = useGameSearch(query, 20, platform);
   const studios = useStudioSearch(onSelectStudio ? query : '', platform);
@@ -46,14 +47,14 @@ export function GameSearch({ onSelect, placeholder = 'Final Fantasy VII, Crash, 
       </div>
       {error && <p className="error">{error}</p>}
       {query.trim().length >= 2 && !loading && results.length === 0 && studios.length === 0 && !error && (
-        <p className="muted">Aucun jeu trouvé.</p>
+        <p className="muted">{tr('Aucun jeu trouvé.')}</p>
       )}
       {studios.length > 0 && onSelectStudio && (
-        <ul className="studio-results" aria-label="Studios">
+        <ul className="studio-results" aria-label={tr('Studios')}>
           {studios.map((s) => (
             <li key={s.id}>
               <button type="button" className="studio-result" onClick={() => onSelectStudio(s)}>
-                <span className="badge badge-studio">Studio</span>
+                <span className="badge badge-studio">{tr('Studio')}</span>
                 <strong>{s.name}</strong>
                 <span className="muted small">
                   {[s.country && countryName(s.country), studioCounts(s)].filter(Boolean).join(' · ')}
@@ -75,7 +76,7 @@ export function GameSearch({ onSelect, placeholder = 'Final Fantasy VII, Crash, 
                   <span className="result-meta">
                     {r.matched_code && <span className="code result-code">{r.matched_code}</span>}
                     {yearOf(r.first_release_date)}
-                    {r.release_count > 1 && ` · ${r.release_count} versions`}
+                    {r.release_count > 1 && tr(' · {0} versions', r.release_count)}
                   </span>
                 </span>
               </button>
@@ -90,8 +91,8 @@ export function GameSearch({ onSelect, placeholder = 'Final Fantasy VII, Crash, 
 // « 25 jeux développés, 40 édités »
 export function studioCounts(s: Pick<CompanyResult, 'developed' | 'published'>): string {
   const parts = [];
-  if (s.developed) parts.push(`${formatNumber(s.developed)} jeu${s.developed > 1 ? 'x' : ''} développé${s.developed > 1 ? 's' : ''}`);
-  if (s.published) parts.push(`${formatNumber(s.published)} édité${s.published > 1 ? 's' : ''}`);
+  if (s.developed) parts.push(tr('{0} jeu{1?x} développé{2?s}', formatNumber(s.developed), s.developed > 1, s.developed > 1));
+  if (s.published) parts.push(tr('{0} édité{1?s}', formatNumber(s.published), s.published > 1));
   return parts.join(', ');
 }
 
@@ -131,7 +132,7 @@ export function useGameSearch(query: string, max = 20, platform: string | null =
       const { data, error } = await supabase.rpc('search_games', { search: q, max_results: max, platform_code: platform });
       if (cancelled) return;
       setLoading(false);
-      setError(error ? 'La recherche a échoué.' : '');
+      setError(error ? tr('La recherche a échoué.') : '');
       setResults((data as SearchResult[]) ?? []);
     }, 250);
     return () => {

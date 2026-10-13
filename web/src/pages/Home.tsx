@@ -8,6 +8,7 @@ import { PsSymbol } from '../components/PsSymbol';
 import { formatNumber, gamePath } from '../lib/format';
 import { ALL_PLATFORMS, DEFAULT_PLATFORM, rememberPlatform, rememberedPlatform } from '../lib/preferences';
 import { useKnownPlatform, usePlatforms } from '../lib/usePlatforms';
+import { tr } from '../lib/i18n';
 
 // Un code-barres
 function ScanIcon() {
@@ -43,10 +44,10 @@ export function Home() {
   return (
     <section className="home">
       <div className="hero">
-        <h1 className="hero-title">Carte Mémoire</h1>
+        <h1 className="hero-title">{tr('Carte Mémoire')}</h1>
         <p className="hero-subtitle">
-          {gameCount ? `Les ${formatNumber(gameCount)} jeux` : 'Les jeux'}{platformCode ? ' de la' : ''}{' '}
-          <PlatformSelect value={selected} onChange={choose} />, version par version. Et ta collection.
+          {gameCount ? tr('Les {0} jeux', formatNumber(gameCount)) : tr('Les jeux')}{platformCode ? tr(' de la') : ''}{' '}
+          <PlatformSelect value={selected} onChange={choose} />{tr(', version par version. Et ta collection.')}
         </p>
         {/* Les boutons de la manette de la console choisie (rejoués à chaque changement) */}
         <p className="buttons-legend" aria-hidden="true" key={selected}>
@@ -54,12 +55,12 @@ export function Home() {
         </p>
       </div>
 
-      {accountDeleted && <p className="success center">Ton compte a bien été supprimé. Merci d'être passé par Carte Mémoire !</p>}
+      {accountDeleted && <p className="success center">{tr("Ton compte a bien été supprimé. Merci d'être passé par Carte Mémoire !")}</p>}
 
       {current && current.game_count === 0 && (
         <p className="notice center">
-          Pas encore de jeux <strong>{current.name}</strong> dans la base : on commence par la PlayStation.{' '}
-          <Link to="/proposer">Propose le premier !</Link>
+          {tr('Pas encore de jeux ')}<strong>{current.name}</strong>{tr(' dans la base : on commence par la PlayStation.')}{' '}
+          <Link to="/proposer">{tr('Propose le premier !')}</Link>
         </p>
       )}
 
@@ -70,17 +71,17 @@ export function Home() {
           onSelect={(g) => navigate(gamePath(g))}
           onSelectStudio={(s) => navigate(`/catalogue?studio=${s.id}`)}
           action={(
-            <button type="button" className="button scan-button" onClick={scanner.open} title="Scanner le code-barres de la boîte : la fiche de ta version s'ouvre directement">
-              <ScanIcon /> <span className="scan-button-label">Scanner</span>
+            <button type="button" className="button scan-button" onClick={scanner.open} title={tr("Scanner le code-barres de la boîte : la fiche de ta version s'ouvre directement")}>
+              <ScanIcon /> <span className="scan-button-label">{tr('Scanner')}</span>
             </button>
           )}
           autoFocus
-          label={`Rechercher un jeu${current ? ` ${current.name}` : ''} ou un studio (titre, titre japonais ou européen, code produit…)`}
+          label={tr('Rechercher un jeu{0} ou un studio (titre, titre japonais ou européen, code produit…)', current ? ` ${current.name}` : '')}
         />
       </div>
 
       <p className="center">
-        <Link to="/catalogue" className="button"><PsSymbol shape="square" /> Parcourir le catalogue complet</Link>
+        <Link to="/catalogue" className="button"><PsSymbol shape="square" />{tr(' Parcourir le catalogue complet')}</Link>
       </p>
     </section>
   );

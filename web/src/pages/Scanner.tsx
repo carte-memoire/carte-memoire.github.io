@@ -6,6 +6,7 @@ import { formatBarcode, LINK_PATTERN, linkChannel } from '../lib/barcode';
 import type { BarcodeMatch } from '../lib/types';
 import { ScanCamera } from '../components/ScanCamera';
 import { ManualCode, matchLabel, useScanner } from '../components/Scanner';
+import { tr } from '../lib/i18n';
 
 interface Sent {
   code: string;
@@ -29,7 +30,7 @@ function StandaloneScanner() {
   const { handleCode } = useScanner();
   return (
     <section className="stack narrow">
-      <h1>Scanner un jeu</h1>
+      <h1>{tr('Scanner un jeu')}</h1>
       <div className="panel stack"><ScanCamera onCode={handleCode} /><ManualCode onCode={handleCode} /></div>
     </section>
   );
@@ -81,52 +82,52 @@ function LinkedScanner({ link }: { link: string }) {
 
   return (
     <section className="stack narrow">
-      <h1>Scanner vers l'ordinateur</h1>
+      <h1>{tr("Scanner vers l'ordinateur")}</h1>
       {step === 'scanning' && (
         <>
           <p className={connected ? 'success' : 'notice'} aria-live="polite">
-            {connected ? 'Relié à ton ordinateur : scanne le code-barres au dos de la boîte.' : 'Connexion à ton ordinateur…'}
+            {connected ? tr('Relié à ton ordinateur : scanne le code-barres au dos de la boîte.') : tr('Connexion à ton ordinateur…')}
           </p>
           <div className="panel stack"><ScanCamera onCode={send} /><ManualCode onCode={send} /></div>
         </>
       )}
-      {step === 'sending' && <p className="loading">Envoi à ton ordinateur…</p>}
+      {step === 'sending' && <p className="loading">{tr('Envoi à ton ordinateur…')}</p>}
       {step === 'done' && last && (
         <div className={last.ok ? 'panel scan-done' : 'panel scan-done is-error'} role="status">
           <p className="scan-done-mark" aria-hidden="true">{last.ok ? '✓' : '!'}</p>
           {last.ok ? (
             <>
-              <h2>Code envoyé : retourne sur ton ordinateur</h2>
+              <h2>{tr('Code envoyé : retourne sur ton ordinateur')}</h2>
               <p>
-                {last.status === 'found' && <>La fiche de <strong>{last.title}</strong> vient de s'y ouvrir.</>}
-                {last.status === 'several' && 'Plusieurs versions portent ce code : choisis la tienne sur l’ordinateur.'}
-                {last.status === 'unknown' && 'Ce code n’est pas encore connu : retrouve ton jeu sur l’ordinateur pour l’associer à ta version.'}
+                {last.status === 'found' && <>{tr('La fiche de ')}<strong>{last.title}</strong>{tr(" vient de s'y ouvrir.")}</>}
+                {last.status === 'several' && tr('Plusieurs versions portent ce code : choisis la tienne sur l’ordinateur.')}
+                {last.status === 'unknown' && tr('Ce code n’est pas encore connu : retrouve ton jeu sur l’ordinateur pour l’associer à ta version.')}
               </p>
             </>
           ) : (
             <>
-              <h2>L'ordinateur n'a pas reçu le code</h2>
-              <p>Vérifie que la fenêtre « Scanner un jeu » y est toujours ouverte, puis réessaie.</p>
+              <h2>{tr("L'ordinateur n'a pas reçu le code")}</h2>
+              <p>{tr('Vérifie que la fenêtre « Scanner un jeu » y est toujours ouverte, puis réessaie.')}</p>
             </>
           )}
-          <p className="small muted">Code lu : <span className="code">{formatBarcode(last.code)}</span></p>
-          <button type="button" className="button button-primary button-block" onClick={() => setStep('scanning')}>Scanner un autre jeu</button>
+          <p className="small muted">{tr('Code lu : ')}<span className="code">{formatBarcode(last.code)}</span></p>
+          <button type="button" className="button button-primary button-block" onClick={() => setStep('scanning')}>{tr('Scanner un autre jeu')}</button>
         </div>
       )}
       {sent.length > 1 && (
         <details className="scan-history">
-          <summary>Codes déjà envoyés ({sent.length})</summary>
+          <summary>{tr('Codes déjà envoyés (')}{sent.length})</summary>
           <ul className="plain-list scan-sent">
             {sent.map((s, i) => (
               <li key={`${s.code}-${i}`} className="list-row">
                 <span><span className="code">{formatBarcode(s.code)}</span>{s.title ? ` · ${s.title}` : ''}</span>
-                <span className={s.ok ? 'rule-ok' : 'error small'}>{s.ok ? '✓ envoyé' : 'non reçu'}</span>
+                <span className={s.ok ? 'rule-ok' : 'error small'}>{s.ok ? tr('✓ envoyé') : tr('non reçu')}</span>
               </li>
             ))}
           </ul>
         </details>
       )}
-      <p className="hint">Rien n'est enregistré sur ce téléphone, et l'image de l'appareil photo n'est envoyée nulle part : seuls les chiffres du code partent vers ton ordinateur. <Link to="/">Revenir au site</Link></p>
+      <p className="hint">{tr("Rien n'est enregistré sur ce téléphone, et l'image de l'appareil photo n'est envoyée nulle part : seuls les chiffres du code partent vers ton ordinateur. ")}<Link to="/">{tr('Revenir au site')}</Link></p>
     </section>
   );
 }
