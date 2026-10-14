@@ -18,20 +18,23 @@ npm run dev                  # http://localhost:5173
 
 ## Site publié
 
-https://carte-memoire.github.io — publié par GitHub Pages à chaque envoi sur `main`
+https://carte-memoire.app — publié par GitHub Pages à chaque envoi sur `main` (l'ancienne adresse
+https://carte-memoire.github.io y renvoie)
 (workflow [`.github/workflows/publier-le-site.yml`](.github/workflows/publier-le-site.yml)) : les tests de la base
 doivent passer, puis le site est compilé et mis en ligne.
 
 Réglages, une fois pour toutes, dans le dépôt GitHub :
 
-- **Settings → Pages** : *Source* = **GitHub Actions** ;
+- **Settings → Pages** : *Source* = **GitHub Actions**, *Custom domain* = `carte-memoire.app`, *Enforce HTTPS* coché
+  (zone DNS chez OVH : 4 enregistrements A et 4 AAAA vers GitHub Pages, `www` en CNAME vers `carte-memoire.github.io`) ;
 - **Settings → Secrets and variables → Actions → Variables** : `VITE_SUPABASE_URL` et `VITE_SUPABASE_PUBLISHABLE_KEY`
   (les valeurs de `web/.env.local` : uniquement la clé PUBLIQUE, le workflow refuse toute autre clé), et
   `VITE_CONTACT_EMAIL`, l'adresse de contact des pages légales (gardée hors du code : en changer ne laisse pas
   l'ancienne dans l'historique public).
 
 Côté Supabase : `npx supabase config push` envoie l'adresse du site (redirections des e-mails) ; les passkeys se
-règlent dans le tableau de bord (Authentication → Passkeys : `carte-memoire.github.io`).
+règlent dans le tableau de bord (Authentication → Passkeys : `carte-memoire.app`). Une passkey est liée au nom de
+domaine : en changer oblige chacun à recréer la sienne.
 
 ## Base de données
 

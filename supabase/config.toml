@@ -158,11 +158,12 @@ enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
 # Carte Mémoire : le site publié ; le développement en local reste autorisé ci-dessous.
-site_url = "https://carte-memoire.github.io"
+site_url = "https://carte-memoire.app"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["https://carte-memoire.github.io/**", "http://localhost:5173/**"]
+# L'ancienne adresse reste autorisée le temps du passage (liens d'e-mails déjà envoyés)
+additional_redirect_urls = ["https://carte-memoire.app/**", "https://carte-memoire.github.io/**", "http://localhost:5173/**"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
@@ -191,7 +192,7 @@ password_requirements = "lower_upper_letters_digits_symbols"
 # Carte Mémoire : connexion sans mot de passe par passkey (empreinte, visage, Windows Hello…).
 # ATTENTION : `supabase config push` n'envoie PAS ces réglages au projet en ligne (fonction en bêta).
 # Sur le projet hébergé, ils se règlent dans le tableau de bord : Authentication → Passkeys
-# (Relying Party ID = carte-memoire.github.io, origine = https://carte-memoire.github.io).
+# (Relying Party ID = carte-memoire.app, origine = https://carte-memoire.app).
 [auth.passkey]
 enabled = true
 
@@ -200,8 +201,8 @@ enabled = true
 # localhost (et inversement). En développement, on se connecte par mot de passe.
 [auth.webauthn]
 rp_display_name = "Carte Mémoire"
-rp_id = "carte-memoire.github.io"
-rp_origins = ["https://carte-memoire.github.io"]
+rp_id = "carte-memoire.app"
+rp_origins = ["https://carte-memoire.app"]
 
 [auth.rate_limit]
 # Number of emails that can be sent per hour. Requires auth.email.smtp to be enabled.
@@ -256,55 +257,58 @@ otp_expiry = 1800
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
-# EN ATTENTE DU SMTP DÉDIÉ : Supabase refuse de modifier les e-mails d'un projet gratuit
-# qui utilise son service d'envoi par défaut. Une fois le SMTP configuré (tableau de bord →
-# Authentication → Emails → SMTP Settings), retirer les « # » ci-dessous, puis config push.
-# Carte Mémoire : e-mails en français, aux couleurs du site, générés par
-# scripts/build-email-templates.mjs (les sujets sont à garder identiques dans les deux fichiers).
+# EN ATTENTE DU SMTP DÉDIÉ (Brevo, expéditeur noreply@carte-memoire.app) : Supabase refuse de
+# modifier les e-mails d'un projet gratuit qui utilise son service d'envoi par défaut. Une fois le
+# SMTP configuré (tableau de bord → Authentication → Emails → SMTP Settings), retirer les « # »
+# ci-dessous, passer EMAIL_CODES à true dans web/src/lib/supabase.ts et email_sent à 30 plus haut
+# (Brevo gratuit : 300 e-mails par jour), puis config push.
+# Carte Mémoire : e-mails en français et en anglais (langue du site choisie par le membre, gardée
+# dans user_metadata.lang), aux couleurs du site, générés par scripts/build-email-templates.mjs,
+# qui recopie aussi les sujets ici.
 # [auth.email.template.confirmation]
-# subject = "Confirme ton adresse e-mail · Carte Mémoire"
+# subject = '{{ if eq (printf "%v" .Data.lang) "en" }}Confirm your email address · Carte Mémoire{{ else }}Confirme ton adresse e-mail · Carte Mémoire{{ end }}'
 # content_path = "./supabase/templates/confirmation.html"
 
 # [auth.email.template.recovery]
-# subject = "Ton code pour changer de mot de passe · Carte Mémoire"
+# subject = '{{ if eq (printf "%v" .Data.lang) "en" }}Your code to change your password · Carte Mémoire{{ else }}Ton code pour changer de mot de passe · Carte Mémoire{{ end }}'
 # content_path = "./supabase/templates/recovery.html"
 
 # [auth.email.template.reauthentication]
-# subject = "Ton code de confirmation · Carte Mémoire"
+# subject = '{{ if eq (printf "%v" .Data.lang) "en" }}Your confirmation code · Carte Mémoire{{ else }}Ton code de confirmation · Carte Mémoire{{ end }}'
 # content_path = "./supabase/templates/reauthentication.html"
 
 # [auth.email.template.email_change]
-# subject = "Confirme ta nouvelle adresse e-mail · Carte Mémoire"
+# subject = '{{ if eq (printf "%v" .Data.lang) "en" }}Confirm your new email address · Carte Mémoire{{ else }}Confirme ta nouvelle adresse e-mail · Carte Mémoire{{ end }}'
 # content_path = "./supabase/templates/email_change.html"
 
 # [auth.email.template.magic_link]
-# subject = "Ton lien de connexion · Carte Mémoire"
+# subject = '{{ if eq (printf "%v" .Data.lang) "en" }}Your sign-in link · Carte Mémoire{{ else }}Ton lien de connexion · Carte Mémoire{{ end }}'
 # content_path = "./supabase/templates/magic_link.html"
 
 # [auth.email.template.invite]
-# subject = "Tu es invité sur Carte Mémoire"
+# subject = '{{ if eq (printf "%v" .Data.lang) "en" }}You have been invited to Carte Mémoire{{ else }}Tu es invité sur Carte Mémoire{{ end }}'
 # content_path = "./supabase/templates/invite.html"
 
 
 # Carte Mémoire : e-mails de sécurité, pour prévenir la personne d'un changement sur son compte
 # [auth.email.notification.password_changed]
 # enabled = true
-# subject = "Ton mot de passe a été changé · Carte Mémoire"
+# subject = '{{ if eq (printf "%v" .Data.lang) "en" }}Your password has been changed · Carte Mémoire{{ else }}Ton mot de passe a été changé · Carte Mémoire{{ end }}'
 # content_path = "./supabase/templates/password_changed.html"
 
 # [auth.email.notification.email_changed]
 # enabled = true
-# subject = "Ton adresse e-mail a été changée · Carte Mémoire"
+# subject = '{{ if eq (printf "%v" .Data.lang) "en" }}Your email address has been changed · Carte Mémoire{{ else }}Ton adresse e-mail a été changée · Carte Mémoire{{ end }}'
 # content_path = "./supabase/templates/email_changed.html"
 
 # [auth.email.notification.mfa_factor_enrolled]
 # enabled = true
-# subject = "Double authentification activée · Carte Mémoire"
+# subject = '{{ if eq (printf "%v" .Data.lang) "en" }}Two-factor authentication enabled · Carte Mémoire{{ else }}Double authentification activée · Carte Mémoire{{ end }}'
 # content_path = "./supabase/templates/mfa_factor_enrolled.html"
 
 # [auth.email.notification.mfa_factor_unenrolled]
 # enabled = true
-# subject = "Double authentification désactivée · Carte Mémoire"
+# subject = '{{ if eq (printf "%v" .Data.lang) "en" }}Two-factor authentication disabled · Carte Mémoire{{ else }}Double authentification désactivée · Carte Mémoire{{ end }}'
 # content_path = "./supabase/templates/mfa_factor_unenrolled.html"
 
 [auth.sms]

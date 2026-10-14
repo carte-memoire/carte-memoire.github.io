@@ -11,8 +11,9 @@
 #   3. une page HTML par jeu est générée pour les moteurs de recherche, avec le plan
 #      du site (web/scripts/prerender.mjs) ; si cette étape échoue, le site est
 #      publié quand même, sans elles ;
-#   4. il est publié sur https://carte-memoire.github.io (variable SITE_URL le jour
-#      d'un nom de domaine).
+#   4. il est publié sur https://carte-memoire.app (nom de domaine réglé dans
+#      Settings → Pages ; l'ancienne adresse carte-memoire.github.io y renvoie).
+#      Variable SITE_URL pour en changer.
 # Chaque nuit aussi, pour que les nouveaux jeux et jaquettes arrivent dans Google.
 # =====================================================================
 
@@ -110,7 +111,7 @@ jobs:
       - name: Générer les fiches pour les moteurs de recherche
         working-directory: web
         env:
-          SITE_URL: ${{ vars.SITE_URL || 'https://carte-memoire.github.io' }}
+          SITE_URL: ${{ vars.SITE_URL || 'https://carte-memoire.app' }}
         run: |
           node scripts/prerender.mjs || echo "::warning::Fiches pour les moteurs de recherche non générées, le site est publié sans elles"
       - uses: actions/upload-pages-artifact@v4

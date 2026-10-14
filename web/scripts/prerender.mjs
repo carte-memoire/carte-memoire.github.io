@@ -16,8 +16,8 @@
 //
 // Usage (après « npm run build », dans web/) : node scripts/prerender.mjs
 // Variables : VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY (sinon lues dans
-// .env.local), SITE_URL (adresse publique du site, https://carte-memoire.github.io
-// par défaut ; à changer le jour d'un nom de domaine).
+// .env.local), SITE_URL (adresse publique du site, https://carte-memoire.app
+// par défaut).
 // =====================================================================
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -36,7 +36,7 @@ function setting(name) {
 }
 const SUPABASE_URL = setting('VITE_SUPABASE_URL').replace(/\/+$/, '');
 const KEY = setting('VITE_SUPABASE_PUBLISHABLE_KEY');
-const SITE = (process.env.SITE_URL || 'https://carte-memoire.github.io').trim().replace(/\/+$/, '');
+const SITE = (process.env.SITE_URL || 'https://carte-memoire.app').trim().replace(/\/+$/, '');
 if (!SUPABASE_URL || !KEY) throw new Error('VITE_SUPABASE_URL et VITE_SUPABASE_PUBLISHABLE_KEY sont nécessaires');
 if (!existsSync(join(dist, 'index.html'))) throw new Error('Lance d\'abord « npm run build » : dist/index.html est introuvable');
 
