@@ -476,9 +476,8 @@ fieldset.notice { padding: 10px 12px; }
   background: var(--panel-2); color: #b5f3e1; border: 2px solid var(--triangle); border-radius: var(--radius);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
-@media (prefers-reduced-motion: no-preference) {
-  .toast { animation: toast-in 220ms ease-out; }
-}
+/* Animations (voir lib/motion.ts : réglage de l'appareil, ou choix fait dans Mon compte) */
+.motion .toast { animation: toast-in 220ms ease-out; }
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
 
 /* ---------- Fenêtre modale ---------- */
@@ -568,47 +567,46 @@ fieldset.notice { padding: 10px 12px; }
 @keyframes dialog-in { from { opacity: 0; transform: translateY(10px) scale(0.98); } to { opacity: 1; transform: none; } }
 @keyframes blink { 50% { opacity: 0; } }
 
-@media (prefers-reduced-motion: no-preference) {
-  /* Changement de page */
-  .main > * { animation: fade-up 280ms ease-out both; }
+/* Animations (voir lib/motion.ts : réglage de l'appareil, ou choix fait dans Mon compte) */
+/* Changement de page */
+.motion .main > * { animation: fade-up 280ms ease-out both; }
 
-  /* Démarrage façon PS1 : le titre se pose, puis les quatre symboles apparaissent */
-  .hero-title { animation: boot-title 900ms cubic-bezier(0.2, 0.7, 0.2, 1) both, boot-glow 1.6s ease-in-out 900ms 1; }
-  .hero-subtitle { animation: fade-in 500ms ease-out 500ms both; }
-  .buttons-legend .ps-symbol { animation: pop 420ms cubic-bezier(0.3, 1.4, 0.5, 1) both; }
-  .console-art { animation: console-in 520ms cubic-bezier(0.2, 0.9, 0.3, 1.15) 600ms both; }
-  .console-leave { display: flex; }
-  .console-enter .console-art, .console-enter .buttons-legend { animation: console-switch-in 440ms cubic-bezier(0.2, 0.9, 0.3, 1.12) both; }
-  .console-leave .console-art, .console-leave .buttons-legend { animation: console-switch-out 320ms ease-in both; }
-  .console-enter .buttons-legend .ps-symbol, .console-leave .buttons-legend .ps-symbol { animation: none; }
-  .buttons-legend .ps-symbol:nth-child(1) { animation-delay: 700ms; }
-  .buttons-legend .ps-symbol:nth-child(2) { animation-delay: 820ms; }
-  .buttons-legend .ps-symbol:nth-child(3) { animation-delay: 940ms; }
-  .buttons-legend .ps-symbol:nth-child(4) { animation-delay: 1060ms; }
-  .buttons-legend .ps-symbol:nth-child(5) { animation-delay: 1180ms; }
-  .buttons-legend .ps-symbol:nth-child(6) { animation-delay: 1300ms; }
-  .buttons-legend .ps-symbol:hover { animation: hop 400ms ease-out; }
+/* Démarrage façon PS1 : le titre se pose, puis les quatre symboles apparaissent */
+.motion .hero-title { animation: boot-title 900ms cubic-bezier(0.2, 0.7, 0.2, 1) both, boot-glow 1.6s ease-in-out 900ms 1; }
+.motion .hero-subtitle { animation: fade-in 500ms ease-out 500ms both; }
+.motion .buttons-legend .ps-symbol { animation: pop 420ms cubic-bezier(0.3, 1.4, 0.5, 1) both; }
+.motion .console-art { animation: console-in 520ms cubic-bezier(0.2, 0.9, 0.3, 1.15) 600ms both; }
+.motion .console-leave { display: flex; }
+.motion .console-enter .console-art, .motion .console-enter .buttons-legend { animation: console-switch-in 440ms cubic-bezier(0.2, 0.9, 0.3, 1.12) both; }
+.motion .console-leave .console-art, .motion .console-leave .buttons-legend { animation: console-switch-out 320ms ease-in both; }
+.motion .console-enter .buttons-legend .ps-symbol, .motion .console-leave .buttons-legend .ps-symbol { animation: none; }
+.motion .buttons-legend .ps-symbol:nth-child(1) { animation-delay: 700ms; }
+.motion .buttons-legend .ps-symbol:nth-child(2) { animation-delay: 820ms; }
+.motion .buttons-legend .ps-symbol:nth-child(3) { animation-delay: 940ms; }
+.motion .buttons-legend .ps-symbol:nth-child(4) { animation-delay: 1060ms; }
+.motion .buttons-legend .ps-symbol:nth-child(5) { animation-delay: 1180ms; }
+.motion .buttons-legend .ps-symbol:nth-child(6) { animation-delay: 1300ms; }
+.motion .buttons-legend .ps-symbol:hover { animation: hop 400ms ease-out; }
 
-  /* Listes qui arrivent en cascade */
-  .result-list > li, .choice-list > li, .memory-card > li, .release-list > li { animation: fade-up 260ms ease-out both; }
-  .result-list > li:nth-child(2), .choice-list > li:nth-child(2), .memory-card > li:nth-child(2), .release-list > li:nth-child(2) { animation-delay: 40ms; }
-  .result-list > li:nth-child(3), .choice-list > li:nth-child(3), .memory-card > li:nth-child(3), .release-list > li:nth-child(3) { animation-delay: 80ms; }
-  .result-list > li:nth-child(4), .choice-list > li:nth-child(4), .memory-card > li:nth-child(4), .release-list > li:nth-child(4) { animation-delay: 120ms; }
-  .result-list > li:nth-child(5), .choice-list > li:nth-child(5), .memory-card > li:nth-child(5), .release-list > li:nth-child(5) { animation-delay: 160ms; }
-  .result-list > li:nth-child(n + 6), .choice-list > li:nth-child(n + 6), .memory-card > li:nth-child(n + 6), .release-list > li:nth-child(n + 6) { animation-delay: 200ms; }
+/* Listes qui arrivent en cascade */
+.motion .result-list > li, .motion .choice-list > li, .motion .memory-card > li, .motion .release-list > li { animation: fade-up 260ms ease-out both; }
+.motion .result-list > li:nth-child(2), .motion .choice-list > li:nth-child(2), .motion .memory-card > li:nth-child(2), .motion .release-list > li:nth-child(2) { animation-delay: 40ms; }
+.motion .result-list > li:nth-child(3), .motion .choice-list > li:nth-child(3), .motion .memory-card > li:nth-child(3), .motion .release-list > li:nth-child(3) { animation-delay: 80ms; }
+.motion .result-list > li:nth-child(4), .motion .choice-list > li:nth-child(4), .motion .memory-card > li:nth-child(4), .motion .release-list > li:nth-child(4) { animation-delay: 120ms; }
+.motion .result-list > li:nth-child(5), .motion .choice-list > li:nth-child(5), .motion .memory-card > li:nth-child(5), .motion .release-list > li:nth-child(5) { animation-delay: 160ms; }
+.motion .result-list > li:nth-child(n + 6), .motion .choice-list > li:nth-child(n + 6), .motion .memory-card > li:nth-child(n + 6), .motion .release-list > li:nth-child(n + 6) { animation-delay: 200ms; }
 
-  /* Survol : on soulève légèrement */
-  .result, .choice, .block, .button { transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease, filter 150ms ease; }
-  .result:hover, .choice:hover, .block:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(123, 147, 255, 0.25); }
-  .button:hover:not(:disabled) { transform: translateY(-1px); }
-  .button:active:not(:disabled) { transform: translateY(1px); }
+/* Survol : on soulève légèrement */
+.motion .result, .motion .choice, .motion .block, .motion .button { transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease, filter 150ms ease; }
+.motion .result:hover, .motion .choice:hover, .motion .block:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(123, 147, 255, 0.25); }
+.motion .button:hover:not(:disabled) { transform: translateY(-1px); }
+.motion .button:active:not(:disabled) { transform: translateY(1px); }
 
-  /* Jaquettes, fenêtres, chargement */
-  .cover img { animation: fade-in 300ms ease-out both; }
-  .dialog[open] { animation: dialog-in 200ms ease-out; }
-  .dialog[open]::backdrop { animation: fade-in 200ms ease-out; }
-  .loading::after { content: '▌'; margin-left: 4px; animation: blink 1s steps(1) infinite; }
-}
+/* Jaquettes, fenêtres, chargement */
+.motion .cover img { animation: fade-in 300ms ease-out both; }
+.motion .dialog[open] { animation: dialog-in 200ms ease-out; }
+.motion .dialog[open]::backdrop { animation: fade-in 200ms ease-out; }
+.motion .loading::after { content: '▌'; margin-left: 4px; animation: blink 1s steps(1) infinite; }
 
 /* ---------- Petits écrans ---------- */
 @media (max-width: 640px) {
@@ -752,10 +750,9 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .family-row .memory-bar { grid-column: 1 / -1; }
 .family-count { color: var(--muted); font-size: 0.85rem; }
 
-@media (prefers-reduced-motion: no-preference) {
-  .release-chip, .wish-button, .letter, .zone-option, .family-row { transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease; }
-  .catalog-list > li { animation: fade-in 200ms ease-out both; }
-}
+/* Animations (voir lib/motion.ts : réglage de l'appareil, ou choix fait dans Mon compte) */
+.motion .release-chip, .motion .wish-button, .motion .letter, .motion .zone-option, .motion .family-row { transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease; }
+.motion .catalog-list > li { animation: fade-in 200ms ease-out both; }
 
 @media (max-width: 640px) {
   .catalog-row { align-items: flex-start; flex-wrap: wrap; }
@@ -796,11 +793,10 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .cover-tile-complete { color: var(--triangle); }
 .cover-tile-badges { display: flex; flex-wrap: wrap; gap: 4px; }
 .cover-tile .link-button { align-self: flex-start; font-size: 0.8rem; }
-@media (prefers-reduced-motion: no-preference) {
-  .cover-grid > li { animation: fade-up 240ms ease-out both; }
-  .cover-tile .cover { transition: border-color 150ms ease, transform 150ms ease; }
-  .cover-tile-link:hover .cover { transform: translateY(-3px); }
-}
+/* Animations (voir lib/motion.ts : réglage de l'appareil, ou choix fait dans Mon compte) */
+.motion .cover-grid > li { animation: fade-up 240ms ease-out both; }
+.motion .cover-tile .cover { transition: border-color 150ms ease, transform 150ms ease; }
+.motion .cover-tile-link:hover .cover { transform: translateY(-3px); }
 @media (max-width: 640px) {
   .cover-grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
 }
@@ -1003,9 +999,8 @@ kbd {
 }
 .scan-done.is-error .scan-done-mark { background: var(--circle); color: #fff; }
 .scan-history summary { cursor: pointer; color: var(--muted); font-size: 0.9rem; }
-@media (prefers-reduced-motion: no-preference) {
-  .scan-done-mark { animation: pop 360ms cubic-bezier(0.3, 1.4, 0.5, 1) both; }
-}
+/* Animations (voir lib/motion.ts : réglage de l'appareil, ou choix fait dans Mon compte) */
+.motion .scan-done-mark { animation: pop 360ms cubic-bezier(0.3, 1.4, 0.5, 1) both; }
 
 /* ---------- Studios : choix dans la liste, nouveau studio à vérifier ---------- */
 .studio-known { color: var(--triangle); }
@@ -1119,36 +1114,35 @@ button.cover { padding: 0; font: inherit; color: inherit; }
 ::view-transition-group(jaquette-agrandie) { animation-duration: 340ms; animation-timing-function: cubic-bezier(0.2, 0.9, 0.3, 1); }
 ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 260ms; }
 
-@media (prefers-reduced-motion: no-preference) {
-  .toast-saved .save-fill { animation: save-write 650ms steps(5, end) both; }
-  .toast-saved .save-check { animation: save-check 260ms ease-out 650ms both; }
-  .toast-saved .save-icon { animation: save-bump 300ms ease-out 900ms; }
+/* Animations (voir lib/motion.ts : réglage de l'appareil, ou choix fait dans Mon compte) */
+.motion .toast-saved .save-fill { animation: save-write 650ms steps(5, end) both; }
+.motion .toast-saved .save-check { animation: save-check 260ms ease-out 650ms both; }
+.motion .toast-saved .save-icon { animation: save-bump 300ms ease-out 900ms; }
 
-  .release-chip.just-owned { animation: ring-green 800ms ease-out; }
-  .release-chip.just-owned .chip-box { animation: stamp 420ms cubic-bezier(0.3, 1.5, 0.5, 1) both; }
-  .wish-button.just-wanted { animation: heart-beat 650ms ease-out, ring-pink 800ms ease-out; }
-  .badge.just-added { animation: pop 420ms cubic-bezier(0.3, 1.4, 0.5, 1) both; }
-  .memory-card > li.just-saved { animation: fade-up 260ms ease-out both, saved-glow 1.6s ease-out; }
-  .cover-tile.just-saved .cover { animation: saved-glow 1.6s ease-out; }
+.motion .release-chip.just-owned { animation: ring-green 800ms ease-out; }
+.motion .release-chip.just-owned .chip-box { animation: stamp 420ms cubic-bezier(0.3, 1.5, 0.5, 1) both; }
+.motion .wish-button.just-wanted { animation: heart-beat 650ms ease-out, ring-pink 800ms ease-out; }
+.motion .badge.just-added { animation: pop 420ms cubic-bezier(0.3, 1.4, 0.5, 1) both; }
+.motion .memory-card > li.just-saved { animation: fade-up 260ms ease-out both, saved-glow 1.6s ease-out; }
+.motion .cover-tile.just-saved .cover { animation: saved-glow 1.6s ease-out; }
 
-  .memory-block.is-lit { animation: block-lit 240ms ease-out both; }
-  .memory-block.is-saved { animation: block-saved 750ms ease-out both; }
+.motion .memory-block.is-lit { animation: block-lit 240ms ease-out both; }
+.motion .memory-block.is-saved { animation: block-saved 750ms ease-out both; }
 
-  .skeleton {
-    background: linear-gradient(100deg, #191d36 30%, #272c54 50%, #191d36 70%);
-    background-size: 300% 100%; animation: shimmer 1.5s ease-in-out infinite;
-  }
-  /* Chargement très court : les silhouettes n'apparaissent pas du tout */
-  .skeleton-wait { animation: fade-in 300ms ease-out 180ms both; }
-
-  .cover-zoomable {
-    transform: perspective(700px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
-    transition: transform 200ms ease-out, box-shadow 200ms ease-out;
-  }
-  .cover-zoomable:hover { box-shadow: 0 14px 30px rgba(0, 0, 0, 0.55); }
-  .cover-zoomable::after {
-    content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 200ms ease-out;
-    background: radial-gradient(circle at var(--shine-x, 50%) var(--shine-y, 0%), rgba(255, 255, 255, 0.24), transparent 60%);
-  }
-  .cover-zoomable:hover::after { opacity: 1; }
+.motion .skeleton {
+  background: linear-gradient(100deg, #191d36 30%, #272c54 50%, #191d36 70%);
+  background-size: 300% 100%; animation: shimmer 1.5s ease-in-out infinite;
 }
+/* Chargement très court : les silhouettes n'apparaissent pas du tout */
+.motion .skeleton-wait { animation: fade-in 300ms ease-out 180ms both; }
+
+.motion .cover-zoomable {
+  transform: perspective(700px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+  transition: transform 200ms ease-out, box-shadow 200ms ease-out;
+}
+.motion .cover-zoomable:hover { box-shadow: 0 14px 30px rgba(0, 0, 0, 0.55); }
+.motion .cover-zoomable::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 200ms ease-out;
+  background: radial-gradient(circle at var(--shine-x, 50%) var(--shine-y, 0%), rgba(255, 255, 255, 0.24), transparent 60%);
+}
+.motion .cover-zoomable:hover::after { opacity: 1; }

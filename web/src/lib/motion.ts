@@ -1,33 +1,45 @@
-import { useEffect, useRef, useState } from 'react';
+// Animations du site. Par défaut, on suit le réglage de l'appareil (« moins
+// d'animations », dans les paramètres d'accessibilité du système) ; Mon compte
+// permet de les forcer ou de les couper sur cet appareil. Le choix pose la classe
+// `motion` sur <html> : toutes les animations de styles.css en dépendent.
+export type MotionChoice = 'auto' | 'on' | 'off';
+const MOTION_KEY = 'carte-memoire:animations';
+const SYSTEM_QUERY = '(prefers-reduced-motion: reduce)';
 
-// Réglage d'accessibilité du système : moins d'animations
-export function prefersReducedMotion(): boolean {
-  return typeof window !== 'undefined' && typeof window.matchMedia === 'function'
-    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+export function motionChoice(): MotionChoice {
+  try {
+    const value = localStorage.getItem(MOTION_KEY);
+    return value === 'on' || value === 'off' ? value : 'auto';
+  } catch {
+    return 'auto';
+  }
 }
 
-// Nombre qui défile jusqu'à sa valeur : depuis 0 au premier affichage, puis depuis
-// l'ancienne valeur quand elle change (un jeu de plus, une autre console…)
-export function useCountUp(target: number, duration = 700): number {
-  const [value, setValue] = useState(0);
-  const current = useRef(0);
-  useEffect(() => {
-    const from = current.current;
-    if (from === target || prefersReducedMotion()) {
-      current.current = target;
-      setValue(target);
-      return;
-    }
-    const start = performance.now();
-    let frame = requestAnimationFrame(function step(now) {
-      const t = Math.min(1, (now - start) / duration);
-      // Rapide au départ, il ralentit en arrivant
-      const next = Math.round(from + (target - from) * (1 - (1 - t) ** 3));
-      current.current = next;
-      setValue(next);
-      if (t < 1) frame = requestAnimationFrame(step);
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [target, duration]);
-  return prefersReducedMotion() ? target : value;
+// L'appareil demande moins d'animations (Windows : « Effets d'animation » désactivés…)
+export function systemReducesMotion(): boolean {
+  return typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia(SYSTEM_QUERY).matches;
+}
+
+// Animations coupées : par choix sur cet appareil, ou par le réglage du système
+export function prefersReducedMotion(): boolean {
+  const choice = motionChoice();
+  return choice === 'off' || (choice === 'auto' && systemReducesMotion());
+}
+
+function applyMotion() {
+  document.documentElement.classList.toggle('motion', !prefersReducedMotion());
+}
+
+export function setMotionChoice(choice: MotionChoice) {
+  try {
+    if (choice === 'auto') localStorage.removeItem(MOTION_KEY);
+    else localStorage.setItem(MOTION_KEY, choice);
+  } catch { /* stockage indisponible : le choix vaut pour cette visite */ }
+  applyMotion();
+}
+
+// Au démarrage, puis à chaque changement du réglage du système
+export function startMotion() {
+  applyMotion();
+  if (typeof window.matchMedia === 'function') window.matchMedia(SYSTEM_QUERY).addEventListener('change', applyMotion);
 }

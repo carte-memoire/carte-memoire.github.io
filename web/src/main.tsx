@@ -1,6 +1,10 @@
 import '@fontsource/press-start-2p/400.css';
 import './styles.css';
 import { loadLanguage, tr } from './lib/i18n';
+import { startMotion } from './lib/motion';
+
+// Animations : selon le réglage de l'appareil ou le choix fait dans Mon compte
+startMotion();
 
 const root = document.getElementById('root')!;
 

@@ -10,6 +10,7 @@ import { CodeInput } from '../components/CodeInput';
 import { PsSymbol } from '../components/PsSymbol';
 import { Dialog } from '../components/Dialog';
 import { tr, locale } from '../lib/i18n';
+import { motionChoice, setMotionChoice, systemReducesMotion, type MotionChoice } from '../lib/motion';
 
 export function Account() {
   const { profile, isModerator, aal } = useAuth();
@@ -27,6 +28,7 @@ export function Account() {
       <PasskeySection />
       <TotpSection />
       <PasswordSection />
+      <DisplaySection />
       <SessionsSection />
       <DeleteAccountSection />
     </section>
@@ -311,6 +313,42 @@ function IdleSetting() {
         {isModerator && tr(' Modérateurs : une heure au plus, car votre compte peut modifier le catalogue.')}
       </span>
     </label>
+  );
+}
+
+// Animations sur cet appareil : comme le système le demande, ou forcées, ou coupées
+function DisplaySection() {
+  const [choice, setChoice] = useState<MotionChoice>(motionChoice);
+  const reduced = systemReducesMotion();
+  const options: { value: MotionChoice; label: string }[] = [
+    { value: 'auto', label: reduced ? tr("Comme l'appareil (coupées)") : tr("Comme l'appareil (activées)") },
+    { value: 'on', label: tr('Toujours') },
+    { value: 'off', label: tr('Jamais') },
+  ];
+  function choose(value: MotionChoice) {
+    setMotionChoice(value);
+    setChoice(value);
+  }
+  return (
+    <div className="panel stack">
+      <h2>{tr('Affichage')}</h2>
+      <fieldset className="pill-choice">
+        <legend className="field-label">{tr('Animations sur cet appareil')}</legend>
+        <div className="pills">
+          {options.map((o) => (
+            <label key={o.value} className={choice === o.value ? 'pill active' : 'pill'}>
+              <input type="radio" name="animations" className="sr-only" checked={choice === o.value} onChange={() => choose(o.value)} />
+              {o.label}
+            </label>
+          ))}
+        </div>
+        <span className="hint">
+          {reduced
+            ? tr("Ton appareil demande moins d'animations (sous Windows : Paramètres › Accessibilité › Effets visuels › Effets d'animation). « Toujours » les rétablit ici, sans toucher au réglage du système.")
+            : tr("Les animations suivent le réglage d'accessibilité de ton appareil ; « Jamais » les coupe ici seulement.")}
+        </span>
+      </fieldset>
+    </div>
   );
 }
 
