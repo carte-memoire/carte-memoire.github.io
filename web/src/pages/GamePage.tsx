@@ -19,6 +19,7 @@ import { GameSkeleton } from '../components/Skeleton';
 import { PriceSummary } from '../components/PriceSummary';
 import { useReleasePrices } from '../lib/prices';
 import { useToast } from '../components/Toast';
+import { notifyCollectionChanged } from '../lib/trophies';
 import { standInFor } from '../lib/images';
 import { formatBarcode, normalizeBarcode } from '../lib/barcode';
 import { lang, tr } from '../lib/i18n';
@@ -159,6 +160,7 @@ export function GamePage() {
     if (error) return setActionError(errorMessage(error));
     setThanks(tr('Merci ! Le code {0} mène maintenant directement à cette version, pour tous les collectionneurs.', formatBarcode(scanned)));
     setBarcodesVersion((v) => v + 1);
+    notifyCollectionChanged();
     setParams({ version: String(release.id) }, { replace: true });
   }
 
@@ -180,6 +182,7 @@ export function GamePage() {
     if (error) return setActionError(errorMessage(error));
     setJustWanted(item ? null : release.id);
     setMineVersion((v) => v + 1);
+    notifyCollectionChanged();
   }
 
   return (

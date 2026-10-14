@@ -13,6 +13,7 @@ import { ReleaseSummary } from './ReleaseSummary';
 import { PsSymbol } from './PsSymbol';
 import { tr } from '../lib/i18n';
 import { priceCategory, priceCategoryLabel, priceText, useReleasePrices } from '../lib/prices';
+import { notifyCollectionChanged } from '../lib/trophies';
 
 // Ce qui vient d'être enregistré (pour le message de confirmation)
 export interface SavedItem {
@@ -193,6 +194,7 @@ function ItemForm({ release, item, onBack, onSaved }: { release: Release; item: 
       : await supabase.from('collection_item').insert(values);
     setSaving(false);
     if (error) return setError(errorMessage(error));
+    notifyCollectionChanged();
     onSaved({ releaseId: release.id, title: release.local_title, status, edited: Boolean(item) });
   }
 

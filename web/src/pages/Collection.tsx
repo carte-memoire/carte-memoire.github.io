@@ -22,8 +22,10 @@ import { Cover } from '../components/Cover';
 import { PageSizeSelect, Pagination } from '../components/Pagination';
 import { PsSymbol } from '../components/PsSymbol';
 import { CollectionSkeleton } from '../components/Skeleton';
+import { TrophyIcon } from '../components/TrophyIcon';
 import { formatEuros } from '../lib/prices';
 import { useToast } from '../components/Toast';
+import { notifyCollectionChanged } from '../lib/trophies';
 import { usePlatforms } from '../lib/usePlatforms';
 import { tr } from '../lib/i18n';
 
@@ -215,6 +217,7 @@ export function Collection() {
     if (!(await confirm({ title: tr('Retirer de ma collection'), message: tr('Retirer « {0} » de ta collection ?', item.release.local_title), confirmLabel: tr('Retirer'), danger: true }))) return;
     const { error } = await supabase.from('collection_item').delete().eq('id', item.id);
     if (error) return setError(errorMessage(error));
+    notifyCollectionChanged();
     await load();
   }
 
@@ -269,6 +272,7 @@ export function Collection() {
           </p>
         </div>
         <div className="actions">
+          <Link to="/trophees" className="button" title={tr('Tes trophées de collectionneur')}><TrophyIcon tier="gold" className="button-icon" />{tr(' Trophées')}</Link>
           <Link to="/catalogue" className="button"><PsSymbol shape="square" />{tr(' Cocher dans le catalogue')}</Link>
           <button type="button" className="button" onClick={() => setImporting(true)} title={tr('Ajouter des jeux depuis un fichier CSV (Excel, LibreOffice…)')}>
             <PsSymbol shape="triangle" />{tr(' Importer')}
@@ -397,7 +401,7 @@ export function Collection() {
 
       <Pagination page={current} pages={pages} onChange={goToPage} label={tr('Pages de la collection')} />
 
-      <CollectionImport open={importing} onClose={() => setImporting(false)} onImported={load} existing={items} />
+      <CollectionImport open={importing} onClose={() => setImporting(false)} onImported={() => { notifyCollectionChanged(); load(); }} existing={items} />
 
       <AddToCollection
         open={dialog.open}

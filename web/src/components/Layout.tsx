@@ -6,6 +6,7 @@ import { useConfirm } from './Confirm';
 import { NavIcon, type NavIconName } from './NavIcon';
 import { ScannerProvider, useScanner } from './Scanner';
 import { IdleLogout } from '../auth/IdleLogout';
+import { TrophyWatcher } from './TrophyWatcher';
 import { tr, lang, setLanguage } from '../lib/i18n';
 
 // Chaque rubrique prend la couleur d'un bouton de la manette quand on s'y trouve
@@ -111,6 +112,7 @@ function Frame() {
               <summary>{profile?.username ?? tr('Mon compte')}</summary>
               <div className="account-menu-panel">
                 {profile && <Link to={`/membre/${encodeURIComponent(profile.username)}`}>{tr('Ma page publique')}</Link>}
+                <Link to="/trophees">{tr('Mes trophées')}</Link>
                 <Link to="/compte">{tr('Mon compte et sécurité')}</Link>
                 <Link to="/mes-propositions">{tr('Mes propositions')}</Link>
                 <button type="button" className="link-button" onClick={confirmSignOut}>{tr('Se déconnecter')}</button>
@@ -134,6 +136,8 @@ function Frame() {
       </main>
 
       {session && <IdleLogout />}
+      {/* Trophées tout juste débloqués : annoncés en haut de l'écran */}
+      {session && <TrophyWatcher userId={session.user.id} />}
 
       <footer className="footer">
         <p>

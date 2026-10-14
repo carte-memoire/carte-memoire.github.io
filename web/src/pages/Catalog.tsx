@@ -22,6 +22,7 @@ import { PlatformSelect } from '../components/PlatformSelect';
 import { PsSymbol } from '../components/PsSymbol';
 import { CatalogSkeleton } from '../components/Skeleton';
 import { useToast } from '../components/Toast';
+import { notifyCollectionChanged } from '../lib/trophies';
 import { useKnownPlatform } from '../lib/usePlatforms';
 import { tr } from '../lib/i18n';
 
@@ -229,6 +230,7 @@ export function Catalog() {
     });
     setJustAdded(release.id);
     setVersion((v) => v + 1);
+    notifyCollectionChanged();
   }
 
   // Version déjà possédée : on ouvre l'exemplaire pour le compléter ou le modifier
@@ -257,6 +259,7 @@ export function Catalog() {
     if (failure) return showToast({ text: errorMessage(failure), error: true });
     setJustWanted(row.wanted ? null : row.id);
     setVersion((v) => v + 1);
+    notifyCollectionChanged();
   }
 
   const total = rows?.[0]?.total_count ?? 0;

@@ -14,6 +14,8 @@ import { DEFAULT_PLATFORM } from '../lib/preferences';
 import { usePlatforms } from '../lib/usePlatforms';
 import { tr, locale } from '../lib/i18n';
 import { MemberSkeleton } from '../components/Skeleton';
+import { TrophyStrip } from '../components/TrophyBoard';
+import { computeTrophies, type TrophyStats } from '../lib/trophies';
 
 interface PublicProfile {
   username: string;
@@ -72,6 +74,16 @@ export function MemberPage() {
   const [pageSize, setPageSize] = useState(100);
   const [page, setPage] = useState(1);
   const [shared, setShared] = useState('');
+  // Ses trophées (vides si la collection est privée)
+  const [trophyStats, setTrophyStats] = useState<TrophyStats | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    supabase.rpc('trophy_stats', { member: pseudo }).then(({ data, error }) => {
+      if (active) setTrophyStats(error ? null : ((data as TrophyStats[] | null) ?? [])[0] ?? null);
+    });
+    return () => { active = false; };
+  }, [pseudo, version, session?.user.id]);
 
   useEffect(() => {
     let active = true;
@@ -196,6 +208,8 @@ export function MemberPage() {
             <div><dt>{tr('Recherchés')}</dt><dd>{formatNumber(profile.wanted_games ?? 0)}</dd></div>
             <div><dt>{tr('À échanger ou vendre')}</dt><dd>{formatNumber(profile.offered ?? 0)}</dd></div>
           </dl>
+
+          {trophyStats && <TrophyStrip trophies={computeTrophies(trophyStats)} />}
 
           {totals.map(([code, rows]) => (
             <div key={code} className="panel progress-panel">

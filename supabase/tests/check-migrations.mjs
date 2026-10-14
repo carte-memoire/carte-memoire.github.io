@@ -877,6 +877,53 @@ await egal('…pas d\'estimation sous 5 membres (disque seul)', estimation(P[0])
 await ko('…réservé aux membres connectés', en(null, `select * from public.my_collection_prices()`), 'permission denied');
 await ok('nettoyage (exemplaires et version des prix)', db.query(`delete from public.collection_item where release_id = $1`, [vPrix]).then(() => db.query(`delete from public.release where id = $1`, [vPrix])));
 
+console.log('\nTrophées de collection (compteurs du membre, jamais ceux d\'une collection privée)');
+const T = P[0]; // Acheteur1 : plus aucun exemplaire après les tests de prix
+const stats = (uid, member = null) => lignes(en(uid, `select * from public.trophy_stats($1)`, [member]));
+await egal('collection vide : une ligne, tout à zéro', stats(T).then((r) => [r.length, r[0].owned_games, r[0].best_share]), [1, 0, '0']);
+const [pal1, pal2, pal3] = await val(`select r.id, r.game_id from public.release r join public.platform pl on pl.id = r.platform_id
+  where pl.short_name = 'PS1' and r.zone = 'PAL' and r.edition_type = 'standard'
+  and r.game_id in (select game_id from public.release group by game_id having count(*) = 1) order by r.id limit 3`);
+const reedition = (await val(`select id, game_id from public.release where zone = 'PAL' and edition_type = 'reissue' order by id limit 1`))[0];
+const japon = (await val(`select id, game_id from public.release where zone = 'NTSC-J' order by id limit 1`))[0];
+const recherche = (await val(`select id from public.release where zone = 'NTSC-U' order by id limit 1`))[0];
+const exemplaire = (uid, release, champs) => en(uid, `insert into public.collection_item (release_id, status, condition, has_box, has_manual, has_media, purchase_price, trade_status)
+  values ($1, $2, $3, $4, $5, $6, $7, $8)`, [release, champs.status ?? 'owned', champs.condition ?? null, champs.box ?? null, champs.manual ?? null, champs.media ?? null, champs.price ?? null, champs.trade ?? null]);
+await ok('un exemplaire complet avec son prix, une réédition sous blister, un import japonais à échanger, un jeu recherché', (async () => {
+  await exemplaire(T, pal1.id, { condition: 'very_good', box: true, manual: true, media: true, price: 12 });
+  await exemplaire(T, reedition.id, { condition: 'sealed' });
+  await exemplaire(T, japon.id, { trade: 'for_trade' });
+  await exemplaire(T, recherche.id, { status: 'wanted' });
+})());
+const jeux = new Set([pal1.game_id, reedition.game_id, japon.game_id]).size;
+await egal('les compteurs', stats(T).then((r) => {
+  const s = r[0];
+  return [s.owned_games, s.complete_copies, s.sealed_copies, s.priced_copies, s.reissue_copies, s.japan_games, s.zones, s.consoles, s.wanted_games, s.offered_copies];
+}), [jeux, 1, 1, 1, 1, 1, 2, 1, 1, 1]);
+await egal('la meilleure part du catalogue est celle de la PS1 (une console, une zone)', stats(T).then((r) => [r[0].best_share_platform, Number(r[0].best_share) > 0]), ['PS1', true]);
+await egal('collection privée : un visiteur ne voit rien', stats(null, 'Acheteur1').then((r) => r.length), 0);
+await egal('…un autre membre non plus', stats(MEMBRE, 'acheteur1').then((r) => r.length), 0);
+await egal('…le membre lui-même, oui (par son pseudo aussi)', stats(T, 'Acheteur1').then((r) => r.length), 1);
+await egal('sans pseudo ni connexion : rien', stats(null).then((r) => r.length), 0);
+await ok('le membre rend sa collection publique', en(T, `update public.profile set public_collection = true where id = $1`, [T]));
+await egal('…un visiteur voit ses compteurs', stats(null, 'acheteur1').then((r) => r[0]?.owned_games), jeux);
+const serieTrophees = (await ok('une série de trois jeux', en(ADMIN, `insert into public.series (name) values ('Série des trophées') returning id`))).rows[0].id;
+await ok('…dont il possède les trois', (async () => {
+  for (const g of [pal1, pal2, pal3]) await en(ADMIN, `insert into public.game_series (game_id, series_id) values ($1, $2)`, [g.game_id, serieTrophees]);
+  await exemplaire(T, pal2.id, {});
+  await exemplaire(T, pal3.id, {});
+})());
+await egal('…série complète', stats(T).then((r) => r[0].complete_series), 1);
+await ok('un code-barres associé par le membre', db.query(`insert into public.release_barcode (barcode, release_id, added_by) values ('4006381333931', $1, $2)`, [pal1.id, T]));
+await egal('…compté', stats(T).then((r) => r[0].barcodes), 1);
+await ok('nettoyage (trophées)', (async () => {
+  await db.query(`delete from public.release_barcode where added_by = $1`, [T]);
+  await db.query(`delete from public.game_series where series_id = $1`, [serieTrophees]);
+  await db.query(`delete from public.series where id = $1`, [serieTrophees]);
+  await db.query(`delete from public.collection_item where profile_id = $1`, [T]);
+  await db.query(`update public.profile set public_collection = false where id = $1`, [T]);
+})());
+
 console.log('\nCohérence du catalogue (imports compris)');
 await egal('chaque jeu importé a au moins une sortie', val(`select count(*)::int as n from public.game g where g.wikidata_id is not null and not exists (select 1 from public.release r where r.game_id = g.id)`), [{ n: 0 }]);
 await egal('chaque date de sortie est cohérente avec sa précision', val(`select count(*)::int as n from public.release_region where (release_date is null) <> (date_precision is null)`), [{ n: 0 }]);
