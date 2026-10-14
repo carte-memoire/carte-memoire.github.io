@@ -20,7 +20,7 @@ export function MySubmissions() {
   const [items, setItems] = useState<Submission[]>([]);
   const [titles, setTitles] = useState<Map<number, string>>(new Map());
   // Jaquettes proposées : la version visée (son jeu et son titre sur la boîte)
-  const [versions, setVersions] = useState<Map<number, { game: string; title: string }>>(new Map());
+  const [versions, setVersions] = useState<Map<number, { game: string; title: string; gameId: number | null }>>(new Map());
   const [error, setError] = useState('');
   const [loaded, setLoaded] = useState(false);
   const { session } = useAuth();
@@ -53,9 +53,9 @@ export function MySubmissions() {
     }
     const releaseIds = [...new Set(list.filter((s) => s.target === 'image').map((s) => s.target_id).filter((id): id is number => typeof id === 'number'))];
     if (releaseIds.length) {
-      const { data: releases } = await supabase.from('release').select('id, local_title, game(title)').in('id', releaseIds);
-      setVersions(new Map(((releases ?? []) as unknown as { id: number; local_title: string; game: { title: string } | null }[])
-        .map((r) => [r.id, { game: r.game?.title ?? r.local_title, title: r.local_title }])));
+      const { data: releases } = await supabase.from('release').select('id, local_title, game(id, title)').in('id', releaseIds);
+      setVersions(new Map(((releases ?? []) as unknown as { id: number; local_title: string; game: { id: number; title: string } | null }[])
+        .map((r) => [r.id, { game: r.game?.title ?? r.local_title, title: r.local_title, gameId: r.game?.id ?? null }])));
     }
     setItems(list);
     setLoaded(true);
@@ -101,9 +101,12 @@ export function MySubmissions() {
               </span>
               <span className="actions">
                 <span className={`badge ${STATUS[s.status].className}`}>{STATUS[s.status].label}</span>
-                {s.status === 'approved' && s.created_game_id && (
+                {s.status === 'approved' && s.created_game_id ? (
                   <Link to={`/jeu/${s.created_game_id}`} className="button button-small">{tr('Voir le jeu')}</Link>
-                )}
+                ) : version?.gameId ? (
+                  // Jaquette en attente ou refusée : retour au jeu (pour en proposer une autre)
+                  <Link to={`/jeu/${version.gameId}`} className="button button-small">{tr('Voir le jeu')}</Link>
+                ) : null}
                 {s.status === 'pending' && (
                   <button type="button" className="button button-small button-danger" onClick={() => withdraw(s)}>{tr('Retirer')}</button>
                 )}

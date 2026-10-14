@@ -441,6 +441,8 @@ ul.error { padding-left: 28px; }
 
 /* ---------- Listes simples ---------- */
 .list-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+/* Petit écran : le bouton qui passe à la ligne reste aligné à droite */
+.list-row > :last-child:not(:first-child) { margin-left: auto; }
 .plain-list .list-row { padding: 8px 0; border-bottom: 1px solid var(--line); }
 .plain-list .panel.list-row { padding: 14px 16px; border-bottom-width: 2px; }
 
@@ -760,7 +762,10 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 
 @media (max-width: 640px) {
   .catalog-row { align-items: flex-start; flex-wrap: wrap; }
-  .wish-button { margin-left: 84px; }
+  /* Le titre et les versions prennent toute la largeur à côté de la jaquette (72 px + 12) ;
+     « Je le cherche » passe en dessous, aligné sous le titre, au lieu de les écraser */
+  .catalog-row .catalog-main { flex: 1 1 calc(100% - 84px); }
+  .catalog-row .wish-button { margin-left: 84px; }
   .catalog-progress { min-width: 0; width: 100%; }
 }
 
@@ -1353,3 +1358,26 @@ button.proposed-cover-image { padding: 0; font: inherit; color: inherit; cursor:
 }
 .skip-link:focus { top: 12px; }
 .main:focus { outline: none; }
+
+/* ---------- Téléphone : onglets et actions de Ma collection ---------- */
+.label-short { display: none; }
+@media (max-width: 640px) {
+  /* Onglets en pastilles qui passent à la ligne : tous visibles, rien de caché à droite */
+  .tabs { flex-wrap: wrap; overflow: visible; gap: 6px; border-bottom: 0; }
+  .tab {
+    padding: 6px 12px; font-size: 0.85rem;
+    background: var(--bg-2); border: 1px solid var(--line); border-radius: 999px;
+  }
+  .tab.active { color: #fff; background: #3446b0; border-color: var(--cross); }
+  .tab.active .tab-count { color: #fff; border-color: rgba(255, 255, 255, 0.45); background: rgba(255, 255, 255, 0.12); }
+  /* Ma collection : l'action principale en entier, les autres en barre d'outils compacte */
+  .collection-actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; width: 100%; }
+  .collection-actions .button-primary { grid-column: 1 / -1; order: -1; }
+  .collection-actions .button:not(.button-primary) {
+    flex-direction: column; gap: 4px; min-height: 56px; padding: 6px 2px; font-size: 0.75rem; white-space: nowrap;
+  }
+  /* Icônes de même taille, libellés alignés */
+  .collection-actions .button:not(.button-primary) svg { width: 18px; height: 18px; }
+  .collection-actions .label-long { display: none; }
+  .collection-actions .label-short { display: inline; }
+}

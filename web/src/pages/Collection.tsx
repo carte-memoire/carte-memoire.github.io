@@ -271,9 +271,12 @@ export function Collection() {
             {profile && <> · <Link to={`/membre/${encodeURIComponent(profile.username)}`}>{profile.public_collection ? tr('voir et partager ma page publique') : tr('voir ma page publique')}</Link></>}
           </p>
         </div>
-        <div className="actions">
+        {/* Téléphone : « Ajouter un jeu » sur toute la largeur, les autres en barre d'outils */}
+        <div className="actions collection-actions">
           <Link to="/trophees" className="button" title={tr('Tes trophées de collectionneur')}><TrophyIcon tier="gold" className="button-icon" />{tr(' Trophées')}</Link>
-          <Link to="/catalogue" className="button"><PsSymbol shape="square" />{tr(' Cocher dans le catalogue')}</Link>
+          <Link to="/catalogue" className="button" title={tr('Cocher dans le catalogue')}>
+            <PsSymbol shape="square" /><span className="label-long">{tr(' Cocher dans le catalogue')}</span><span className="label-short">{tr(' Catalogue')}</span>
+          </Link>
           <button type="button" className="button" onClick={() => setImporting(true)} title={tr('Ajouter des jeux depuis un fichier CSV (Excel, LibreOffice…)')}>
             <PsSymbol shape="triangle" />{tr(' Importer')}
           </button>
