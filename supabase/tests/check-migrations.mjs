@@ -924,6 +924,42 @@ await ok('nettoyage (trophées)', (async () => {
   await db.query(`update public.profile set public_collection = false where id = $1`, [T]);
 })());
 
+console.log('\nJaquette proposée pour une version existante (validée par un modérateur)');
+const vJaq = (await val(`select r.id, r.game_id from public.release r where not exists (select 1 from public.image i where i.release_id = r.id) order by r.id limit 1`))[0];
+const deposer = (uid, fichier) => en(uid, `insert into storage.objects (bucket_id, name) values ('submission-images', $1)`, [fichier]);
+const proposerJaquette = async (uid, release, fichier) => (await en(uid, `insert into public.submission (action, target, target_id, data)
+  values ('create', 'image', $1, $2::jsonb) returning id`, [release, JSON.stringify({ cover_path: fichier })])).rows[0].id;
+await ko('sans image : refusée', en(MEMBRE, `insert into public.submission (action, target, target_id, data) values ('create', 'image', $1, '{}')`, [vJaq.id]), 'submission_cover_for_release');
+await ko('image annoncée mais pas envoyée : refusée', proposerJaquette(MEMBRE, vJaq.id, `${MEMBRE}/jaq-absente.webp`), 'introuvable');
+await ok('le membre dépose sa photo recadrée', deposer(MEMBRE, `${MEMBRE}/jaq-a.webp`));
+await ko('pour une version qui n\'existe pas : refusée', proposerJaquette(MEMBRE, 999999999, `${MEMBRE}/jaq-a.webp`), 'existe plus');
+await ko('l\'image d\'un autre membre : refusée (il ne la voit même pas)', (async () => {
+  await deposer(AUTRE, `${AUTRE}/jaq-x.webp`);
+  return proposerJaquette(MEMBRE, vJaq.id, `${AUTRE}/jaq-x.webp`);
+})(), 'introuvable');
+const pJaq = await ok('le membre propose la jaquette de la version', proposerJaquette(MEMBRE, vJaq.id, `${MEMBRE}/jaq-a.webp`));
+await ko('une seule jaquette en attente par version et par membre', proposerJaquette(MEMBRE, vJaq.id, `${MEMBRE}/jaq-a.webp`), 'déjà proposé');
+await ko('un membre ne peut pas la valider', traiter(MEMBRE, pJaq, true, null, 'submissions/jaq-1.webp'), 'Seuls les modérateurs');
+await ko('validation sans copie publique : refusée', traiter(ADMIN, pJaq, true), 'copiée');
+await ok('le modérateur copie l\'image dans les jaquettes publiques', en(ADMIN, `insert into storage.objects (bucket_id, name) values ('covers', 'submissions/jaq-1.webp')`));
+await egal('acceptée : rien à remplacer', traiter(ADMIN, pJaq, true, null, 'submissions/jaq-1.webp').then((r) => r.rows[0].r.replaced), []);
+await egal('…la version a sa jaquette, créditée au membre', val(`select path, uploaded_by from public.image where release_id = $1 and type = 'front'`, [vJaq.id]),
+  [{ path: 'submissions/jaq-1.webp', uploaded_by: MEMBRE }]);
+await egal('…la proposition pointe vers la version', val(`select status, created_release_id, created_game_id from public.submission where id = $1`, [pJaq]),
+  [{ status: 'approved', created_release_id: vJaq.id, created_game_id: vJaq.game_id }]);
+await ok('un meilleur scan, proposé ensuite', deposer(MEMBRE, `${MEMBRE}/jaq-b.webp`));
+const pJaq2 = await ok('…pour la même version (la précédente n\'attend plus)', proposerJaquette(MEMBRE, vJaq.id, `${MEMBRE}/jaq-b.webp`));
+await ok('…copiée par le modérateur', en(ADMIN, `insert into storage.objects (bucket_id, name) values ('covers', 'submissions/jaq-2.webp')`));
+await egal('acceptée : elle remplace l\'ancienne, dont le chemin est rendu pour retirer le fichier', traiter(ADMIN, pJaq2, true, null, 'submissions/jaq-2.webp').then((r) => r.rows[0].r.replaced), ['submissions/jaq-1.webp']);
+await egal('…une seule jaquette pour la version', val(`select path from public.image where release_id = $1 and type = 'front'`, [vJaq.id]), [{ path: 'submissions/jaq-2.webp' }]);
+await ok('un autre membre propose une image floue', (async () => { await deposer(AUTRE, `${AUTRE}/jaq-floue.webp`); })());
+const pFloue = (await en(AUTRE, `insert into public.submission (action, target, target_id, data) values ('create', 'image', $1, $2::jsonb) returning id`,
+  [vJaq.id, JSON.stringify({ cover_path: `${AUTRE}/jaq-floue.webp` })])).rows[0].id;
+await ko('refus sans motif : impossible', traiter(ADMIN, pFloue, false), 'motif');
+await ok('refus avec motif', traiter(ADMIN, pFloue, false, 'Image floue'));
+await egal('…la jaquette en place ne change pas', val(`select path from public.image where release_id = $1 and type = 'front'`, [vJaq.id]), [{ path: 'submissions/jaq-2.webp' }]);
+await ok('nettoyage (jaquettes proposées)', db.query(`delete from public.image where release_id = $1`, [vJaq.id]));
+
 console.log('\nCohérence du catalogue (imports compris)');
 await egal('chaque jeu importé a au moins une sortie', val(`select count(*)::int as n from public.game g where g.wikidata_id is not null and not exists (select 1 from public.release r where r.game_id = g.id)`), [{ n: 0 }]);
 await egal('chaque date de sortie est cohérente avec sa précision', val(`select count(*)::int as n from public.release_region where (release_date is null) <> (date_precision is null)`), [{ n: 0 }]);
