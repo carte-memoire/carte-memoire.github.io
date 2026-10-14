@@ -58,7 +58,7 @@ function ReportCard({ report: r, onDone }: { report: Report; onDone: () => void 
         {r.release_id && <span className="muted small">{tr(' · version n° ')}{r.release_id}</span>}
       </p>
       <p className="report-message">{r.message}</p>
-      <p className="muted small">{tr('Signalé par ')}{r.author?.username ?? tr('compte supprimé')} le {formatDateTime(r.created_at)}</p>
+      <p className="muted small">{tr('Signalé par ')}{r.author?.username ?? tr('compte supprimé')}{tr(' le {0}', formatDateTime(r.created_at))}</p>
       <label className="field">
         <span className="field-label">{tr("Mot pour l'auteur (facultatif)")}</span>
         <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} placeholder={tr("Merci, c'est corrigé ! / Wikipédia et la notice disent…")} />

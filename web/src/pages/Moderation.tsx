@@ -237,7 +237,7 @@ function SubmissionCard({ submission: s, onDone }: { submission: Submission; onD
         )}
         <div className="submission-info">
           <p className="muted small">
-            {isNewGame ? tr('Nouveau jeu') : tr('Nouvelle version')}{tr(' · proposé par ')}<strong>{s.author?.username ?? tr('compte supprimé')}</strong> le {new Date(s.created_at).toLocaleDateString(locale)}
+            {isNewGame ? tr('Nouveau jeu') : tr('Nouvelle version')}{tr(' · proposé par ')}<strong>{s.author?.username ?? tr('compte supprimé')}</strong>{tr(' le {0}', new Date(s.created_at).toLocaleDateString(locale))}
           </p>
           <h2>{isNewGame ? s.data.game?.title : existingGame ? <Link to={gamePath(existingGame)}>{existingGame.title}</Link> : '…'}</h2>
           {s.data.no_cover && <p className="badge badge-todo">{tr('Déclaré sans jaquette')}</p>}
@@ -327,7 +327,7 @@ function SummaryCard({ submission: s, onDone }: { submission: Submission; onDone
   return (
     <article className="panel submission-card">
       <p className="muted small">
-        {tr('Résumé · proposé par ')}<strong>{s.author?.username ?? tr('compte supprimé')}</strong> le {new Date(s.created_at).toLocaleDateString(locale)}
+        {tr('Résumé · proposé par ')}<strong>{s.author?.username ?? tr('compte supprimé')}</strong>{tr(' le {0}', new Date(s.created_at).toLocaleDateString(locale))}
       </p>
       <h2>{game ? <Link to={gamePath(game)} target="_blank" rel="noopener">{game.title}</Link> : '…'}</h2>
       <div className="summary-compare">
@@ -414,7 +414,7 @@ function CoverSubmissionCard({ submission: s, onDone }: { submission: Submission
   return (
     <article className="panel submission-card">
       <p className="muted small">
-        {tr('Jaquette · proposée par ')}<strong>{s.author?.username ?? tr('compte supprimé')}</strong> le {new Date(s.created_at).toLocaleDateString(locale)}
+        {tr('Jaquette · proposée par ')}<strong>{s.author?.username ?? tr('compte supprimé')}</strong>{tr(' le {0}', new Date(s.created_at).toLocaleDateString(locale))}
       </p>
       {release === null ? (
         <p className="notice">{tr("Cette version n'existe plus : refuse la proposition.")}</p>

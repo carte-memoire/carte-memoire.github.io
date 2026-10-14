@@ -293,7 +293,7 @@ export function Catalog() {
             </p>
             <MemoryBar owned={zoneProgress.owned} total={zoneProgress.total} label={tr('Ta progression')} />
             {familyProgress && (
-              <p className="small muted">{familyOriginLabel(familyProgress.code, origin)} : {formatNumber(familyProgress.owned)} / {formatNumber(familyProgress.total)}</p>
+              <p className="small muted">{tr('{0} : {1}', familyOriginLabel(familyProgress.code, origin), `${formatNumber(familyProgress.owned)} / ${formatNumber(familyProgress.total)}`)}</p>
             )}
           </div>
         )}

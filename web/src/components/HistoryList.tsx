@@ -114,7 +114,7 @@ export function HistoryList({ gameId, onUndone, limit = 50, refresh }: { gameId?
             <ul className="history-details">
               {describe(c).map((line) => <li key={line}>{line}</li>)}
             </ul>
-            {c.undone_at && <p className="muted small">{tr('Annulée par ')}{c.undoer?.username ?? '?'} le {formatDateTime(c.undone_at)}</p>}
+            {c.undone_at && <p className="muted small">{tr('Annulée par ')}{c.undoer?.username ?? '?'}{tr(' le {0}', formatDateTime(c.undone_at))}</p>}
             {undoable(c) && <button type="button" className="link-button small" onClick={() => undo(c)}>{tr('Annuler')}</button>}
           </li>
         ))}

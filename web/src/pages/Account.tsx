@@ -316,7 +316,7 @@ function PasswordSection() {
 function IdleSetting() {
   const { isModerator } = useAuth();
   const [minutes, setMinutes] = useState(() => idleMinutes(isModerator));
-  const label = (m: number) => (m < 60 ? `${m} minutes` : m < 1440 ? `${m / 60} heure${m > 60 ? 's' : ''}` : `${m / 1440} jour${m > 1440 ? 's' : ''}`);
+  const label = (m: number) => (m < 60 ? tr('{0} minutes', m) : m < 1440 ? tr('{0} heure{1?s}', m / 60, m > 60) : tr('{0} jour{1?s}', m / 1440, m > 1440));
   return (
     <label className="field">
       <span className="field-label">{tr('Déconnexion automatique sur cet appareil, après')}</span>

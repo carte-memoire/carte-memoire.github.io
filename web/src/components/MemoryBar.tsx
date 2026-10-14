@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { formatNumber, formatPercent } from '../lib/format';
+import { tr } from '../lib/i18n';
 
 const BLOCKS = 15;
 
@@ -34,7 +35,7 @@ export function MemoryBar({ owned, total, label, size = 'large' }: { owned: numb
       aria-valuemin={0}
       aria-valuemax={total}
       aria-valuenow={owned}
-      aria-valuetext={`${formatNumber(owned)} sur ${formatNumber(total)}, ${formatPercent(owned, total)}`}
+      aria-valuetext={tr('{0} sur {1}, {2}', formatNumber(owned), formatNumber(total), formatPercent(owned, total))}
     >
       {Array.from({ length: BLOCKS }, (_, i) => {
         const animated = i < filled && i >= last.from;

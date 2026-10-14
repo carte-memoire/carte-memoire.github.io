@@ -92,7 +92,7 @@ export function Signup() {
         <label className="consent">
           <input type="checkbox" required checked={accepted} onChange={(e) => setAccepted(e.target.checked)} />
           <span>
-            {tr("J'ai lu et j'accepte les ")}<Link to="/conditions" target="_blank">{tr("conditions d'utilisation")}</Link>{tr(" ; mes données sont traitées comme l'explique la page ")}<Link to="/confidentialite" target="_blank">{tr('confidentialité')}</Link>.
+            {tr("J'ai lu et j'accepte les ")}<Link to="/conditions" target="_blank" rel="noopener">{tr("conditions d'utilisation")}</Link>{tr(" ; mes données sont traitées comme l'explique la page ")}<Link to="/confidentialite" target="_blank" rel="noopener">{tr('confidentialité')}</Link>.
           </span>
         </label>
         {error && <p className="error" role="alert">{error}</p>}

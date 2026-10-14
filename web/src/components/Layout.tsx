@@ -86,6 +86,10 @@ function Frame() {
 
   return (
     <div className="app">
+      {/* Clavier et lecteurs d'écran : sauter le menu, aller directement à la page */}
+      <a href="#contenu" className="skip-link" onClick={(e) => { e.preventDefault(); document.getElementById('contenu')?.focus(); }}>
+        {tr('Aller au contenu')}
+      </a>
       <header className="topbar">
         <Link to="/" className="logo" aria-label={tr('Carte Mémoire, accueil')}>
           <span className="logo-card" aria-hidden="true" />
@@ -132,7 +136,7 @@ function Frame() {
       </header>
 
       {/* La clé change avec la page : l'animation d'arrivée se rejoue à chaque navigation */}
-      <main className="main" key={location.pathname}>
+      <main className="main" id="contenu" tabIndex={-1} key={location.pathname}>
         {/* Pages chargées à la demande : message d'attente le temps de les recevoir */}
         <Suspense fallback={<p className="loading">{tr('Lecture de la carte mémoire…')}</p>}>
           <Outlet />

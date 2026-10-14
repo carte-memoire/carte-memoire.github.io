@@ -84,7 +84,8 @@ h3 { font-size: 1.05rem; }
   border-bottom: 2px solid var(--bevel-dark);
   box-shadow: inset 0 -1px 0 var(--bevel-light);
 }
-.logo { display: flex; align-items: center; gap: 10px; flex: none; text-decoration: none; color: var(--text); }
+/* Marge invisible : une zone cliquable confortable même quand seul l'icône est affiché */
+.logo { display: flex; align-items: center; gap: 10px; flex: none; text-decoration: none; color: var(--text); padding: 6px; margin: -6px; }
 .logo-card {
   flex: none; width: 22px; height: 28px; border-radius: 2px;
   background: linear-gradient(#c8ccd8 0 40%, #2b2f45 40%);
@@ -235,7 +236,9 @@ input, select, textarea {
   background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius);
   padding: 9px 10px; min-height: 40px;
 }
-input[type='checkbox'], input[type='radio'] { width: auto; min-height: 0; accent-color: var(--cross); }
+/* 18 px : plus faciles à toucher au doigt que la taille par défaut (13 px) */
+input[type='checkbox'], input[type='radio'] { min-height: 0; accent-color: var(--cross); }
+input[type='checkbox']:not(.sr-only), input[type='radio']:not(.sr-only) { width: 18px; height: 18px; flex: none; }
 input[type='file'] { padding: 6px; }
 input:focus, select:focus, textarea:focus { border-color: var(--cross); outline: none; box-shadow: 0 0 0 2px rgba(123, 147, 255, 0.3); }
 textarea { resize: vertical; }
@@ -1342,3 +1345,11 @@ button.proposed-cover-image { padding: 0; font: inherit; color: inherit; cursor:
 .photo-page h1 { margin: 0; font-size: 1.15rem; }
 .photo-page > p { margin: 0; }
 .cover-camera .hint { margin: 0; }
+
+/* ---------- Lien « Aller au contenu » : invisible, sauf au clavier ---------- */
+.skip-link {
+  position: absolute; left: 12px; top: -60px; z-index: 100; padding: 10px 16px;
+  color: var(--bg); background: var(--triangle); border-radius: var(--radius); font-weight: 700; text-decoration: none;
+}
+.skip-link:focus { top: 12px; }
+.main:focus { outline: none; }

@@ -223,7 +223,7 @@ export function CollectionProgress({ items, values }: { items: CollectionItem[];
                   <h4>{tr("Selon l'achat")}</h4>
                   <ul className="plain-list small">
                     {byAcquisition.map((a) => (
-                      <li key={a.label}>{a.label} : {formatPrice(a.sum)} <span className="muted">({formatNumber(a.count)})</span></li>
+                      <li key={a.label}>{tr('{0} : {1}', a.label, formatPrice(a.sum))} <span className="muted">({formatNumber(a.count)})</span></li>
                     ))}
                   </ul>
                 </>

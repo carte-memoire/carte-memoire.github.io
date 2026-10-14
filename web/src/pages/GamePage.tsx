@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState, type FormEvent } from 'react';
+import { Fragment, lazy, Suspense, useEffect, useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
@@ -17,7 +17,8 @@ import { PsSymbol } from '../components/PsSymbol';
 import { ReportDialog } from '../components/ReportDialog';
 import { GameSkeleton } from '../components/Skeleton';
 import { PriceSummary } from '../components/PriceSummary';
-import { CoverProposal } from '../components/CoverProposal';
+// Caméra, recadrage, liaison avec le téléphone : chargés seulement à l'ouverture de la fenêtre
+const CoverProposal = lazy(() => import('../components/CoverProposal').then((m) => ({ default: m.CoverProposal })));
 import { useReleasePrices } from '../lib/prices';
 import { useToast } from '../components/Toast';
 import { notifyCollectionChanged } from '../lib/trophies';
@@ -350,7 +351,7 @@ export function GamePage() {
                   <dl className="facts">
                     {r.product_code && (<><dt>{tr('Code produit')}</dt><dd className="code">{r.product_code}</dd></>)}
                     {r.release_region.length > 0 && (
-                      <><dt>{tr('Sortie')}</dt><dd>{r.release_region.map((rr) => `${regionName(rr.region)}${rr.release_date ? ` : ${formatDate(rr.release_date, rr.date_precision)}` : ''}`).join(' · ')}</dd></>
+                      <><dt>{tr('Sortie')}</dt><dd>{r.release_region.map((rr) => (rr.release_date ? tr('{0} : {1}', regionName(rr.region), formatDate(rr.release_date, rr.date_precision)) : regionName(rr.region))).join(' · ')}</dd></>
                     )}
                     {r.release_company.length > 0 && (
                       <><dt>{tr('Éditeur')}</dt><dd><StudioLinks companies={r.release_company.map((c) => c.company)} /></dd></>
@@ -430,7 +431,11 @@ export function GamePage() {
           </button>
         </div>
       </section>
-      {coverFor && <CoverProposal open release={coverFor} gameTitle={game.title} onClose={() => setCoverFor(null)} />}
+      {coverFor && (
+        <Suspense fallback={null}>
+          <CoverProposal open release={coverFor} gameTitle={game.title} onClose={() => setCoverFor(null)} />
+        </Suspense>
+      )}
       {toast}
     </article>
   );

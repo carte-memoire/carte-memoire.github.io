@@ -355,7 +355,7 @@ export function Collection() {
           </div>
           <div className="list-row">
             <p className="muted small" aria-live="polite">
-              {filtered ? `${formatNumber(shown.length)} sur ${formatNumber(total)}` : formatNumber(total)} {noun(tab, total)}
+              {filtered ? tr('{0} sur {1}', formatNumber(shown.length), formatNumber(total)) : formatNumber(total)} {noun(tab, total)}
               {pages > 1 && tr(' · page {0} sur {1}', current, pages)}
               {filtered && (
                 <> · <button type="button" className="link-button" onClick={() => { setText(''); update({ q: null, console: null, zone: null, etat: null, contenu: null, echange: null }); }}>{tr('effacer les filtres')}</button></>

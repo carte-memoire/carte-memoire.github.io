@@ -119,7 +119,7 @@ export function StudioQueue({ onCount }: { onCount: (n: number) => void }) {
                       {[s.country && countryName(s.country), studioCounts(s) || tr('aucun jeu')].filter(Boolean).join(' · ')}
                       {s.wikidata_id && <> · <a href={`https://www.wikidata.org/wiki/${s.wikidata_id}`} target="_blank" rel="noopener noreferrer">{s.wikidata_id}</a></>}
                     </p>
-                    <p className="small"><Link to={`/catalogue?studio=${s.id}&zone=toutes`} target="_blank">{tr('Voir ses jeux')}</Link></p>
+                    <p className="small"><Link to={`/catalogue?studio=${s.id}&zone=toutes`} target="_blank" rel="noopener">{tr('Voir ses jeux')}</Link></p>
                   </div>
                   <button type="button" className="button button-small" disabled={!canAct || busy} onClick={() => merge(s, i === 0 ? b : a)}>{tr('Garder ce nom')}</button>
                 </div>
