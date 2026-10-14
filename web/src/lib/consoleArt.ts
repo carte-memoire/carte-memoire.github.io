@@ -291,20 +291,37 @@ function ps2(s: Scene) {
   s.onFront(0, rect(285, 34, 6, 0.8), '#4a8cf0');
 }
 
-// PlayStation 3 (premier modèle) : noir brillant, dessus bombé, bandeau chromé en bas
-// de l'avant (ports USB), fente du lecteur au-dessus
+// PlayStation 3 (premier modèle, « fat »), d'après photos (à plat et debout) :
+// - noir brillant, dessus bombé dans le sens de la largeur (plus bas aux deux bouts),
+//   façade plate soulignée d'un liseré argenté le long de l'arête du dessus ;
+// - moitié gauche de la façade : trappe noire en léger relief, prises USB en dessous ;
+// - moitié droite : panneau chromé avec la longue fente du lecteur, et en dessous la
+//   bande noire des touches Power et Eject ;
+// - rainure sombre en bas de la façade, grille d'aération sur le bout droit
 function ps3(s: Scene) {
-  const black = '#1b1c20';
-  const arc: P2[] = Array.from({ length: 25 }, (_, i) => { const t = i / 24; return [325 * (1 - t), 60 + 38 * Math.sin(Math.PI * t)]; });
-  s.shadow(rect(0, 0, 325, 274));
-  s.extrudeY([[0, 0], [325, 0], ...arc], 0, 274, black, { glint: 0.35 });
-  s.polyline(arc.map(([x, z]) => [x, 0, z] as P3), '#ffffff', 1.3, 0.35);
-  s.onFront(0, rect(0, 8, 325, 22), '#a9aeb6');
-  s.onFront(0, rect(0, 28, 325, 2), '#dfe3e8');
-  s.onFront(0, rect(92, 52, 142, 3.4), '#050506');
-  for (const x of [14, 28, 42, 56]) s.onFront(0, rect(x, 15, 9, 5), '#3a3d42');
-  s.onFront(0, rect(282, 17, 14, 2), '#5c6068');
-  s.onFront(0, rect(302, 17, 14, 2), '#5c6068');
+  const black = '#1a1b1f';
+  const W = 325, D = 274;
+  const top = (x: number) => 56 + 42 * Math.pow(Math.sin((Math.PI * x) / W), 0.75);
+  const arc: P2[] = Array.from({ length: 41 }, (_, i) => { const x = W * (1 - i / 40); return [x, top(x)]; });
+  s.shadow(rect(0, 0, W, D));
+  s.extrudeY([[0, 0], [W, 0], ...arc], 0, D, black, { glint: 0.3 });
+  // Grille d'aération sur le bout droit
+  for (let y = 30; y < D - 20; y += 7) for (let z = 8; z < 50; z += 7) s.onSide(W, ellipse(y, z, 1.6, 1.6, 8), '#0a0a0c');
+  // Liseré argenté le long de l'arête avant du dessus
+  s.polyline(arc.map(([x, z]) => [x, 0, z - 1.6] as P3), '#d9dde3', 2.6);
+  // Rainure du bas, prises USB
+  s.onFront(0, rect(0, 12, W, 2), '#060607');
+  for (const x of [18, 34, 50, 66]) s.onFront(0, rect(x, 4, 11, 5), '#0d0d10', { stroke: '#4b4e55', width: 0.5 });
+  // Moitié droite : panneau chromé et fente du lecteur, puis touches Power et Eject
+  s.onFront(0, rect(126, 34, 186, 22), '#b6bbc3');
+  s.onFront(0, rect(126, 52, 186, 4), '#e3e6ea');
+  s.onFront(0, rect(140, 43, 158, 3.4), '#050506');
+  s.onFront(0, [[214, 22], [222, 22], [218, 27]], '#8d929b');
+  s.onFront(0, rect(214, 20, 8, 0.9), '#8d929b');
+  s.onFront(0, ellipse(268, 23.5, 3.2, 3.2, 20), 'none', { stroke: '#8d929b', width: 0.9 });
+  s.onFront(0, rect(267.6, 24, 0.9, 4), '#8d929b');
+  // Moitié gauche : la trappe, en léger relief devant la façade
+  s.extrudeY(rrect(8, 18, 112, 34, 5), -3, 3, '#202126', { glint: 0.35 });
 }
 
 // PlayStation 4 (premier modèle) : deux plateaux en parallélogramme (vus de profil),
