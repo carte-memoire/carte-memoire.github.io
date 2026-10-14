@@ -7,6 +7,7 @@ import { DEFAULT_IDLE_MINUTES, IDLE_CHOICES, MODERATOR_MAX_IDLE_MINUTES, idleMin
 import { PasswordRules, passwordIsValid } from '../components/PasswordRules';
 import { useConfirm } from '../components/Confirm';
 import { CodeInput } from '../components/CodeInput';
+import { useCodeConfirm } from '../components/CodeConfirm';
 import { PsSymbol } from '../components/PsSymbol';
 import { Dialog } from '../components/Dialog';
 import { tr, locale } from '../lib/i18n';
@@ -86,6 +87,7 @@ interface PasskeyItem { id: string; friendly_name?: string; created_at: string; 
 
 function PasskeySection() {
   const confirm = useConfirm();
+  const { dialog: codeDialog, ensureCode } = useCodeConfirm();
   const [passkeys, setPasskeys] = useState<PasskeyItem[]>([]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -100,8 +102,9 @@ function PasskeySection() {
   useEffect(() => { if (supported) load(); }, [load, supported]);
 
   async function add() {
-    setBusy(true);
     setError('');
+    if (!(await ensureCode(tr('Pour ajouter une passkey, confirme que c’est bien toi.')))) return;
+    setBusy(true);
     const { error } = await supabase.auth.registerPasskey();
     setBusy(false);
     if (error) return setError(errorMessage(error));
@@ -110,6 +113,7 @@ function PasskeySection() {
 
   async function remove(id: string) {
     if (!(await confirm({ title: tr('Supprimer la passkey'), message: tr('Tu ne pourras plus te connecter avec cette passkey.'), confirmLabel: tr('Supprimer'), danger: true }))) return;
+    if (!(await ensureCode(tr('Pour supprimer cette passkey, confirme que c’est bien toi.')))) return;
     const { error } = await supabase.auth.passkey.delete({ passkeyId: id });
     if (error) return setError(errorMessage(error));
     await load();
@@ -137,13 +141,15 @@ function PasskeySection() {
       )}
       {supported && <button type="button" className="button button-primary" onClick={add} disabled={busy}><PsSymbol shape="triangle" />{tr(' Ajouter une passkey')}</button>}
       {error && <p className="error" role="alert">{error}</p>}
+      {codeDialog}
     </div>
   );
 }
 
 function TotpSection() {
   const confirm = useConfirm();
-  const { refresh, aal } = useAuth();
+  const { refresh, aal, session } = useAuth();
+  const { dialog: codeDialog, ensureCode } = useCodeConfirm();
   const [factors, setFactors] = useState<{ id: string; friendly_name?: string }[]>([]);
   const [enrolling, setEnrolling] = useState<{ id: string; qr: string; secret: string } | null>(null);
   const [code, setCode] = useState('');
@@ -188,8 +194,11 @@ function TotpSection() {
 
   async function disable(id: string) {
     if (!(await confirm({ title: tr('Désactiver la double authentification'), message: tr('Ton compte sera moins protégé. Si tu es modérateur, tu ne pourras plus modifier le catalogue.'), confirmLabel: tr('Désactiver'), danger: true }))) return;
+    if (!(await ensureCode(tr('Pour désactiver la double authentification, tape une dernière fois ton code.')))) return;
     const { error } = await supabase.auth.mfa.unenroll({ factorId: id });
     if (error) return setError(errorMessage(error));
+    // Les navigateurs de confiance n'ont plus d'objet (et ne vaudraient plus après une réactivation)
+    if (session) forgetTrust(session.user.id);
     await supabase.auth.refreshSession();
     await load();
     await refresh();
@@ -235,11 +244,13 @@ function TotpSection() {
         <button type="button" className="button button-primary" onClick={start}><PsSymbol shape="triangle" />{tr(' Activer la double authentification')}</button>
       )}
       {error && <p className="error" role="alert">{error}</p>}
+      {codeDialog}
     </div>
   );
 }
 
 function PasswordSection() {
+  const { dialog: codeDialog, ensureCode } = useCodeConfirm();
   const [step, setStep] = useState<'idle' | 'code'>('idle');
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
@@ -259,6 +270,7 @@ function PasswordSection() {
     e.preventDefault();
     if (!passwordIsValid(password)) return setError(tr('Le mot de passe ne respecte pas toutes les règles.'));
     if (password !== confirm) return setError(tr('Les deux mots de passe ne sont pas identiques.'));
+    if (!(await ensureCode(tr('Pour changer de mot de passe, confirme aussi avec ton application d’authentification.')))) return;
     const { error } = await supabase.auth.updateUser({ password, nonce: code.trim() });
     if (error) return setError(errorMessage(error));
     await supabase.auth.signOut({ scope: 'others' });
@@ -295,6 +307,7 @@ function PasswordSection() {
       )}
       {message && <p className="success">{message}</p>}
       {error && <p className="error" role="alert">{error}</p>}
+      {codeDialog}
     </div>
   );
 }
