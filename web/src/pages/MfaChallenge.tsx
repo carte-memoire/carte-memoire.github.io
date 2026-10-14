@@ -8,9 +8,11 @@ import { PsSymbol } from '../components/PsSymbol';
 import { CodeInput } from '../components/CodeInput';
 import { browserLabel, rememberTrust } from '../lib/trust';
 import { tr } from '../lib/i18n';
+import { usePageTitle } from '../lib/title';
 
 // Deuxième étape de connexion : code à 6 chiffres de l'application d'authentification
 export function MfaChallenge() {
+  usePageTitle(tr('Double authentification'));
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const next = safeNext(params.get('next'));

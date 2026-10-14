@@ -7,8 +7,10 @@ import { useAuth } from '../auth/AuthContext';
 import { codeStillNeeded } from '../lib/trust';
 import { PsSymbol } from '../components/PsSymbol';
 import { tr } from '../lib/i18n';
+import { usePageTitle } from '../lib/title';
 
 export function Login() {
+  usePageTitle(tr('Connexion'));
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const next = safeNext(params.get('next'));

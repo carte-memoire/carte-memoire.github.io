@@ -8,10 +8,12 @@ import { EmailCodeForm } from '../components/EmailCodeForm';
 import { useAuth } from '../auth/AuthContext';
 import { TERMS_VERSION } from './Legal';
 import { lang, tr } from '../lib/i18n';
+import { usePageTitle } from '../lib/title';
 
 const USERNAME = /^[A-Za-z0-9_-]{3,30}$/;
 
 export function Signup() {
+  usePageTitle(tr('Créer un compte'));
   const navigate = useNavigate();
   const { refresh } = useAuth();
   const [username, setUsername] = useState('');

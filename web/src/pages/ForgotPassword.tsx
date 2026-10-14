@@ -7,8 +7,10 @@ import { useAuth } from '../auth/AuthContext';
 import { EmailCodeForm } from '../components/EmailCodeForm';
 import { PsSymbol } from '../components/PsSymbol';
 import { tr } from '../lib/i18n';
+import { usePageTitle } from '../lib/title';
 
 export function ForgotPassword() {
+  usePageTitle(tr('Mot de passe oublié'));
   const navigate = useNavigate();
   const { refresh } = useAuth();
   const [email, setEmail] = useState('');

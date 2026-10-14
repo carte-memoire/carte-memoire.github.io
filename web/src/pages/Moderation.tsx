@@ -21,10 +21,12 @@ import { StudioQueue } from '../components/StudioQueue';
 import { needsStudioDecision, StudioDecision, type StudioChoice } from '../components/StudioDecision';
 import { forgetCompanies, useCompanies } from '../lib/useCompanies';
 import { tr, locale } from '../lib/i18n';
+import { usePageTitle } from '../lib/title';
 
 type Tab = 'submissions' | 'reports' | 'duplicates' | 'studios' | 'genres' | 'covers' | 'history';
 
 export function Moderation() {
+  usePageTitle(tr('Modération'));
   const { aal } = useAuth();
   const [tab, setTab] = useState<Tab>('submissions');
   // Console des files de jeux (doublons, jeux sans genre, jaquettes manquantes) : dans

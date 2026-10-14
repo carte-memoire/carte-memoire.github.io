@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { lang, locale, tr } from '../lib/i18n';
+import { usePageTitle } from '../lib/title';
 
 // Pages légales : mentions légales, confidentialité, conditions d'utilisation.
 // L'éditeur est un particulier, à titre non professionnel : il peut rester sous pseudonyme
@@ -25,6 +26,7 @@ function Contact() {
 }
 
 export function LegalNotice() {
+  usePageTitle(tr('Mentions légales'));
   return (
     <article className="panel legal">
       <h1>{tr('Mentions légales')}</h1>
@@ -77,6 +79,7 @@ export function LegalNotice() {
 }
 
 export function Privacy() {
+  usePageTitle(tr('Données personnelles et confidentialité'));
   return (
     <article className="panel legal">
       <h1>{tr('Données personnelles et confidentialité')}</h1>
@@ -145,6 +148,7 @@ export function Privacy() {
 }
 
 export function Terms() {
+  usePageTitle(tr("Conditions d'utilisation"));
   return (
     <article className="panel legal">
       <h1>{tr("Conditions d'utilisation")}</h1>

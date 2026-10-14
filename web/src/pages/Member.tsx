@@ -16,6 +16,7 @@ import { tr, locale } from '../lib/i18n';
 import { MemberSkeleton } from '../components/Skeleton';
 import { TrophyStrip } from '../components/TrophyBoard';
 import { computeTrophies, type TrophyStats } from '../lib/trophies';
+import { usePageTitle } from '../lib/title';
 
 interface PublicProfile {
   username: string;
@@ -63,6 +64,7 @@ export function MemberPage() {
   const { session, refresh } = useAuth();
   const [profile, setProfile] = useState<PublicProfile | null | undefined>(undefined);
   const [items, setItems] = useState<PublicItem[]>([]);
+  usePageTitle(profile === null ? tr('Membre introuvable') : profile ? tr('Collection de ') + profile.username : null);
   // Jeux existants par zone, pour chaque console de la collection
   const [totals, setTotals] = useState<[string, ProgressRow[]][]>([]);
   const platforms = usePlatforms();

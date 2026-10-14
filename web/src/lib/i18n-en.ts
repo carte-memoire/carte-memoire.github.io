@@ -383,6 +383,8 @@ export const EN: Record<string, string> = {
   "Erreur de lecture": "Read error",
   "Cette page n'a pas pu s'afficher. Le site vient peut-être d'être mis à jour : recharge la page.": "This page could not be displayed. The site may have just been updated: reload the page.",
   "Recharger la page": "Reload the page",
+  "Page introuvable": "Page not found",
+  "{0} ({1}) : versions et collection": "{0} ({1}): versions and collection",
   "Trop de tentatives : réessaie dans quelques minutes.": "Too many attempts: try again in a few minutes.",
   "Code incorrect ou expiré.": "Incorrect or expired code.",
   "Code incorrect ou expiré : vérifie-le, ou renvoie l'e-mail pour en recevoir un nouveau.": "Incorrect or expired code: check it, or resend the email to get a new one.",

@@ -10,6 +10,7 @@ import { usePhotoSender } from '../lib/photoLink';
 import type { CaseFormat, Quad } from '../lib/coverPhoto';
 import { ManualCode, matchLabel, useScanner } from '../components/Scanner';
 import { tr } from '../lib/i18n';
+import { usePageTitle } from '../lib/title';
 
 interface Sent {
   code: string;
@@ -23,6 +24,7 @@ interface Sent {
 // chaque code lu part vers l'ordinateur, qui ouvre la fiche. Ouvert seul : la fiche
 // s'ouvre ici, sur le téléphone.
 export function ScannerPage() {
+  usePageTitle(tr('Scanner un jeu'));
   const [params] = useSearchParams();
   const link = params.get('lien');
   if (link && LINK_PATTERN.test(link)) return <LinkedScanner link={link} />;

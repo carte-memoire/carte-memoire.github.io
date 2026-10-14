@@ -7,10 +7,12 @@ import { PasswordRules, passwordIsValid } from '../components/PasswordRules';
 import { PsSymbol } from '../components/PsSymbol';
 import { inRecovery, markRecovery } from '../lib/preferences';
 import { tr } from '../lib/i18n';
+import { usePageTitle } from '../lib/title';
 
 // Page ouverte depuis le lien « mot de passe oublié » : le lien a déjà ouvert
 // une session temporaire, il ne reste qu'à choisir le nouveau mot de passe.
 export function ResetPassword() {
+  usePageTitle(tr('Nouveau mot de passe'));
   const navigate = useNavigate();
   const { session, loading, needsMfa } = useAuth();
   const [password, setPassword] = useState('');

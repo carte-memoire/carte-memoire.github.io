@@ -6,9 +6,11 @@ import { computeTrophies, type TrophyStats } from '../lib/trophies';
 import { TrophyBoard } from '../components/TrophyBoard';
 import { PsSymbol } from '../components/PsSymbol';
 import { tr } from '../lib/i18n';
+import { usePageTitle } from '../lib/title';
 
 // Mes trophées : propres au site, calculés à partir de ma collection et de mes contributions
 export function TrophiesPage() {
+  usePageTitle(tr('Mes trophées'));
   const [stats, setStats] = useState<TrophyStats | null>(null);
   const [error, setError] = useState('');
 

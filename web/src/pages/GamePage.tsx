@@ -26,6 +26,7 @@ import { standInFor } from '../lib/images';
 import { formatBarcode, normalizeBarcode } from '../lib/barcode';
 import { lang, tr } from '../lib/i18n';
 import { loadOrReload } from '../lib/reload';
+import { usePageTitle } from '../lib/title';
 
 export function GamePage() {
   const { id, console: consoleName, slug } = useParams();
@@ -86,13 +87,17 @@ export function GamePage() {
   useEffect(() => {
     if (gameId === undefined) return;
     if (gameId === null || !Number.isInteger(gameId)) return setState('missing');
+    // Passage rapide d'un jeu à l'autre : la réponse d'un jeu quitté est ignorée
+    let active = true;
     supabase.from('game').select(GAME_FIELDS).eq('id', gameId).maybeSingle().then(({ data }) => {
+      if (!active) return;
       if (!data) return setState('missing');
       setGame(data as unknown as Game);
       setState('ok');
     });
     supabase.from('game').select('origin').eq('id', gameId).maybeSingle()
-      .then(({ data }) => setOrigin((data as { origin: string | null } | null)?.origin ?? null));
+      .then(({ data }) => { if (active) setOrigin((data as { origin: string | null } | null)?.origin ?? null); });
+    return () => { active = false; };
   }, [gameId]);
 
   // Adresse à jour dans la barre d'adresse : /jeu/ps1/final-fantasy-vii (sans nouvelle
@@ -132,8 +137,12 @@ export function GamePage() {
     return () => { active = false; };
   }, [game, mineVersion]);
 
-  // Titre de l'onglet : le jeu
-  useEffect(() => { if (game) document.title = tr('{0} · Carte Mémoire', game.title); }, [game]);
+  // Titre de l'onglet, le même que la page écrite pour les moteurs de recherche
+  // (scripts/prerender.mjs) : Google lit la page une fois le site chargé
+  const platformNames = [...new Map((game?.release ?? []).map((r) => [r.platform.short_name, r.platform.name ?? r.platform.short_name])).entries()]
+    .sort(([a], [b]) => a.localeCompare(b, 'en', { numeric: true })).map(([, name]) => name).join(', ');
+  usePageTitle(state === 'missing' ? tr('Jeu introuvable')
+    : game ? tr('{0} ({1}) : versions et collection', game.title, platformNames || 'PlayStation') : null);
 
   // La version scannée : on l'amène à l'écran
   useEffect(() => {

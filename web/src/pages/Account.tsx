@@ -13,8 +13,10 @@ import { Dialog } from '../components/Dialog';
 import { tr, locale } from '../lib/i18n';
 import { motionChoice, setMotionChoice, systemReducesMotion, type MotionChoice } from '../lib/motion';
 import { forgetTrust } from '../lib/trust';
+import { usePageTitle } from '../lib/title';
 
 export function Account() {
+  usePageTitle(tr('Mon compte'));
   const { profile, isModerator, aal } = useAuth();
   const mfaActive = aal.next === 'aal2';
 

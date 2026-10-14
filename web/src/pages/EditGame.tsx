@@ -20,6 +20,7 @@ import { useConfirm } from '../components/Confirm';
 import { PsSymbol } from '../components/PsSymbol';
 import { tr } from '../lib/i18n';
 import { specText } from '../lib/specs';
+import { usePageTitle } from '../lib/title';
 
 const IMAGE_TYPES: { value: ImageType; label: string }[] = [
   { value: 'front', label: tr('Recto') },
@@ -39,6 +40,7 @@ export function EditGame() {
   const [game, setGame] = useState<Game | null>(null);
   const [missing, setMissing] = useState(false);
   const [deleted, setDeleted] = useState('');
+  usePageTitle(game ? tr('Modifier « ') + game.title + ' »' : missing ? tr('Jeu introuvable') : null);
 
   const load = useCallback(async () => {
     const { data } = await supabase.from('game').select(GAME_FIELDS).eq('id', gameId).maybeSingle();

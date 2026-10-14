@@ -25,6 +25,7 @@ import { useToast } from '../components/Toast';
 import { notifyCollectionChanged } from '../lib/trophies';
 import { useKnownPlatform } from '../lib/usePlatforms';
 import { tr } from '../lib/i18n';
+import { usePageTitle } from '../lib/title';
 
 // L'API renvoie au plus 1 000 jeux par appel : « tout » est lu en plusieurs fois
 const MAX_PER_CALL = 1000;
@@ -56,6 +57,7 @@ function yearsFor(platform: string): number[] {
 // de la zone choisie (Black Label, Platinum…). Un clic sur une version l'ajoute
 // à la collection. Tous les filtres sont dans l'adresse : on peut la partager.
 export function Catalog() {
+  usePageTitle(tr('Catalogue'));
   const { session, needsMfa } = useAuth();
   const location = useLocation();
   const [params, setParams] = useSearchParams();

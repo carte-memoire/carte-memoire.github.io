@@ -8,6 +8,7 @@ import { useAuth } from '../auth/AuthContext';
 import { PsSymbol } from '../components/PsSymbol';
 import { useConfirm } from '../components/Confirm';
 import { tr, locale } from '../lib/i18n';
+import { usePageTitle } from '../lib/title';
 
 const STATUS: Record<Submission['status'], { label: string; className: string }> = {
   pending: { label: tr('En attente'), className: 'badge-todo' },
@@ -16,6 +17,7 @@ const STATUS: Record<Submission['status'], { label: string; className: string }>
 };
 
 export function MySubmissions() {
+  usePageTitle(tr('Mes propositions'));
   const confirm = useConfirm();
   const [items, setItems] = useState<Submission[]>([]);
   const [titles, setTitles] = useState<Map<number, string>>(new Map());

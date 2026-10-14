@@ -14,10 +14,12 @@ import { useGameSearch } from '../components/GameSearch';
 import { PsSymbol } from '../components/PsSymbol';
 import { EMPTY_STUDIO, StudioField, type StudioValue } from '../components/StudioField';
 import { tr } from '../lib/i18n';
+import { usePageTitle } from '../lib/title';
 
 // Proposer un jeu absent de la base, ou une version manquante d'un jeu existant
 // (/proposer?jeu=12). La proposition est vérifiée par un modérateur avant publication.
 export function ProposeGame() {
+  usePageTitle(tr('Proposer un jeu'));
   const { session } = useAuth();
   const [params] = useSearchParams();
   const [existingGame, setExistingGame] = useState<{ id: number; title: string; slug: string | null } | null>(null);

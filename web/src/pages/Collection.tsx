@@ -28,6 +28,7 @@ import { useToast } from '../components/Toast';
 import { notifyCollectionChanged } from '../lib/trophies';
 import { usePlatforms } from '../lib/usePlatforms';
 import { tr } from '../lib/i18n';
+import { usePageTitle } from '../lib/title';
 
 // L'API renvoie au plus 1 000 lignes par requête : on lit la collection par paquets
 const BATCH = 1000;
@@ -78,6 +79,7 @@ function hasContent(item: CollectionItem, content: Content): boolean {
 }
 
 export function Collection() {
+  usePageTitle(tr('Ma collection'));
   const { session, profile } = useAuth();
   const confirm = useConfirm();
   const [params, setParams] = useSearchParams();
