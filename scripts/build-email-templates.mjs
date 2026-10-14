@@ -40,8 +40,12 @@ const MONO = "'Courier New', Courier, monospace";
 const IF_EN = '{{ if eq (printf "%v" .Data.lang) "en" }}';
 const bilingual = (fr, en) => `${IF_EN}${en}{{ else }}${fr}{{ end }}`;
 
+// Typographie française : espace insécable avant « : ? ! ; » et à l'intérieur des guillemets,
+// pour qu'un signe ne se retrouve jamais seul en début ou en fin de ligne
+const frenchSpacing = (text) => text.replace(/ ([:?!;»])/g, '&nbsp;$1').replace(/« /g, '«&nbsp;');
+
 function build(lang) {
-  const t = (fr, en) => (lang === 'en' ? en : fr);
+  const t = (fr, en) => (lang === 'en' ? en : frenchSpacing(fr));
   const h1 = (text) => `<h1 style="margin:0 0 14px;font-family:${SANS};font-size:21px;line-height:1.3;color:#ffffff;">${text}</h1>`;
   const p = (text) => `<p style="margin:0 0 14px;">${text}</p>`;
   const small = (text) => `<p style="margin:14px 0 0;font-size:13px;color:${C.muted};">${text}</p>`;
@@ -228,7 +232,8 @@ for (const name of Object.keys(fr)) writeFileSync(join(OUT, `${name}.html`), bil
 // littérale TOML (apostrophes simples), d'où l'interdiction des « ' » dans les sujets
 let config = readFileSync(CONFIG, 'utf8');
 for (const name of Object.keys(fr)) {
-  const subject = bilingual(fr[name].subject, en[name].subject);
+  // Sujet en texte brut : l'espace insécable en caractère, pas en code HTML
+  const subject = bilingual(fr[name].subject, en[name].subject).replace(/&nbsp;/g, ' ');
   if (subject.includes("'")) throw new Error(`Sujet avec une apostrophe droite (${name}) : utiliser ’`);
   const pattern = new RegExp(`(\\[auth\\.email\\.${fr[name].kind}\\.${name}\\]\\r?\\n(?:#? ?enabled = true\\r?\\n)?#? ?subject = )[^\\r\\n]*`);
   if (!pattern.test(config)) throw new Error(`Bloc [auth.email.${fr[name].kind}.${name}] introuvable dans config.toml`);
