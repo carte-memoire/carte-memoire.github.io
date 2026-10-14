@@ -45,10 +45,13 @@ export const TOP = lightOf([0, 0, 1]);
 export const FRONT = lightOf([0, -1, 0]);
 export const SIDE = lightOf([1, 0, 0]);
 
-export function shade(hex: string, factor: number): string {
-  const n = Number.parseInt(hex.slice(1), 16);
-  const c = (shift: number) => Math.max(0, Math.min(255, Math.round(((n >> shift) & 255) * factor)));
-  return `rgb(${c(16)}, ${c(8)}, ${c(0)})`;
+// Couleur éclaircie ou assombrie : « #rrggbb », ou « rgb(r, g, b) » (couleur déjà nuancée)
+export function shade(color: string, factor: number): string {
+  const rgb = color.startsWith('#')
+    ? [16, 8, 0].map((shift) => (Number.parseInt(color.slice(1), 16) >> shift) & 255)
+    : (color.match(/\d+(\.\d+)?/g) ?? ['0', '0', '0']).slice(0, 3).map(Number);
+  const [r, g, b] = rgb.map((v) => Math.max(0, Math.min(255, Math.round(v * factor))));
+  return `rgb(${r}, ${g}, ${b})`;
 }
 
 // Polygones 2D (dans le plan du dessus, de l'avant ou du côté)
@@ -197,27 +200,49 @@ function screenTop(s: Scene, x: number, y: number, w: number, h: number, z: numb
 // Sony
 // ---------------------------------------------------------------------
 
-// PlayStation : grand couvercle rond au centre, bouton d'ouverture à sa droite, Reset
-// à gauche et Power (avec voyant) à droite sur l'avant du dessus ; à l'avant, deux
-// fentes de carte mémoire au-dessus de deux ports manette
+// PlayStation (modèle d'origine), mesurée sur photos (vue de dessus et de trois quarts) :
+// - dessus en trois parties : deux ailes un peu surélevées (≈ 67 mm chacune) et, au
+//   centre, le très grand couvercle rond (≈ 173 mm), centré, qui empiète sur les ailes,
+//   avec une bordure à l'arrière ;
+// - aile gauche : petit bouton Reset, puis grand bouton Power vers l'avant, voyant vert
+//   juste devant ; aile droite : grand bouton Open, symétrique de Power ;
+// - avant, au centre : deux blocs carte mémoire (fente en haut) + port manette ;
+// - flancs rainurés
 function ps1(s: Scene) {
-  const grey = '#cacac4';
-  const foot = rrect(0, 0, 270, 188, 9);
-  s.shadow(foot);
-  s.prism(foot, 0, 44, grey, { glint: 0.45 });
-  s.line([10, 0, 19], [260, 0, 19], shade(grey, 0.62), 0.9);
-  s.onTop(44, ellipse(124, 104, 68), shade(grey, 0.74));
-  s.prism(ellipse(124, 104, 63), 44, 2.4, grey);
-  s.onTop(46.5, ellipse(124, 104, 22), shade(grey, 0.92), { stroke: shade(grey, 0.72), width: 0.7 });
-  button(s, 222, 116, 44, 15, grey, 2.2);
-  button(s, 28, 30, 44, 9, grey);
-  button(s, 242, 30, 44, 9, grey);
-  s.onTop(44.2, ellipse(222, 26, 2.6), '#41d36d');
-  for (const x of [80, 148]) {
-    s.onFront(0, rect(x + 4, 28, 34, 3.6), '#3c3c3a');
-    s.onFront(0, rrect(x, 6, 42, 15, 3), shade(grey, 0.62), { stroke: shade(grey, 0.48), width: 0.8 });
-    s.onFront(0, rect(x + 6, 9.5, 30, 8), '#2c2c2b');
+  const grey = '#c7c7c3';
+  const recess = shade(grey, 0.7);
+  s.shadow(rrect(0, 0, 270, 188, 6));
+  s.prism(rrect(0, 0, 270, 188, 6), 0, 36, grey, { glint: 0.35 });
+  // Assise du couvercle au centre (avec une marche à l'avant, au-dessus des ports),
+  // bordure arrière, puis les deux ailes
+  s.prism(rect(67, 22, 136, 152), 36, 5, grey);
+  s.prism(rect(67, 174, 136, 14), 36, 6, grey, { glint: 0.3 });
+  s.prism(rrect4(0, 0, 67, 188, [6, 0, 0, 6]), 36, 6, grey, { glint: 0.45 });
+  s.prism(rrect4(203, 0, 67, 188, [0, 6, 6, 0]), 36, 6, grey, { glint: 0.45 });
+  // Couvercle : sillon, puis le couvercle (il passe sur les ailes et avance au-dessus de la marche)
+  s.onTop(42, ellipse(135, 92, 89, 89, 60), recess);
+  s.prism(ellipse(135, 92, 86, 86, 60), 41, 2.3, grey, { glint: 0.35 });
+  s.onTop(43.4, ellipse(135, 92, 70, 70, 60), shade(grey, 1.04));
+  // Petit trait entre le couvercle et le bouton Open
+  s.line([214, 40, 42.1], [222, 35, 42.1], recess, 1.2);
+  // Reset (petit), Power (grand) et son voyant, Open (grand)
+  const roundButton = (x: number, y: number, r: number) => {
+    s.onTop(42, ellipse(x, y, r + 2.5, r + 2.5, 40), recess);
+    s.prism(ellipse(x, y, r, r, 40), 41, 2, shade(grey, 0.96));
+  };
+  roundButton(24, 71, 8);
+  roundButton(35, 32, 19);
+  roundButton(235, 32, 19);
+  s.onTop(42.2, ellipse(34, 6, 2.2, 1.4, 16), '#5be27a');
+  // Avant, au centre : deux blocs carte mémoire + port manette
+  for (const x of [76, 142]) {
+    s.onFront(0, rrect(x, 5, 52, 27, 2), shade(grey, 0.8), { stroke: shade(grey, 0.55), width: 0.8 });
+    s.onFront(0, rect(x + 5, 25, 42, 3.4), '#3a3a39');
+    s.onFront(0, rrect(x + 4, 8, 44, 12, 2), shade(grey, 0.6));
+    for (const k of [0, 1, 2]) s.onFront(0, rrect(x + 7 + k * 13.5, 10.5, 11, 7, 2), shade(grey, 0.42));
   }
+  // Flancs rainurés (côté droit, visible)
+  for (let y = 10; y < 180; y += 6) s.line([270, y, 5], [270, y, 38], shade(grey, 0.5), 1.1, 0.8);
 }
 
 // PlayStation 2 (modèle d'origine, à plat) : socle en retrait, dessus rainuré, fente du
