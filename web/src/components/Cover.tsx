@@ -1,22 +1,25 @@
-import { useRef, useState, type PointerEvent, type SyntheticEvent } from 'react';
+import { useRef, useState, type CSSProperties, type PointerEvent, type SyntheticEvent } from 'react';
 import { flushSync } from 'react-dom';
 import { coverUrl } from '../lib/supabase';
 import type { StandIn } from '../lib/images';
 import { prefersReducedMotion } from '../lib/motion';
 import type { ReleaseImage } from '../lib/types';
+import { CASE_RATIO, platformCase } from '../lib/cases';
 import { PsSymbol } from './PsSymbol';
 import { tr } from '../lib/i18n';
 
-// Consoles vendues en boîtier DVD, plus haut que large (PS2 : 135 × 190 mm) ; la PS1
-// est en boîtier CD, presque carré. Le cadre prend d'emblée la bonne forme.
-const TALL_CASES = new Set(['PS2']);
-
-// Console inconnue (recherche, catalogue de toutes les consoles) : le cadre suit la
-// forme de l'image une fois chargée
-function shapeOf(event: SyntheticEvent<HTMLImageElement>): boolean | null {
-  const { naturalWidth: w, naturalHeight: h } = event.currentTarget;
-  if (!w || !h) return null;
-  return h / w > 1.2 ? true : h / w < 1.1 ? false : null;
+// Forme du cadre, sans jamais de bandes autour de la jaquette :
+// - celle du boîtier de la console (PS1 carré, PS2 haut : lib/cases.ts) dès l'affichage,
+//   et l'image le remplit entièrement quand elle s'en approche (rognée de quelques
+//   pixels au plus) : les jaquettes d'une même console s'alignent ;
+// - celle de l'image elle-même quand elle s'en écarte nettement (collector, boîte en
+//   carton, jaquette avec son bandeau…) ou que la console n'est pas connue.
+const CLOSE_TO_CASE = 0.12;
+function frameOf(platform: string | null | undefined, natural: number | null): { ratio: number; fill: boolean } {
+  const box = platformCase(platform);
+  const base = box ? CASE_RATIO[box] : null;
+  if (base && natural && Math.abs(natural / base - 1) <= CLOSE_TO_CASE) return { ratio: base, fill: true };
+  return { ratio: natural ?? base ?? 1, fill: false };
 }
 
 // Nom partagé par la vignette et la jaquette agrandie : le navigateur passe de l'une
@@ -60,17 +63,22 @@ export function Cover({ images, title, size = 'medium', standIn, platform, zooma
   platform?: string | null;
   zoomable?: boolean;
 }) {
-  const [measured, setMeasured] = useState<boolean | null>(null);
+  // Largeur / hauteur de l'image, une fois chargée
+  const [natural, setNatural] = useState<number | null>(null);
   const [zoomed, setZoomed] = useState(false);
   const thumb = useRef<HTMLImageElement>(null);
   const button = useRef<HTMLButtonElement>(null);
-  const tall = measured ?? TALL_CASES.has(platform ?? '');
-  const onLoad = (event: SyntheticEvent<HTMLImageElement>) => setMeasured(shapeOf(event));
-  const className = `cover cover-${size}${tall ? ' cover-tall' : ''}`;
+  const onLoad = (event: SyntheticEvent<HTMLImageElement>) => {
+    const { naturalWidth: w, naturalHeight: h } = event.currentTarget;
+    if (w && h) setNatural(w / h);
+  };
+  const frame = frameOf(platform, natural);
+  const className = `cover cover-${size}${frame.fill ? ' cover-fill' : ''}`;
+  const style: CSSProperties = { aspectRatio: String(frame.ratio) };
   const front = images.find((i) => i.type === 'front');
   if (!front && standIn) {
     return (
-      <div className={`${className} cover-stand-in`} title={tr("Jaquette d'une autre version du jeu, en attendant celle de cette version ({0})", standIn.label)}>
+      <div className={`${className} cover-stand-in`} style={style} title={tr("Jaquette d'une autre version du jeu, en attendant celle de cette version ({0})", standIn.label)}>
         <img src={coverUrl(standIn.path)} alt={tr("Jaquette d'une autre version de {0}", title)} loading="lazy" onLoad={onLoad} />
         <span className="cover-ribbon">{standIn.label}</span>
       </div>
@@ -78,7 +86,7 @@ export function Cover({ images, title, size = 'medium', standIn, platform, zooma
   }
   if (!front) {
     return (
-      <div className={className}>
+      <div className={className} style={style}>
         <span className="cover-empty" aria-label={tr('Pas encore de jaquette')}>
           <span aria-hidden="true"><PsSymbol shape="square" /></span>
         </span>
@@ -86,7 +94,7 @@ export function Cover({ images, title, size = 'medium', standIn, platform, zooma
     );
   }
   const image = <img ref={thumb} src={coverUrl(front.path)} alt={tr('Jaquette de {0}', title)} loading="lazy" onLoad={onLoad} />;
-  if (!zoomable) return <div className={className}>{image}</div>;
+  if (!zoomable) return <div className={className} style={style}>{image}</div>;
 
   // La vignette prête son nom à la grande image le temps du passage, puis le reprend au retour
   function open() {
@@ -109,7 +117,7 @@ export function Cover({ images, title, size = 'medium', standIn, platform, zooma
 
   return (
     <>
-      <button ref={button} type="button" className={`${className} cover-zoomable${zoomed ? ' is-zoomed' : ''}`} onClick={open} onPointerMove={tilt} onPointerLeave={untilt}
+      <button ref={button} type="button" className={`${className} cover-zoomable${zoomed ? ' is-zoomed' : ''}`} style={style} onClick={open} onPointerMove={tilt} onPointerLeave={untilt}
         title={tr('Agrandir la jaquette')}>
         {image}
       </button>

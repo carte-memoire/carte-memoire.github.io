@@ -1,4 +1,7 @@
 import { tr } from './i18n';
+import { CASE_RATIO, type CaseFormat } from './cases';
+
+export { caseFormatFor, type CaseFormat } from './cases';
 
 // Recadrage d'une photo de jaquette : on pose un coin sur chaque coin de la boîte,
 // et l'image est redressée (perspective), même photographiée de biais. Tout se passe
@@ -10,25 +13,13 @@ export type Quad = [Point, Point, Point, Point];
 
 // Format de la jaquette : boîtier CD (PS1, presque carré), boîtier DVD (PS2,
 // 135 × 190 mm), ou libre (sans cadre : les proportions de ce qui est photographié,
-// pour les éditions collector, les bundles, les boîtes en carton…)
-export type CaseFormat = 'cd' | 'dvd' | 'free';
+// pour les éditions collector, les bundles, les boîtes en carton…). Le boîtier de
+// chaque console est dans lib/cases.ts.
 export const CASE_FORMATS: { value: CaseFormat; label: string; ratio: number | null }[] = [
-  { value: 'cd', label: tr('Boîtier CD (carré)'), ratio: 1 },
-  { value: 'dvd', label: tr('Boîtier DVD (haut)'), ratio: 135 / 190 },
+  { value: 'cd', label: tr('Boîtier CD (carré)'), ratio: CASE_RATIO.cd },
+  { value: 'dvd', label: tr('Boîtier DVD (haut)'), ratio: CASE_RATIO.dvd },
   { value: 'free', label: tr('Sans cadre (libre)'), ratio: null },
 ];
-// Le boîtier habituel de chaque console (cadre de l'appareil photo, format du recadrage).
-// À COMPLÉTER à chaque nouvelle console importée (Game Boy : carré ; GameCube : proche
-// du DVD…) ; une console absente prend le boîtier CD.
-const CASE_BY_PLATFORM: Record<string, CaseFormat> = {
-  PS1: 'cd',
-  PS2: 'dvd',
-};
-// Une édition collector ou un bundle n'a pas forcément le boîtier standard : sans cadre
-export function caseFormatFor(platform?: string | null, editionType?: string | null): CaseFormat {
-  if (editionType === 'collector' || editionType === 'bundle') return 'free';
-  return CASE_BY_PLATFORM[platform ?? ''] ?? 'cd';
-}
 export const fixedRatio = (format: CaseFormat): number => CASE_FORMATS.find((f) => f.value === format)?.ratio ?? 1;
 
 const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);

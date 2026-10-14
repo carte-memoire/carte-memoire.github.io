@@ -321,14 +321,16 @@ ul.error { padding-left: 28px; }
 .chosen { display: flex; gap: 12px; align-items: center; }
 
 /* ---------- Jaquettes ---------- */
+/* Forme du cadre : celle du boîtier ou de l'image (Cover.tsx). Le cadre garde sa
+   forme à côté d'un texte plus haut que lui (sinon il s'étirait : bandes noires). */
 .cover {
-  flex: none; aspect-ratio: 1 / 1; border-radius: 2px; overflow: hidden;
+  flex: none; aspect-ratio: 1 / 1; height: auto; align-self: flex-start; border-radius: 2px; overflow: hidden;
   background: #0a0c18; border: 1px solid var(--line);
   display: flex; align-items: center; justify-content: center;
 }
 .cover img { width: 100%; height: 100%; object-fit: contain; }
-/* Boîtier DVD (PS2) : plus haut que large */
-.cover-tall { aspect-ratio: 5 / 7; }
+/* Jaquette proche du boîtier de sa console : elle remplit tout le cadre */
+.cover-fill img { object-fit: cover; }
 .cover-small { width: 96px; }
 .cover-medium { width: 140px; }
 .cover-large { width: 220px; }
