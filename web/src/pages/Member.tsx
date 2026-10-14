@@ -13,6 +13,7 @@ import { PageSizeSelect, Pagination } from '../components/Pagination';
 import { DEFAULT_PLATFORM } from '../lib/preferences';
 import { usePlatforms } from '../lib/usePlatforms';
 import { tr, locale } from '../lib/i18n';
+import { MemberSkeleton } from '../components/Skeleton';
 
 interface PublicProfile {
   username: string;
@@ -112,7 +113,7 @@ export function MemberPage() {
     return [...map.values()];
   }, [items, tab, platform, zone, query]);
 
-  if (profile === undefined) return <p className="loading">{tr('Lecture de la carte mémoire…')}</p>;
+  if (profile === undefined) return <MemberSkeleton />;
   if (profile === null) {
     return (
       <section className="panel narrow">

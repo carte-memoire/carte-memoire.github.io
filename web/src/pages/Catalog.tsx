@@ -13,12 +13,15 @@ import {
 } from '../lib/preferences';
 import type { CatalogRelease, CatalogRow, CollectionItem, GenreFamily, Ownership, ProgressRow, Zone } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
-import { AddToCollection } from '../components/AddToCollection';
+import { AddToCollection, savedText } from '../components/AddToCollection';
+import { CountUp } from '../components/CountUp';
 import { Cover } from '../components/Cover';
 import { MemoryBar } from '../components/MemoryBar';
 import { PageSizeSelect, Pagination } from '../components/Pagination';
 import { PlatformSelect } from '../components/PlatformSelect';
 import { PsSymbol } from '../components/PsSymbol';
+import { CatalogSkeleton } from '../components/Skeleton';
+import { useToast } from '../components/Toast';
 import { useKnownPlatform } from '../lib/usePlatforms';
 import { tr } from '../lib/i18n';
 
@@ -95,8 +98,10 @@ export function Catalog() {
   const [version, setVersion] = useState(0);
   const [busyRelease, setBusyRelease] = useState<number | null>(null);
   const [editItem, setEditItem] = useState<CollectionItem | null>(null);
-  const [toast, setToast] = useState<{ text: string; itemId?: number; error?: boolean } | null>(null);
-  const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const { toast, show: showToast, hide: hideToast } = useToast();
+  // Dernière version cochée et dernier jeu ajouté aux recherches : leur coche ou leur cœur s'anime
+  const [justAdded, setJustAdded] = useState<number | null>(null);
+  const [justWanted, setJustWanted] = useState<number | null>(null);
   // Téléphone : les filtres secondaires sont repliés pour laisser voir la liste
   const [filtersOpen, setFiltersOpen] = useState(false);
 
@@ -207,14 +212,6 @@ export function Catalog() {
     return () => { active = false; };
   }, [platformCode, zoneCode, origin, version, userId]);
 
-  useEffect(() => () => clearTimeout(toastTimer.current), []);
-
-  function showToast(value: { text: string; itemId?: number; error?: boolean }) {
-    clearTimeout(toastTimer.current);
-    setToast(value);
-    toastTimer.current = setTimeout(() => setToast(null), 6000);
-  }
-
   // « Je l'ai » : ajout immédiat (contenu et état à préciser plus tard)
   async function addOwned(release: CatalogRelease) {
     setBusyRelease(release.id);
@@ -226,7 +223,11 @@ export function Catalog() {
     }
     setBusyRelease(null);
     if (error) return showToast({ text: errorMessage(error), error: true });
-    showToast({ text: tr('« {0} » ({1}) est dans ta collection.', release.local_title, editionLabel(release)), itemId: data.id });
+    showToast({
+      text: tr('« {0} » ({1}) est dans ta collection.', release.local_title, editionLabel(release)), saved: true,
+      action: { label: tr("Préciser l'état"), onClick: () => openItem(data.id) },
+    });
+    setJustAdded(release.id);
     setVersion((v) => v + 1);
   }
 
@@ -234,7 +235,7 @@ export function Catalog() {
   async function openItem(itemId: number) {
     const { data, error } = await supabase.from('collection_item').select(COLLECTION_FIELDS).eq('id', itemId).single();
     if (error || !data) return showToast({ text: errorMessage(error), error: true });
-    setToast(null);
+    hideToast();
     setEditItem(data as unknown as CollectionItem);
   }
 
@@ -254,6 +255,7 @@ export function Catalog() {
     }
     setBusyRelease(null);
     if (failure) return showToast({ text: errorMessage(failure), error: true });
+    setJustWanted(row.wanted ? null : row.id);
     setVersion((v) => v + 1);
   }
 
@@ -282,7 +284,7 @@ export function Catalog() {
         {zoneProgress && (
           <div className="catalog-progress">
             <p>
-              <strong>{formatNumber(zoneProgress.owned)}</strong> / {formatNumber(zoneProgress.total)}{tr(' jeux')}{zoneInfo ? ` ${zoneInfo.short}` : ''}
+              <strong><CountUp value={zoneProgress.owned} /></strong> / {formatNumber(zoneProgress.total)}{tr(' jeux')}{zoneInfo ? ` ${zoneInfo.short}` : ''}
               {origin && ` (${ORIGINS.find((o) => o.value === origin)!.adjective})`}{tr(' dans ta collection')}
               <span className="muted"> · {formatPercent(zoneProgress.owned, zoneProgress.total)}</span>
             </p>
@@ -418,6 +420,8 @@ export function Catalog() {
         </div>
       )}
 
+      {rows === null && !error && <CatalogSkeleton />}
+
       {rows && rows.length > 0 && (
         <ul className={loading ? 'catalog-list is-busy' : 'catalog-list'}>
           {rows.map((row) => (
@@ -429,6 +433,8 @@ export function Catalog() {
               language={language}
               canTick={canTick}
               busyRelease={busyRelease}
+              justAdded={justAdded}
+              justWanted={justWanted === row.id}
               onAdd={addOwned}
               onOpen={openItem}
               onToggleWanted={toggleWanted}
@@ -439,20 +445,13 @@ export function Catalog() {
 
       {rows && rows.length > 0 && <Pagination page={page} pages={pages} onChange={goToPage} label={tr('Pages du catalogue')} />}
 
-      {toast && (
-        <div className={toast.error ? 'toast toast-error' : 'toast'} role="status">
-          {toast.text}
-          {toast.itemId && (
-            <button type="button" className="link-button" onClick={() => openItem(toast.itemId!)}>{tr("Préciser l'état")}</button>
-          )}
-        </div>
-      )}
+      {toast}
 
       <AddToCollection
         open={editItem !== null}
         editItem={editItem}
         onClose={() => setEditItem(null)}
-        onSaved={() => setVersion((v) => v + 1)}
+        onSaved={(saved) => { showToast({ text: savedText(saved), saved: true }); setVersion((v) => v + 1); }}
       />
     </section>
   );
@@ -567,12 +566,15 @@ interface LineProps {
   language: string;
   canTick: boolean;
   busyRelease: number | null;
+  // Version tout juste cochée, jeu tout juste ajouté aux recherches
+  justAdded: number | null;
+  justWanted: boolean;
   onAdd: (release: CatalogRelease) => void;
   onOpen: (itemId: number) => void;
   onToggleWanted: (row: CatalogRow) => void;
 }
 
-function CatalogLine({ row, showZone, showPlatform, language, canTick, busyRelease, onAdd, onOpen, onToggleWanted }: LineProps) {
+function CatalogLine({ row, showZone, showPlatform, language, canTick, busyRelease, justAdded, justWanted, onAdd, onOpen, onToggleWanted }: LineProps) {
   const [expanded, setExpanded] = useState(false);
   const releases = sortReleases(row.releases, language);
   const busy = releases.some((r) => r.id === busyRelease);
@@ -609,6 +611,7 @@ function CatalogLine({ row, showZone, showPlatform, language, canTick, busyRelea
           {shown.map((r) => (
             <li key={r.id}>
               <ReleaseChip release={r} showZone={showZone} showPlatform={showPlatform} showLanguage={(counts.get(lookalike(r)) ?? 0) > 1} interactive={canTick} busy={busy}
+                fresh={r.id === justAdded && r.owned}
                 onClick={() => (r.owned && r.owned_item ? onOpen(r.owned_item) : onAdd(r))} />
             </li>
           ))}
@@ -623,7 +626,7 @@ function CatalogLine({ row, showZone, showPlatform, language, canTick, busyRelea
         </ul>
       </div>
       {canTick && !row.owned && releases.length > 0 && (
-        <button type="button" className={row.wanted ? 'wish-button active' : 'wish-button'} aria-pressed={row.wanted} disabled={busy}
+        <button type="button" className={row.wanted ? `wish-button active${justWanted ? ' just-wanted' : ''}` : 'wish-button'} aria-pressed={row.wanted} disabled={busy}
           onClick={() => onToggleWanted(row)} title={row.wanted ? tr('Retirer de ma liste de recherche') : tr('Ajouter à ma liste de recherche')}>
           {row.wanted ? tr('♥ Recherché') : tr('♡ Je le cherche')}
         </button>
@@ -632,13 +635,15 @@ function CatalogLine({ row, showZone, showPlatform, language, canTick, busyRelea
   );
 }
 
-function ReleaseChip({ release, showZone, showPlatform, showLanguage, interactive, busy, onClick }: {
-  release: CatalogRelease; showZone: boolean; showPlatform: boolean; showLanguage: boolean; interactive: boolean; busy: boolean; onClick: () => void;
+function ReleaseChip({ release, showZone, showPlatform, showLanguage, interactive, busy, fresh, onClick }: {
+  release: CatalogRelease; showZone: boolean; showPlatform: boolean; showLanguage: boolean; interactive: boolean; busy: boolean;
+  // Tout juste cochée : la case se tamponne
+  fresh: boolean; onClick: () => void;
 }) {
   const edition = editionLabel(release);
   // Boîte d'un pays : son code (FR, DE…) ; sinon les langues du disque
   const language = !showLanguage ? '' : release.box_country ? boxTag(release.box_country) : languagesShort(release.languages);
-  const className = `release-chip${release.owned ? ' owned' : ''}${release.edition_type === 'reissue' ? ' reissue' : ''}`;
+  const className = `release-chip${release.owned ? ' owned' : ''}${fresh ? ' just-owned' : ''}${release.edition_type === 'reissue' ? ' reissue' : ''}`;
   const content = (
     <>
       <span className="chip-box" aria-hidden="true">{release.owned ? '✓' : ''}</span>

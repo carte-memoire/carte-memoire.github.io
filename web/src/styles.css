@@ -753,10 +753,8 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .family-count { color: var(--muted); font-size: 0.85rem; }
 
 @media (prefers-reduced-motion: no-preference) {
-  .memory-bar-large .memory-block.filled { animation: pop 320ms ease-out both; }
   .release-chip, .wish-button, .letter, .zone-option, .family-row { transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease; }
   .catalog-list > li { animation: fade-in 200ms ease-out both; }
-  .release-chip.owned .chip-box { animation: pop 260ms ease-out both; }
 }
 
 @media (max-width: 640px) {
@@ -1035,4 +1033,122 @@ fieldset.studio-decision { padding: 10px 12px; display: flex; flex-direction: co
   .lang-switch { padding: 4px 6px; }
   .logo { gap: 6px; }
   .logo-text { font-size: 0.55rem; }
+}
+
+/* ---------- Animations liées aux actions ----------
+   Ce qu'on fait se voit : coche tamponnée, cœur qui bat, carte mémoire qui s'écrit,
+   blocs de progression qui s'allument, nombres qui défilent. Coupé, comme le reste,
+   pour qui demande moins d'animations. */
+
+/* Nombre qui défile : chiffres de même largeur, place de la valeur finale réservée */
+.count-up { display: inline-block; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Message « sauvegardé » : une carte mémoire (sans marque) qui s'écrit, puis la coche */
+.toast { display: flex; align-items: center; gap: 10px; }
+.save-icon { width: 22px; height: 28px; flex: none; overflow: visible; }
+.save-card { fill: #1b2040; stroke: #b5f3e1; stroke-width: 1.4; stroke-linejoin: round; }
+.save-label { fill: var(--line); }
+.save-track { fill: #0a0c18; }
+.save-fill { fill: var(--triangle); transform-box: fill-box; transform-origin: left center; }
+.save-check { fill: none; stroke: var(--triangle); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 10; }
+@keyframes save-write { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes save-check { from { stroke-dashoffset: 10; } to { stroke-dashoffset: 0; } }
+@keyframes save-bump { 50% { transform: scale(1.18); } }
+
+/* Coche tamponnée, cœur qui bat, halo qui s'éloigne */
+@keyframes stamp {
+  0% { opacity: 0; transform: scale(2.4) rotate(-14deg); }
+  60% { opacity: 1; transform: scale(0.88); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes ring-green { from { box-shadow: 0 0 0 0 rgba(47, 214, 166, 0.75); } to { box-shadow: 0 0 0 12px rgba(47, 214, 166, 0); } }
+@keyframes ring-pink { from { box-shadow: 0 0 0 0 rgba(255, 134, 217, 0.7); } to { box-shadow: 0 0 0 12px rgba(255, 134, 217, 0); } }
+@keyframes heart-beat {
+  0% { transform: none; }
+  25% { transform: scale(1.18); }
+  45% { transform: scale(0.95); }
+  65% { transform: scale(1.08); }
+  100% { transform: none; }
+}
+@keyframes saved-glow {
+  0% { box-shadow: 0 0 0 2px var(--triangle), 0 0 26px rgba(47, 214, 166, 0.55); }
+  100% { box-shadow: 0 0 0 2px rgba(47, 214, 166, 0), 0 0 0 rgba(47, 214, 166, 0); }
+}
+
+/* Carte mémoire de progression : les blocs s'allument l'un après l'autre ; celui
+   qu'un nouveau jeu vient d'écrire brille un instant */
+@keyframes block-lit { from { opacity: 0; transform: scaleY(0.2); } to { opacity: 1; transform: none; } }
+@keyframes block-saved {
+  0%, 100% { transform: none; filter: none; }
+  35% { transform: scaleY(1.4); filter: brightness(1.9); box-shadow: 0 0 16px rgba(92, 232, 193, 0.95); }
+}
+
+/* Silhouettes de chargement : un reflet passe dessus */
+.skeleton { display: block; background: #1a1e38; border-radius: 4px; }
+.skeleton.cover { border-color: transparent; }
+.skeleton-line { height: 0.8rem; }
+.skeleton-title { height: 1rem; }
+.skeleton-heading { height: 1.6rem; margin-bottom: 6px; }
+.skeleton-stack { display: flex; flex-direction: column; gap: 10px; }
+.skeleton-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.skeleton-chip { width: 96px; height: 28px; border-radius: 999px; }
+.skeleton-badge { width: 64px; height: 20px; border-radius: 999px; }
+.skeleton-bar { height: 22px; max-width: 420px; }
+.cover-tile .skeleton.cover { width: 100%; }
+@keyframes shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
+
+/* Jaquette de la fiche : la boîte penche vers la souris, un reflet la suit ; au clic,
+   elle s'agrandit (et revient à sa place en se refermant) */
+button.cover { padding: 0; font: inherit; color: inherit; }
+.cover-zoomable { position: relative; cursor: zoom-in; }
+.cover-zoomable:focus-visible { outline: 2px solid var(--triangle); outline-offset: 3px; }
+/* Pendant l'agrandissement, la boîte a quitté sa place */
+.cover-zoomable.is-zoomed img { visibility: hidden; }
+.cover-zoom[open] {
+  display: flex; align-items: center; justify-content: center;
+  width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0;
+  border: 0; background: transparent; cursor: zoom-out;
+}
+.cover-zoom::backdrop { background: rgba(4, 5, 12, 0.84); backdrop-filter: blur(3px); }
+.cover-zoom img { max-width: 92vw; max-height: 88dvh; width: auto; height: auto; border-radius: 3px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7); }
+.cover-zoom-close {
+  position: fixed; top: 14px; right: 14px; width: 42px; height: 42px; border-radius: 50%; cursor: pointer;
+  font: inherit; font-size: 1.1rem; color: var(--text); background: var(--panel); border: 1px solid var(--line);
+}
+.cover-zoom-close:hover { border-color: var(--cross); }
+::view-transition-group(jaquette-agrandie) { animation-duration: 340ms; animation-timing-function: cubic-bezier(0.2, 0.9, 0.3, 1); }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: 260ms; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .toast-saved .save-fill { animation: save-write 650ms steps(5, end) both; }
+  .toast-saved .save-check { animation: save-check 260ms ease-out 650ms both; }
+  .toast-saved .save-icon { animation: save-bump 300ms ease-out 900ms; }
+
+  .release-chip.just-owned { animation: ring-green 800ms ease-out; }
+  .release-chip.just-owned .chip-box { animation: stamp 420ms cubic-bezier(0.3, 1.5, 0.5, 1) both; }
+  .wish-button.just-wanted { animation: heart-beat 650ms ease-out, ring-pink 800ms ease-out; }
+  .badge.just-added { animation: pop 420ms cubic-bezier(0.3, 1.4, 0.5, 1) both; }
+  .memory-card > li.just-saved { animation: fade-up 260ms ease-out both, saved-glow 1.6s ease-out; }
+  .cover-tile.just-saved .cover { animation: saved-glow 1.6s ease-out; }
+
+  .memory-block.is-lit { animation: block-lit 240ms ease-out both; }
+  .memory-block.is-saved { animation: block-saved 750ms ease-out both; }
+
+  .skeleton {
+    background: linear-gradient(100deg, #191d36 30%, #272c54 50%, #191d36 70%);
+    background-size: 300% 100%; animation: shimmer 1.5s ease-in-out infinite;
+  }
+  /* Chargement très court : les silhouettes n'apparaissent pas du tout */
+  .skeleton-wait { animation: fade-in 300ms ease-out 180ms both; }
+
+  .cover-zoomable {
+    transform: perspective(700px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+    transition: transform 200ms ease-out, box-shadow 200ms ease-out;
+  }
+  .cover-zoomable:hover { box-shadow: 0 14px 30px rgba(0, 0, 0, 0.55); }
+  .cover-zoomable::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 200ms ease-out;
+    background: radial-gradient(circle at var(--shine-x, 50%) var(--shine-y, 0%), rgba(255, 255, 255, 0.24), transparent 60%);
+  }
+  .cover-zoomable:hover::after { opacity: 1; }
 }

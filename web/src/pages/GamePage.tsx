@@ -11,10 +11,12 @@ import { rememberedLanguage, rememberedPlatform } from '../lib/preferences';
 import { describeSpecs } from '../lib/specs';
 import type { Game, ItemStatus, Release } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
-import { AddToCollection } from '../components/AddToCollection';
+import { AddToCollection, savedText } from '../components/AddToCollection';
 import { Cover } from '../components/Cover';
 import { PsSymbol } from '../components/PsSymbol';
 import { ReportDialog } from '../components/ReportDialog';
+import { GameSkeleton } from '../components/Skeleton';
+import { useToast } from '../components/Toast';
 import { standInFor } from '../lib/images';
 import { formatBarcode, normalizeBarcode } from '../lib/barcode';
 import { lang, tr } from '../lib/i18n';
@@ -39,6 +41,10 @@ export function GamePage() {
   const [adding, setAdding] = useState<number | null>(null);
   const [busy, setBusy] = useState<number | null>(null);
   const [actionError, setActionError] = useState('');
+  const { toast, show: showToast } = useToast();
+  // Dernière version ajoutée (son badge « dans ta collection » s'anime) et dernière recherchée (son cœur)
+  const [justAdded, setJustAdded] = useState<number | null>(null);
+  const [justWanted, setJustWanted] = useState<number | null>(null);
   const userId = session?.user.id ?? null;
   const canTick = Boolean(session) && !needsMfa;
   // Arrivée par un scan : ?version=… (la version trouvée) ou ?code=… (code inconnu à associer)
@@ -97,7 +103,7 @@ export function GamePage() {
     return () => clearTimeout(timer);
   }, [state, focusId]);
 
-  if (state === 'loading') return <p className="loading">{tr('Lecture de la carte mémoire…')}</p>;
+  if (state === 'loading') return <GameSkeleton />;
   if (state === 'missing' || !game) return <section className="panel"><h1>{tr('Jeu introuvable')}</h1><Link to="/"><PsSymbol shape="circle" />{tr(' Retour à la recherche')}</Link></section>;
 
   // Japon, Amérique, Europe ; dans chaque zone, la standard d'abord, puis la langue choisie dans le catalogue
@@ -167,13 +173,14 @@ export function GamePage() {
       : await supabase.from('collection_item').insert({ release_id: release.id, status: 'wanted' });
     setBusy(null);
     if (error) return setActionError(errorMessage(error));
+    setJustWanted(item ? null : release.id);
     setMineVersion((v) => v + 1);
   }
 
   return (
     <article className="game">
       <header className="game-head panel">
-        <Cover images={heroImages} title={game.title} size="large" platform={byPlatform[0]?.platform.short_name} />
+        <Cover images={heroImages} title={game.title} size="large" platform={byPlatform[0]?.platform.short_name} zoomable />
         <div className="game-info">
           <h1>{game.title}</h1>
           <dl className="facts">
@@ -263,7 +270,12 @@ export function GamePage() {
           )}
           <SummaryProposal open={proposeSummary} onClose={() => setProposeSummary(false)} game={game} />
           <ReportDialog open={reporting} onClose={() => setReporting(false)} game={game} />
-          <AddToCollection open={adding !== null} initialReleaseId={adding} onClose={() => setAdding(null)} onSaved={() => setMineVersion((v) => v + 1)} />
+          <AddToCollection open={adding !== null} initialReleaseId={adding} onClose={() => setAdding(null)} onSaved={(saved) => {
+            showToast({ text: savedText(saved), saved: true });
+            if (saved.status === 'owned') setJustAdded(saved.releaseId);
+            else setJustWanted(saved.releaseId);
+            setMineVersion((v) => v + 1);
+          }} />
         </div>
       </header>
 
@@ -281,7 +293,7 @@ export function GamePage() {
           </p>
           <div className="actions">
             {copies(focused) > 0
-              ? <span className="badge badge-owned">{tr('✓ Déjà dans ta collection')}{copies(focused) > 1 ? tr(' (×{0})', copies(focused)) : ''}</span>
+              ? <span className={focused.id === justAdded ? 'badge badge-owned just-added' : 'badge badge-owned'}>{tr('✓ Déjà dans ta collection')}{copies(focused) > 1 ? tr(' (×{0})', copies(focused)) : ''}</span>
               : <button type="button" className="button button-primary" onClick={() => addToCollection(focused)}><PsSymbol shape="cross" />{tr(' Ajouter à ma collection')}</button>}
             <button type="button" className="link-button small" onClick={() => { setThanks(''); setParams({}, { replace: true }); }}>{tr('Voir toutes les versions')}</button>
           </div>
@@ -297,7 +309,7 @@ export function GamePage() {
           <ul className="release-list">
             {list.map((r) => (
               <li key={r.id} id={`version-${r.id}`} className={r.id === focusId ? 'release-card panel is-focused' : 'release-card panel'}>
-                <Cover images={r.image} title={r.local_title} size="medium" platform={r.platform.short_name} standIn={standInFor(r, samePlatform(r))} />
+                <Cover images={r.image} title={r.local_title} size="medium" platform={r.platform.short_name} standIn={standInFor(r, samePlatform(r))} zoomable />
                 <div className="release-body">
                   <h3>{r.local_title}</h3>
                   <p className="release-badges">
@@ -311,8 +323,8 @@ export function GamePage() {
                       </span>
                     )}
                     {!r.product_code && <span className="badge badge-todo">{tr('À compléter')}</span>}
-                    {copies(r) > 0 && <span className="badge badge-owned">{tr('✓ Dans ta collection')}{copies(r) > 1 ? tr(' (×{0})', copies(r)) : ''}</span>}
-                    {wantedItem(r) && <span className="badge badge-trade">{tr('♥ Recherchée')}</span>}
+                    {copies(r) > 0 && <span key={copies(r)} className={r.id === justAdded ? 'badge badge-owned just-added' : 'badge badge-owned'}>{tr('✓ Dans ta collection')}{copies(r) > 1 ? tr(' (×{0})', copies(r)) : ''}</span>}
+                    {wantedItem(r) && <span className={r.id === justWanted ? 'badge badge-trade just-added' : 'badge badge-trade'}>{tr('♥ Recherchée')}</span>}
                   </p>
                   <dl className="facts">
                     {r.product_code && (<><dt>{tr('Code produit')}</dt><dd className="code">{r.product_code}</dd></>)}
@@ -358,7 +370,7 @@ export function GamePage() {
                       <PsSymbol shape="cross" /> {copies(r) > 0 ? tr('Ajouter un autre exemplaire') : tr('Ajouter à ma collection')}
                     </button>
                     {canTick && copies(r) === 0 && (
-                      <button type="button" className={wantedItem(r) ? 'wish-button active' : 'wish-button'} aria-pressed={Boolean(wantedItem(r))}
+                      <button type="button" className={wantedItem(r) ? `wish-button active${r.id === justWanted ? ' just-wanted' : ''}` : 'wish-button'} aria-pressed={Boolean(wantedItem(r))}
                         disabled={busy === r.id} onClick={() => toggleWanted(r)}>
                         {wantedItem(r) ? tr('♥ Recherchée') : tr('♡ Je la cherche')}
                       </button>
@@ -386,6 +398,7 @@ export function GamePage() {
           </button>
         </div>
       </section>
+      {toast}
     </article>
   );
 }

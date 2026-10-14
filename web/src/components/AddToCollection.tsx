@@ -13,10 +13,26 @@ import { ReleaseSummary } from './ReleaseSummary';
 import { PsSymbol } from './PsSymbol';
 import { tr } from '../lib/i18n';
 
+// Ce qui vient d'être enregistré (pour le message de confirmation)
+export interface SavedItem {
+  releaseId: number;
+  title: string;
+  status: ItemStatus;
+  edited: boolean;
+}
+
+// « Mario est dans ta collection. », « … dans ta liste de recherche. », « Exemplaire enregistré. »
+export function savedText(saved: SavedItem): string {
+  if (saved.edited) return tr('Exemplaire enregistré.');
+  return saved.status === 'owned'
+    ? tr('« {0} » est dans ta collection.', saved.title)
+    : tr('« {0} » est dans ta liste de recherche.', saved.title);
+}
+
 interface Props {
   open: boolean;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (saved: SavedItem) => void;
   // Ouvrir directement sur une sortie (depuis la fiche d'un jeu)…
   initialReleaseId?: number | null;
   // …ou modifier un exemplaire existant
@@ -109,13 +125,13 @@ export function AddToCollection({ open, onClose, onSaved, initialReleaseId, edit
 
       {step === 'details' && release && (
         <ItemForm release={release} item={editItem ?? null} onBack={editItem || initialReleaseId ? null : () => setStep(releases.length > 1 ? 'release' : 'search')}
-          onSaved={() => { onSaved(); onClose(); }} />
+          onSaved={(saved) => { onSaved(saved); onClose(); }} />
       )}
     </Dialog>
   );
 }
 
-function ItemForm({ release, item, onBack, onSaved }: { release: Release; item: CollectionItem | null; onBack: (() => void) | null; onSaved: () => void }) {
+function ItemForm({ release, item, onBack, onSaved }: { release: Release; item: CollectionItem | null; onBack: (() => void) | null; onSaved: (saved: SavedItem) => void }) {
   const [status, setStatus] = useState<ItemStatus>(item?.status ?? 'owned');
   const [condition, setCondition] = useState<ItemCondition | ''>(item?.condition ?? '');
   const [hasBox, setHasBox] = useState(item?.has_box ?? true);
@@ -172,7 +188,7 @@ function ItemForm({ release, item, onBack, onSaved }: { release: Release; item: 
       : await supabase.from('collection_item').insert(values);
     setSaving(false);
     if (error) return setError(errorMessage(error));
-    onSaved();
+    onSaved({ releaseId: release.id, title: release.local_title, status, edited: Boolean(item) });
   }
 
   return (

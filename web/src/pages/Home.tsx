@@ -1,11 +1,12 @@
 import { useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ConsoleShowcase } from '../components/ConsoleArt';
+import { CountUp } from '../components/CountUp';
 import { GameSearch } from '../components/GameSearch';
 import { useScanner } from '../components/Scanner';
 import { PlatformSelect } from '../components/PlatformSelect';
 import { PsSymbol } from '../components/PsSymbol';
-import { formatNumber, gamePath } from '../lib/format';
+import { gamePath } from '../lib/format';
 import { ALL_PLATFORMS, DEFAULT_PLATFORM, rememberPlatform, rememberedPlatform } from '../lib/preferences';
 import { useKnownPlatform, usePlatforms } from '../lib/usePlatforms';
 import { tr } from '../lib/i18n';
@@ -33,6 +34,8 @@ export function Home() {
   const gameCount = platformCode ? current?.game_count : platforms.reduce((n, p) => n + p.game_count, 0);
 
   useEffect(() => { rememberPlatform(selected); }, [selected]);
+  // « Les {0} jeux » : le nombre défile jusqu'à sa valeur, au milieu de la phrase traduite
+  const [countBefore, countAfter] = tr('Les {0} jeux', '{n}').split('{n}');
 
   function choose(value: string) {
     // On mémorise AVANT de changer l'adresse : pour la PlayStation, l'adresse ne
@@ -46,7 +49,7 @@ export function Home() {
       <div className="hero">
         <h1 className="hero-title">{tr('Carte Mémoire')}</h1>
         <p className="hero-subtitle">
-          {gameCount ? tr('Les {0} jeux', formatNumber(gameCount)) : tr('Les jeux')}{platformCode ? tr(' de la') : ''}{' '}
+          {gameCount ? <>{countBefore}<CountUp value={gameCount} />{countAfter}</> : tr('Les jeux')}{platformCode ? tr(' de la') : ''}{' '}
           <PlatformSelect value={selected} onChange={choose} />{tr(', version par version. Et ta collection.')}
         </p>
         {/* La console choisie, dessinée (ou les boutons de la manette), animée à chaque changement */}

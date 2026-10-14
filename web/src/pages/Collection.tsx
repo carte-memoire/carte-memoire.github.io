@@ -14,13 +14,15 @@ import {
 } from '../lib/preferences';
 import type { CollectionItem, ItemStatus } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
-import { AddToCollection } from '../components/AddToCollection';
+import { AddToCollection, savedText, type SavedItem } from '../components/AddToCollection';
 import { CollectionImport } from '../components/CollectionImport';
 import { CollectionProgress } from '../components/CollectionProgress';
 import { useConfirm } from '../components/Confirm';
 import { Cover } from '../components/Cover';
 import { PageSizeSelect, Pagination } from '../components/Pagination';
 import { PsSymbol } from '../components/PsSymbol';
+import { CollectionSkeleton } from '../components/Skeleton';
+import { useToast } from '../components/Toast';
 import { usePlatforms } from '../lib/usePlatforms';
 import { tr } from '../lib/i18n';
 
@@ -82,6 +84,9 @@ export function Collection() {
   const [dialog, setDialog] = useState<{ open: boolean; releaseId?: number | null; item?: CollectionItem | null }>({ open: false });
   const [error, setError] = useState('');
   const [loaded, setLoaded] = useState(false);
+  const { toast, show: showToast } = useToast();
+  // Version tout juste ajoutée ou modifiée : son exemplaire s'illumine dans la liste
+  const [justSaved, setJustSaved] = useState<number | null>(null);
   const [view, setView] = useState<CollectionView>(rememberedCollectionView);
   const [importing, setImporting] = useState(false);
   // Le champ de recherche garde sa propre valeur : relue depuis l'adresse, elle
@@ -185,6 +190,14 @@ export function Collection() {
       update({ ajouter: null }, { keepPage: true });
     }
   }, [params]);
+
+  function saved(item: SavedItem) {
+    showToast({ text: savedText(item), saved: true });
+    setJustSaved(item.releaseId);
+    // Le temps de l'animation : en changeant d'onglet, elle ne rejoue pas
+    setTimeout(() => setJustSaved((current) => (current === item.releaseId ? null : current)), 2500);
+    load();
+  }
 
   async function remove(item: CollectionItem) {
     if (!(await confirm({ title: tr('Retirer de ma collection'), message: tr('Retirer « {0} » de ta collection ?', item.release.local_title), confirmLabel: tr('Retirer'), danger: true }))) return;
@@ -354,16 +367,18 @@ export function Collection() {
         <p className="panel empty">{tr('Aucun exemplaire ne correspond à ces filtres.')}</p>
       )}
 
+      {!loaded && !error && <CollectionSkeleton />}
+
       {view === 'list' ? (
         <ul className="memory-card">
           {visible.map((item) => (
-            <ItemBlock key={item.id} item={item} showPlatform={multiPlatform} standIn={standInOf(item)} onEdit={() => setDialog({ open: true, item })} onRemove={() => remove(item)} />
+            <ItemBlock key={item.id} item={item} fresh={item.release.id === justSaved} showPlatform={multiPlatform} standIn={standInOf(item)} onEdit={() => setDialog({ open: true, item })} onRemove={() => remove(item)} />
           ))}
         </ul>
       ) : (
         <ul className="cover-grid">
           {visible.map((item) => (
-            <ItemTile key={item.id} item={item} showPlatform={multiPlatform} standIn={standInOf(item)} onEdit={() => setDialog({ open: true, item })} />
+            <ItemTile key={item.id} item={item} fresh={item.release.id === justSaved} showPlatform={multiPlatform} standIn={standInOf(item)} onEdit={() => setDialog({ open: true, item })} />
           ))}
         </ul>
       )}
@@ -377,18 +392,21 @@ export function Collection() {
         initialReleaseId={dialog.releaseId}
         editItem={dialog.item}
         onClose={() => setDialog({ open: false })}
-        onSaved={load}
+        onSaved={saved}
       />
+      {toast}
     </section>
   );
 }
 
 // Vue en liste : tous les détails de l'exemplaire
-function ItemBlock({ item, showPlatform, standIn, onEdit, onRemove }: { item: CollectionItem; showPlatform: boolean; standIn: StandIn | null; onEdit: () => void; onRemove: () => void }) {
+function ItemBlock({ item, fresh, showPlatform, standIn, onEdit, onRemove }: {
+  item: CollectionItem; fresh: boolean; showPlatform: boolean; standIn: StandIn | null; onEdit: () => void; onRemove: () => void;
+}) {
   const r = item.release;
   const complete = item.has_box && item.has_manual && item.has_media;
   return (
-    <li className="block">
+    <li className={fresh ? 'block just-saved' : 'block'}>
       <Cover images={r.image} title={r.local_title} size="medium" platform={r.platform.short_name} standIn={standIn} />
       <div className="block-body">
         <Link to={gamePath(r.game)} className="block-title">{r.local_title}</Link>
@@ -422,11 +440,11 @@ function ItemBlock({ item, showPlatform, standIn, onEdit, onRemove }: { item: Co
 }
 
 // Vue en grille : la jaquette d'abord, comme une étagère
-function ItemTile({ item, showPlatform, standIn, onEdit }: { item: CollectionItem; showPlatform: boolean; standIn: StandIn | null; onEdit: () => void }) {
+function ItemTile({ item, fresh, showPlatform, standIn, onEdit }: { item: CollectionItem; fresh: boolean; showPlatform: boolean; standIn: StandIn | null; onEdit: () => void }) {
   const r = item.release;
   const complete = item.has_box && item.has_manual && item.has_media;
   return (
-    <li className="cover-tile">
+    <li className={fresh ? 'cover-tile just-saved' : 'cover-tile'}>
       <Link to={gamePath(r.game)} className="cover-tile-link" title={r.local_title}>
         <Cover images={r.image} title={r.local_title} size="medium" platform={r.platform.short_name} standIn={standIn} />
         <span className="cover-tile-title">{r.local_title}</span>

@@ -6,6 +6,7 @@ import {
 } from '../lib/format';
 import { ALL_PLATFORMS, ALL_ZONES, rememberPlatform, rememberZone, rememberedPlatform, rememberedZone } from '../lib/preferences';
 import type { CollectionItem, ProgressRow, Zone } from '../lib/types';
+import { CountUp } from './CountUp';
 import { MemoryBar } from './MemoryBar';
 import { useKnownPlatform, usePlatforms } from '../lib/usePlatforms';
 import { tr } from '../lib/i18n';
@@ -131,7 +132,7 @@ export function CollectionProgress({ items }: { items: CollectionItem[] }) {
       {main && (
         <div className="progress-main">
           <p className="progress-figure">
-            <strong>{formatNumber(main.owned)}</strong> / {formatNumber(main.total)}{tr(' jeux')}{zoneInfo ? ` ${zoneInfo.short}` : ''}
+            <strong><CountUp value={main.owned} /></strong> / {formatNumber(main.total)}{tr(' jeux')}{zoneInfo ? ` ${zoneInfo.short}` : ''}
             <span className="muted"> · {formatPercent(main.owned, main.total)}</span>
           </p>
           <MemoryBar owned={main.owned} total={main.total} label={tr('Jeux possédés')} />
@@ -142,12 +143,12 @@ export function CollectionProgress({ items }: { items: CollectionItem[] }) {
       )}
 
       <dl className="progress-stats">
-        <div><dt>{tr('Exemplaires')}</dt><dd>{formatNumber(owned.length)}</dd></div>
-        <div><dt>{tr('Complets')}</dt><dd>{formatNumber(complete)}</dd></div>
-        <div><dt>{tr('Neufs sous blister')}</dt><dd>{formatNumber(sealed)}</dd></div>
-        <div><dt>{tr('Recherchés')}</dt><dd>{formatNumber(main?.wanted ?? 0)}</dd></div>
-        <div><dt>{tr('À échanger ou vendre')}</dt><dd>{formatNumber(offered)}</dd></div>
-        <div><dt>{tr('Dépensé')}</dt><dd>{formatPrice(spent)}</dd></div>
+        <div><dt>{tr('Exemplaires')}</dt><dd><CountUp value={owned.length} /></dd></div>
+        <div><dt>{tr('Complets')}</dt><dd><CountUp value={complete} /></dd></div>
+        <div><dt>{tr('Neufs sous blister')}</dt><dd><CountUp value={sealed} /></dd></div>
+        <div><dt>{tr('Recherchés')}</dt><dd><CountUp value={main?.wanted ?? 0} /></dd></div>
+        <div><dt>{tr('À échanger ou vendre')}</dt><dd><CountUp value={offered} /></dd></div>
+        <div><dt>{tr('Dépensé')}</dt><dd><CountUp value={Math.round(spent)} format={(n) => formatPrice(n === Math.round(spent) ? spent : n)} /></dd></div>
       </dl>
 
       {series.length > 0 && (
