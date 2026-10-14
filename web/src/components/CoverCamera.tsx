@@ -1,13 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { CASE_FORMATS, fixedRatio, insetQuad, type CaseFormat, type Quad } from '../lib/coverPhoto';
 import { cameraError } from './ScanCamera';
 import { tr } from '../lib/i18n';
 
 interface Rect { x: number; y: number; width: number; height: number }
 
-// Le cadre aux proportions du boîtier, centré, à 82 % de l'image au plus
+// Le cadre aux proportions du boîtier, centré ; un peu de marge en haut et en bas pour
+// les boutons posés sur l'image (choix du cadre, déclencheur)
 function frameRect(width: number, height: number, ratio: number): Rect {
-  const maxW = width * 0.82, maxH = height * 0.82;
+  const maxW = width * 0.86, maxH = height * 0.66;
   const w = maxW / maxH > ratio ? maxH * ratio : maxW;
   const h = w / ratio;
   return { x: (width - w) / 2, y: (height - h) / 2, width: w, height: h };
@@ -26,6 +27,22 @@ export function CoverCamera({ format, onFormat, onPhoto }: {
   const stream = useRef<MediaStream | null>(null);
   const [size, setSize] = useState<{ width: number; height: number } | null>(null);
   const [error, setError] = useState('');
+  // Hauteur disponible à l'écran pour l'image : du haut de l'image jusqu'en bas de
+  // l'écran, moins la barre d'onglets du téléphone (mesurée, pas devinée)
+  const viewRef = useRef<HTMLDivElement>(null);
+  const [room, setRoom] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    const measure = () => {
+      const top = viewRef.current?.getBoundingClientRect().top;
+      if (top === undefined) return;
+      const bar = document.querySelector('.nav')?.getBoundingClientRect();
+      const barHeight = bar && bar.top > window.innerHeight / 2 ? window.innerHeight - bar.top : 0;
+      setRoom(Math.max(240, Math.round(window.innerHeight - Math.max(0, top) - barHeight - 12)));
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [error]);
 
   useEffect(() => {
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -83,17 +100,23 @@ export function CoverCamera({ format, onFormat, onPhoto }: {
 
   return (
     <div className="cover-camera">
-      <div className="pills" role="group" aria-label={tr('Cadre de la photo')}>
-        {CASE_FORMATS.map((f) => (
-          <button key={f.value} type="button" className={f.value === format ? 'pill active' : 'pill'} aria-pressed={f.value === format} onClick={() => onFormat(f.value)}>
-            {f.label}
-          </button>
-        ))}
-      </div>
+      {!error && (
+        <p className="hint center">
+          {format === 'free'
+            ? tr('Cadre la boîte entière, bien éclairée : tu placeras ses coins juste après.')
+            : tr('Place la jaquette dans le cadre, à plat, bien éclairée et sans reflet.')}
+        </p>
+      )}
       {error ? (
-        <p className="error">{error}</p>
+        <>
+          <p className="error">{error}</p>
+          <FormatChoice format={format} onFormat={onFormat} />
+        </>
       ) : (
-        <div className="cover-camera-view" style={{ aspectRatio: `${ratio}`, width: `min(100%, calc(62vh * ${ratio}))` }}>
+        // Comme une appli photo : le choix du cadre en haut de l'image, le déclencheur en
+        // bas ; l'image prend la hauteur disponible de l'écran, sans avoir à faire défiler
+        <div ref={viewRef} className="cover-camera-view"
+          style={{ aspectRatio: `${ratio}`, ['--ratio' as string]: ratio, ...(room ? { ['--camera-height' as string]: `${room}px` } : {}) } as CSSProperties}>
           <video ref={video} muted playsInline aria-label={tr("Image de l'appareil photo")} />
           {frame && size && (
             <span className="cover-camera-frame" aria-hidden="true" style={{
@@ -102,20 +125,25 @@ export function CoverCamera({ format, onFormat, onPhoto }: {
             }} />
           )}
           {!size && <span className="scan-wait">{tr("Ouverture de l'appareil photo…")}</span>}
+          <div className="cover-camera-top"><FormatChoice format={format} onFormat={onFormat} /></div>
+          <button type="button" className="cover-shutter" disabled={!size} onClick={shoot} aria-label={tr('Prendre la photo')} title={tr('Prendre la photo')}>
+            <span aria-hidden="true" />
+          </button>
         </div>
       )}
-      {!error && (
-        <>
-          <p className="hint center">
-            {format === 'free'
-              ? tr('Cadre la boîte entière, bien éclairée : tu placeras ses coins juste après.')
-              : tr('Place la jaquette dans le cadre, à plat, bien éclairée et sans reflet.')}
-          </p>
-          <button type="button" className="button button-primary button-block cover-shutter" disabled={!size} onClick={shoot}>
-            {tr('Prendre la photo')}
-          </button>
-        </>
-      )}
+    </div>
+  );
+}
+
+// Boîtier CD, boîtier DVD, ou sans cadre
+function FormatChoice({ format, onFormat }: { format: CaseFormat; onFormat: (format: CaseFormat) => void }) {
+  return (
+    <div className="pills" role="group" aria-label={tr('Cadre de la photo')}>
+      {CASE_FORMATS.map((f) => (
+        <button key={f.value} type="button" className={f.value === format ? 'pill active' : 'pill'} aria-pressed={f.value === format} onClick={() => onFormat(f.value)}>
+          {f.label}
+        </button>
+      ))}
     </div>
   );
 }

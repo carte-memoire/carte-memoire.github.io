@@ -160,17 +160,15 @@ function LinkedPhoto({ link, initialFormat }: { link: string; initialFormat: Cas
   }
 
   return (
-    <section className="stack narrow">
+    <section className="stack narrow photo-page">
       <h1>{tr('Photo de la jaquette')}</h1>
       {step === 'camera' && (
         <>
-          <p className={computerReady ? 'success' : 'notice'} aria-live="polite">
-            {computerReady ? tr('Relié à ton ordinateur : photographie la jaquette.') : tr('Connexion à ton ordinateur…')}
+          <p className={computerReady ? 'small rule-ok' : 'small muted'} aria-live="polite">
+            {computerReady ? tr('✓ Relié à ton ordinateur') : tr('Connexion à ton ordinateur…')}
           </p>
-          <div className="panel stack">
-            <CoverCamera format={format} onFormat={setFormat}
-              onPhoto={(image, quad) => { setShot({ image, quad, preview: image.toDataURL('image/jpeg', 0.7) }); setStep('review'); }} />
-          </div>
+          <CoverCamera format={format} onFormat={setFormat}
+            onPhoto={(image, quad) => { setShot({ image, quad, preview: image.toDataURL('image/jpeg', 0.7) }); setStep('review'); }} />
         </>
       )}
       {step === 'review' && shot && (

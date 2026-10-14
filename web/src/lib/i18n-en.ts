@@ -574,6 +574,7 @@ export const EN: Record<string, string> = {
   "Valeur estimée :": "Estimated value:",
   "Médiane des prix d'achat notés par les membres ces 5 dernières années, état par état (cadeaux et échanges exclus). Elle apparaît à partir de 5 membres.": "Median of the purchase prices recorded by members over the last 5 years, condition by condition (gifts and trades excluded). It appears from 5 members.",
   "Prix payés": "Prices paid",
+  "✓ Relié à ton ordinateur": "✓ Linked to your computer",
   "{0} · Carte Mémoire": "{0} · Carte Mémoire",
   "Zoom": "Zoom",
   "Ajustée": "Fit",

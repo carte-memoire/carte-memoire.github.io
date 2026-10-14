@@ -1248,15 +1248,33 @@ button.cover { padding: 0; font: inherit; color: inherit; }
 .cover-source-icon { font-size: 1.6rem; line-height: 1; }
 
 .cover-camera { display: flex; flex-direction: column; gap: 10px; }
-.cover-camera-view { position: relative; margin: 0 auto; overflow: hidden; background: #000; border: 2px solid var(--bevel-light); border-radius: var(--radius); }
+/* Hauteur disponible : l'écran moins la barre du site, le titre et la barre d'onglets
+   (téléphone) ; la largeur suit les proportions de l'image de la caméra (--ratio) */
+.cover-camera { --camera-height: min(68vh, calc(100dvh - 260px)); }
+.cover-camera-view {
+  position: relative; margin: 0 auto; overflow: hidden; background: #000; border: 2px solid var(--bevel-light); border-radius: var(--radius);
+  width: min(100%, calc(var(--camera-height) * var(--ratio, 0.75)));
+}
+.cover-camera-top { position: absolute; top: 8px; left: 8px; right: 8px; display: flex; justify-content: center; }
+.cover-camera-top .pill { background: rgba(10, 12, 24, 0.72); border-color: rgba(255, 255, 255, 0.25); color: #fff; backdrop-filter: blur(4px); }
+.cover-camera-top .pill.active { background: rgba(52, 70, 176, 0.92); }
+/* Le déclencheur : un grand rond blanc, comme sur un appareil photo */
+.cover-shutter {
+  position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%);
+  width: 68px; height: 68px; padding: 0; cursor: pointer; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25); border: 4px solid #fff; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+.cover-shutter span { display: block; width: 100%; height: 100%; border-radius: 50%; background: #fff; transform: scale(0.82); transition: transform 120ms ease; }
+.cover-shutter:active span { transform: scale(0.7); }
+.cover-shutter:disabled { opacity: 0.4; cursor: default; }
+.cover-shutter:focus-visible { outline: 3px solid var(--triangle); outline-offset: 3px; }
 .cover-camera-view video { display: block; width: 100%; height: 100%; object-fit: fill; }
 /* Le cadre aux proportions du boîtier : le reste de l'image est assombri */
 .cover-camera-frame {
   position: absolute; pointer-events: none;
   border: 3px solid var(--triangle); border-radius: 6px; box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.42);
 }
-.cover-shutter { min-height: 52px; font-size: 1.05rem; }
-.cover-shot { display: block; width: 100%; max-height: 60vh; object-fit: contain; background: #000; border-radius: var(--radius); }
+.cover-shot { display: block; width: 100%; max-height: min(60vh, calc(100dvh - 330px)); object-fit: contain; background: #000; border-radius: var(--radius); }
 
 .cover-editor { display: flex; flex-direction: column; gap: 12px; }
 .cover-editor-body { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
@@ -1319,3 +1337,8 @@ button.proposed-cover-image { padding: 0; font: inherit; color: inherit; cursor:
 .prerender-site { margin: 0; font-family: var(--pixel); font-size: 0.75rem; }
 .prerender ul { padding-left: 20px; }
 .prerender li { margin: 2px 0; }
+/* Page photo du téléphone : serrée, pour laisser la place à l'image de la caméra */
+.photo-page { gap: 8px; }
+.photo-page h1 { margin: 0; font-size: 1.15rem; }
+.photo-page > p { margin: 0; }
+.cover-camera .hint { margin: 0; }
