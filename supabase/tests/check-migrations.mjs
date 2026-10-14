@@ -1085,6 +1085,11 @@ await ok('nettoyage (adresses)', (async () => {
   }
 })());
 
+console.log('\nDroits de l\'API sur les tables');
+await egal('aucune table ne se vide, ni ne reçoit de déclencheur ou de clé étrangère, par l\'API (TRUNCATE, TRIGGER, REFERENCES)',
+  val(`select grantee || ' ' || table_name || ' ' || privilege_type as droit from information_schema.role_table_grants
+       where grantee in ('anon', 'authenticated') and table_schema = 'public' and privilege_type in ('TRUNCATE', 'TRIGGER', 'REFERENCES')
+       order by 1`).then((r) => r.map((x) => x.droit)), []);
 console.log('\nCohérence du catalogue (imports compris)');
 await egal('chaque jeu importé a au moins une sortie', val(`select count(*)::int as n from public.game g where g.wikidata_id is not null and not exists (select 1 from public.release r where r.game_id = g.id)`), [{ n: 0 }]);
 await egal('chaque date de sortie est cohérente avec sa précision', val(`select count(*)::int as n from public.release_region where (release_date is null) <> (date_precision is null)`), [{ n: 0 }]);
