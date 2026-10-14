@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useLayoutEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -72,6 +72,10 @@ function Frame() {
   }
   const location = useLocation();
   const [pending, setPending] = useState(0);
+
+  // Titre de l'onglet : celui du site à chaque page (une fiche de jeu y met son titre ensuite ;
+  // une page ouverte directement arrive avec le titre écrit pour les moteurs de recherche)
+  useLayoutEffect(() => { document.title = tr('Carte Mémoire'); }, [location.pathname]);
 
   // Modérateurs : nombre de propositions en attente, rafraîchi à chaque page
   useEffect(() => {

@@ -104,6 +104,9 @@ export function GamePage() {
     return () => { active = false; };
   }, [game, mineVersion]);
 
+  // Titre de l'onglet : le jeu
+  useEffect(() => { if (game) document.title = tr('{0} · Carte Mémoire', game.title); }, [game]);
+
   // La version scannée : on l'amène à l'écran
   useEffect(() => {
     if (state !== 'ok' || !focusId) return;

@@ -1312,3 +1312,10 @@ button.proposed-cover-image { padding: 0; font: inherit; color: inherit; cursor:
 .image-zoom-stage.is-fit { cursor: zoom-in; padding: 16px; }
 .image-zoom-stage.is-fit img { max-width: 100%; max-height: 100%; width: auto; height: auto; }
 .image-zoom-stage img { display: block; user-select: none; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6); }
+
+/* ---------- Page générée pour le référencement (web/scripts/prerender.mjs) ----------
+   Visible une fraction de seconde, le temps que le site se charge par-dessus */
+.prerender { max-width: 1100px; margin: 0 auto; padding: 24px 16px; display: flex; flex-direction: column; gap: 12px; }
+.prerender-site { margin: 0; font-family: var(--pixel); font-size: 0.75rem; }
+.prerender ul { padding-left: 20px; }
+.prerender li { margin: 2px 0; }

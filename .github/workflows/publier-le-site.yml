@@ -8,7 +8,12 @@
 #      Actions → Variables) : VITE_SUPABASE_URL et VITE_SUPABASE_PUBLISHABLE_KEY
 #      (rangées par erreur dans « Secrets », elles sont lues aussi), et l'adresse de
 #      contact des pages légales : VITE_CONTACT_EMAIL ;
-#   3. il est publié sur https://carte-memoire.github.io
+#   3. une page HTML par jeu est générée pour les moteurs de recherche, avec le plan
+#      du site (web/scripts/prerender.mjs) ; si cette étape échoue, le site est
+#      publié quand même, sans elles ;
+#   4. il est publié sur https://carte-memoire.github.io (variable SITE_URL le jour
+#      d'un nom de domaine).
+# Chaque nuit aussi, pour que les nouveaux jeux et jaquettes arrivent dans Google.
 # =====================================================================
 
 name: Publier le site
@@ -17,6 +22,9 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  # Chaque nuit (3 h 17 UTC) : fiches des jeux à jour pour les moteurs de recherche
+  schedule:
+    - cron: '17 3 * * *'
 
 # Par défaut, rien d'autre que la lecture du code
 permissions:
@@ -97,6 +105,14 @@ jobs:
         run: |
           npm run build
           cp dist/index.html dist/404.html
+      # Référencement : une page par jeu, sitemap.xml, robots.txt. En cas d'échec, simple
+      # avertissement : le site part tel qu'il a été compilé juste au-dessus.
+      - name: Générer les fiches pour les moteurs de recherche
+        working-directory: web
+        env:
+          SITE_URL: ${{ vars.SITE_URL || 'https://carte-memoire.github.io' }}
+        run: |
+          node scripts/prerender.mjs || echo "::warning::Fiches pour les moteurs de recherche non générées, le site est publié sans elles"
       - uses: actions/upload-pages-artifact@v4
         with:
           path: web/dist
