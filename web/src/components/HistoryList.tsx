@@ -37,7 +37,7 @@ export function HistoryList({ gameId, onUndone, limit = 50, refresh }: { gameId?
   const regions = useRegions();
   const [changes, setChanges] = useState<CatalogChange[] | null>(null);
   const [genres, setGenres] = useState<Map<number, string>>(new Map());
-  const [titles, setTitles] = useState<Map<number, string>>(new Map());
+  const [titles, setTitles] = useState<Map<number, { title: string; slug: string | null }>>(new Map());
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
@@ -57,8 +57,8 @@ export function HistoryList({ gameId, onUndone, limit = 50, refresh }: { gameId?
     }
     const gameIds = [...new Set(list.map((c) => c.game_id).filter((id): id is number => id !== null))];
     if (!gameId && gameIds.length) {
-      const { data: t } = await supabase.from('game').select('id, title').in('id', gameIds);
-      setTitles(new Map((t ?? []).map((x) => [x.id as number, x.title as string])));
+      const { data: t } = await supabase.from('game').select('id, title, slug').in('id', gameIds);
+      setTitles(new Map((t ?? []).map((x) => [x.id as number, { title: x.title as string, slug: x.slug as string | null }])));
     }
   }, [gameId, limit]);
 
@@ -107,7 +107,7 @@ export function HistoryList({ gameId, onUndone, limit = 50, refresh }: { gameId?
             <p className="history-head">
               <strong>{TABLES[c.table_name]}</strong> · {ACTIONS[c.action]}
               {!gameId && c.game_id && (
-                <> · {titles.has(c.game_id) ? <Link to={gamePath({ id: c.game_id, title: titles.get(c.game_id)! })}>{titles.get(c.game_id)}</Link> : <span className="muted">{tr('jeu n° ')}{c.game_id}{tr(' (supprimé)')}</span>}</>
+                <> · {titles.has(c.game_id) ? <Link to={gamePath({ id: c.game_id, ...titles.get(c.game_id)! })}>{titles.get(c.game_id)!.title}</Link> : <span className="muted">{tr('jeu n° ')}{c.game_id}{tr(' (supprimé)')}</span>}</>
               )}
               <span className="muted small"> · {c.author?.username ?? tr('compte supprimé')}, {formatDateTime(c.changed_at)}</span>
             </p>

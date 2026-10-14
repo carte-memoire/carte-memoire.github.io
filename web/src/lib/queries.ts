@@ -9,7 +9,7 @@ export const RELEASE_FIELDS = `
 `;
 
 export const GAME_FIELDS = `
-  id, title, summary, summary_source, first_release_date, first_release_precision,
+  id, title, slug, summary, summary_source, first_release_date, first_release_precision,
   game_developer(company(id, name)),
   game_series(series(id, name)),
   genres_reviewed,
@@ -25,6 +25,6 @@ export const COLLECTION_FIELDS = `
     box_region:box_region_id(code, name),
     platform(id, short_name),
     image(id, type, path),
-    game(id, title, first_release_date)
+    game(id, title, slug, first_release_date)
   )
 `;

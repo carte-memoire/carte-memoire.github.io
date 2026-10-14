@@ -1029,6 +1029,62 @@ await ok('nettoyage (confiance)', (async () => {
   await db.query(`delete from auth.mfa_factors where user_id = $1`, [C]);
 })());
 
+console.log('\nAdresses lisibles des fiches (/jeu/ps1/final-fantasy-vii)');
+await egal('texte → adresse : minuscules, sans accents ni ponctuation', val(`select public.slugify('Pokémon : Édition Jaune !') as a, public.slugify('Final Fantasy VII') as b, public.slugify('超謎王') as c`),
+  [{ a: 'pokemon-edition-jaune', b: 'final-fantasy-vii', c: '' }]);
+await egal('chaque jeu importé (avec une version) a son adresse', val(`select count(*)::int as n from public.game g where g.slug is null and exists (select 1 from public.release r where r.game_id = g.id)`), [{ n: 0 }]);
+await egal('…toutes différentes', val(`select count(*)::int - count(distinct slug)::int as n from public.game where slug is not null`), [{ n: 0 }]);
+await egal('…la console en tête : ps1/… ou ps2/…', val(`select count(*)::int as n from public.game where slug is not null and slug !~ '^(ps1|ps2)/'`), [{ n: 0 }]);
+const jeuAdresse = async (title, date = null) => (await en(ADMIN, `insert into public.game (title, first_release_date, first_release_precision) values ($1, $2, $3) returning id`, [title, date, date ? 'day' : null])).rows[0].id;
+const versionAdresse = (game, platform, code = null) => en(ADMIN, `insert into public.release (game_id, platform_id, zone, local_title, edition_type, product_code) values ($1, $2, 'PAL', 'x', 'standard', $3)`, [game, platform, code]);
+const adresseDe = async (game) => (await val(`select slug from public.game where id = $1`, [game]))[0].slug;
+const jA = await jeuAdresse('Jeu Adresse Témoin', '2001-05-01');
+await egal('nouveau jeu sans version : pas encore d\'adresse (pas de console)', adresseDe(jA), null);
+await ok('…sa première version (PS2)', versionAdresse(jA, ps2));
+await egal('…il reçoit son adresse', adresseDe(jA), 'ps2/jeu-adresse-temoin');
+const jB = await jeuAdresse('Jeu Adresse Témoin', '2003-02-01');
+await versionAdresse(jB, ps2);
+await egal('même titre, même console : l\'année le distingue', adresseDe(jB), 'ps2/jeu-adresse-temoin-2003');
+const jC = await jeuAdresse('Jeu Adresse Témoin', '2003-09-01');
+await versionAdresse(jC, ps2);
+await egal('…même année aussi : un numéro en plus', adresseDe(jC), 'ps2/jeu-adresse-temoin-2003-2');
+const jD = await jeuAdresse('Jeu Adresse Témoin');
+await versionAdresse(jD, ps1);
+await egal('autre console : pas de conflit', adresseDe(jD), 'ps1/jeu-adresse-temoin');
+await egal('une deuxième version ne change pas l\'adresse', versionAdresse(jA, ps1).then(() => adresseDe(jA)), 'ps2/jeu-adresse-temoin');
+const jeuParAdresse = (uid, path) => lignes(en(uid, `select public.game_id_by_slug($1) as id`, [path])).then((r) => r[0].id);
+await egal('un visiteur retrouve le jeu par son adresse', jeuParAdresse(null, 'ps2/jeu-adresse-temoin-2003'), jB);
+await egal('…en majuscules aussi', jeuParAdresse(null, 'PS2/Jeu-Adresse-Temoin-2003'), jB);
+await egal('adresse inconnue : rien', jeuParAdresse(null, 'ps1/nexiste-pas'), null);
+await ok('le titre est corrigé', en(ADMIN, `update public.game set title = 'Jeu Adresse Renommé' where id = $1`, [jA]));
+await egal('…nouvelle adresse', adresseDe(jA), 'ps2/jeu-adresse-renomme');
+await egal('…l\'ancienne mène toujours au jeu', jeuParAdresse(null, 'ps2/jeu-adresse-temoin'), jA);
+await egal('…et la nouvelle aussi', jeuParAdresse(null, 'ps2/jeu-adresse-renomme'), jA);
+await ok('retour au titre d\'origine', en(ADMIN, `update public.game set title = 'Jeu Adresse Témoin' where id = $1`, [jA]));
+await egal('…l\'adresse d\'origine revient', adresseDe(jA), 'ps2/jeu-adresse-temoin');
+await egal('…sans doublon dans l\'historique', val(`select count(*)::int as n from public.game_slug_history where slug = 'ps2/jeu-adresse-temoin'`), [{ n: 0 }]);
+await egal('changer une autre information ne touche pas l\'adresse', en(ADMIN, `update public.game set summary = 'Résumé' where id = $1`, [jB]).then(() => adresseDe(jB)), 'ps2/jeu-adresse-temoin-2003');
+const jJ = await jeuAdresse('超謎王テスト');
+await versionAdresse(jJ, ps1, 'SLPS-99999');
+await egal('titre sans lettres latines : le code produit', adresseDe(jJ), 'ps1/slps-99999');
+await ok('…un modérateur lui donne un titre en lettres latines pour l’adresse', en(ADMIN, `update public.game set slug_title = 'Chou Nazo Ou Test' where id = $1`, [jJ]));
+await egal('…nouvelle adresse lisible', adresseDe(jJ), 'ps1/chou-nazo-ou-test');
+await egal('…l’ancienne (code produit) mène toujours au jeu', jeuParAdresse(null, 'ps1/slps-99999'), jJ);
+await ok('fusion : le troisième jeu rejoint le premier', en(ADMIN, `select public.merge_games($1, $2)`, [jA, jC]));
+await egal('…l\'adresse du jeu fusionné mène au jeu gardé', jeuParAdresse(null, 'ps2/jeu-adresse-temoin-2003-2'), jA);
+await egal('les listes du site donnent l\'adresse : catalogue', catalogue(null, { console: 'PS2', search: 'jeu adresse temoin', size: 10 }).then((r) => r.map((x) => x.slug).sort()),
+  ['ps2/jeu-adresse-temoin', 'ps2/jeu-adresse-temoin-2003']);
+await egal('…recherche', lignes(en(null, `select slug from public.search_games('jeu adresse temoin', 10) order by slug`)).then((r) => r.map((x) => x.slug)),
+  ['ps1/jeu-adresse-temoin', 'ps2/jeu-adresse-temoin', 'ps2/jeu-adresse-temoin-2003']);
+await ko('les anciennes adresses ne s\'écrivent pas par l\'API', en(MEMBRE, `insert into public.game_slug_history (slug, game_id) values ('ps1/piege', $1)`, [jA]), '');
+await ko('…pas même par un modérateur', en(ADMIN, `delete from public.game_slug_history`).then((r) => { if (r.affectedRows === 0) throw new Error('refusé (aucune ligne)'); }), '');
+await ok('nettoyage (adresses)', (async () => {
+  for (const g of [jA, jB, jD, jJ]) {
+    await db.query(`delete from public.release where game_id = $1`, [g]);
+    await db.query(`delete from public.game where id = $1`, [g]);
+  }
+})());
+
 console.log('\nCohérence du catalogue (imports compris)');
 await egal('chaque jeu importé a au moins une sortie', val(`select count(*)::int as n from public.game g where g.wikidata_id is not null and not exists (select 1 from public.release r where r.game_id = g.id)`), [{ n: 0 }]);
 await egal('chaque date de sortie est cohérente avec sa précision', val(`select count(*)::int as n from public.release_region where (release_date is null) <> (date_precision is null)`), [{ n: 0 }]);

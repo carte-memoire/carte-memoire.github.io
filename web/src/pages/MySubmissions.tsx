@@ -20,7 +20,7 @@ export function MySubmissions() {
   const [items, setItems] = useState<Submission[]>([]);
   const [titles, setTitles] = useState<Map<number, string>>(new Map());
   // Jaquettes proposées : la version visée (son jeu et son titre sur la boîte)
-  const [versions, setVersions] = useState<Map<number, { game: string; title: string; gameId: number | null }>>(new Map());
+  const [versions, setVersions] = useState<Map<number, { game: string; title: string; gameId: number | null; slug: string | null }>>(new Map());
   const [error, setError] = useState('');
   const [loaded, setLoaded] = useState(false);
   const { session } = useAuth();
@@ -29,7 +29,7 @@ export function MySubmissions() {
   // Mes signalements d'erreurs (un modérateur voit tous les signalements : on filtre sur l'auteur)
   useEffect(() => {
     if (!session) return;
-    supabase.from('report').select('id, game_id, release_id, kind, message, status, review_note, created_at, reviewed_at, game:game_id(id, title)')
+    supabase.from('report').select('id, game_id, release_id, kind, message, status, review_note, created_at, reviewed_at, game:game_id(id, title, slug)')
       .eq('author_id', session.user.id).order('created_at', { ascending: false }).limit(100)
       .then(({ data }) => setReports((data as unknown as Report[]) ?? []));
   }, [session]);
@@ -53,9 +53,9 @@ export function MySubmissions() {
     }
     const releaseIds = [...new Set(list.filter((s) => s.target === 'image').map((s) => s.target_id).filter((id): id is number => typeof id === 'number'))];
     if (releaseIds.length) {
-      const { data: releases } = await supabase.from('release').select('id, local_title, game(id, title)').in('id', releaseIds);
-      setVersions(new Map(((releases ?? []) as unknown as { id: number; local_title: string; game: { id: number; title: string } | null }[])
-        .map((r) => [r.id, { game: r.game?.title ?? r.local_title, title: r.local_title, gameId: r.game?.id ?? null }])));
+      const { data: releases } = await supabase.from('release').select('id, local_title, game(id, title, slug)').in('id', releaseIds);
+      setVersions(new Map(((releases ?? []) as unknown as { id: number; local_title: string; game: { id: number; title: string; slug: string | null } | null }[])
+        .map((r) => [r.id, { game: r.game?.title ?? r.local_title, title: r.local_title, gameId: r.game?.id ?? null, slug: r.game?.slug ?? null }])));
     }
     setItems(list);
     setLoaded(true);
@@ -105,7 +105,7 @@ export function MySubmissions() {
                   <Link to={`/jeu/${s.created_game_id}`} className="button button-small">{tr('Voir le jeu')}</Link>
                 ) : version?.gameId ? (
                   // Jaquette en attente ou refusée : retour au jeu (pour en proposer une autre)
-                  <Link to={`/jeu/${version.gameId}`} className="button button-small">{tr('Voir le jeu')}</Link>
+                  <Link to={gamePath({ id: version.gameId, slug: version.slug })} className="button button-small">{tr('Voir le jeu')}</Link>
                 ) : null}
                 {s.status === 'pending' && (
                   <button type="button" className="button button-small button-danger" onClick={() => withdraw(s)}>{tr('Retirer')}</button>

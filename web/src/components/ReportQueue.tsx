@@ -14,7 +14,7 @@ export function ReportQueue({ onCount }: { onCount: (n: number) => void }) {
 
   const load = useCallback(async () => {
     const { data, error } = await supabase.from('report')
-      .select('id, game_id, release_id, kind, message, status, review_note, created_at, reviewed_at, author:author_id(username), game:game_id(id, title)')
+      .select('id, game_id, release_id, kind, message, status, review_note, created_at, reviewed_at, author:author_id(username), game:game_id(id, title, slug)')
       .eq('status', 'open').order('created_at').limit(200);
     setError(error ? errorMessage(error) : '');
     const list = (data as unknown as Report[]) ?? [];

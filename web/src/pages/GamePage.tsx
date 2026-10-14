@@ -27,12 +27,19 @@ import { formatBarcode, normalizeBarcode } from '../lib/barcode';
 import { lang, tr } from '../lib/i18n';
 
 export function GamePage() {
-  const { id } = useParams();
-  const gameId = Number.parseInt(id ?? '', 10);
+  const { id, console: consoleName, slug } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const { session, needsMfa, isModerator } = useAuth();
   const [game, setGame] = useState<Game | null>(null);
+  // Adresse lisible (ps1/final-fantasy-vii) : le jeu est retrouvé par la base, y compris
+  // sous une ancienne adresse (titre corrigé, fiches fusionnées). Ancienne forme : /jeu/36-…
+  const address = consoleName && slug ? `${consoleName}/${slug}`.toLowerCase() : null;
+  const [found, setFound] = useState<{ address: string; id: number | null } | null>(null);
+  // undefined : adresse en cours de recherche ; null ou NaN : aucun jeu
+  const gameId = !address ? Number.parseInt(id ?? '', 10)
+    : game?.slug === address ? game.id
+    : found?.address === address ? found.id : undefined;
   const [state, setState] = useState<'loading' | 'ok' | 'missing'>('loading');
   const [proposeSummary, setProposeSummary] = useState(false);
   const [reporting, setReporting] = useState(false);
@@ -65,10 +72,19 @@ export function GamePage() {
   const [popularity, setPopularity] = useState<{ release_id: number | null; owners: number; seekers: number }[]>([]);
   const here = location.pathname + location.search;
   // Prix médian payé par les membres, version par version (relu après un ajout)
-  const prices = useReleasePrices(Number.isInteger(gameId) ? gameId : null, mineVersion);
+  const prices = useReleasePrices(Number.isInteger(gameId) ? gameId! : null, mineVersion);
 
   useEffect(() => {
-    if (!Number.isInteger(gameId)) return setState('missing');
+    if (!address || game?.slug === address || found?.address === address) return;
+    let active = true;
+    supabase.rpc('game_id_by_slug', { path: address })
+      .then(({ data, error }) => { if (active) setFound({ address, id: error ? null : (data as number | null) }); });
+    return () => { active = false; };
+  }, [address, game, found]);
+
+  useEffect(() => {
+    if (gameId === undefined) return;
+    if (gameId === null || !Number.isInteger(gameId)) return setState('missing');
     supabase.from('game').select(GAME_FIELDS).eq('id', gameId).maybeSingle().then(({ data }) => {
       if (!data) return setState('missing');
       setGame(data as unknown as Game);
@@ -77,6 +93,16 @@ export function GamePage() {
     supabase.from('game').select('origin').eq('id', gameId).maybeSingle()
       .then(({ data }) => setOrigin((data as { origin: string | null } | null)?.origin ?? null));
   }, [gameId]);
+
+  // Adresse à jour dans la barre d'adresse : /jeu/ps1/final-fantasy-vii (sans nouvelle
+  // entrée dans l'historique du navigateur ; ?version=… et #… sont gardés)
+  useEffect(() => {
+    if (!game?.slug || game.id !== gameId) return;
+    const canonical = `/jeu/${game.slug}`;
+    if (location.pathname !== canonical) {
+      navigate(`${canonical}${location.search}${location.hash}`, { replace: true, state: { correctedFrom: location.pathname } });
+    }
+  }, [game, gameId, location.pathname, location.search, location.hash, navigate]);
 
   useEffect(() => {
     const ids = game?.release.map((r) => r.id) ?? [];

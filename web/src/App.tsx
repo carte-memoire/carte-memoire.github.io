@@ -35,6 +35,8 @@ export function App() {
       <Route element={<Layout />}>
         <Route index element={<Home />} />
         <Route path="catalogue" element={<Catalog />} />
+        {/* /jeu/ps1/final-fantasy-vii ; anciennes adresses /jeu/36-final-fantasy-vii : corrigées par la fiche */}
+        <Route path="jeu/:console/:slug" element={<GamePage />} />
         <Route path="jeu/:id" element={<GamePage />} />
         <Route path="jeu/:id/modifier" element={<RequireAuth moderator><EditGame /></RequireAuth>} />
         <Route path="connexion" element={<Login />} />

@@ -59,7 +59,7 @@ export function AddToCollection({ open, onClose, onSaved, initialReleaseId, edit
     setStep('search');
     const releaseId = editItem?.release.id ?? initialReleaseId;
     if (releaseId) {
-      supabase.from('release').select(`${RELEASE_FIELDS}, game(id, title)`).eq('id', releaseId).single()
+      supabase.from('release').select(`${RELEASE_FIELDS}, game(id, title, slug)`).eq('id', releaseId).single()
         .then(({ data, error }) => {
           if (error || !data) return setError(tr("Cette version n'existe plus."));
           setRelease(data as unknown as Release);

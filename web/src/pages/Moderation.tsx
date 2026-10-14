@@ -159,7 +159,7 @@ function SubmissionCard({ submission: s, onDone }: { submission: Submission; onD
   const isNewGame = s.target === 'game';
   // Jaquette recadrée par le modérateur (publiée à la place de l'originale)
   const [edited, setEdited] = useState<Blob | null>(null);
-  const [existingGame, setExistingGame] = useState<{ id: number; title: string } | null>(null);
+  const [existingGame, setExistingGame] = useState<{ id: number; title: string; slug: string | null } | null>(null);
   const [attachTo, setAttachTo] = useState<number | null>(null);
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
@@ -173,7 +173,7 @@ function SubmissionCard({ submission: s, onDone }: { submission: Submission; onD
 
   useEffect(() => {
     if (s.data.game_id) {
-      supabase.from('game').select('id, title').eq('id', s.data.game_id).maybeSingle().then(({ data }) => setExistingGame(data));
+      supabase.from('game').select('id, title, slug').eq('id', s.data.game_id).maybeSingle().then(({ data }) => setExistingGame(data));
     }
   }, [s.data.game_id]);
 
@@ -302,14 +302,14 @@ function SubmissionCard({ submission: s, onDone }: { submission: Submission; onD
 
 // Proposition de résumé : l'actuel et le proposé côte à côte
 function SummaryCard({ submission: s, onDone }: { submission: Submission; onDone: (r: { approved: boolean; gameId?: number }) => void }) {
-  const [game, setGame] = useState<{ id: number; title: string; summary: string | null; summary_source: string | null } | null>(null);
+  const [game, setGame] = useState<{ id: number; title: string; slug: string | null; summary: string | null; summary_source: string | null } | null>(null);
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (!s.target_id) return;
-    supabase.from('game').select('id, title, summary, summary_source').eq('id', s.target_id).maybeSingle().then(({ data }) => setGame(data));
+    supabase.from('game').select('id, title, slug, summary, summary_source').eq('id', s.target_id).maybeSingle().then(({ data }) => setGame(data));
   }, [s.target_id]);
 
   async function review(approve: boolean) {
@@ -361,7 +361,7 @@ function SummaryCard({ submission: s, onDone }: { submission: Submission; onDone
 // Jaquette proposée pour une version existante : l'actuelle et la proposée côte à côte.
 // Acceptée, elle remplace l'actuelle (dont le fichier est retiré du stockage).
 function CoverSubmissionCard({ submission: s, onDone }: { submission: Submission; onDone: (r: { approved: boolean; gameId?: number }) => void }) {
-  const [release, setRelease] = useState<(Release & { game: { id: number; title: string } }) | null | undefined>(undefined);
+  const [release, setRelease] = useState<(Release & { game: { id: number; title: string; slug: string | null } }) | null | undefined>(undefined);
   // Jaquette recadrée par le modérateur (publiée à la place de l'originale)
   const [edited, setEdited] = useState<Blob | null>(null);
   const [note, setNote] = useState('');
@@ -371,8 +371,8 @@ function CoverSubmissionCard({ submission: s, onDone }: { submission: Submission
 
   useEffect(() => {
     if (!s.target_id) return setRelease(null);
-    supabase.from('release').select(`${RELEASE_FIELDS}, game(id, title)`).eq('id', s.target_id).maybeSingle()
-      .then(({ data }) => setRelease((data as unknown as (Release & { game: { id: number; title: string } }) | null) ?? null));
+    supabase.from('release').select(`${RELEASE_FIELDS}, game(id, title, slug)`).eq('id', s.target_id).maybeSingle()
+      .then(({ data }) => setRelease((data as unknown as (Release & { game: { id: number; title: string; slug: string | null } }) | null) ?? null));
   }, [s.target_id]);
 
   async function approve() {
@@ -463,6 +463,7 @@ interface DuplicateGroup { title_key: string; total: number; game_ids: number[];
 interface DuplicateGame {
   id: number;
   title: string;
+  slug: string | null;
   wikidata_id: string | null;
   first_release_date: string | null;
   release: { id: number; zone: Zone | null; image: ReleaseImage[]; platform: { short_name: string } }[];
@@ -484,7 +485,7 @@ function DuplicateList({ onCount, platform }: { onCount: (n: number) => void; pl
     if (ids.length) {
       const { data: rows } = await supabase
         .from('game')
-        .select('id, title, wikidata_id, first_release_date, release(id, zone, image(id, type, path), platform(short_name))')
+        .select('id, title, slug, wikidata_id, first_release_date, release(id, zone, image(id, type, path), platform(short_name))')
         .in('id', ids);
       for (const g of (rows as unknown as DuplicateGame[]) ?? []) map.set(g.id, g);
     }

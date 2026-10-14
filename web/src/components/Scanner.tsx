@@ -41,8 +41,8 @@ export function useScanner(): ScannerApi {
   return api;
 }
 
-export function versionPath(m: Pick<BarcodeMatch, 'game_id' | 'game_title' | 'release_id'>): string {
-  return `${gamePath({ id: m.game_id, title: m.game_title })}?version=${m.release_id}`;
+export function versionPath(m: Pick<BarcodeMatch, 'game_id' | 'game_title' | 'game_slug' | 'release_id'>): string {
+  return `${gamePath({ id: m.game_id, title: m.game_title, slug: m.game_slug })}?version=${m.release_id}`;
 }
 
 export function matchLabel(m: BarcodeMatch): string {

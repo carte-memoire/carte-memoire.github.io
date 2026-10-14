@@ -14,6 +14,8 @@ export type SubmissionStatus = 'pending' | 'approved' | 'rejected';
 export interface SearchResult {
   id: number;
   title: string;
+  // Adresse de la fiche (ps1/final-fantasy-vii)
+  slug: string | null;
   first_release_date: string | null;
   matched_title: string;
   release_count: number;
@@ -83,6 +85,7 @@ export interface SpecField {
 export interface Game {
   id: number;
   title: string;
+  slug: string | null;
   summary: string | null;
   summary_source: string | null;
   first_release_date: string | null;
@@ -127,7 +130,7 @@ export interface CollectionItem {
     box_region?: { code: string; name: string } | null;
     platform: { id?: number; short_name: string };
     image: ReleaseImage[];
-    game: { id: number; title: string; first_release_date: string | null };
+    game: { id: number; title: string; slug: string | null; first_release_date: string | null };
   };
 }
 
@@ -212,6 +215,7 @@ export interface CatalogRelease {
 export interface CatalogRow {
   id: number;
   title: string;
+  slug: string | null;
   display_title: string;
   release_date: string | null;
   cover_path: string | null;
@@ -284,6 +288,7 @@ export interface BarcodeMatch {
   release_id: number;
   game_id: number;
   game_title: string;
+  game_slug: string | null;
   local_title: string;
   zone: Zone | null;
   edition_type: EditionType;

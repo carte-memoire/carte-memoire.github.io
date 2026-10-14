@@ -72,17 +72,24 @@ function Frame() {
   }
   const location = useLocation();
   const [pending, setPending] = useState(0);
+  // Page affichée : change avec l'adresse, sauf quand une page corrige sa propre adresse
+  // (fiche de jeu : /jeu/36 → /jeu/ps1/final-fantasy-vii), qui reste alors telle quelle
+  const [page, setPage] = useState({ path: location.pathname, key: location.pathname });
+  if (page.path !== location.pathname) {
+    const corrected = (location.state as { correctedFrom?: string } | null)?.correctedFrom === page.path;
+    setPage({ path: location.pathname, key: corrected ? page.key : location.pathname });
+  }
 
   // Titre de l'onglet : celui du site à chaque page (une fiche de jeu y met son titre ensuite ;
   // une page ouverte directement arrive avec le titre écrit pour les moteurs de recherche)
-  useLayoutEffect(() => { document.title = tr('Carte Mémoire'); }, [location.pathname]);
+  useLayoutEffect(() => { document.title = tr('Carte Mémoire'); }, [page.key]);
 
   // Modérateurs : nombre de propositions en attente, rafraîchi à chaque page
   useEffect(() => {
     if (!isModerator) return;
     supabase.from('submission').select('id', { count: 'exact', head: true }).eq('status', 'pending')
       .then(({ count }) => setPending(count ?? 0));
-  }, [isModerator, location.pathname]);
+  }, [isModerator, page.key]);
 
   return (
     <div className="app">
@@ -136,7 +143,7 @@ function Frame() {
       </header>
 
       {/* La clé change avec la page : l'animation d'arrivée se rejoue à chaque navigation */}
-      <main className="main" id="contenu" tabIndex={-1} key={location.pathname}>
+      <main className="main" id="contenu" tabIndex={-1} key={page.key}>
         {/* Pages chargées à la demande : message d'attente le temps de les recevoir */}
         <Suspense fallback={<p className="loading">{tr('Lecture de la carte mémoire…')}</p>}>
           <Outlet />

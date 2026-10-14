@@ -154,14 +154,18 @@ export function formatPrice(value: number | null): string {
   return value === null ? '' : new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR' }).format(value);
 }
 
-// Pour des adresses lisibles : /jeu/12-final-fantasy-vii
+// Texte → nom de fichier ou morceau d'adresse : minuscules, sans accents ni ponctuation
 export function slugify(text: string): string {
   return text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
     .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60);
 }
 
-export function gamePath(game: { id: number; title: string }): string {
-  const slug = slugify(game.title);
+// Adresse d'une fiche : /jeu/ps1/final-fantasy-vii (calculée par la base, game.slug).
+// Sans elle (listes qui ne la lisent pas), l'ancienne forme /jeu/36-final-fantasy-vii :
+// la fiche s'ouvre et l'adresse se corrige d'elle-même.
+export function gamePath(game: { id: number; title?: string; slug?: string | null }): string {
+  if (game.slug) return `/jeu/${game.slug}`;
+  const slug = slugify(game.title ?? '');
   return `/jeu/${game.id}${slug ? `-${slug}` : ''}`;
 }
 

@@ -1,13 +1,15 @@
 // =====================================================================
 // Référencement : une vraie page HTML par jeu, un plan du site et robots.txt
 //
-// GitHub Pages ne connaît que des fichiers : une adresse comme /jeu/42-crash
+// GitHub Pages ne connaît que des fichiers : une adresse comme /jeu/ps1/crash-bandicoot
 // n'existe pas et répond « introuvable » (code 404, 404.html charge quand même
 // le site). Les visiteurs ne voient rien, mais les moteurs de recherche, si.
-// Après la compilation, ce script écrit donc dist/jeu/<id>-<titre>.html pour
-// chaque jeu (servi à l'adresse sans « .html ») : titre, description, versions,
+// Après la compilation, ce script écrit donc dist/jeu/ps1/crash-bandicoot.html
+// pour chaque jeu (servi à l'adresse sans « .html ») : titre, description, versions,
 // jaquette pour les aperçus de liens (Discord, réseaux sociaux…) et données
 // structurées pour Google. Le site s'affiche ensuite par-dessus, comme d'habitude.
+// Les anciennes adresses (/jeu/36-final-fantasy-vii, titre corrigé depuis) ont une
+// petite page qui renvoie vers la nouvelle : liens partagés et moteurs suivent.
 //
 // Prudence : toutes les données sont lues AVANT d'écrire le moindre fichier ; en
 // cas d'erreur, rien n'est écrit et le site se publie comme avant.
@@ -41,7 +43,9 @@ if (!existsSync(join(dist, 'index.html'))) throw new Error('Lance d\'abord « np
 // --- Comme le site (lib/format.ts) -------------------------------------
 const slugify = (text) => text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
   .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60);
-const gamePath = (game) => { const slug = slugify(game.title); return `/jeu/${game.id}${slug ? `-${slug}` : ''}`; };
+// Ancienne forme des adresses (avant les adresses lisibles calculées par la base)
+const oldGamePath = (game) => { const slug = slugify(game.title); return `/jeu/${game.id}${slug ? `-${slug}` : ''}`; };
+const gamePath = (game) => (game.slug ? `/jeu/${game.slug}` : oldGamePath(game));
 const ZONES = { 'NTSC-J': 'Japon (NTSC-J)', 'NTSC-U': 'Amérique du Nord (NTSC-U)', PAL: 'Europe (PAL)', region_free: 'Toutes zones' };
 const ZONE_ORDER = { 'NTSC-J': 0, 'NTSC-U': 1, PAL: 2, region_free: 3 };
 const EDITIONS = { standard: 'Standard', reissue: 'Réédition', collector: 'Édition collector', demo: 'Démo', promo: 'Promotionnel', bundle: 'Pack' };
@@ -60,20 +64,20 @@ function shorten(text, max = 155) {
 
 // --- Lecture du catalogue public (1 000 jeux par appel) ----------------
 const SELECT = [
-  'id', 'title', 'summary', 'first_release_date',
+  'id', 'title', 'slug', 'summary', 'first_release_date',
   'game_developer(company(name))', 'game_series(series(name))', 'game_genre(genre(name))',
   'release(id, local_title, zone, edition_type, edition_name, product_code, languages, platform(short_name, name), image(type, path))',
 ].join(',');
 
-async function readGames() {
-  const games = [];
+async function readAll(table, select, order) {
+  const rows = [];
   for (let offset = 0; ; offset += 1000) {
-    const url = `${SUPABASE_URL}/rest/v1/game?select=${encodeURIComponent(SELECT)}&order=id&limit=1000&offset=${offset}`;
+    const url = `${SUPABASE_URL}/rest/v1/${table}?select=${encodeURIComponent(select)}&order=${order}&limit=1000&offset=${offset}`;
     const response = await fetch(url, { headers: { apikey: KEY, Accept: 'application/json' } });
     if (!response.ok) throw new Error(`Lecture du catalogue impossible (${response.status}) : ${(await response.text()).slice(0, 300)}`);
     const page = await response.json();
-    games.push(...page);
-    if (page.length < 1000) return games;
+    rows.push(...page);
+    if (page.length < 1000) return rows;
   }
 }
 
@@ -155,6 +159,28 @@ function gamePage(game) {
   return { path, html: page({ title, description, path, image, jsonLd, body }) };
 }
 
+// Ancienne adresse → la fiche : renvoi immédiat (garde ?version=… et #…), adresse
+// officielle indiquée aux moteurs de recherche, lien si rien ne se passe
+function redirectPage(path, game) {
+  const url = `${SITE}${path}`;
+  return `<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>${escape(game.title)} · Carte Mémoire</title>
+    <link rel="canonical" href="${escape(url)}" />
+    <script>location.replace(${JSON.stringify(path).replace(/</g, '\\u003c')} + location.search + location.hash);</script>
+    <meta http-equiv="refresh" content="0; url=${escape(path)}" />
+    <style>body { background: #0b0d1c; color: #e8e9f3; font-family: system-ui, sans-serif; padding: 24px; } a { color: #8fb4ff; }</style>
+  </head>
+  <body>
+    <p>La fiche de ce jeu a changé d'adresse : <a href="${escape(path)}">${escape(game.title)}</a>.</p>
+  </body>
+</html>
+`;
+}
+
 // Pages du site sans contenu propre : adresse directe sans « introuvable » ; les pages
 // personnelles ne sont pas proposées aux moteurs de recherche
 const ROUTES = [
@@ -168,13 +194,21 @@ const ROUTES = [
 
 // --- Tout est lu : on écrit ---------------------------------------------
 const started = Date.now();
-const games = (await readGames()).filter((g) => g.release?.length);
+const games = (await readAll('game', SELECT, 'id')).filter((g) => g.release?.length);
 const pages = games.map(gamePage);
 const seen = new Set();
 for (const p of pages) {
   if (seen.has(p.path)) throw new Error(`Deux jeux à la même adresse : ${p.path}`);
   seen.add(p.path);
 }
+// Anciennes adresses : la forme /jeu/36-titre (déjà connue des moteurs de recherche)
+// et les adresses d'avant un titre corrigé ou une fusion de fiches
+const byId = new Map(games.map((g) => [g.id, g]));
+const history = await readAll('game_slug_history', 'slug,game_id', 'slug');
+const redirects = new Map();
+for (const g of games) if (g.slug) redirects.set(oldGamePath(g), g);
+for (const h of history) if (byId.has(h.game_id)) redirects.set(`/jeu/${h.slug}`, byId.get(h.game_id));
+for (const path of seen) redirects.delete(path);
 
 const write = (relative, content) => {
   const file = join(dist, relative);
@@ -182,6 +216,7 @@ const write = (relative, content) => {
   writeFileSync(file, content);
 };
 for (const p of pages) write(`${p.path.slice(1)}.html`, p.html);
+for (const [path, game] of redirects) write(`${path.slice(1)}.html`, redirectPage(gamePath(game), game));
 const defaultDescription = 'La base de données collaborative des jeux PlayStation, et ta collection.';
 for (const r of ROUTES) write(`${r.path.slice(1)}.html`, page({ title: r.title, description: r.description ?? defaultDescription, path: r.path, noindex: r.noindex }));
 
@@ -197,4 +232,4 @@ write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="htt
 write('robots.txt', ['User-agent: *', ...ROUTES.filter((r) => r.noindex).map((r) => `Disallow: ${r.path}`), 'Disallow: /membre/', '', `Sitemap: ${SITE}/sitemap.xml`, ''].join('\n'));
 
 const size = pages.reduce((n, p) => n + Buffer.byteLength(p.html), 0);
-console.log(`Référencement : ${pages.length} fiches de jeux (${(size / 1e6).toFixed(1)} Mo), ${ROUTES.length} pages, sitemap.xml (${indexed.length} adresses), robots.txt — ${((Date.now() - started) / 1000).toFixed(1)} s`);
+console.log(`Référencement : ${pages.length} fiches de jeux (${(size / 1e6).toFixed(1)} Mo), ${redirects.size} anciennes adresses renvoyées, ${ROUTES.length} pages, sitemap.xml (${indexed.length} adresses), robots.txt — ${((Date.now() - started) / 1000).toFixed(1)} s`);

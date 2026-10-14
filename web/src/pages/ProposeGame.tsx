@@ -20,7 +20,7 @@ import { tr } from '../lib/i18n';
 export function ProposeGame() {
   const { session } = useAuth();
   const [params] = useSearchParams();
-  const [existingGame, setExistingGame] = useState<{ id: number; title: string } | null>(null);
+  const [existingGame, setExistingGame] = useState<{ id: number; title: string; slug: string | null } | null>(null);
   const platforms = usePlatforms();
   const [regions, setRegions] = useState<Region[]>([]);
 
@@ -61,7 +61,7 @@ export function ProposeGame() {
   useEffect(() => {
     const id = Number.parseInt(params.get('jeu') ?? '', 10);
     if (!Number.isInteger(id)) return setExistingGame(null);
-    supabase.from('game').select('id, title').eq('id', id).maybeSingle().then(({ data }) => setExistingGame(data));
+    supabase.from('game').select('id, title, slug').eq('id', id).maybeSingle().then(({ data }) => setExistingGame(data));
   }, [params]);
 
   // Le titre sur la boîte reprend le titre du jeu tant qu'on ne l'a pas modifié
