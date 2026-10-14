@@ -3,6 +3,8 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { safeNext } from '../auth/RequireAuth';
+import { useAuth } from '../auth/AuthContext';
+import { codeStillNeeded } from '../lib/trust';
 import { PsSymbol } from '../components/PsSymbol';
 import { tr } from '../lib/i18n';
 
@@ -14,14 +16,16 @@ export function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const { refresh } = useAuth();
   const passkeysSupported = typeof window !== 'undefined' && 'PublicKeyCredential' in window;
 
-  // Après connexion : vérification du second facteur si l'utilisateur l'a activé
+  // Après connexion : le code du second facteur, sauf passkey ou navigateur de confiance
   async function afterSignIn() {
-    const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-    if (data?.nextLevel === 'aal2' && data.currentLevel !== 'aal2') {
+    const { data } = await supabase.auth.getSession();
+    if (data.session && await codeStillNeeded(data.session)) {
       navigate(`/connexion/verification?next=${encodeURIComponent(next)}`, { replace: true });
     } else {
+      await refresh();
       navigate(next, { replace: true });
     }
   }

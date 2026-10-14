@@ -1285,3 +1285,10 @@ button.cover { padding: 0; font: inherit; color: inherit; }
   .cover-editor-side { flex-direction: row; justify-content: center; width: 100%; }
   .cover-editor-preview { width: 110px; }
 }
+
+/* ---------- Connexion : « Faire confiance à ce navigateur » ---------- */
+.check-row { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+.check-row input { margin-top: 3px; flex: none; }
+.check-row .hint { display: block; }
+.trusted-browsers h3 { margin: 0; font-size: 0.95rem; }
+.trusted-browsers .badge { margin-left: 8px; }

@@ -138,7 +138,7 @@ export function Privacy() {
 
       <h2>{tr('Cookies')}</h2>
       <p>
-        {tr("Pas de cookies publicitaires, ni de mesure d'audience. Ton navigateur garde seulement ta session de connexion, tes préférences d'affichage (console, région, liste ou jaquettes, animations) et la liste des trophées déjà annoncés : c'est indispensable au fonctionnement du site, donc aucun consentement n'est demandé.")}
+        {tr("Pas de cookies publicitaires, ni de mesure d'audience. Ton navigateur garde seulement ta session de connexion, tes préférences d'affichage (console, région, liste ou jaquettes, animations), la liste des trophées déjà annoncés et, si tu l'as demandé, sa marque de « navigateur de confiance » (30 jours sans code à 6 chiffres) : c'est indispensable au fonctionnement du site, donc aucun consentement n'est demandé.")}
       </p>
     </article>
   );

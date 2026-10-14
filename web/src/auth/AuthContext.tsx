@@ -4,17 +4,21 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { Profile } from '../lib/types';
 import { markRecovery } from '../lib/preferences';
+import { passkeySession, presentTrustedBrowser } from '../lib/trust';
 import { tr } from '../lib/i18n';
 
 type Aal = 'aal1' | 'aal2' | null;
+// Double authentification satisfaite sans code : passkey, ou navigateur de confiance
+type Trust = 'passkey' | 'browser' | null;
 
 interface AuthState {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
   // Niveau d'authentification : actuel, et celui qu'il faudrait atteindre
-  // (aal2 si l'utilisateur a activé la double authentification)
-  aal: { current: Aal; next: Aal };
+  // (aal2 si l'utilisateur a activé la double authentification). Une session ouverte
+  // par passkey, ou reconnue par un navigateur de confiance, compte comme aal2 (`trust`).
+  aal: { current: Aal; next: Aal; trust: Trust };
   needsMfa: boolean;
   isModerator: boolean;
   refresh: () => Promise<void>;
@@ -27,14 +31,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [aal, setAal] = useState<{ current: Aal; next: Aal }>({ current: null, next: null });
+  const [aal, setAal] = useState<{ current: Aal; next: Aal; trust: Trust }>({ current: null, next: null, trust: null });
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async (s: Session | null) => {
     setSession(s);
     if (!s) {
       setProfile(null);
-      setAal({ current: null, next: null });
+      setAal({ current: null, next: null, trust: null });
       setLoading(false);
       return;
     }
@@ -42,7 +46,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
       supabase.from('profile').select('id, username, role, public_collection, avatar').eq('id', s.user.id).maybeSingle(),
     ]);
-    setAal({ current: (level?.currentLevel as Aal) ?? null, next: (level?.nextLevel as Aal) ?? null });
+    const current = (level?.currentLevel as Aal) ?? null;
+    const next = (level?.nextLevel as Aal) ?? null;
+    let trust: Trust = null;
+    if (next === 'aal2' && current !== 'aal2') {
+      if (passkeySession(level?.currentAuthenticationMethods as { method: string }[] | undefined)) trust = 'passkey';
+      else if (await presentTrustedBrowser(s)) trust = 'browser';
+    }
+    setAal({ current: trust ? 'aal2' : current, next, trust });
     setProfile(p as Profile | null);
     setLoading(false);
   }, []);

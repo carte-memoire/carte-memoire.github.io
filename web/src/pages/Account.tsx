@@ -11,6 +11,7 @@ import { PsSymbol } from '../components/PsSymbol';
 import { Dialog } from '../components/Dialog';
 import { tr, locale } from '../lib/i18n';
 import { motionChoice, setMotionChoice, systemReducesMotion, type MotionChoice } from '../lib/motion';
+import { forgetTrust } from '../lib/trust';
 
 export function Account() {
   const { profile, isModerator, aal } = useAuth();
@@ -203,7 +204,10 @@ function TotpSection() {
 
       {factors.length > 0 ? (
         <>
-          <p className="success">{tr('Activée')}{aal.current === 'aal2' ? tr(' et validée pour cette session') : ''}.</p>
+          <p className="success">
+            {tr('Activée')}{aal.current === 'aal2' ? tr(' et validée pour cette session') : ''}
+            {aal.trust === 'passkey' ? tr(' (par ta passkey)') : aal.trust === 'browser' ? tr(' (navigateur de confiance)') : ''}.
+          </p>
           {factors.map((f) => (
             <div key={f.id} className="list-row">
               <span>{f.friendly_name ?? tr('Application')}</span>
@@ -352,22 +356,76 @@ function DisplaySection() {
   );
 }
 
+interface TrustedBrowser { id: string; label: string; created_at: string; last_used_at: string | null; expires_at: string; is_current: boolean }
+
+// Navigateurs où le code à 6 chiffres n'est plus demandé (30 jours) : on peut les retirer
+function TrustedBrowsers() {
+  const { session, aal } = useAuth();
+  const [list, setList] = useState<TrustedBrowser[] | null>(null);
+  const [error, setError] = useState('');
+  const load = useCallback(async () => {
+    const { data, error } = await supabase.rpc('my_trusted_browsers');
+    // Liste illisible (hors ligne…) : la section ne s'affiche pas
+    setList(error ? null : (data as TrustedBrowser[] | null) ?? []);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  async function revoke(browser: TrustedBrowser) {
+    const { error } = await supabase.rpc('revoke_trusted_browser', { browser: browser.id });
+    if (error) return setError(errorMessage(error));
+    if (browser.is_current && session) forgetTrust(session.user.id);
+    await load();
+  }
+
+  // Sans double authentification, rien à retenir
+  if (aal.next !== 'aal2' || list === null) return null;
+  const day = (iso: string) => new Date(iso).toLocaleDateString(locale);
+  return (
+    <div className="stack trusted-browsers">
+      <h3>{tr('Navigateurs de confiance')}</h3>
+      {error && <p className="error">{error}</p>}
+      {list && list.length === 0 && (
+        <p className="muted small">{tr('Aucun : le code à 6 chiffres est demandé à chaque connexion. Coche « Faire confiance à ce navigateur » au moment du code pour ne plus le taper sur un appareil qui est le tien.')}</p>
+      )}
+      {list && list.length > 0 && (
+        <ul className="plain-list">
+          {list.map((b) => (
+            <li key={b.id} className="list-row">
+              <span>
+                <strong>{b.label || tr('Navigateur')}</strong>
+                {b.is_current && <span className="badge badge-owned">{tr('ce navigateur')}</span>}
+                <span className="muted small">{tr(' · depuis le {0}, jusqu’au {1}', day(b.created_at), day(b.expires_at))}</span>
+              </span>
+              <button type="button" className="button button-small" onClick={() => revoke(b)}>{tr('Retirer')}</button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function SessionsSection() {
-  const { signOut } = useAuth();
+  const { session, signOut } = useAuth();
   const confirm = useConfirm();
 
   async function signOutEverywhere() {
     if (await confirm({
       title: tr('Se déconnecter de tous les appareils'),
-      message: tr('Toutes les sessions ouvertes (ordinateurs, téléphones…) seront fermées, celle-ci comprise. Utile si tu as oublié de te déconnecter quelque part, ou en cas de doute.'),
+      message: tr('Toutes les sessions ouvertes (ordinateurs, téléphones…) seront fermées, celle-ci comprise, et plus aucun navigateur ne sera de confiance. Utile si tu as oublié de te déconnecter quelque part, ou en cas de doute.'),
       confirmLabel: tr('Tout déconnecter'),
       danger: true,
-    })) await signOut(true);
+    })) {
+      await supabase.rpc('revoke_trusted_browsers');
+      if (session) forgetTrust(session.user.id);
+      await signOut(true);
+    }
   }
   return (
     <div className="panel stack">
       <h2>{tr('Sessions')}</h2>
       <IdleSetting />
+      <TrustedBrowsers />
       <p className="muted">{tr("Un doute sur un appareil (ordinateur partagé, téléphone perdu) ? Déconnecte-les tous d'un coup.")}</p>
       <button type="button" className="button button-danger" onClick={signOutEverywhere}>{tr('Se déconnecter de tous les appareils')}</button>
     </div>

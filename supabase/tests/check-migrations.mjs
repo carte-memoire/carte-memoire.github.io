@@ -19,8 +19,8 @@ await db.exec(`
   create role authenticated nologin;
   create schema extensions;
   create schema auth;
-  create table auth.users (id uuid primary key, raw_user_meta_data jsonb not null default '{}');
-  create table auth.mfa_factors (id uuid primary key default gen_random_uuid(), user_id uuid not null, factor_type text not null default 'totp', status text not null);
+  create table auth.users (id uuid primary key, raw_user_meta_data jsonb not null default '{}', encrypted_password text);
+  create table auth.mfa_factors (id uuid primary key default gen_random_uuid(), user_id uuid not null, factor_type text not null default 'totp', status text not null, created_at timestamptz not null default now());
   create function auth.jwt() returns jsonb language sql stable as $$
     select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb
   $$;
@@ -59,8 +59,9 @@ let echecs = 0;
 // Exécute une requête comme le ferait l'API Supabase pour cet utilisateur.
 // aal = niveau d'authentification de la session : 'aal1' (mot de passe ou passkey)
 // ou 'aal2' (double authentification validée). L'admin des tests est en aal2.
-async function en(uid, sql, params = [], aal = uid === ADMIN ? 'aal2' : 'aal1') {
-  await db.query(`select set_config('request.jwt.claims', $1, false)`, [uid ? JSON.stringify({ sub: uid, aal }) : '']);
+// extra : autres informations du jeton (identifiant de session, méthodes de connexion…)
+async function en(uid, sql, params = [], aal = uid === ADMIN ? 'aal2' : 'aal1', extra = {}) {
+  await db.query(`select set_config('request.jwt.claims', $1, false)`, [uid ? JSON.stringify({ sub: uid, aal, ...extra }) : '']);
   await db.exec(`set role ${uid ? 'authenticated' : 'anon'}`);
   try {
     return await db.query(sql, params);
@@ -959,6 +960,74 @@ await ko('refus sans motif : impossible', traiter(ADMIN, pFloue, false), 'motif'
 await ok('refus avec motif', traiter(ADMIN, pFloue, false, 'Image floue'));
 await egal('…la jaquette en place ne change pas', val(`select path from public.image where release_id = $1 and type = 'front'`, [vJaq.id]), [{ path: 'submissions/jaq-2.webp' }]);
 await ok('nettoyage (jaquettes proposées)', db.query(`delete from public.image where release_id = $1`, [vJaq.id]));
+
+console.log('\nNavigateurs de confiance et passkeys (double authentification sans code)');
+const C = P[1]; // Acheteur2
+const sess = () => crypto.randomUUID();
+const comme = (uid, session, sql, params = [], aal = 'aal1', amr) => en(uid, sql, params, aal, { session_id: session, ...(amr ? { amr } : {}) });
+const mfa = (session, aal = 'aal1', amr) => lignes(comme(C, session, `select private.mfa_satisfied() as ok`, [], aal, amr)).then((r) => r[0].ok);
+const confier = async (uid, label) => (await comme(uid, sess(), `select public.trust_this_browser($1) as t`, [label], 'aal2')).rows[0].t;
+const presenter = (uid, session, jeton) => lignes(comme(uid, session, `select public.use_trusted_browser($1) as ok`, [jeton])).then((r) => r[0].ok);
+
+await ok('le membre active la double authentification', db.query(`insert into auth.mfa_factors (user_id, status, created_at) values ($1, 'verified', now() - interval '1 minute')`, [C]));
+const s1 = sess();
+await egal('connexion par mot de passe seul : double authentification non satisfaite', mfa(s1), false);
+await ko('pas de confiance sans avoir tapé le code', comme(C, s1, `select public.trust_this_browser('Firefox')`), 'Valide d');
+const jeton = await ok('après le code (aal2), ce navigateur devient de confiance', confier(C, 'Firefox sur Windows'));
+await egal('…jeton long et aléatoire', jeton.length >= 60, true);
+await egal('…seule son empreinte est gardée', val(`select count(*)::int as n from private.trusted_browser where token_hash = $1`, [jeton]), [{ n: 0 }]);
+const s3 = sess();
+await egal('nouvelle connexion par mot de passe : un faux jeton ne sert à rien', presenter(C, s3, 'faux'), false);
+await egal('…le vrai jeton reconnaît la session', presenter(C, s3, jeton), true);
+await egal('…qui satisfait la double authentification', mfa(s3), true);
+await egal('…mais pas une autre session du même membre', mfa(sess()), false);
+await egal('le jeton d\'un membre ne sert pas à un autre', presenter(MEMBRE, sess(), jeton), false);
+await ko('pas de confiance en chaîne : une session reconnue ne crée pas d\'autre navigateur de confiance', comme(C, s3, `select public.trust_this_browser('x')`), 'Valide d');
+await egal('Mon compte : le navigateur listé, signalé comme celui-ci', lignes(comme(C, s3, `select label, is_current from public.my_trusted_browsers()`)),
+  [{ label: 'Firefox sur Windows', is_current: true }]);
+await ko('les tables sont fermées à l\'API', comme(C, s3, `select * from private.trusted_browser`), 'permission denied');
+
+await ok('30 jours plus tard (expiration simulée)', db.query(`update private.trusted_browser set expires_at = now() - interval '1 second' where user_id = $1`, [C]));
+await egal('…la session reconnue ne l\'est plus', mfa(s3), false);
+await egal('…le jeton est refusé', presenter(C, sess(), jeton), false);
+
+const s4 = sess();
+const jeton2 = await confier(C, 'Chrome sur Android');
+await egal('un nouveau navigateur de confiance', presenter(C, s4, jeton2).then(() => mfa(s4)), true);
+const id2 = (await lignes(comme(C, s4, `select id from public.my_trusted_browsers()`)))[0].id;
+await ok('retiré depuis Mon compte', comme(C, s4, `select public.revoke_trusted_browser($1)`, [id2]));
+await egal('…la session n\'est plus reconnue', mfa(s4), false);
+
+const s5 = sess();
+await presenter(C, s5, await confier(C, 'Safari sur iPhone'));
+await egal('avant changement de mot de passe : reconnue', mfa(s5), true);
+await ok('le mot de passe change', db.query(`update auth.users set encrypted_password = 'nouveau' where id = $1`, [C]));
+await egal('…plus aucun navigateur de confiance', val(`select count(*)::int as n from private.trusted_browser where user_id = $1`, [C]), [{ n: 0 }]);
+await egal('…la session n\'est plus reconnue', mfa(s5), false);
+
+const s6 = sess();
+await presenter(C, s6, await confier(C, 'Edge sur Windows'));
+await egal('double authentification désactivée puis réactivée : avant, reconnue', mfa(s6), true);
+await ok('…nouvelle activation (nouveau facteur)', db.query(`delete from auth.mfa_factors where user_id = $1`, [C])
+  .then(() => db.query(`insert into auth.mfa_factors (user_id, status, created_at) values ($1, 'verified', now() + interval '1 second')`, [C])));
+await egal('…les anciens navigateurs de confiance ne valent plus', mfa(s6), false);
+
+await confier(C, 'A'); await confier(C, 'B');
+await ok('« Se déconnecter de tous les appareils » : tous retirés', comme(C, sess(), `select public.revoke_trusted_browsers()`));
+await egal('…aucun ne reste', val(`select count(*)::int as n from private.trusted_browser where user_id = $1`, [C]), [{ n: 0 }]);
+
+await egal('connexion par passkey : pas de code', mfa(sess(), 'aal1', [{ method: 'passkey', timestamp: 1 }]), true);
+await egal('…mot de passe seul : code demandé', mfa(sess(), 'aal1', [{ method: 'password', timestamp: 1 }]), false);
+
+const sA = sess();
+await presenter(ADMIN, sA, await confier(ADMIN, 'Admin'));
+await ok('un modérateur reconnu par son navigateur de confiance peut modifier le catalogue', comme(ADMIN, sA, `insert into public.genre (name) values ('Genre de confiance')`));
+await ko('…sans navigateur de confiance ni code : non', comme(ADMIN, sess(), `insert into public.genre (name) values ('Genre sans confiance')`), 'row-level security');
+await ok('nettoyage (confiance)', (async () => {
+  await db.query(`delete from public.genre where name = 'Genre de confiance'`);
+  await db.query(`delete from private.trusted_browser`);
+  await db.query(`delete from auth.mfa_factors where user_id = $1`, [C]);
+})());
 
 console.log('\nCohérence du catalogue (imports compris)');
 await egal('chaque jeu importé a au moins une sortie', val(`select count(*)::int as n from public.game g where g.wikidata_id is not null and not exists (select 1 from public.release r where r.game_id = g.id)`), [{ n: 0 }]);
