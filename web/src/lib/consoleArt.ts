@@ -292,37 +292,45 @@ function ps2(s: Scene) {
 }
 
 // PlayStation 3 (premier modèle, « fat »), d'après photos (à plat et debout) :
-// - noir brillant, dessus bombé de l'avant vers l'arrière (profil en lentille vu du
-//   bout) ; façade droite soulignée d'un liseré argenté le long de l'arête du dessus ;
-// - moitié gauche de la façade : trappe noire en léger relief, prises USB en dessous ;
-// - moitié droite : panneau chromé avec la longue fente du lecteur, et en dessous la
-//   bande noire des touches Power et Eject ;
-// - rainure sombre en bas de la façade, grille d'aération sur le bout droit
+// - noir brillant, profil en lentille vu du bout : dessus bombé de l'avant vers l'arrière,
+//   et dessous bombé aussi (le bas de l'avant fuit vers l'arrière) ;
+// - à l'avant, un décroché : le panneau chromé du lecteur (longue fente) est une façade
+//   plate en retrait, juste sous le liseré argenté de l'arête du dessus ; à sa gauche, la
+//   trappe avance et prolonge l'arrondi de la coque ;
+// - sous le lecteur, les touches Eject et Power ; prises USB en bas à gauche ;
+//   grille d'aération sur le bout droit
 function ps3(s: Scene) {
   const black = '#1a1b1f';
-  const W = 325, D = 274, H = 60;
-  // Hauteur du dessus selon la profondeur : 60 mm à l'avant et à l'arrière, 98 mm au milieu
-  const top = (y: number) => H + 38 * Math.pow(Math.sin((Math.PI * y) / D), 0.8);
-  const curve: P2[] = Array.from({ length: 41 }, (_, i) => { const y = D * (1 - i / 40); return [y, top(y)]; });
-  s.shadow(rect(0, 0, W, D));
-  s.extrudeX([[0, 0], [D, 0], ...curve], 0, W, black, { glint: 0.3 });
-  // Grille d'aération sur le bout droit (sous la courbe)
-  for (let y = 24; y < D - 20; y += 7) for (let z = 8; z < top(y) - 8; z += 7) s.onSide(W, ellipse(y, z, 1.6, 1.6, 8), '#0a0a0c');
-  // Liseré argenté le long de l'arête avant du dessus (droite)
-  s.line([0, 0, H - 1.6], [W, 0, H - 1.6], '#d9dde3', 2.6);
-  // Rainure du bas, prises USB
-  s.onFront(0, rect(0, 12, W, 2), '#060607');
-  for (const x of [18, 34, 50, 66]) s.onFront(0, rect(x, 4, 11, 5), '#0d0d10', { stroke: '#4b4e55', width: 0.5 });
-  // Moitié droite : panneau chromé et fente du lecteur, puis touches Power et Eject
-  s.onFront(0, rect(126, 34, 186, 22), '#b6bbc3');
-  s.onFront(0, rect(126, 52, 186, 4), '#e3e6ea');
-  s.onFront(0, rect(140, 43, 158, 3.4), '#050506');
-  s.onFront(0, [[214, 22], [222, 22], [218, 27]], '#8d929b');
-  s.onFront(0, rect(214, 20, 8, 0.9), '#8d929b');
-  s.onFront(0, ellipse(268, 23.5, 3.2, 3.2, 20), 'none', { stroke: '#8d929b', width: 0.9 });
-  s.onFront(0, rect(267.6, 24, 0.9, 4), '#8d929b');
-  // Moitié gauche : la trappe, en léger relief devant la façade
-  s.extrudeY(rrect(8, 18, 112, 34, 5), -3, 3, '#202126', { glint: 0.35 });
+  const W = 325, D = 274, F = 8; // F : la façade plate (lecteur) est à 8 mm en retrait
+  const bulge = (y: number) => Math.pow(Math.sin((Math.PI * y) / D), 0.75);
+  // Dessus : 58 mm aux bords, 98 mm au milieu ; dessous : 16 mm aux bords, posé au milieu
+  const top = (y: number) => 58 + 40 * bulge(y);
+  const bottom = (y: number) => 16 * (1 - Math.pow(Math.sin((Math.PI * y) / D), 0.6));
+  const steps = 40;
+  const ys = Array.from({ length: steps + 1 }, (_, i) => F + ((D - F) * i) / steps);
+  const profile: P2[] = [...ys.map((y) => [y, bottom(y)] as P2), ...[...ys].reverse().map((y) => [y, top(y)] as P2)];
+  s.shadow(rect(10, 30, W - 20, D - 60));
+  s.extrudeX(profile, 0, W, black, { glint: 0.3 });
+  // Grille d'aération sur le bout droit (dans la lentille)
+  for (let y = 26; y < D - 20; y += 7) for (let z = bottom(y) + 7; z < top(y) - 7; z += 7) s.onSide(W, ellipse(y, z, 1.6, 1.6, 8), '#0a0a0c');
+  const front = top(F), base = bottom(F);
+  // Liseré argenté le long de l'arête avant du dessus, rainure du bas
+  s.line([0, F, front - 1.4], [W, F, front - 1.4], '#d9dde3', 2.6);
+  s.onFront(F, rect(0, base + 8, W, 1.6), '#060607');
+  // Panneau chromé du lecteur (en retrait) et sa fente, puis Eject et Power en dessous
+  s.onFront(F, rect(126, front - 26, 186, 23), '#b6bbc3');
+  s.onFront(F, rect(126, front - 6, 186, 3), '#e3e6ea');
+  s.onFront(F, rect(140, front - 16, 158, 3.4), '#050506');
+  const icons = base + 13;
+  s.onFront(F, [[214, icons], [222, icons], [218, icons + 5]], '#8d929b');
+  s.onFront(F, rect(214, icons - 2, 8, 0.9), '#8d929b');
+  s.onFront(F, ellipse(268, icons + 1.5, 3.2, 3.2, 20), 'none', { stroke: '#8d929b', width: 0.9 });
+  s.onFront(F, rect(267.6, icons + 2, 0.9, 4), '#8d929b');
+  // Prises USB en bas à gauche
+  for (const x of [16, 32, 48, 64]) s.onFront(F, rect(x, base + 2, 11, 4.5), '#0d0d10', { stroke: '#4b4e55', width: 0.5 });
+  // La trappe : elle avance devant la façade et prolonge l'arrondi de la coque
+  const flap: P2[] = [[F, front - 3], [5, front - 8], [2, front - 16], [0.5, front - 24], [1.5, base + 16], [4, base + 12], [F, base + 10]];
+  s.extrudeX(flap, 6, 116, '#1d1e22', { glint: 0.3 });
 }
 
 // PlayStation 4 (premier modèle) : deux plateaux en parallélogramme (vus de profil),
