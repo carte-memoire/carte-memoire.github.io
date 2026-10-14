@@ -22,6 +22,7 @@ import { Cover } from '../components/Cover';
 import { PageSizeSelect, Pagination } from '../components/Pagination';
 import { PsSymbol } from '../components/PsSymbol';
 import { CollectionSkeleton } from '../components/Skeleton';
+import { formatEuros } from '../lib/prices';
 import { useToast } from '../components/Toast';
 import { usePlatforms } from '../lib/usePlatforms';
 import { tr } from '../lib/i18n';
@@ -87,6 +88,8 @@ export function Collection() {
   const { toast, show: showToast } = useToast();
   // Version tout juste ajoutée ou modifiée : son exemplaire s'illumine dans la liste
   const [justSaved, setJustSaved] = useState<number | null>(null);
+  // Valeur estimée de chaque exemplaire : prix médian payé par les membres pour sa version et son état
+  const [values, setValues] = useState<Map<number, number>>(new Map());
   const [view, setView] = useState<CollectionView>(rememberedCollectionView);
   const [importing, setImporting] = useState(false);
   // Le champ de recherche garde sa propre valeur : relue depuis l'adresse, elle
@@ -182,6 +185,15 @@ export function Collection() {
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    if (!loaded) return;
+    let active = true;
+    supabase.rpc('my_collection_prices').then(({ data, error }) => {
+      if (active && !error) setValues(new Map(((data as { item_id: number; median: number }[] | null) ?? []).map((r) => [r.item_id, Number(r.median)])));
+    });
+    return () => { active = false; };
+  }, [items, loaded]);
+
   // Arrivée depuis la fiche d'un jeu : /collection?ajouter=<id de la version>
   useEffect(() => {
     const releaseId = Number.parseInt(params.get('ajouter') ?? '', 10);
@@ -268,7 +280,7 @@ export function Collection() {
         </div>
       </div>
 
-      {loaded && <CollectionProgress items={items} />}
+      {loaded && <CollectionProgress items={items} values={values} />}
 
       <div className="tabs" role="tablist">
         <button type="button" role="tab" aria-selected={tab === 'owned'} className={tab === 'owned' ? 'tab active' : 'tab'}
@@ -372,7 +384,7 @@ export function Collection() {
       {view === 'list' ? (
         <ul className="memory-card">
           {visible.map((item) => (
-            <ItemBlock key={item.id} item={item} fresh={item.release.id === justSaved} showPlatform={multiPlatform} standIn={standInOf(item)} onEdit={() => setDialog({ open: true, item })} onRemove={() => remove(item)} />
+            <ItemBlock key={item.id} item={item} value={values.get(item.id) ?? null} fresh={item.release.id === justSaved} showPlatform={multiPlatform} standIn={standInOf(item)} onEdit={() => setDialog({ open: true, item })} onRemove={() => remove(item)} />
           ))}
         </ul>
       ) : (
@@ -400,8 +412,8 @@ export function Collection() {
 }
 
 // Vue en liste : tous les détails de l'exemplaire
-function ItemBlock({ item, fresh, showPlatform, standIn, onEdit, onRemove }: {
-  item: CollectionItem; fresh: boolean; showPlatform: boolean; standIn: StandIn | null; onEdit: () => void; onRemove: () => void;
+function ItemBlock({ item, value, fresh, showPlatform, standIn, onEdit, onRemove }: {
+  item: CollectionItem; value: number | null; fresh: boolean; showPlatform: boolean; standIn: StandIn | null; onEdit: () => void; onRemove: () => void;
 }) {
   const r = item.release;
   const complete = item.has_box && item.has_manual && item.has_media;
@@ -427,6 +439,11 @@ function ItemBlock({ item, fresh, showPlatform, standIn, onEdit, onRemove }: {
             {item.acquisition && ` · ${acquisitionLabel(item.acquisition)}`}
             {item.purchase_place && ` (${item.purchase_place})`}
             {item.purchase_price !== null && ` · ${formatPrice(item.purchase_price)}`}
+          </p>
+        )}
+        {value !== null && (
+          <p className="block-meta" title={tr('Prix médian payé par les membres pour cette version, dans cet état')}>
+            {tr('Valeur estimée : ')}<strong className="block-value">{formatEuros(value)}</strong>
           </p>
         )}
         {item.notes && <p className="block-notes">{item.notes}</p>}

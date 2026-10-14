@@ -8,6 +8,7 @@ import { ALL_PLATFORMS, ALL_ZONES, rememberPlatform, rememberZone, rememberedPla
 import type { CollectionItem, ProgressRow, Zone } from '../lib/types';
 import { CountUp } from './CountUp';
 import { MemoryBar } from './MemoryBar';
+import { MIN_PRICE_MEMBERS, formatEuros } from '../lib/prices';
 import { useKnownPlatform, usePlatforms } from '../lib/usePlatforms';
 import { tr } from '../lib/i18n';
 
@@ -18,7 +19,8 @@ function initialZone(): string {
 
 // En haut de « Ma collection » : jeux possédés sur jeux existants (par zone et
 // par genre), et quelques chiffres sur les exemplaires de la même sélection
-export function CollectionProgress({ items }: { items: CollectionItem[] }) {
+// `values` : valeur estimée de chaque exemplaire (prix médian payé par les membres), par identifiant
+export function CollectionProgress({ items, values }: { items: CollectionItem[]; values: Map<number, number> }) {
   // Console : celle du catalogue, sinon celle choisie ici (et retenue pour le catalogue)
   const [chosenPlatform, setChosenPlatform] = useState<string | null>(null);
   const rememberedConsole = useKnownPlatform(rememberedPlatform());
@@ -85,6 +87,9 @@ export function CollectionProgress({ items }: { items: CollectionItem[] }) {
   const sealed = owned.filter((i) => i.condition === 'sealed').length;
   const spent = owned.reduce((sum, i) => sum + (i.purchase_price ?? 0), 0);
   const offered = owned.filter((i) => i.trade_status).length;
+  // Valeur estimée : seulement les exemplaires dont le prix médian est connu
+  const valued = owned.filter((i) => values.has(i.id));
+  const estimate = valued.reduce((sum, i) => sum + (values.get(i.id) ?? 0), 0);
 
   // Dépenses : exemplaires dont le prix est noté
   const priced = owned.filter((i) => i.purchase_price !== null);
@@ -149,7 +154,17 @@ export function CollectionProgress({ items }: { items: CollectionItem[] }) {
         <div><dt>{tr('Recherchés')}</dt><dd><CountUp value={main?.wanted ?? 0} /></dd></div>
         <div><dt>{tr('À échanger ou vendre')}</dt><dd><CountUp value={offered} /></dd></div>
         <div><dt>{tr('Dépensé')}</dt><dd><CountUp value={Math.round(spent)} format={(n) => formatPrice(n === Math.round(spent) ? spent : n)} /></dd></div>
+        <div title={tr("Somme des prix médians payés par les membres pour tes versions, dans leur état")}>
+          <dt>{tr('Valeur estimée')}</dt>
+          <dd>{valued.length > 0 ? <CountUp value={estimate} format={formatEuros} /> : '—'}</dd>
+        </div>
       </dl>
+      {owned.length > 0 && valued.length < owned.length && (
+        <p className="hint">
+          {valued.length > 0 ? tr('Valeur estimée sur {0} exemplaire{1?s} sur {2}. ', formatNumber(valued.length), valued.length > 1, formatNumber(owned.length)) : ''}
+          {tr("Une estimation n'apparaît que lorsqu'au moins {0} membres ont noté le prix payé pour la même version, dans le même état (complet, disque seul, neuf…) : note le tien dans « Modifier ».", MIN_PRICE_MEMBERS)}
+        </p>
+      )}
 
       {series.length > 0 && (
         <>

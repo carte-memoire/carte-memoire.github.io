@@ -12,6 +12,7 @@ import { Cover } from './Cover';
 import { ReleaseSummary } from './ReleaseSummary';
 import { PsSymbol } from './PsSymbol';
 import { tr } from '../lib/i18n';
+import { priceCategory, priceCategoryLabel, priceText, useReleasePrices } from '../lib/prices';
 
 // Ce qui vient d'être enregistré (pour le message de confirmation)
 export interface SavedItem {
@@ -158,6 +159,10 @@ function ItemForm({ release, item, onBack, onSaved }: { release: Release; item: 
   }
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  // Repère pour le prix : ce que les membres ont payé pour cette version, dans cet état
+  const prices = useReleasePrices(release.game_id);
+  const category = priceCategory(condition, acquisition, hasBox, hasManual, hasMedia);
+  const reference = prices.find((p) => p.release_id === release.id && p.category === category && p.median !== null);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -243,6 +248,12 @@ function ItemForm({ release, item, onBack, onSaved }: { release: Release; item: 
               <input type="date" value={date} onChange={(e) => setDate(e.target.value)} max={new Date().toISOString().slice(0, 10)} />
             </label>
           </div>
+          {reference && (
+            <p className="hint price-reference">
+              {tr('Prix médian payé par les membres pour cette version ({0}) : ', priceCategoryLabel(reference.category).toLowerCase())}
+              <strong>{priceText(reference)}</strong>
+            </p>
+          )}
         </>
       )}
 

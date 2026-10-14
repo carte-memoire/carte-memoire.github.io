@@ -831,6 +831,52 @@ await egal('…le code-barres et la date aussi', val(`select (select count(*)::i
 await ok('nettoyage (exemplaire)', db.query(`delete from public.collection_item where release_id = $1`, [garder]));
 await ok('nettoyage (version)', db.query(`delete from public.release where id = $1`, [garder]));
 
+console.log('\nPrix médian selon l\'état (totaux seulement, jamais le prix d\'un membre)');
+const vPrix = (await ok('une version pour les prix', en(ADMIN, `insert into public.release (game_id, platform_id, zone, local_title, edition_type) values ($1, $2, 'PAL', 'FF7 Prix', 'standard') returning id`, [jeu, ps1]))).rows[0].id;
+// Six membres de plus, réservés à ces tests (les identifiants …a à …e servent ailleurs)
+const P = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'].map((_, i) => `00000000-0000-0000-0000-0000000001${String(i).padStart(2, '0')}`);
+for (const [i, id] of P.entries()) await db.query(`insert into auth.users (id, raw_user_meta_data) values ($1, $2)`, [id, { username: `Acheteur${i + 1}` }]);
+// Un exemplaire acheté : complet d'occasion par défaut
+const achat = (uid, prixPaye, champs = {}) => {
+  const c = { condition: 'very_good', acquisition: 'used', has_box: true, has_manual: true, has_media: true, purchase_date: null, ...champs };
+  return en(uid, `insert into public.collection_item (release_id, status, condition, acquisition, has_box, has_manual, has_media, purchase_price, purchase_date)
+    values ($1, 'owned', $2, $3, $4, $5, $6, $7, $8)`, [vPrix, c.condition, c.acquisition, c.has_box, c.has_manual, c.has_media, prixPaye, c.purchase_date]);
+};
+// Les uns après les autres : en() change le rôle de l'unique connexion
+const suite = async (...appels) => { for (const appel of appels) await appel(); };
+const prix = (uid = null) => lignes(en(uid, `select category, members, median::float8 as median, low::float8 as low, high::float8 as high
+  from public.release_prices($1) where release_id = $2 order by category`, [jeu, vPrix]));
+await ok('quatre membres notent le prix de leur exemplaire complet', suite(() => achat(ADMIN, 20), () => achat(MEMBRE, 10), () => achat(AUTRE, 30), () => achat(P[0], 15)));
+await egal('à 4 membres : le nombre seulement, pas de médiane', prix(), [{ category: 'complete', members: 4, median: null, low: null, high: null }]);
+await ok('un cinquième membre', achat(P[1], 25));
+await ok('le deuxième membre note un second exemplaire (30 €)', achat(MEMBRE, 30));
+await egal('à 5 membres : la médiane (un membre compte une fois, moyenne de ses exemplaires)', prix(), [{ category: 'complete', members: 5, median: 20, low: null, high: null }]);
+await ok('ne comptent pas : un cadeau, un prix à 0 €, un achat d\'il y a 10 ans, un exemplaire au contenu non précisé', suite(
+  () => achat(P[2], 100, { acquisition: 'gift' }),
+  () => achat(P[3], 0),
+  () => achat(P[4], 90, { purchase_date: '2016-05-01' }),
+  () => achat(P[5], 80, { has_box: null, has_manual: null, has_media: null, condition: null }),
+));
+await egal('…la médiane ne bouge pas', prix(), [{ category: 'complete', members: 5, median: 20, low: null, high: null }]);
+await ok('trois autres membres (8 en tout)', suite(() => achat(P[2], 40), () => achat(P[3], 35), () => achat(P[4], 12)));
+await egal('à 8 membres : médiane et fourchette, arrondies à l\'euro (12 15 20 20 25 30 35 40)', prix(), [{ category: 'complete', members: 8, median: 23, low: 19, high: 31 }]);
+await ok('disque seul, acheté neuf (ouvert depuis), neuf sous blister d\'occasion', suite(
+  () => achat(P[0], 5, { has_box: false, has_manual: false }),
+  () => achat(P[1], 60, { acquisition: 'new', condition: 'like_new' }),
+  () => achat(P[5], 50, { condition: 'sealed' }),
+));
+await egal('chaque état a ses propres prix', prix().then((r) => r.map((x) => `${x.category}:${x.members}`)), ['complete:8', 'loose:1', 'new:2']);
+await egal('un visiteur peut lire les prix (totaux seulement)', prix(null).then((r) => r.length), 3);
+await ko('jamais l\'identité des membres', en(null, `select profile_id from public.release_prices($1)`, [jeu]), 'does not exist');
+await ko('les vues internes sont fermées à l\'API', en(MEMBRE, `select * from private.member_price`), 'permission denied');
+await ko('le calcul de l\'état est fermé à l\'API', en(MEMBRE, `select private.price_category('sealed', 'used', true, true, true, true)`), 'permission denied');
+const estimation = (uid) => lignes(en(uid, `select category, median::float8 as median from public.my_collection_prices() order by item_id`));
+await egal('ma collection : chacun de mes exemplaires avec le prix médian de son état', estimation(MEMBRE), [{ category: 'complete', median: 23 }, { category: 'complete', median: 23 }]);
+await egal('…état actuel : l\'exemplaire acheté neuf puis ouvert compte comme complet', estimation(P[1]), [{ category: 'complete', median: 23 }, { category: 'complete', median: 23 }]);
+await egal('…pas d\'estimation sous 5 membres (disque seul)', estimation(P[0]), [{ category: 'complete', median: 23 }]);
+await ko('…réservé aux membres connectés', en(null, `select * from public.my_collection_prices()`), 'permission denied');
+await ok('nettoyage (exemplaires et version des prix)', db.query(`delete from public.collection_item where release_id = $1`, [vPrix]).then(() => db.query(`delete from public.release where id = $1`, [vPrix])));
+
 console.log('\nCohérence du catalogue (imports compris)');
 await egal('chaque jeu importé a au moins une sortie', val(`select count(*)::int as n from public.game g where g.wikidata_id is not null and not exists (select 1 from public.release r where r.game_id = g.id)`), [{ n: 0 }]);
 await egal('chaque date de sortie est cohérente avec sa précision', val(`select count(*)::int as n from public.release_region where (release_date is null) <> (date_precision is null)`), [{ n: 0 }]);

@@ -16,6 +16,8 @@ import { Cover } from '../components/Cover';
 import { PsSymbol } from '../components/PsSymbol';
 import { ReportDialog } from '../components/ReportDialog';
 import { GameSkeleton } from '../components/Skeleton';
+import { PriceSummary } from '../components/PriceSummary';
+import { useReleasePrices } from '../lib/prices';
 import { useToast } from '../components/Toast';
 import { standInFor } from '../lib/images';
 import { formatBarcode, normalizeBarcode } from '../lib/barcode';
@@ -57,6 +59,8 @@ export function GamePage() {
   // Combien de membres possèdent ou recherchent le jeu (totaux seulement)
   const [popularity, setPopularity] = useState<{ release_id: number | null; owners: number; seekers: number }[]>([]);
   const here = location.pathname + location.search;
+  // Prix médian payé par les membres, version par version (relu après un ajout)
+  const prices = useReleasePrices(Number.isInteger(gameId) ? gameId : null, mineVersion);
 
   useEffect(() => {
     if (!Number.isInteger(gameId)) return setState('missing');
@@ -117,6 +121,7 @@ export function GamePage() {
   const gameStats = popularity.find((p) => p.release_id === null);
   const statsOf = (r: Release) => popularity.find((p) => p.release_id === r.id);
   const codesOf = (r: Release) => barcodes.filter((b) => b.release_id === r.id).map((b) => b.barcode);
+  const pricesOf = (r: Release) => prices.filter((p) => p.release_id === r.id);
   // Un jeu sorti sur plusieurs consoles (PS1 et PS2…) : ses versions console par console,
   // celle choisie dans le catalogue d'abord, puis par date de lancement
   const preferredPlatform = rememberedPlatform();
@@ -336,6 +341,14 @@ export function GamePage() {
                     )}
                     {(statsOf(r)?.owners ?? 0) + (statsOf(r)?.seekers ?? 0) > 0 && (
                       <><dt>{tr('Collectionneurs')}</dt><dd>{popularityText(statsOf(r)!.owners, statsOf(r)!.seekers)}</dd></>
+                    )}
+                    {pricesOf(r).length > 0 && (
+                      <>
+                        <dt title={tr("Médiane des prix d'achat notés par les membres ces 5 dernières années, état par état (cadeaux et échanges exclus). Elle apparaît à partir de 5 membres.")}>
+                          {tr('Prix payés')}
+                        </dt>
+                        <dd><PriceSummary prices={pricesOf(r)} /></dd>
+                      </>
                     )}
                     {codesOf(r).length > 0 && (
                       <>
