@@ -25,13 +25,15 @@ function isConvex(q: Quad): boolean {
 
 // Recadrage d'une photo de jaquette : on pose chaque coin sur un coin de la boîte
 // (toucher l'image déplace le coin le plus proche), l'aperçu montre le résultat redressé.
-export function CoverEditor({ image, quad: initialQuad, format, onFormat, onBack, onDone }: {
+export function CoverEditor({ image, quad: initialQuad, format, onFormat, onBack, onDone, backLabel = tr('Autre photo'), doneLabel = tr('Valider ce recadrage') }: {
   image: HTMLCanvasElement;
   quad?: Quad;
   format: CaseFormat;
   onFormat: (format: CaseFormat) => void;
   onBack: () => void;
   onDone: (blob: Blob) => Promise<void> | void;
+  backLabel?: string;
+  doneLabel?: string;
 }) {
   const [source, setSource] = useState(image);
   const [quad, setQuad] = useState<Quad>(initialQuad ?? insetQuad(image.width, image.height));
@@ -180,9 +182,9 @@ export function CoverEditor({ image, quad: initialQuad, format, onFormat, onBack
       </div>
       {error && <p className="error">{error}</p>}
       <div className="actions">
-        <button type="button" className="button" onClick={onBack} disabled={busy}>{tr('Autre photo')}</button>
+        <button type="button" className="button" onClick={onBack} disabled={busy}>{backLabel}</button>
         <button type="button" className="button button-primary" onClick={validate} disabled={busy}>
-          {busy ? tr('Préparation…') : tr('Valider ce recadrage')}
+          {busy ? tr('Préparation…') : doneLabel}
         </button>
       </div>
     </div>

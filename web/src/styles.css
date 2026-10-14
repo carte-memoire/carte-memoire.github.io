@@ -1292,3 +1292,23 @@ button.cover { padding: 0; font: inherit; color: inherit; }
 .check-row .hint { display: block; }
 .trusted-browsers h3 { margin: 0; font-size: 0.95rem; }
 .trusted-browsers .badge { margin-left: 8px; }
+
+/* ---------- Modération : examiner et recadrer une jaquette proposée ---------- */
+.proposed-cover { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.proposed-cover p { margin: 0; }
+button.proposed-cover-image { padding: 0; font: inherit; color: inherit; cursor: zoom-in; }
+.proposed-cover-tools { display: flex; flex-wrap: wrap; gap: 6px; }
+.image-zoom[open] {
+  display: flex; flex-direction: column; width: 100vw; height: 100dvh; max-width: none; max-height: none;
+  margin: 0; padding: 0; border: 0; color: var(--text); background: rgba(4, 5, 12, 0.94);
+}
+.image-zoom::backdrop { background: rgba(4, 5, 12, 0.8); }
+.image-zoom-bar {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line);
+}
+.image-zoom-stage { flex: 1; min-height: 0; overflow: auto; cursor: grab; touch-action: none; display: grid; place-items: center; }
+.image-zoom-stage:active { cursor: grabbing; }
+.image-zoom-stage.is-fit { cursor: zoom-in; padding: 16px; }
+.image-zoom-stage.is-fit img { max-width: 100%; max-height: 100%; width: auto; height: auto; }
+.image-zoom-stage img { display: block; user-select: none; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6); }

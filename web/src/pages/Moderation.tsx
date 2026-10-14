@@ -10,6 +10,7 @@ import type { Release, ReleaseImage, Submission, Zone } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
 import { useGameSearch } from '../components/GameSearch';
 import { Cover } from '../components/Cover';
+import { ProposedCover, publishProposedCover } from '../components/ProposedCover';
 import { PsSymbol } from '../components/PsSymbol';
 import { useConfirm } from '../components/Confirm';
 import { CoverQueue } from '../components/CoverQueue';
@@ -156,7 +157,8 @@ function SubmissionCard({ submission: s, onDone }: { submission: Submission; onD
   const platforms = usePlatforms();
   const r = s.data.release;
   const isNewGame = s.target === 'game';
-  const [coverUrl, setCoverUrl] = useState('');
+  // Jaquette recadrée par le modérateur (publiée à la place de l'originale)
+  const [edited, setEdited] = useState<Blob | null>(null);
   const [existingGame, setExistingGame] = useState<{ id: number; title: string } | null>(null);
   const [attachTo, setAttachTo] = useState<number | null>(null);
   const [note, setNote] = useState('');
@@ -168,13 +170,6 @@ function SubmissionCard({ submission: s, onDone }: { submission: Submission; onD
   const undecided = Boolean(r) && companies.length > 0
     && (needsStudioDecision(companies, r!.publisher_id, r!.publisher_name, studios.publisher)
       || needsStudioDecision(companies, r!.developer_id, r!.developer_name, studios.developer));
-
-  // La jaquette est privée : lien temporaire (10 minutes) pour l'afficher
-  useEffect(() => {
-    if (!s.data.cover_path) return;
-    supabase.storage.from('submission-images').createSignedUrl(s.data.cover_path, 600)
-      .then(({ data }) => setCoverUrl(data?.signedUrl ?? ''));
-  }, [s.data.cover_path]);
 
   useEffect(() => {
     if (s.data.game_id) {
@@ -191,11 +186,9 @@ function SubmissionCard({ submission: s, onDone }: { submission: Submission; onD
     let publicCover: string | null = null;
     try {
       if (s.data.cover_path) {
-        // Le stockage ne se manipule pas en SQL : on copie d'abord la jaquette dans l'espace public
-        // Même format que le fichier envoyé (WebP, ou JPEG pour un navigateur qui ne sait pas écrire le WebP)
-        publicCover = `submissions/${s.id}-${crypto.randomUUID()}.${s.data.cover_path.endsWith('.jpg') ? 'jpg' : 'webp'}`;
-        const { error } = await supabase.storage.from('submission-images').copy(s.data.cover_path, publicCover, { destinationBucket: 'covers' });
-        if (error) { publicCover = null; throw error; }
+        // Le stockage ne se manipule pas en SQL : la jaquette passe d'abord dans l'espace public
+        // (telle quelle, ou recadrée par le modérateur)
+        publicCover = await publishProposedCover(s.data.cover_path, edited, `submissions/${s.id}-${crypto.randomUUID()}`);
       }
       const { data, error } = await supabase.rpc('review_submission', {
         submission_id: s.id,
@@ -234,9 +227,14 @@ function SubmissionCard({ submission: s, onDone }: { submission: Submission; onD
   return (
     <article className="panel submission-card">
       <div className="submission-head">
-        <div className={`cover cover-medium${s.data.no_cover ? ' cover-disabled' : ''}`}>
-          {coverUrl ? <img src={coverUrl} alt={tr('Jaquette proposée')} /> : <span className="cover-empty" aria-hidden="true"><PsSymbol shape="square" /></span>}
-        </div>
+        {s.data.cover_path ? (
+          <ProposedCover path={s.data.cover_path} platform={platforms.find((p) => p.id === r?.platform_id)?.short_name} editionType={r?.edition_type}
+            edited={edited} onEdited={setEdited} size="medium" />
+        ) : (
+          <div className={`cover cover-medium${s.data.no_cover ? ' cover-disabled' : ''}`}>
+            <span className="cover-empty" aria-hidden="true"><PsSymbol shape="square" /></span>
+          </div>
+        )}
         <div className="submission-info">
           <p className="muted small">
             {isNewGame ? tr('Nouveau jeu') : tr('Nouvelle version')}{tr(' · proposé par ')}<strong>{s.author?.username ?? tr('compte supprimé')}</strong> le {new Date(s.created_at).toLocaleDateString(locale)}
@@ -364,7 +362,8 @@ function SummaryCard({ submission: s, onDone }: { submission: Submission; onDone
 // Acceptée, elle remplace l'actuelle (dont le fichier est retiré du stockage).
 function CoverSubmissionCard({ submission: s, onDone }: { submission: Submission; onDone: (r: { approved: boolean; gameId?: number }) => void }) {
   const [release, setRelease] = useState<(Release & { game: { id: number; title: string } }) | null | undefined>(undefined);
-  const [proposed, setProposed] = useState('');
+  // Jaquette recadrée par le modérateur (publiée à la place de l'originale)
+  const [edited, setEdited] = useState<Blob | null>(null);
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -376,20 +375,13 @@ function CoverSubmissionCard({ submission: s, onDone }: { submission: Submission
       .then(({ data }) => setRelease((data as unknown as (Release & { game: { id: number; title: string } }) | null) ?? null));
   }, [s.target_id]);
 
-  // L'image proposée est privée : lien temporaire (10 minutes) pour l'afficher
-  useEffect(() => {
-    if (!coverPath) return;
-    supabase.storage.from('submission-images').createSignedUrl(coverPath, 600).then(({ data }) => setProposed(data?.signedUrl ?? ''));
-  }, [coverPath]);
-
   async function approve() {
     setBusy(true);
     setError('');
-    // Le stockage ne se manipule pas en SQL : copie d'abord dans les jaquettes publiques
-    const publicCover = `releases/${s.target_id}/${crypto.randomUUID()}.${coverPath.endsWith('.jpg') ? 'jpg' : 'webp'}`;
     try {
-      const { error: copyError } = await supabase.storage.from('submission-images').copy(coverPath, publicCover, { destinationBucket: 'covers' });
-      if (copyError) throw copyError;
+      // Le stockage ne se manipule pas en SQL : la jaquette passe d'abord dans les jaquettes
+      // publiques (telle quelle, ou recadrée par le modérateur)
+      const publicCover = await publishProposedCover(coverPath, edited, `releases/${s.target_id}/${crypto.randomUUID()}`);
       const { data, error: reviewError } = await supabase.rpc('review_submission', { submission_id: s.id, approve: true, note: note.trim() || null, cover_path: publicCover });
       if (reviewError) {
         await supabase.storage.from('covers').remove([publicCover]);
@@ -419,7 +411,6 @@ function CoverSubmissionCard({ submission: s, onDone }: { submission: Submission
     onDone({ approved: false });
   }
 
-  const tall = release?.platform.short_name === 'PS2';
   return (
     <article className="panel submission-card">
       <p className="muted small">
@@ -440,13 +431,11 @@ function CoverSubmissionCard({ submission: s, onDone }: { submission: Submission
       <div className="cover-compare">
         <figure>
           <figcaption className="field-label">{tr('Jaquette actuelle')}</figcaption>
-          {release ? <Cover images={release.image} title={release.local_title} size="large" platform={release.platform.short_name} /> : <span className="cover cover-large" />}
+          {release ? <Cover images={release.image} title={release.local_title} size="large" platform={release.platform.short_name} zoomable /> : <span className="cover cover-large" />}
         </figure>
         <figure>
           <figcaption className="field-label">{tr('Jaquette proposée')}</figcaption>
-          <div className={`cover cover-large${tall ? ' cover-tall' : ''}`}>
-            {proposed ? <img src={proposed} alt={tr('Jaquette proposée')} /> : <span className="cover-empty" aria-hidden="true"><PsSymbol shape="square" /></span>}
-          </div>
+          <ProposedCover path={coverPath} platform={release?.platform.short_name} editionType={release?.edition_type} edited={edited} onEdited={setEdited} />
         </figure>
       </div>
       <label className="field">
