@@ -291,17 +291,17 @@ function ps2(s: Scene) {
   s.onFront(0, rect(285, 34, 6, 0.8), '#4a8cf0');
 }
 
-// PlayStation 3 (premier modèle, « fat »), d'après photos (à plat et debout) :
-// - noir brillant, profil en lentille vu du bout : dessus et dessous bombés, nez arrondi
-//   à l'avant ;
-// - une encoche taillée dans l'arrondi, du bord de la trappe jusqu'au bout droit : sa
-//   face plate porte le panneau chromé du lecteur (longue fente) et, en dessous, les
-//   touches Eject et Power ; à gauche, l'arrondi est intact et la trappe en fait partie ;
-// - liseré argenté le long de l'arête du dessus, prises USB sous la trappe, grille
-//   d'aération sur le bout droit
+// PlayStation 3 (premier modèle, « fat »), d'après photos et le croquis de l'utilisateur :
+// - noir brillant, profil en lentille vu du bout : dessus et dessous bombés, nez arrondi ;
+// - une poche creusée dans l'avant arrondi, sous la lèvre de la coque (le liseré argenté
+//   reste une ligne droite sur toute la largeur) : au fond, une face plate qui porte le
+//   panneau chromé du lecteur et, en dessous, Eject et Power ; sa paroi gauche se voit ;
+// - à gauche de la poche, l'arrondi est entier et la trappe en fait partie (prises USB
+//   en dessous) ; à droite, l'arrondi reprend jusqu'au bout, qui porte la grille d'aération
 function ps3(s: Scene) {
   const black = '#1a1b1f';
-  const W = 325, D = 274, NOTCH_X = 126, NOTCH_Y = 10;
+  const W = 325, D = 274;
+  const POCKET_X0 = 126, POCKET_X1 = 300, POCKET_Y = 10, LIP = 62; // la poche s'arrête sous la lèvre (62 mm)
   const k = (y: number) => ((y - D / 2) / (D / 2)) ** 2;
   // Dessus 98 mm au milieu, 68 mm aux bords ; dessous posé au milieu, 18 mm aux bords
   const top = (y: number) => 98 - 30 * k(y);
@@ -309,35 +309,38 @@ function ps3(s: Scene) {
   // Nez avant et arrière : demi-ellipse qui avance de 9 mm, entre 18 et 68 mm de haut
   const nose = (z: number) => 9 * Math.sqrt(Math.max(0, 1 - ((z - 43) / 25) ** 2));
   const steps = 40;
-  const span = (from: number, to: number) => Array.from({ length: steps + 1 }, (_, i) => from + ((to - from) * i) / steps);
+  const span = (from: number, to: number, n = steps) => Array.from({ length: n + 1 }, (_, i) => from + ((to - from) * i) / n);
   const backNose: P2[] = span(18, 68).map((z) => [D + nose(z), z]);
-  const frontNose: P2[] = span(68, 18).map((z) => [-nose(z), z]);
-  const lens: P2[] = [...span(0, D).map((y) => [y, bottom(y)] as P2), ...backNose, ...span(D, 0).map((y) => [y, top(y)] as P2), ...frontNose];
-  const notched: P2[] = [...span(NOTCH_Y, D).map((y) => [y, bottom(y)] as P2), ...backNose, ...span(D, NOTCH_Y).map((y) => [y, top(y)] as P2)];
+  const topCurve: P2[] = span(D, 0).map((y) => [y, top(y)]);
+  const lens: P2[] = [...span(0, D).map((y) => [y, bottom(y)] as P2), ...backNose, ...topCurve, ...span(68, 18).map((z) => [-nose(z), z] as P2)];
+  // La même, creusée de la poche : le nez descend jusqu'à la lèvre, puis plafond, fond plat
+  const pocket: P2[] = [
+    ...span(POCKET_Y, D).map((y) => [y, bottom(y)] as P2), ...backNose, ...topCurve,
+    ...span(68, LIP, 6).map((z) => [-nose(z), z] as P2), [POCKET_Y, LIP],
+  ];
   s.shadow(rect(20, 40, W - 40, D - 80));
-  // À gauche, la lentille entière ; à droite, la même entaillée par l'encoche (la paroi
-  // de droite de la partie gauche reste visible : c'est le bord de l'encoche)
-  // (sans liseré lumineux : il marquerait la jonction des deux parties sur le dessus)
-  s.extrudeX(lens, 0, NOTCH_X, black);
-  s.extrudeX(notched, NOTCH_X - 0.6, W - NOTCH_X + 0.6, black); // léger chevauchement : pas de trait à la jonction
+  // Gauche (trappe) entière, milieu creusé, bout droit entier ; légers chevauchements : pas
+  // de trait aux jonctions. La paroi droite de la partie gauche devient la paroi de la poche.
+  s.extrudeX(lens, 0, POCKET_X0, black);
+  s.extrudeX(pocket, POCKET_X0 - 0.6, POCKET_X1 - POCKET_X0 + 1.2, black);
+  s.extrudeX(lens, POCKET_X1, W - POCKET_X1, black);
   // Grille d'aération sur le bout droit
-  for (let y = NOTCH_Y + 14; y < D - 16; y += 7) for (let z = bottom(y) + 7; z < top(y) - 7; z += 7) s.onSide(W, ellipse(y, z, 1.6, 1.6, 8), '#0a0a0c');
-  // Face plate de l'encoche : panneau chromé et fente du lecteur, puis Eject et Power
-  const faceTop = top(NOTCH_Y), faceBottom = bottom(NOTCH_Y);
-  s.onFront(NOTCH_Y, rect(NOTCH_X + 4, faceTop - 30, 190, 27), '#b6bbc3');
-  s.onFront(NOTCH_Y, rect(NOTCH_X + 4, faceTop - 7, 190, 4), '#e3e6ea');
-  s.onFront(NOTCH_Y, rect(NOTCH_X + 16, faceTop - 18, 164, 3.6), '#050506');
-  const icons = faceBottom + 12;
-  s.onFront(NOTCH_Y, [[214, icons], [222, icons], [218, icons + 5]], '#8d929b');
-  s.onFront(NOTCH_Y, rect(214, icons - 2, 8, 0.9), '#8d929b');
-  s.onFront(NOTCH_Y, ellipse(270, icons + 1.5, 3.2, 3.2, 20), 'none', { stroke: '#8d929b', width: 0.9 });
-  s.onFront(NOTCH_Y, rect(269.6, icons + 2, 0.9, 4), '#8d929b');
-  // Liseré argenté : sur l'arrondi au-dessus de la trappe, puis au bord haut de l'encoche
-  s.line([0, -nose(64), 64], [NOTCH_X, -nose(64), 64], '#d9dde3', 2.6);
-  s.line([NOTCH_X, NOTCH_Y, faceTop - 1.2], [W, NOTCH_Y, faceTop - 1.2], '#d9dde3', 2.6);
+  for (let y = 18; y < D - 16; y += 7) for (let z = bottom(y) + 7; z < top(y) - 7; z += 7) s.onSide(W, ellipse(y, z, 1.6, 1.6, 8), '#0a0a0c');
+  // Liseré argenté : une ligne droite le long de la lèvre, sur toute la largeur
+  s.line([0, -nose(65), 65], [W, -nose(65), 65], '#d9dde3', 2.6);
+  // Fond de la poche : panneau chromé et fente du lecteur, puis Eject et Power
+  const floor = bottom(POCKET_Y);
+  s.onFront(POCKET_Y, rect(POCKET_X0 + 3, LIP - 26, POCKET_X1 - POCKET_X0 - 6, 24), '#b6bbc3');
+  s.onFront(POCKET_Y, rect(POCKET_X0 + 3, LIP - 5, POCKET_X1 - POCKET_X0 - 6, 3), '#e3e6ea');
+  s.onFront(POCKET_Y, rect(POCKET_X0 + 14, LIP - 16, POCKET_X1 - POCKET_X0 - 28, 3.4), '#050506');
+  const icons = floor + 12;
+  s.onFront(POCKET_Y, [[214, icons], [222, icons], [218, icons + 5]], '#8d929b');
+  s.onFront(POCKET_Y, rect(214, icons - 2, 8, 0.9), '#8d929b');
+  s.onFront(POCKET_Y, ellipse(266, icons + 1.5, 3.2, 3.2, 20), 'none', { stroke: '#8d929b', width: 0.9 });
+  s.onFront(POCKET_Y, rect(265.6, icons + 2, 0.9, 4), '#8d929b');
   // La trappe, dans l'arrondi : ses joints en haut, en bas et à gauche
-  s.line([4, -nose(60), 60], [NOTCH_X, -nose(60), 60], '#060607', 1.2);
-  s.line([4, -nose(26), 26], [NOTCH_X, -nose(26), 26], '#060607', 1.2);
+  s.line([4, -nose(60), 60], [POCKET_X0, -nose(60), 60], '#060607', 1.2);
+  s.line([4, -nose(26), 26], [POCKET_X0, -nose(26), 26], '#060607', 1.2);
   s.polyline(span(26, 60).map((z) => [4, -nose(z), z] as P3), '#060607', 1.2);
   // Prises USB sous la trappe
   for (const x of [16, 32, 48, 64]) s.onFront(-nose(21), rect(x, 19.3, 11, 3.6), '#0d0d10', { stroke: '#4b4e55', width: 0.5 });
