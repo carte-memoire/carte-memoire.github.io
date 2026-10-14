@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import type { Profile } from '../lib/types';
 import { markRecovery } from '../lib/preferences';
 import { passkeySession, presentTrustedBrowser } from '../lib/trust';
-import { tr } from '../lib/i18n';
+import { lang, tr } from '../lib/i18n';
 
 type Aal = 'aal1' | 'aal2' | null;
 // Double authentification satisfaite sans code : passkey, ou navigateur de confiance
@@ -57,6 +57,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(p as Profile | null);
     setLoading(false);
   }, []);
+
+  // Langue des e-mails envoyés au compte (mot de passe oublié, changement d'adresse…) :
+  // celle du site, mise à jour quand le membre change de langue
+  const userId = session?.user.id;
+  const emailLang = session?.user.user_metadata?.lang as string | undefined;
+  useEffect(() => {
+    if (userId && emailLang !== lang) supabase.auth.updateUser({ data: { lang } });
+  }, [userId, emailLang]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => load(data.session));

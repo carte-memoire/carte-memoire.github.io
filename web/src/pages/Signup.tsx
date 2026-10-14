@@ -7,7 +7,7 @@ import { PsSymbol } from '../components/PsSymbol';
 import { EmailCodeForm } from '../components/EmailCodeForm';
 import { useAuth } from '../auth/AuthContext';
 import { TERMS_VERSION } from './Legal';
-import { tr } from '../lib/i18n';
+import { lang, tr } from '../lib/i18n';
 
 const USERNAME = /^[A-Za-z0-9_-]{3,30}$/;
 
@@ -35,8 +35,9 @@ export function Signup() {
       email: email.trim(),
       password,
       options: {
-        // Version des conditions acceptées, gardée avec le compte (preuve de l'acceptation)
-        data: { username, terms_version: TERMS_VERSION },
+        // Version des conditions acceptées, gardée avec le compte (preuve de l'acceptation) ;
+        // langue du site : celle des e-mails envoyés au compte (confirmation, mot de passe…)
+        data: { username, terms_version: TERMS_VERSION, lang },
         emailRedirectTo: `${window.location.origin}/connexion?confirme=1`,
       },
     });
