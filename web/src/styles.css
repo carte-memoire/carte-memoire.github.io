@@ -298,6 +298,25 @@ ul.error { padding-left: 28px; }
   text-shadow: 3px 3px 0 #000, 0 0 24px rgba(123, 147, 255, 0.45);
 }
 .hero-subtitle { color: var(--muted); margin: 0.6em 0; }
+
+/* ---------- Accueil : bienvenue (visiteurs non connectés) ---------- */
+.welcome h2 { margin-top: 0; }
+.welcome-intro { color: var(--muted); max-width: 70ch; }
+.welcome-grid {
+  list-style: none; margin: 16px 0; padding: 0;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px;
+}
+.welcome-card {
+  border: 1px solid var(--line); border-top: 3px solid var(--accent, var(--line)); border-radius: 4px;
+  padding: 12px 14px; background: rgba(255, 255, 255, 0.02);
+}
+.welcome-card h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; font-size: 1rem; }
+.welcome-card p { margin: 0; font-size: 0.9rem; color: var(--muted); line-height: 1.5; }
+.welcome-triangle { --accent: var(--triangle); }
+.welcome-circle { --accent: var(--circle); }
+.welcome-cross { --accent: var(--cross); }
+.welcome-square { --accent: var(--square); }
+.welcome-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: 0; }
 .buttons-legend { display: flex; justify-content: center; margin: 0; }
 .ps-triangle { color: var(--triangle); }
 .ps-circle { color: var(--circle); }

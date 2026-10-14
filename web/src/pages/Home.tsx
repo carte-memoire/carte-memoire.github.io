@@ -5,7 +5,8 @@ import { CountUp } from '../components/CountUp';
 import { GameSearch } from '../components/GameSearch';
 import { useScanner } from '../components/Scanner';
 import { PlatformSelect } from '../components/PlatformSelect';
-import { PsSymbol } from '../components/PsSymbol';
+import { PsSymbol, type PsShape } from '../components/PsSymbol';
+import { useAuth } from '../auth/AuthContext';
 import { gamePath } from '../lib/format';
 import { ALL_PLATFORMS, DEFAULT_PLATFORM, rememberPlatform, rememberedPlatform } from '../lib/preferences';
 import { useKnownPlatform, usePlatforms } from '../lib/usePlatforms';
@@ -20,8 +21,40 @@ function ScanIcon() {
   );
 }
 
+// Ce que propose le site, pour qui arrive sans le connaître (visiteurs non connectés)
+const FEATURES: { shape: PsShape; title: string; text: string }[] = [
+  { shape: 'triangle', title: tr('Explore'), text: tr('Chaque jeu, version par version : Black Label, Platinum, versions japonaises et américaines, codes produit, langues et jaquettes.') },
+  { shape: 'circle', title: tr('Collectionne'), text: tr('Coche les versions que tu possèdes ou que tu cherches, note leur état et leur prix, suis ta progression et partage ta collection.') },
+  { shape: 'cross', title: tr('Scanne'), text: tr('Vise le code-barres de la boîte avec ton téléphone : la fiche de ta version s’ouvre directement.') },
+  { shape: 'square', title: tr('Contribue'), text: tr('Un jeu, une version ou une jaquette manque ? Propose-les : les modérateurs vérifient avant de les publier.') },
+];
+
+function Welcome() {
+  return (
+    <section className="panel welcome" aria-labelledby="bienvenue">
+      <h2 id="bienvenue">{tr('Bienvenue sur Carte Mémoire')}</h2>
+      <p className="welcome-intro">
+        {tr('La base de données collaborative des jeux vidéo, faite par et pour les collectionneurs : pour l’instant les jeux PlayStation et PlayStation 2. Retrouve toutes les versions de tes jeux et range ta collection au même endroit, gratuitement et sans publicité.')}
+      </p>
+      <ul className="welcome-grid">
+        {FEATURES.map((f) => (
+          <li key={f.shape} className={`welcome-card welcome-${f.shape}`}>
+            <h3><PsSymbol shape={f.shape} colored /> {f.title}</h3>
+            <p>{f.text}</p>
+          </li>
+        ))}
+      </ul>
+      <p className="welcome-actions">
+        <Link to="/inscription" className="button button-primary"><PsSymbol shape="cross" />{tr(' Créer mon compte gratuit')}</Link>
+        <span className="muted">{tr('Déjà inscrit ?')} <Link to="/connexion">{tr('Se connecter')}</Link></span>
+      </p>
+    </section>
+  );
+}
+
 export function Home() {
   const navigate = useNavigate();
+  const { session, loading } = useAuth();
   const scanner = useScanner();
   const platforms = usePlatforms();
   const [params, setParams] = useSearchParams();
@@ -85,6 +118,9 @@ export function Home() {
       <p className="center">
         <Link to="/catalogue" className="button"><PsSymbol shape="square" />{tr(' Parcourir le catalogue complet')}</Link>
       </p>
+
+      {/* Pour qui découvre le site ; les membres connectés le connaissent déjà */}
+      {!loading && !session && <Welcome />}
     </section>
   );
 }
