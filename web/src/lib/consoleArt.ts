@@ -292,23 +292,24 @@ function ps2(s: Scene) {
 }
 
 // PlayStation 3 (premier modèle, « fat »), d'après photos (à plat et debout) :
-// - noir brillant, dessus bombé dans le sens de la largeur (plus bas aux deux bouts),
-//   façade plate soulignée d'un liseré argenté le long de l'arête du dessus ;
+// - noir brillant, dessus bombé de l'avant vers l'arrière (profil en lentille vu du
+//   bout) ; façade droite soulignée d'un liseré argenté le long de l'arête du dessus ;
 // - moitié gauche de la façade : trappe noire en léger relief, prises USB en dessous ;
 // - moitié droite : panneau chromé avec la longue fente du lecteur, et en dessous la
 //   bande noire des touches Power et Eject ;
 // - rainure sombre en bas de la façade, grille d'aération sur le bout droit
 function ps3(s: Scene) {
   const black = '#1a1b1f';
-  const W = 325, D = 274;
-  const top = (x: number) => 56 + 42 * Math.pow(Math.sin((Math.PI * x) / W), 0.75);
-  const arc: P2[] = Array.from({ length: 41 }, (_, i) => { const x = W * (1 - i / 40); return [x, top(x)]; });
+  const W = 325, D = 274, H = 60;
+  // Hauteur du dessus selon la profondeur : 60 mm à l'avant et à l'arrière, 98 mm au milieu
+  const top = (y: number) => H + 38 * Math.pow(Math.sin((Math.PI * y) / D), 0.8);
+  const curve: P2[] = Array.from({ length: 41 }, (_, i) => { const y = D * (1 - i / 40); return [y, top(y)]; });
   s.shadow(rect(0, 0, W, D));
-  s.extrudeY([[0, 0], [W, 0], ...arc], 0, D, black, { glint: 0.3 });
-  // Grille d'aération sur le bout droit
-  for (let y = 30; y < D - 20; y += 7) for (let z = 8; z < 50; z += 7) s.onSide(W, ellipse(y, z, 1.6, 1.6, 8), '#0a0a0c');
-  // Liseré argenté le long de l'arête avant du dessus
-  s.polyline(arc.map(([x, z]) => [x, 0, z - 1.6] as P3), '#d9dde3', 2.6);
+  s.extrudeX([[0, 0], [D, 0], ...curve], 0, W, black, { glint: 0.3 });
+  // Grille d'aération sur le bout droit (sous la courbe)
+  for (let y = 24; y < D - 20; y += 7) for (let z = 8; z < top(y) - 8; z += 7) s.onSide(W, ellipse(y, z, 1.6, 1.6, 8), '#0a0a0c');
+  // Liseré argenté le long de l'arête avant du dessus (droite)
+  s.line([0, 0, H - 1.6], [W, 0, H - 1.6], '#d9dde3', 2.6);
   // Rainure du bas, prises USB
   s.onFront(0, rect(0, 12, W, 2), '#060607');
   for (const x of [18, 34, 50, 66]) s.onFront(0, rect(x, 4, 11, 5), '#0d0d10', { stroke: '#4b4e55', width: 0.5 });
