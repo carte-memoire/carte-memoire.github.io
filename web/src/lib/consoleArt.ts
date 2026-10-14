@@ -245,26 +245,50 @@ function ps1(s: Scene) {
   for (let y = 10; y < 180; y += 6) s.line([270, y, 5], [270, y, 38], shade(grey, 0.5), 1.1, 0.8);
 }
 
-// PlayStation 2 (modèle d'origine, à plat) : socle en retrait, dessus rainuré, fente du
-// tiroir, ports manette et cartes mémoire en bas à gauche, Reset et Eject à droite
+// PlayStation 2 (modèle d'origine, à plat), mesurée sur photos (face et trois quarts) :
+// - corps en plaques horizontales empilées, séparées par des rainures qui font le tour
+//   (avant et flancs) ; dessus lisse ;
+// - à gauche : les deux fentes de carte mémoire, et en dessous les deux ports manette ;
+// - à droite : le tiroir à disque sur la moitié de la façade, puis une colonne avec
+//   Reset (voyant vert) en haut et Eject (bleu) en bas ;
+// - socle en retrait sous le corps, plus étroit à droite : panneau bleu des deux
+//   prises USB à gauche, grande grille d'aération sur le reste
 function ps2(s: Scene) {
-  const black = '#25272d';
+  const black = '#26282e';
+  const dark = '#0b0b0e';
   s.shadow(rect(0, 0, 301, 182));
-  s.prism(rect(8, 8, 285, 166), 0, 10, '#121317');
-  s.prism(rect(0, 0, 301, 182), 10, 66, black, { glint: 0.3, edge: '#0c0d10' });
-  for (let y = 20; y < 175; y += 13) s.line([10, y, 76], [291, y, 76], '#121318', 1.3);
-  s.line([0, 0, 46], [301, 0, 46], '#555862', 0.8, 0.7);
-  s.onFront(0, rect(16, 56, 214, 3.6), '#08080a');
-  s.onFront(0, rrect(244, 52, 20, 9, 2), '#3a3d45');
-  s.onFront(0, rect(249, 55.6, 10, 1.6), '#3d8af0');
-  s.onFront(0, rrect(270, 52, 20, 9, 2), '#3a3d45');
-  s.onFront(0, ellipse(280, 56.5, 1.8), '#3fd16b');
-  for (const x of [26, 76]) {
-    s.onFront(0, rect(x + 3, 36, 38, 3.6), '#08080a');
-    s.onFront(0, rrect(x, 16, 44, 14, 2), '#3a3d45');
-    s.onFront(0, rect(x + 7, 19.5, 30, 7), '#08080a');
+  // Socle en retrait
+  s.prism(rect(14, 10, 256, 162), 0, 31, '#1d1e23', { glint: 0.15 });
+  s.onFront(10, rect(20, 5, 40, 22), '#2c5fd6');
+  s.onFront(10, rect(20, 5, 40, 22), 'none', { stroke: '#7fa6f2', width: 0.8, opacity: 0.7 });
+  for (const z of [16, 8]) {
+    s.onFront(10, rect(25, z, 17, 5.5), '#d9dde6');
+    s.onFront(10, rect(27, z + 1.3, 13, 2.9), dark);
   }
-  for (const x of [140, 154]) s.onFront(0, rect(x, 22, 10, 5), '#08080a', { stroke: '#4a4d55', width: 0.5 });
+  s.onFront(10, rect(48, 17, 6, 3.4), dark);
+  for (const z of [7, 12.5, 18, 23.5]) {
+    for (let x = 72; x < 262; x += 12.5) s.onFront(10, rect(x, z, 10.5, 2.8), '#08080a');
+  }
+  // Corps : un noyau en retrait, puis les plaques (les jours entre elles forment les rainures)
+  s.prism(rect(2.5, 2.5, 296, 177), 31, 47, '#111216');
+  const plates: [number, number][] = [[31, 41], [42.5, 52.5], [54, 64], [65.5, 78]];
+  plates.forEach(([z0, z1], i) => s.prism(rect(0, 0, 301, 182), z0, z1 - z0, black, { glint: i === plates.length - 1 ? 0.35 : 0.18 }));
+  // Fentes de carte mémoire (plaque du haut moins un) et ports manette (en dessous)
+  for (const x of [22, 74]) {
+    s.onFront(0, rect(x, 56.5, 44, 5.5), '#16171b', { stroke: '#4b4e57', width: 0.6 });
+    s.onFront(0, rect(x + 3, 58.3, 38, 1.8), dark);
+    s.onFront(0, rect(x, 44.5, 44, 7), '#16171b', { stroke: '#4b4e57', width: 0.6 });
+    for (const k of [0, 1, 2]) s.onFront(0, rrect(x + 2.5 + k * 13.5, 45.5, 12, 5, 1.5), '#2e3037');
+  }
+  // Tiroir à disque : son contour sur la moitié droite de la façade
+  s.line([146, 0, 32], [146, 0, 65], dark, 1.4);
+  s.line([274, 0, 32], [274, 0, 77], dark, 1.4);
+  // Colonne de droite : Reset (voyant vert) en haut, Eject (bleu) en bas
+  s.onFront(0, rrect(279, 67.5, 18, 9, 1.5), '#33353c', { stroke: dark, width: 0.6 });
+  s.onFront(0, ellipse(288, 72, 2.4, 2.4, 16), 'none', { stroke: '#3fd18b', width: 0.9 });
+  s.onFront(0, rrect(279, 32.5, 18, 8, 1.5), '#33353c', { stroke: dark, width: 0.6 });
+  s.onFront(0, [[285, 35.4], [291, 35.4], [288, 38.6]], '#4a8cf0');
+  s.onFront(0, rect(285, 34, 6, 0.8), '#4a8cf0');
 }
 
 // PlayStation 3 (premier modèle) : noir brillant, dessus bombé, bandeau chromé en bas
