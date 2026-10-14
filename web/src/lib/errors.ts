@@ -18,6 +18,7 @@ const AUTH_MESSAGES: Record<string, string> = {
   session_not_found: tr('Ta session a expiré : reconnecte-toi.'),
   insufficient_aal: tr('Cette action demande la double authentification.'),
   webauthn_challenge_expired: tr('Délai dépassé : réessaie.'),
+  user_banned: tr('Ce compte est suspendu. Pour en savoir plus, écris-nous (adresse dans les mentions légales).'),
 };
 
 export function errorMessage(error: unknown): string {

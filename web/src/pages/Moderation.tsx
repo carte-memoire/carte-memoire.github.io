@@ -18,12 +18,13 @@ import { GenreQueue } from '../components/GenreQueue';
 import { HistoryList } from '../components/HistoryList';
 import { ReportQueue } from '../components/ReportQueue';
 import { StudioQueue } from '../components/StudioQueue';
+import { MemberDirectory } from '../components/MemberDirectory';
 import { needsStudioDecision, StudioDecision, type StudioChoice } from '../components/StudioDecision';
 import { forgetCompanies, useCompanies } from '../lib/useCompanies';
 import { tr, locale } from '../lib/i18n';
 import { usePageTitle } from '../lib/title';
 
-type Tab = 'submissions' | 'reports' | 'duplicates' | 'studios' | 'genres' | 'covers' | 'history';
+type Tab = 'submissions' | 'reports' | 'duplicates' | 'studios' | 'genres' | 'covers' | 'history' | 'members';
 
 export function Moderation() {
   usePageTitle(tr('Modération'));
@@ -84,6 +85,7 @@ export function Moderation() {
           ['genres', tr('Sans genre'), tr('Jeux sans genre'), counts.genres],
           ['covers', tr('Jaquettes'), tr('Jaquettes manquantes'), counts.covers],
           ['history', tr('Historique'), tr('Historique des modifications'), null],
+          ['members', tr('Membres'), tr('Membres du site'), null],
         ] as [Tab, string, string, number | null][]).map(([value, label, title, count]) => (
           <button key={value} type="button" role="tab" aria-selected={tab === value} className={tab === value ? 'tab active' : 'tab'}
             title={title} onClick={() => setTab(value)}>
@@ -99,6 +101,7 @@ export function Moderation() {
       <div hidden={tab !== 'reports'}><ReportQueue onCount={countReports} /></div>
       <div hidden={tab !== 'covers'}><CoverQueue onCount={countCovers} active={tab === 'covers'} platform={platform} /></div>
       {tab === 'history' && <HistoryList limit={100} />}
+      {tab === 'members' && <MemberDirectory />}
     </section>
   );
 }

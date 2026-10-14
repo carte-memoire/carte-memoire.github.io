@@ -299,6 +299,31 @@ ul.error { padding-left: 28px; }
 }
 .hero-subtitle { color: var(--muted); margin: 0.6em 0; }
 
+/* ---------- Modération : membres ---------- */
+.member-search { max-width: 420px; }
+.member-names {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 6px 16px;
+}
+.member-names a { overflow-wrap: anywhere; }
+.member-card { display: flex; flex-direction: column; gap: 10px; }
+.member-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.member-facts { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 0; font-size: 0.9rem; }
+.member-facts dt { color: var(--muted); }
+.member-facts dd { margin: 0; overflow-wrap: anywhere; }
+.member-actions { align-items: flex-end; }
+.member-role { display: flex; flex-direction: column; gap: 4px; }
+/* Boutons à la hauteur de la liste du rôle (40 px : faciles à toucher au doigt) */
+.member-actions .button-small { min-height: 40px; }
+.member-role select { padding-block: 7px; }
+.badge-role-admin { color: #ffd0f0; border-color: var(--square); }
+.badge-role-moderator { color: #cfd8ff; border-color: var(--cross); }
+.badge-banned { color: #ffd2d8; border-color: var(--circle); background: rgba(255, 90, 110, 0.12); }
+@media (max-width: 480px) {
+  .member-facts { grid-template-columns: 1fr; gap: 0; }
+  .member-facts dd { margin-bottom: 6px; }
+}
+
 /* ---------- Accueil : bienvenue (visiteurs non connectés) ---------- */
 .welcome h2 { margin-top: 0; }
 .welcome-intro { color: var(--muted); max-width: 70ch; }

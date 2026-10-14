@@ -19,7 +19,9 @@ await db.exec(`
   create role authenticated nologin;
   create schema extensions;
   create schema auth;
-  create table auth.users (id uuid primary key, raw_user_meta_data jsonb not null default '{}', encrypted_password text);
+  create table auth.users (id uuid primary key, raw_user_meta_data jsonb not null default '{}', encrypted_password text,
+    email text, created_at timestamptz not null default now(), last_sign_in_at timestamptz, email_confirmed_at timestamptz, banned_until timestamptz);
+  create table auth.sessions (id uuid primary key default gen_random_uuid(), user_id uuid not null references auth.users (id) on delete cascade);
   create table auth.mfa_factors (id uuid primary key default gen_random_uuid(), user_id uuid not null, factor_type text not null default 'totp', status text not null, created_at timestamptz not null default now());
   create function auth.jwt() returns jsonb language sql stable as $$
     select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb
@@ -1083,6 +1085,74 @@ await ok('nettoyage (adresses)', (async () => {
     await db.query(`delete from public.release where game_id = $1`, [g]);
     await db.query(`delete from public.game where id = $1`, [g]);
   }
+})());
+
+console.log('\nGestion des membres (modérateurs : pseudos ; admin : fiche, renommer, suspendre, supprimer)');
+const G_MEMBRE = '00000000-0000-0000-0000-0000000000f1';
+const G_AUTRE = '00000000-0000-0000-0000-0000000000f2';
+const G_PIRATE = '00000000-0000-0000-0000-0000000000f3';
+await db.query(`insert into auth.users (id, raw_user_meta_data, email, email_confirmed_at, last_sign_in_at) values ($1, '{"username":"Gerard"}', 'gerard@exemple.fr', now(), now())`, [G_MEMBRE]);
+await db.query(`insert into auth.users (id, raw_user_meta_data, email) values ($1, '{"username":"Gisele"}', 'gisele@exemple.fr')`, [G_AUTRE]);
+await ok('inscription avec un rôle glissé dans la demande', db.query(`insert into auth.users (id, raw_user_meta_data, email) values ($1, '{"username":"Pirate","role":"admin"}', 'pirate@exemple.fr')`, [G_PIRATE]));
+await egal('…le compte reste simple membre', val(`select role::text from public.profile where id = $1`, [G_PIRATE]), [{ role: 'member' }]);
+const uneVersion = (await val(`select id from public.release order by id limit 1`))[0].id;
+await ok('Gérard a un jeu dans sa collection', en(G_MEMBRE, `insert into public.collection_item (release_id) values ($1)`, [uneVersion]));
+
+await ko('visiteur : pas de liste des membres', en(null, `select * from public.member_names()`), '');
+await ko('membre : pas de liste des membres', en(MEMBRE, `select * from public.member_names()`), 'Réservé aux modérateurs');
+await ko('modérateur sans double authentification : refusé', en(AUTRE, `select * from public.member_names()`, [], 'aal1'), 'double authentification');
+await egal('modérateur : les pseudos, et rien d\'autre', lignes(en(AUTRE, `select * from public.member_names('ger')`, [], 'aal2')), [{ username: 'Gerard', total_count: 1 }]);
+await ko('modérateur : pas de fiche complète', en(AUTRE, `select * from public.admin_members()`, [], 'aal2'), 'Réservé aux admins');
+await ko('admin sans double authentification : pas de fiche complète', en(ADMIN, `select * from public.admin_members()`, [], 'aal1'), 'Réservé aux admins');
+await egal('admin : fiche complète (adresse, confirmation, collection)',
+  lignes(en(ADMIN, `select username, role::text, email, email_confirmed, two_factor, banned_until, owned_count, wanted_count, submission_count from public.admin_members('gerard')`)),
+  [{ username: 'Gerard', role: 'member', email: 'gerard@exemple.fr', email_confirmed: true, two_factor: false, banned_until: null, owned_count: 1, wanted_count: 0, submission_count: 0 }]);
+await egal('…recherche aussi par adresse e-mail', lignes(en(ADMIN, `select username from public.admin_members('gisele@exemple')`)), [{ username: 'Gisele' }]);
+
+await ko('modérateur : ne renomme pas', en(AUTRE, `select public.admin_rename_member($1, 'Gege')`, [G_MEMBRE], 'aal2'), 'Réservé aux admins');
+await ko('admin : pseudo invalide refusé', en(ADMIN, `select public.admin_rename_member($1, 'Gé rard!')`, [G_MEMBRE]), 'Pseudo invalide');
+await ko('admin : pseudo déjà pris (casse différente) refusé', en(ADMIN, `select public.admin_rename_member($1, 'GISELE')`, [G_MEMBRE]), 'déjà pris');
+await ok('admin renomme Gerard en Gege', en(ADMIN, `select public.admin_rename_member($1, 'Gege')`, [G_MEMBRE]));
+await egal('…nouveau pseudo', val(`select username from public.profile where id = $1`, [G_MEMBRE]), [{ username: 'Gege' }]);
+await ko('le dernier admin ne peut pas se retirer son rôle', en(ADMIN, `select public.set_user_role($1, 'member')`, [ADMIN]), 'dernier admin');
+
+await ko('modérateur : ne suspend pas', en(AUTRE, `select public.admin_ban_member($1, 7, 'spam')`, [G_MEMBRE], 'aal2'), 'Réservé aux admins');
+await ko('admin : ne se suspend pas lui-même', en(ADMIN, `select public.admin_ban_member($1, 7, 'test')`, [ADMIN]), 'propre compte');
+await ok('Gisèle devient admin le temps d\'un test', en(ADMIN, `select public.set_user_role($1, 'admin')`, [G_AUTRE]));
+await ko('…un admin ne se suspend pas sans lui retirer son rôle', en(ADMIN, `select public.admin_ban_member($1, 7, 'test')`, [G_AUTRE]), 'retire-lui');
+await ko('…ni ne se supprime', en(ADMIN, `select public.admin_delete_member($1, 'Gisele')`, [G_AUTRE]), 'retire-lui');
+await ok('…elle redevient membre', en(ADMIN, `select public.set_user_role($1, 'member')`, [G_AUTRE]));
+await ko('durée de suspension invalide', en(ADMIN, `select public.admin_ban_member($1, 0, 'test')`, [G_MEMBRE]), 'Durée de suspension invalide');
+await db.query(`insert into auth.sessions (user_id) values ($1), ($1)`, [G_MEMBRE]);
+await db.query(`insert into private.trusted_browser (user_id, token_hash, expires_at) values ($1, 'hash-gerard', now() + interval '30 days')`, [G_MEMBRE]);
+await ok('admin suspend Gégé 7 jours (spam)', en(ADMIN, `select public.admin_ban_member($1, 7, '  Spam dans les propositions  ')`, [G_MEMBRE]));
+await egal('…connexion refusée par Supabase pendant 7 jours', val(`select banned_until between now() + interval '6 days 23 hours' and now() + interval '7 days 1 hour' as ok from auth.users where id = $1`, [G_MEMBRE]), [{ ok: true }]);
+await egal('…tous ses appareils déconnectés, navigateurs de confiance oubliés',
+  val(`select (select count(*)::int from auth.sessions where user_id = $1) as sessions, (select count(*)::int from private.trusted_browser where user_id = $1) as confiance`, [G_MEMBRE]), [{ sessions: 0, confiance: 0 }]);
+await egal('…raison visible de l\'admin (espaces retirés)', lignes(en(ADMIN, `select ban_reason, banned_until is not null as suspendu from public.admin_members('gege')`)), [{ ban_reason: 'Spam dans les propositions', suspendu: true }]);
+await ko('…session encore ouverte : plus d\'ajout à la collection', en(G_MEMBRE, `insert into public.collection_item (release_id) values ($1)`, [uneVersion]), 'row-level security');
+await ko('…ni de proposition', en(G_MEMBRE, `insert into public.submission (action, target, data, sources) values ('create', 'game', '{"game": {"title": "Spam"}, "no_cover": true}', 'x')`), 'row-level security');
+await ko('…ni de changement de pseudo', en(G_MEMBRE, `update public.profile set username = 'Rebelle' where id = $1`, [G_MEMBRE]).then((r) => { if (r.affectedRows === 0) throw new Error('refusé (aucune ligne)'); }), '');
+await ko('les suspensions ne se lisent pas par l\'API', en(MEMBRE, `select * from private.member_ban`), 'permission denied');
+await ok('admin rétablit Gégé', en(ADMIN, `select public.admin_unban_member($1)`, [G_MEMBRE]));
+await egal('…connexion de nouveau permise', val(`select banned_until from auth.users where id = $1`, [G_MEMBRE]), [{ banned_until: null }]);
+await ok('…et il peut de nouveau compléter sa collection', en(G_MEMBRE, `insert into public.collection_item (release_id) values ($1)`, [uneVersion]));
+await ok('suspension sans limite de durée', en(ADMIN, `select public.admin_ban_member($1, null, null)`, [G_MEMBRE]));
+await egal('…100 ans (la forme que Supabase sait lire)', val(`select banned_until > now() + interval '99 years' as ok from auth.users where id = $1`, [G_MEMBRE]), [{ ok: true }]);
+await ok('levée de la suspension', en(ADMIN, `select public.admin_unban_member($1)`, [G_MEMBRE]));
+
+await ok('Gisèle propose un jeu (en attente)', en(G_AUTRE, `insert into public.submission (action, target, data, sources) values ('create', 'game', '{"game": {"title": "Jeu de Gisèle"}, "no_cover": true}', 'x')`));
+await ko('modérateur : ne supprime pas', en(AUTRE, `select public.admin_delete_member($1, 'Gisele')`, [G_AUTRE], 'aal2'), 'Réservé aux admins');
+await ko('suppression : il faut taper le pseudo exact', en(ADMIN, `select public.admin_delete_member($1, 'gisele')`, [G_AUTRE]), 'tape exactement');
+await ko('admin : ne se supprime pas ici', en(ADMIN, `select public.admin_delete_member($1, 'Alexis')`, [ADMIN]), 'propre compte');
+await ok('admin supprime le compte de Gisèle', en(ADMIN, `select public.admin_delete_member($1, 'Gisele')`, [G_AUTRE]));
+await egal('…compte, profil et proposition en attente effacés',
+  val(`select (select count(*)::int from auth.users where id = $1) as compte, (select count(*)::int from public.profile where id = $1) as profil,
+       (select count(*)::int from public.submission where data->'game'->>'title' = 'Jeu de Gisèle') as propositions`, [G_AUTRE]), [{ compte: 0, profil: 0, propositions: 0 }]);
+await ko('membre inconnu', en(ADMIN, `select public.admin_ban_member($1, 7, null)`, [G_AUTRE]), 'Membre introuvable');
+await ok('nettoyage (membres)', (async () => {
+  await db.query(`delete from public.collection_item where profile_id = $1`, [G_MEMBRE]);
+  await db.query(`delete from auth.users where id in ($1, $2)`, [G_MEMBRE, G_PIRATE]);
 })());
 
 console.log('\nDroits de l\'API sur les tables');

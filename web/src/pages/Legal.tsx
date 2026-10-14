@@ -120,7 +120,7 @@ export function Privacy() {
 
       <h2>{tr('Qui y a accès ?')}</h2>
       <p>
-        {tr("Toi ; les modérateurs pour les propositions, signalements et l'historique (jamais ta collection privée) ; et nos hébergeurs : Supabase, qui stocke les données sur des serveurs situés à Paris, et GitHub, qui sert les pages du site et garde l'adresse IP des visiteurs dans ses journaux de sécurité. Ces deux sociétés étant américaines, elles s'engagent par contrat (clauses contractuelles types de la Commission européenne) à protéger ces données.")}
+        {tr("Toi ; les modérateurs pour les propositions, signalements et l'historique, et la liste des pseudos (jamais ta collection privée) ; l'administrateur du site pour la gestion des comptes : adresse e-mail, dates d'inscription et de dernière connexion, nombre de jeux de ta collection (pas son contenu) ; et nos hébergeurs : Supabase, qui stocke les données sur des serveurs situés à Paris, et GitHub, qui sert les pages du site et garde l'adresse IP des visiteurs dans ses journaux de sécurité. Ces deux sociétés étant américaines, elles s'engagent par contrat (clauses contractuelles types de la Commission européenne) à protéger ces données.")}
       </p>
 
       <h2>{tr('Combien de temps ?')}</h2>
@@ -192,7 +192,7 @@ export function Terms() {
 
       <h2>{tr('5. Modération')}</h2>
       <p>
-        {tr("Les modérateurs peuvent accepter, corriger, refuser ou retirer une contribution ; un refus est accompagné d'un motif. Toute modification du catalogue est notée dans un historique. En cas d'abus, un compte peut être supprimé.")}
+        {tr("Les modérateurs peuvent accepter, corriger, refuser ou retirer une contribution ; un refus est accompagné d'un motif. Toute modification du catalogue est notée dans un historique. En cas d'abus, l'administrateur peut suspendre un compte (pour une durée donnée ou sans limite) ou le supprimer.")}
       </p>
 
       <h2>{tr('6. Signaler un contenu')}</h2>
