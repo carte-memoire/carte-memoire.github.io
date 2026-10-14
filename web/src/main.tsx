@@ -2,9 +2,16 @@ import '@fontsource/press-start-2p/400.css';
 import './styles.css';
 import { loadLanguage, tr } from './lib/i18n';
 import { startMotion } from './lib/motion';
+import { reloadForNewVersion } from './lib/reload';
 
 // Animations : selon le réglage de l'appareil ou le choix fait dans Mon compte
 startMotion();
+
+// Morceau du site introuvable (le site a été mis à jour depuis l'ouverture de l'onglet) :
+// on recharge une fois pour prendre la nouvelle version
+window.addEventListener('vite:preloadError', (event) => {
+  if (reloadForNewVersion()) event.preventDefault();
+});
 
 const root = document.getElementById('root')!;
 

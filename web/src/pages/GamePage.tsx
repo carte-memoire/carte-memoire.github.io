@@ -18,13 +18,14 @@ import { ReportDialog } from '../components/ReportDialog';
 import { GameSkeleton } from '../components/Skeleton';
 import { PriceSummary } from '../components/PriceSummary';
 // Caméra, recadrage, liaison avec le téléphone : chargés seulement à l'ouverture de la fenêtre
-const CoverProposal = lazy(() => import('../components/CoverProposal').then((m) => ({ default: m.CoverProposal })));
+const CoverProposal = lazy(() => loadOrReload(() => import('../components/CoverProposal')).then((m) => ({ default: m.CoverProposal })));
 import { useReleasePrices } from '../lib/prices';
 import { useToast } from '../components/Toast';
 import { notifyCollectionChanged } from '../lib/trophies';
 import { standInFor } from '../lib/images';
 import { formatBarcode, normalizeBarcode } from '../lib/barcode';
 import { lang, tr } from '../lib/i18n';
+import { loadOrReload } from '../lib/reload';
 
 export function GamePage() {
   const { id, console: consoleName, slug } = useParams();

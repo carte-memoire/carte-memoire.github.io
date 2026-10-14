@@ -7,6 +7,7 @@ import { NavIcon, type NavIconName } from './NavIcon';
 import { ScannerProvider, useScanner } from './Scanner';
 import { IdleLogout } from '../auth/IdleLogout';
 import { TrophyWatcher } from './TrophyWatcher';
+import { ErrorBoundary } from './ErrorBoundary';
 import { tr, lang, setLanguage } from '../lib/i18n';
 
 // Chaque rubrique prend la couleur d'un bouton de la manette quand on s'y trouve
@@ -145,9 +146,11 @@ function Frame() {
       {/* La clé change avec la page : l'animation d'arrivée se rejoue à chaque navigation */}
       <main className="main" id="contenu" tabIndex={-1} key={page.key}>
         {/* Pages chargées à la demande : message d'attente le temps de les recevoir */}
-        <Suspense fallback={<p className="loading">{tr('Lecture de la carte mémoire…')}</p>}>
-          <Outlet />
-        </Suspense>
+        <ErrorBoundary key={page.key}>
+          <Suspense fallback={<p className="loading">{tr('Lecture de la carte mémoire…')}</p>}>
+            <Outlet />
+          </Suspense>
+        </ErrorBoundary>
       </main>
 
       {session && <IdleLogout />}

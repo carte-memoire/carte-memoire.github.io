@@ -6,11 +6,13 @@ import { Home } from './pages/Home';
 import { GamePage } from './pages/GamePage';
 import { Login } from './pages/Login';
 import { NotFound } from './pages/NotFound';
+import { loadOrReload } from './lib/reload';
 
 // Pages chargées seulement quand on y va (le premier affichage reste léger) :
-// tout ce qui sert après la connexion, la modération, les comptes
+// tout ce qui sert après la connexion, la modération, les comptes. Après une mise à jour
+// du site, un onglet resté ouvert se recharge pour trouver les nouvelles pages
 const page = <K extends string>(load: () => Promise<Record<K, ComponentType>>, name: K) =>
-  lazy(() => load().then((m) => ({ default: m[name] })));
+  lazy(() => loadOrReload(load).then((m) => ({ default: m[name] })));
 const Catalog = page(() => import('./pages/Catalog'), 'Catalog');
 const Collection = page(() => import('./pages/Collection'), 'Collection');
 const EditGame = page(() => import('./pages/EditGame'), 'EditGame');
