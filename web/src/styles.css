@@ -1236,3 +1236,52 @@ button.cover { padding: 0; font: inherit; color: inherit; }
 .motion .trophy-grid > li { animation: fade-up 260ms ease-out both; }
 .motion .trophy-card:not(.is-locked) .trophy-icon { animation: trophy-glint 1.2s ease-in-out 300ms; }
 .motion .trophy-progress > span { animation: trophy-grow 700ms ease-out 200ms both; }
+
+/* ---------- Proposer une jaquette : photo, cadre du boîtier, recadrage ---------- */
+.cover-sources { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.cover-source {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 14px 16px;
+  font: inherit; color: var(--text); text-align: left; cursor: pointer;
+  background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius);
+}
+.cover-source:hover { border-color: var(--cross); }
+.cover-source-icon { font-size: 1.6rem; line-height: 1; }
+
+.cover-camera { display: flex; flex-direction: column; gap: 10px; }
+.cover-camera-view { position: relative; margin: 0 auto; overflow: hidden; background: #000; border: 2px solid var(--bevel-light); border-radius: var(--radius); }
+.cover-camera-view video { display: block; width: 100%; height: 100%; object-fit: fill; }
+/* Le cadre aux proportions du boîtier : le reste de l'image est assombri */
+.cover-camera-frame {
+  position: absolute; pointer-events: none;
+  border: 3px solid var(--triangle); border-radius: 6px; box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.42);
+}
+.cover-shutter { min-height: 52px; font-size: 1.05rem; }
+.cover-shot { display: block; width: 100%; max-height: 60vh; object-fit: contain; background: #000; border-radius: var(--radius); }
+
+.cover-editor { display: flex; flex-direction: column; gap: 12px; }
+.cover-editor-body { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+.cover-editor-stage { position: relative; flex: 1 1 380px; min-width: 0; display: flex; justify-content: center; }
+.cover-editor-frame { position: relative; display: inline-block; max-width: 100%; line-height: 0; }
+.cover-editor-photo { display: block; width: auto; height: auto; max-width: 100%; max-height: 62vh; }
+.cover-editor-overlay { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+.cover-editor-shade { fill: rgba(0, 0, 0, 0.45); }
+.cover-editor-edge { fill: none; stroke: var(--triangle); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.cover-editor-handle { fill: rgba(47, 214, 166, 0.28); stroke: #fff; cursor: grab; }
+.cover-editor-handle.is-active { fill: rgba(47, 214, 166, 0.6); cursor: grabbing; }
+/* Loupe : du côté opposé au coin déplacé, pour ne pas être sous le doigt */
+.cover-editor-loupe {
+  position: absolute; top: 8px; left: 8px; width: 112px; height: 112px; pointer-events: none;
+  border: 3px solid #fff; border-radius: 50%; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+}
+.cover-editor-loupe.is-right { left: auto; right: 8px; }
+.cover-editor-side { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.cover-editor-preview { width: 150px; height: auto; background: #0a0c18; border: 1px solid var(--line); border-radius: 2px; }
+.cover-editor-tools { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.cover-sent { width: 140px; border-radius: 2px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); }
+.cover-compare { display: flex; flex-wrap: wrap; gap: 20px; }
+.cover-compare figure { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+@media (max-width: 640px) {
+  .cover-editor-photo { max-height: 50vh; }
+  .cover-editor-side { flex-direction: row; justify-content: center; width: 100%; }
+  .cover-editor-preview { width: 110px; }
+}

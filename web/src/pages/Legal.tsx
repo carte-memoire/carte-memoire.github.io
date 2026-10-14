@@ -102,6 +102,9 @@ export function Privacy() {
           <strong>{tr('Codes-barres')}</strong>{tr(" : quand tu associes le code-barres d'une boîte à sa version, le code est public ; ton pseudo n'est visible que des modérateurs (historique des modifications).")}
         </li>
         <li>
+          <strong>{tr('Appareil photo')}</strong>{tr(" : utilisé seulement quand tu le demandes (scanner un code-barres, photographier une jaquette), et seulement pendant ce temps. La lecture d'un code-barres se fait sur ton appareil : aucune image n'est envoyée. La photo d'une jaquette prise avec ton téléphone pour ton ordinateur passe directement de l'un à l'autre (par Supabase), sans être conservée en chemin. L'image recadrée est réenregistrée sans ses informations cachées (lieu, modèle d'appareil) ; elle n'est envoyée qu'au moment où tu la proposes, reste visible des seuls modérateurs jusqu'à leur décision, puis est publiée si elle est acceptée, ou effacée si elle est refusée ou que tu retires ta proposition.")}
+        </li>
+        <li>
           <strong>{tr('Tes contributions')}</strong>{tr(' : propositions, signalements, modifications du catalogue, avec ton pseudo. Pour construire le catalogue collaboratif et garder un historique des changements.')}
         </li>
         <li>
@@ -135,7 +138,7 @@ export function Privacy() {
 
       <h2>{tr('Cookies')}</h2>
       <p>
-        {tr("Pas de cookies publicitaires, ni de mesure d'audience. Ton navigateur garde seulement ta session de connexion et tes préférences d'affichage (console, région, liste ou jaquettes) : c'est indispensable au fonctionnement du site, donc aucun consentement n'est demandé.")}
+        {tr("Pas de cookies publicitaires, ni de mesure d'audience. Ton navigateur garde seulement ta session de connexion, tes préférences d'affichage (console, région, liste ou jaquettes, animations) et la liste des trophées déjà annoncés : c'est indispensable au fonctionnement du site, donc aucun consentement n'est demandé.")}
       </p>
     </article>
   );

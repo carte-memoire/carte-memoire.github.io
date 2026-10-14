@@ -17,7 +17,7 @@ interface DetectorClass {
 
 const FORMATS = ['ean_13', 'ean_8', 'upc_a'];
 
-function cameraError(e: unknown): string {
+export function cameraError(e: unknown): string {
   const name = e instanceof DOMException ? e.name : '';
   if (name === 'NotAllowedError' || name === 'SecurityError') return tr("Accès à l'appareil photo refusé. Autorise-le dans les réglages du navigateur (icône à gauche de l'adresse), puis réessaie.");
   if (name === 'NotFoundError' || name === 'OverconstrainedError') return tr('Aucun appareil photo trouvé sur cet appareil.');

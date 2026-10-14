@@ -53,14 +53,44 @@ export async function prepareCover(file: File, type: ImageType = 'front'): Promi
   context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
   bitmap.close();
 
-  const encode = (format: string) => new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, format, box.quality));
-  // WebP, le plus léger ; un navigateur qui ne sait pas l'écrire (ancien Safari) rend un
-  // PNG bien plus lourd : on passe alors au JPEG
+  return encodeImage(canvas, box.quality);
+}
+
+// Image prête (déjà à la bonne taille) → fichier WebP. Un navigateur qui ne sait pas
+// écrire le WebP (ancien Safari) rend un PNG bien plus lourd : on passe alors au JPEG.
+export async function encodeImage(canvas: HTMLCanvasElement, quality = FRONT_BOX.quality): Promise<Blob> {
+  const encode = (format: string) => new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, format, quality));
   let blob = await encode('image/webp');
   if (blob && blob.type !== 'image/webp') blob = await encode('image/jpeg');
   if (!blob) throw new Error(tr("Impossible de convertir l'image."));
   if (blob.size > MAX_OUTPUT) throw new Error(tr('Image encore trop lourde après conversion (5 Mo maximum).'));
   return blob;
+}
+
+// Photo ou image choisie, prête à recadrer : format et poids vérifiés, orientation de
+// l'appareil appliquée, réduite à 3 000 px au plus (assez pour un recadrage précis)
+export async function loadPhoto(file: Blob): Promise<HTMLCanvasElement> {
+  if (file.type && !ACCEPTED.includes(file.type) && !file.type.startsWith('image/')) throw new Error(tr('Formats acceptés : JPEG, PNG ou WebP.'));
+  if (file.size > 25 * 1024 * 1024) throw new Error(tr('Image trop lourde (25 Mo maximum).'));
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+  } catch {
+    throw new Error(tr("Ce fichier n'est pas une image lisible."));
+  }
+  if (bitmap.width < MIN_SIDE || bitmap.height < MIN_SIDE) {
+    bitmap.close();
+    throw new Error(tr('Image trop petite ({0} px minimum de côté).', MIN_SIDE));
+  }
+  const scale = Math.min(1, 3000 / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  const context = canvas.getContext('2d')!;
+  context.imageSmoothingQuality = 'high';
+  context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  return canvas;
 }
 
 // Envoie une image d'une version (jaquette, verso…) : fichier dans le stockage, puis

@@ -17,6 +17,7 @@ import { PsSymbol } from '../components/PsSymbol';
 import { ReportDialog } from '../components/ReportDialog';
 import { GameSkeleton } from '../components/Skeleton';
 import { PriceSummary } from '../components/PriceSummary';
+import { CoverProposal } from '../components/CoverProposal';
 import { useReleasePrices } from '../lib/prices';
 import { useToast } from '../components/Toast';
 import { notifyCollectionChanged } from '../lib/trophies';
@@ -42,6 +43,8 @@ export function GamePage() {
   const [mine, setMine] = useState<{ id: number; release_id: number; status: ItemStatus }[]>([]);
   const [mineVersion, setMineVersion] = useState(0);
   const [adding, setAdding] = useState<number | null>(null);
+  // Version dont on propose la jaquette (fenêtre ouverte)
+  const [coverFor, setCoverFor] = useState<Release | null>(null);
   const [busy, setBusy] = useState<number | null>(null);
   const [actionError, setActionError] = useState('');
   const { toast, show: showToast } = useToast();
@@ -146,6 +149,13 @@ export function GamePage() {
     if (!session) return navigate(`/connexion?next=${encodeURIComponent(here)}`);
     if (needsMfa) return navigate(`/connexion/verification?next=${encodeURIComponent(here)}`);
     setAdding(release.id);
+  }
+
+  // Proposer une jaquette : réservé aux membres connectés
+  function proposeCover(release: Release) {
+    if (!session) return navigate(`/connexion?next=${encodeURIComponent(here)}`);
+    if (needsMfa) return navigate(`/connexion/verification?next=${encodeURIComponent(here)}`);
+    setCoverFor(release);
   }
 
   // « C'est ma version » : le code scanné est associé à cette version, pour tout le monde
@@ -392,6 +402,9 @@ export function GamePage() {
                       </button>
                     )}
                     {copies(r) > 0 && <Link to="/collection" className="small">{tr('Voir ma collection')}</Link>}
+                    {r.image.some((i) => i.type === 'front')
+                      ? <button type="button" className="link-button small" onClick={() => proposeCover(r)}>{tr('Proposer une meilleure jaquette')}</button>
+                      : <button type="button" className="button button-small" onClick={() => proposeCover(r)}><PsSymbol shape="square" />{tr(' Proposer une jaquette')}</button>}
                   </div>
                 </div>
               </li>
@@ -414,6 +427,7 @@ export function GamePage() {
           </button>
         </div>
       </section>
+      {coverFor && <CoverProposal open release={coverFor} gameTitle={game.title} onClose={() => setCoverFor(null)} />}
       {toast}
     </article>
   );

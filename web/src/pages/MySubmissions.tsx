@@ -19,6 +19,8 @@ export function MySubmissions() {
   const confirm = useConfirm();
   const [items, setItems] = useState<Submission[]>([]);
   const [titles, setTitles] = useState<Map<number, string>>(new Map());
+  // Jaquettes proposées : la version visée (son jeu et son titre sur la boîte)
+  const [versions, setVersions] = useState<Map<number, { game: string; title: string }>>(new Map());
   const [error, setError] = useState('');
   const [loaded, setLoaded] = useState(false);
   const { session } = useAuth();
@@ -33,21 +35,31 @@ export function MySubmissions() {
   }, [session]);
 
   const load = useCallback(async () => {
+    if (!session) return;
+    // Seulement les miennes (un modérateur peut lire celles de tout le monde)
     const { data, error } = await supabase
       .from('submission')
       .select('id, action, target, target_id, data, sources, status, review_note, created_at, created_game_id')
+      .eq('author_id', session.user.id)
       .order('created_at', { ascending: false });
     if (error) setError(errorMessage(error));
     const list = (data as Submission[]) ?? [];
     // Titres des jeux concernés par une proposition de résumé ou une nouvelle version
-    const ids = [...new Set(list.map((s) => s.target_id ?? s.data.game_id).filter((id): id is number => typeof id === 'number'))];
+    const ids = [...new Set(list.filter((s) => s.target !== 'image').map((s) => s.target_id ?? s.data.game_id)
+      .filter((id): id is number => typeof id === 'number'))];
     if (ids.length) {
       const { data: games } = await supabase.from('game').select('id, title').in('id', ids);
       setTitles(new Map((games ?? []).map((g) => [g.id as number, g.title as string])));
     }
+    const releaseIds = [...new Set(list.filter((s) => s.target === 'image').map((s) => s.target_id).filter((id): id is number => typeof id === 'number'))];
+    if (releaseIds.length) {
+      const { data: releases } = await supabase.from('release').select('id, local_title, game(title)').in('id', releaseIds);
+      setVersions(new Map(((releases ?? []) as unknown as { id: number; local_title: string; game: { title: string } | null }[])
+        .map((r) => [r.id, { game: r.game?.title ?? r.local_title, title: r.local_title }])));
+    }
     setItems(list);
     setLoaded(true);
-  }, []);
+  }, [session]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -70,14 +82,17 @@ export function MySubmissions() {
       <ul className="plain-list">
         {items.map((s) => {
           const isSummary = s.action === 'update' && s.target === 'game';
-          const gameTitle = titles.get((s.target_id ?? s.data.game_id) as number);
+          const isCover = s.target === 'image';
+          const version = isCover ? versions.get(s.target_id as number) : undefined;
+          const gameTitle = isCover ? version?.game : titles.get((s.target_id ?? s.data.game_id) as number);
           const name = s.data.game?.title ?? gameTitle ?? s.data.release?.local_title ?? tr('Proposition');
           return (
             <li key={s.id} className="panel list-row">
               <span>
                 <strong>{name}</strong>{' '}
                 <span className="muted small">
-                  {isSummary ? tr('résumé') : s.target === 'release' ? tr('nouvelle version') : tr('nouveau jeu')}
+                  {isSummary ? tr('résumé') : isCover ? tr('jaquette') : s.target === 'release' ? tr('nouvelle version') : tr('nouveau jeu')}
+                  {version && version.title !== version.game && ` (${version.title})`}
                   {s.data.release?.zone !== undefined && ` · ${zoneLabel(s.data.release.zone)}`}
                   {' · '}{new Date(s.created_at).toLocaleDateString(locale)}
                   {s.data.no_cover && tr(' · sans jaquette')}

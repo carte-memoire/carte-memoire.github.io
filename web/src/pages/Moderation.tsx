@@ -2,10 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
-import { EDITION_TYPES, formatDate, formatNumber, gamePath, LANGUAGES, yearOf, zoneLabel, zoneOrder } from '../lib/format';
+import { EDITION_TYPES, editionLabel, formatDate, formatNumber, gamePath, LANGUAGES, yearOf, zoneLabel, zoneOrder } from '../lib/format';
+import { RELEASE_FIELDS } from '../lib/queries';
 import { ALL_PLATFORMS, rememberModerationPlatform, rememberedModerationPlatform } from '../lib/preferences';
 import { useKnownPlatform, usePlatforms } from '../lib/usePlatforms';
-import type { ReleaseImage, Submission, Zone } from '../lib/types';
+import type { Release, ReleaseImage, Submission, Zone } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
 import { useGameSearch } from '../components/GameSearch';
 import { Cover } from '../components/Cover';
@@ -126,7 +127,10 @@ function SubmissionQueue({ onCount }: { onCount: (n: number) => void }) {
 
   function finished(s: Submission, result: { approved: boolean; gameId?: number }) {
     const name = s.data.game?.title ?? s.data.release?.local_title ?? (s.data.summary ? tr('Résumé') : tr('Proposition'));
-    setDone((d) => [{ text: `${name} : ${result.approved ? tr('ajouté au catalogue') : tr('refusé')}`, gameId: result.gameId }, ...d].slice(0, 5));
+    const text = s.target === 'image'
+      ? (result.approved ? tr('Jaquette acceptée : elle est en ligne') : tr('Jaquette refusée'))
+      : `${name} : ${result.approved ? tr('ajouté au catalogue') : tr('refusé')}`;
+    setDone((d) => [{ text, gameId: result.gameId }, ...d].slice(0, 5));
     load();
   }
 
@@ -141,7 +145,9 @@ function SubmissionQueue({ onCount }: { onCount: (n: number) => void }) {
       {loaded && items.length === 0 && <p className="panel empty">{tr('Aucune proposition en attente. ')}<PsSymbol shape="triangle" /></p>}
       {items.map((s) => s.action === 'update' && s.target === 'game'
         ? <SummaryCard key={s.id} submission={s} onDone={(r) => finished(s, r)} />
-        : <SubmissionCard key={s.id} submission={s} onDone={(r) => finished(s, r)} />)}
+        : s.target === 'image'
+          ? <CoverSubmissionCard key={s.id} submission={s} onDone={(r) => finished(s, r)} />
+          : <SubmissionCard key={s.id} submission={s} onDone={(r) => finished(s, r)} />)}
     </div>
   );
 }
@@ -347,6 +353,112 @@ function SummaryCard({ submission: s, onDone }: { submission: Submission; onDone
           <PsSymbol shape="cross" />{tr(' Accepter ce résumé')}
         </button>
         <button type="button" className="button button-danger" onClick={() => review(false)} disabled={busy}>
+          <PsSymbol shape="circle" />{tr(' Refuser')}
+        </button>
+      </div>
+    </article>
+  );
+}
+
+// Jaquette proposée pour une version existante : l'actuelle et la proposée côte à côte.
+// Acceptée, elle remplace l'actuelle (dont le fichier est retiré du stockage).
+function CoverSubmissionCard({ submission: s, onDone }: { submission: Submission; onDone: (r: { approved: boolean; gameId?: number }) => void }) {
+  const [release, setRelease] = useState<(Release & { game: { id: number; title: string } }) | null | undefined>(undefined);
+  const [proposed, setProposed] = useState('');
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const coverPath = s.data.cover_path ?? '';
+
+  useEffect(() => {
+    if (!s.target_id) return setRelease(null);
+    supabase.from('release').select(`${RELEASE_FIELDS}, game(id, title)`).eq('id', s.target_id).maybeSingle()
+      .then(({ data }) => setRelease((data as unknown as (Release & { game: { id: number; title: string } }) | null) ?? null));
+  }, [s.target_id]);
+
+  // L'image proposée est privée : lien temporaire (10 minutes) pour l'afficher
+  useEffect(() => {
+    if (!coverPath) return;
+    supabase.storage.from('submission-images').createSignedUrl(coverPath, 600).then(({ data }) => setProposed(data?.signedUrl ?? ''));
+  }, [coverPath]);
+
+  async function approve() {
+    setBusy(true);
+    setError('');
+    // Le stockage ne se manipule pas en SQL : copie d'abord dans les jaquettes publiques
+    const publicCover = `releases/${s.target_id}/${crypto.randomUUID()}.${coverPath.endsWith('.jpg') ? 'jpg' : 'webp'}`;
+    try {
+      const { error: copyError } = await supabase.storage.from('submission-images').copy(coverPath, publicCover, { destinationBucket: 'covers' });
+      if (copyError) throw copyError;
+      const { data, error: reviewError } = await supabase.rpc('review_submission', { submission_id: s.id, approve: true, note: note.trim() || null, cover_path: publicCover });
+      if (reviewError) {
+        await supabase.storage.from('covers').remove([publicCover]);
+        throw reviewError;
+      }
+      const result = data as { game_id: number; replaced?: string[] };
+      // L'ancienne jaquette n'est plus utilisée ; l'image proposée non plus
+      if (result.replaced?.length) await supabase.storage.from('covers').remove(result.replaced);
+      await supabase.storage.from('submission-images').remove([coverPath]);
+      onDone({ approved: true, gameId: result.game_id });
+    } catch (err) {
+      setError(errorMessage(err));
+      setBusy(false);
+    }
+  }
+
+  async function reject() {
+    if (!note.trim()) return setError(tr("Indique le motif du refus : il sera affiché à l'auteur."));
+    setBusy(true);
+    setError('');
+    const { error } = await supabase.rpc('review_submission', { submission_id: s.id, approve: false, note: note.trim() });
+    if (error) {
+      setBusy(false);
+      return setError(errorMessage(error));
+    }
+    await supabase.storage.from('submission-images').remove([coverPath]);
+    onDone({ approved: false });
+  }
+
+  const tall = release?.platform.short_name === 'PS2';
+  return (
+    <article className="panel submission-card">
+      <p className="muted small">
+        {tr('Jaquette · proposée par ')}<strong>{s.author?.username ?? tr('compte supprimé')}</strong> le {new Date(s.created_at).toLocaleDateString(locale)}
+      </p>
+      {release === null ? (
+        <p className="notice">{tr("Cette version n'existe plus : refuse la proposition.")}</p>
+      ) : (
+        <>
+          <h2>{release ? <Link to={`${gamePath(release.game)}?version=${release.id}`} target="_blank" rel="noopener">{release.game.title}</Link> : '…'}</h2>
+          {release && (
+            <p className="small">
+              {[release.local_title, zoneLabel(release.zone), editionLabel(release), release.product_code, release.platform.short_name].filter(Boolean).join(' · ')}
+            </p>
+          )}
+        </>
+      )}
+      <div className="cover-compare">
+        <figure>
+          <figcaption className="field-label">{tr('Jaquette actuelle')}</figcaption>
+          {release ? <Cover images={release.image} title={release.local_title} size="large" platform={release.platform.short_name} /> : <span className="cover cover-large" />}
+        </figure>
+        <figure>
+          <figcaption className="field-label">{tr('Jaquette proposée')}</figcaption>
+          <div className={`cover cover-large${tall ? ' cover-tall' : ''}`}>
+            {proposed ? <img src={proposed} alt={tr('Jaquette proposée')} /> : <span className="cover-empty" aria-hidden="true"><PsSymbol shape="square" /></span>}
+          </div>
+        </figure>
+      </div>
+      <label className="field">
+        <span className="field-label">{tr("Commentaire (obligatoire pour un refus, visible par l'auteur)")}</span>
+        <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} maxLength={2000} placeholder={tr('Ex. : image floue, reflet, pas la bonne version…')} />
+      </label>
+      {error && <p className="error" role="alert">{error}</p>}
+      <div className="actions">
+        <button type="button" className="button button-primary" onClick={approve} disabled={busy || !release}>
+          <PsSymbol shape="cross" />{tr(' Accepter cette jaquette')}
+        </button>
+        <button type="button" className="button button-danger" onClick={reject} disabled={busy}>
           <PsSymbol shape="circle" />{tr(' Refuser')}
         </button>
       </div>

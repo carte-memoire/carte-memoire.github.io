@@ -5,6 +5,9 @@ import { supabase } from '../lib/supabase';
 import { formatBarcode, LINK_PATTERN, linkChannel } from '../lib/barcode';
 import type { BarcodeMatch } from '../lib/types';
 import { ScanCamera } from '../components/ScanCamera';
+import { CoverCamera } from '../components/CoverCamera';
+import { usePhotoSender } from '../lib/photoLink';
+import type { CaseFormat, Quad } from '../lib/coverPhoto';
 import { ManualCode, matchLabel, useScanner } from '../components/Scanner';
 import { tr } from '../lib/i18n';
 
@@ -23,6 +26,12 @@ export function ScannerPage() {
   const [params] = useSearchParams();
   const link = params.get('lien');
   if (link && LINK_PATTERN.test(link)) return <LinkedScanner link={link} />;
+  // Photo de jaquette pour l'ordinateur (?photo=…&format=cd|dvd|free)
+  const photo = params.get('photo');
+  if (photo && LINK_PATTERN.test(photo)) {
+    const format = params.get('format');
+    return <LinkedPhoto link={photo} initialFormat={format === 'dvd' || format === 'free' ? format : 'cd'} />;
+  }
   return <StandaloneScanner />;
 }
 
@@ -128,6 +137,77 @@ function LinkedScanner({ link }: { link: string }) {
         </details>
       )}
       <p className="hint">{tr("Rien n'est enregistré sur ce téléphone, et l'image de l'appareil photo n'est envoyée nulle part : seuls les chiffres du code partent vers ton ordinateur. ")}<Link to="/">{tr('Revenir au site')}</Link></p>
+    </section>
+  );
+}
+
+// Photo de jaquette prise sur le téléphone pour l'ordinateur : appareil photo avec le
+// cadre du boîtier, puis la photo part vers l'ordinateur (qui ouvre le recadrage) et
+// l'appareil photo se coupe. Rien n'est enregistré sur le téléphone.
+function LinkedPhoto({ link, initialFormat }: { link: string; initialFormat: CaseFormat }) {
+  const { computerReady, send } = usePhotoSender(link);
+  const [format, setFormat] = useState<CaseFormat>(initialFormat);
+  const [shot, setShot] = useState<{ image: HTMLCanvasElement; quad: Quad; preview: string } | null>(null);
+  const [step, setStep] = useState<'camera' | 'review' | 'sending' | 'done' | 'failed'>('camera');
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+
+  async function sendShot() {
+    if (!shot) return;
+    setStep('sending');
+    setProgress(null);
+    const ok = await send(shot.image, shot.quad, format, (done, total) => setProgress({ done, total }));
+    setStep(ok ? 'done' : 'failed');
+  }
+
+  return (
+    <section className="stack narrow">
+      <h1>{tr('Photo de la jaquette')}</h1>
+      {step === 'camera' && (
+        <>
+          <p className={computerReady ? 'success' : 'notice'} aria-live="polite">
+            {computerReady ? tr('Relié à ton ordinateur : photographie la jaquette.') : tr('Connexion à ton ordinateur…')}
+          </p>
+          <div className="panel stack">
+            <CoverCamera format={format} onFormat={setFormat}
+              onPhoto={(image, quad) => { setShot({ image, quad, preview: image.toDataURL('image/jpeg', 0.7) }); setStep('review'); }} />
+          </div>
+        </>
+      )}
+      {step === 'review' && shot && (
+        <div className="panel stack">
+          <img className="cover-shot" src={shot.preview} alt={tr('La photo prise')} />
+          <p className="hint center">{tr('La jaquette est-elle nette et entière ? Tu ajusteras ses coins sur l’ordinateur.')}</p>
+          <div className="actions">
+            <button type="button" className="button" onClick={() => setStep('camera')}>{tr('Reprendre')}</button>
+            <button type="button" className="button button-primary" onClick={sendShot} disabled={!computerReady}>
+              {computerReady ? tr("Envoyer à l'ordinateur") : tr('En attente de l’ordinateur…')}
+            </button>
+          </div>
+        </div>
+      )}
+      {step === 'sending' && (
+        <p className="loading">{progress ? tr('Envoi à ton ordinateur… ({0} / {1})', progress.done, progress.total) : tr('Envoi à ton ordinateur…')}</p>
+      )}
+      {step === 'done' && (
+        <div className="panel scan-done" role="status">
+          <p className="scan-done-mark" aria-hidden="true">✓</p>
+          <h2>{tr('Photo envoyée : continue sur ton ordinateur')}</h2>
+          <p>{tr("L'appareil photo est coupé. Recadre la jaquette sur l'ordinateur, puis envoie-la aux modérateurs.")}</p>
+          <button type="button" className="link-button small" onClick={() => setStep('camera')}>{tr('Reprendre une photo')}</button>
+        </div>
+      )}
+      {step === 'failed' && (
+        <div className="panel scan-done is-error" role="status">
+          <p className="scan-done-mark" aria-hidden="true">!</p>
+          <h2>{tr("L'ordinateur n'a pas reçu la photo")}</h2>
+          <p>{tr('Vérifie que la fenêtre « Proposer une jaquette » y est toujours ouverte, puis réessaie.')}</p>
+          <div className="actions">
+            <button type="button" className="button" onClick={() => setStep('camera')}>{tr('Reprendre')}</button>
+            <button type="button" className="button button-primary" onClick={sendShot}>{tr('Réessayer')}</button>
+          </div>
+        </div>
+      )}
+      <p className="hint">{tr("La photo n'est pas enregistrée sur ce téléphone : elle part directement vers ton ordinateur, sans être conservée en chemin. ")}<Link to="/">{tr('Revenir au site')}</Link></p>
     </section>
   );
 }

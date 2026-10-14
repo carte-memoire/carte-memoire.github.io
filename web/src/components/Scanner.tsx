@@ -213,23 +213,27 @@ function ScannerView({ view, link, phoneReady, onCode, onView, onPick, onUnknown
 }
 
 // Le QR code qui ouvre le scanner sur le téléphone, relié à cet ordinateur
-// (générateur chargé seulement à l'ouverture de la fenêtre)
 function PhoneQr({ link }: { link: string }) {
+  return <QrImage url={`${window.location.origin}/scanner?lien=${link}`} alt={tr('QR code à viser avec le téléphone pour ouvrir le scanner')} />;
+}
+
+// Un QR code (générateur chargé seulement quand il faut en afficher un)
+export function QrImage({ url, alt }: { url: string; alt: string }) {
   const [src, setSrc] = useState('');
   useEffect(() => {
     let active = true;
     import('qrcode-generator').then(({ default: qrcode }) => {
       const qr = qrcode(0, 'M');
-      qr.addData(`${window.location.origin}/scanner?lien=${link}`);
+      qr.addData(url);
       qr.make();
       if (active) setSrc(qr.createDataURL(5, 2));
     });
     return () => { active = false; };
-  }, [link]);
+  }, [url]);
   return (
     <p className="center">
       {src
-        ? <img className="qr" src={src} alt={tr('QR code à viser avec le téléphone pour ouvrir le scanner')} width={220} height={220} />
+        ? <img className="qr" src={src} alt={alt} width={220} height={220} />
         : <span className="loading">{tr('Préparation du QR code…')}</span>}
     </p>
   );
