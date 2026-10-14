@@ -379,6 +379,7 @@ export const EN: Record<string, string> = {
   "Mot de passe trop faible : 12 caractères minimum, avec minuscules, majuscules, chiffres et symboles.": "Password too weak: at least 12 characters, with lowercase, uppercase, digits and symbols.",
   "Le nouveau mot de passe doit être différent de l'ancien.": "The new password must be different from the old one.",
   "Trop d'e-mails envoyés : réessaie dans quelques minutes.": "Too many emails sent: try again in a few minutes.",
+  "L'e-mail n'a pas pu être envoyé : réessaie dans quelques minutes.": "The email could not be sent: try again in a few minutes.",
   "Trop de tentatives : réessaie dans quelques minutes.": "Too many attempts: try again in a few minutes.",
   "Code incorrect ou expiré.": "Incorrect or expired code.",
   "Code incorrect ou expiré : vérifie-le, ou renvoie l'e-mail pour en recevoir un nouveau.": "Incorrect or expired code: check it, or resend the email to get a new one.",

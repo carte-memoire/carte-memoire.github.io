@@ -28,6 +28,8 @@ export function errorMessage(error: unknown): string {
   if (e.message?.includes('row-level security')) return tr("Tu n'as pas les droits pour cette action (ou la double authentification est requise).");
   if (e.message?.toLowerCase().includes('passkeys are disabled')) return tr('Les passkeys ne sont pas encore activées sur le serveur (tableau de bord Supabase → Authentication → Passkeys).');
   if (e.message?.includes('Failed to fetch')) return tr('Connexion impossible : vérifie ta connexion internet.');
+  // Envoi d'un e-mail raté côté serveur (service d'envoi indisponible ou mal réglé)
+  if (/^Error sending .*e?mail/i.test(e.message ?? '')) return tr("L'e-mail n'a pas pu être envoyé : réessaie dans quelques minutes.");
   // Fonction ou table inconnue de l'API : le site est plus récent que la base
   if (e.code === 'PGRST202' || e.code === 'PGRST205' || e.code === '42883') return tr("Cette fonction n'est pas encore disponible : la base de données doit être mise à jour.");
   // Messages de la base (en français) : traduits s'ils sont connus
