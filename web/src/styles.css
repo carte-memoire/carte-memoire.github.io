@@ -433,7 +433,8 @@ ul.error { padding-left: 28px; }
 .block-title:hover { color: var(--cross); }
 .block-meta { margin: 0; font-size: 0.85rem; color: var(--muted); }
 .block-notes { margin: 0; font-size: 0.85rem; font-style: italic; color: var(--muted); display: block; }
-.block-actions { display: flex; gap: 6px; margin-top: auto; padding-top: 6px; }
+/* Les boutons passent à la ligne plutôt que de dépasser du cadre (cartes étroites) */
+.block-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; padding-top: 6px; }
 
 /* ---------- Listes simples ---------- */
 .list-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
