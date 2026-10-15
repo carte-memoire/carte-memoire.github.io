@@ -4,7 +4,11 @@ import react from '@vitejs/plugin-react';
 // Politique de sécurité du contenu (CSP), ajoutée uniquement au site publié :
 // le navigateur refuse alors tout script, style ou connexion qui ne vient pas
 // du site lui-même ou de Supabase. C'est la principale protection contre le
-// vol de session par injection de code (XSS).
+// vol de session par injection de code (XSS). Seule exception : le service
+// « Have I Been Pwned » (mots de passe divulgués, lib/pwned.ts), qui ne reçoit
+// que 5 caractères de l'empreinte du mot de passe.
+// (En <meta> : GitHub Pages ne permet pas d'en-têtes ; les outils qui ne lisent
+// que les en-têtes la croient absente, mais les navigateurs l'appliquent.)
 // (Pas en développement : le rechargement à chaud de Vite a besoin de scripts en ligne.)
 function contentSecurityPolicy(supabaseUrl: string): Plugin {
   const realtime = supabaseUrl.replace(/^https:/, 'wss:');
@@ -14,10 +18,12 @@ function contentSecurityPolicy(supabaseUrl: string): Plugin {
     "style-src 'self'",
     "font-src 'self'",
     `img-src 'self' data: blob: ${supabaseUrl}`,
-    `connect-src 'self' ${supabaseUrl} ${realtime}`,
+    `connect-src 'self' ${supabaseUrl} ${realtime} https://api.pwnedpasswords.com`,
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
+    // Tout ce que la page charge passe en HTTPS, même un lien écrit par erreur en http://
+    'upgrade-insecure-requests',
   ].join('; ');
   return {
     name: 'content-security-policy',
