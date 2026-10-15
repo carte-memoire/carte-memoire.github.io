@@ -116,10 +116,11 @@ jobs:
           SITE_URL: ${{ vars.SITE_URL || 'https://carte-memoire.app' }}
         run: |
           node scripts/prerender.mjs || echo "::warning::Fiches pour les moteurs de recherche non générées, le site est publié sans elles"
-      - uses: actions/upload-pages-artifact@v4
+      # v5 : la première à savoir inclure les dossiers « cachés » (nom en point) comme
+      # .well-known/security.txt ; la v4 les excluait toujours
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: web/dist
-          # .well-known/security.txt : dossier « caché » (nom en point), exclu par défaut
           include-hidden-files: true
 
   deploy:
