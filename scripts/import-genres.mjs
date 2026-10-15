@@ -30,6 +30,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ROOT, USER_AGENT, publicApi, readEnv } from './lib/redump.mjs';
 import { consoleFromArgs, nextMigrationStamp } from './lib/consoles.mjs';
+import { stripRefsAndComments } from './lib/text.mjs';
 
 const write = process.argv.includes('--ecrire');
 const CONSOLE = process.argv.some((a) => a.startsWith('--console')) ? consoleFromArgs() : null;
@@ -132,7 +133,7 @@ const save = () => { mkdirSync(CACHE_DIR, { recursive: true }); writeFileSync(CA
 // Champ « genre » de l'encadré : il peut tenir sur plusieurs lignes ({{Plainlist}}, {{ubl}}…)
 function genreField(text) {
   const m = /\|\s*genre\s*=\s*([\s\S]*?)(?=\n\s*\|\s*[\w ]+?\s*=|\n\s*\}\})/i.exec(text);
-  const value = m ? m[1].replace(/<!--[\s\S]*?-->/g, '').replace(/<ref[\s\S]*?(\/>|<\/ref>)/g, '').trim() : '';
+  const value = m ? stripRefsAndComments(m[1]).trim() : '';
   // Champ vide : la ligne suivante de l'encadré (« | modes = ») n'est pas un genre
   return value && !value.startsWith('|') ? value : null;
 }

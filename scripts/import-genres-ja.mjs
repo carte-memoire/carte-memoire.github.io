@@ -24,6 +24,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ROOT, USER_AGENT, normalize, publicApi, readEnv } from './lib/redump.mjs';
+import { stripRefsAndComments, stripTags } from './lib/text.mjs';
 
 const write = process.argv.includes('--ecrire');
 const CACHE_DIR = join(ROOT, '.genres-import');
@@ -67,11 +68,10 @@ for (const page of PAGES.filter((p) => !(p in cache.lists))) {
 }
 
 // Texte lisible d'une cellule : sans références, modèles ni liens
-const clean = (s) => s
-  .replace(/<ref[^>]*\/>|<ref[\s\S]*?<\/ref>/g, '')
+const clean = (s) => stripTags(stripRefsAndComments(s)
   .replace(/\{\{[^{}]*\}\}/g, '')
   .replace(/\[\[(?:[^\]|]*\|)?([^\]]*)\]\]/g, '$1')
-  .replace(/'''?|<[^>]+>/g, '')
+  .replace(/'''?/g, ''))
   .trim();
 
 const jaRows = [];

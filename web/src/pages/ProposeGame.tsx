@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import {
@@ -72,7 +72,14 @@ export function ProposeGame() {
   }, [title, existingGame, localTitleTouched]);
 
   // Aperçu de la jaquette choisie
-  const preview = useMemo(() => (cover ? URL.createObjectURL(cover) : ''), [cover]);
+  // Aperçu local (adresse « blob: » du navigateur), libéré quand on change de photo ou quitte la page
+  const [preview, setPreview] = useState('');
+  useEffect(() => {
+    if (!cover) return setPreview('');
+    const url = URL.createObjectURL(cover);
+    setPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [cover]);
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
 
   // Ce jeu existe peut-être déjà ?

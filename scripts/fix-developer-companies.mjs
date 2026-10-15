@@ -20,6 +20,7 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ROOT, USER_AGENT, normalize, publicApi, readEnv } from './lib/redump.mjs';
+import { stripTags } from './lib/text.mjs';
 
 const write = process.argv.includes('--ecrire');
 const CACHE = join(ROOT, '.origins-import');
@@ -107,7 +108,7 @@ const wikitext = await cached('listes-wikipedia.json', async () => {
 });
 const rows = wikitext.flatMap((t) => t.split(/\n\|-/));
 const LINK = /\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|([^\]]*))?\]\]/g;
-const clean = (s) => s.replace(/'{2,}/g, '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+const clean = (s) => stripTags(s.replace(/'{2,}/g, '')).replace(/\s+/g, ' ').trim();
 // Première cellule de la ligne : le titre du jeu
 const titleOf = (row) => normalize(clean((row.split('\n').find((l) => /^\s*[|!]/.test(l)) ?? '').replace(/^\s*[|!]+/, '').replace(/\{\{[^}]*\}\}/g, '').replace(LINK, (_, t, d) => d ?? t)));
 

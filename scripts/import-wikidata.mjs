@@ -19,6 +19,7 @@ import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { consoleFromArgs, nextMigrationStamp, redumpDatUrl } from './lib/consoles.mjs';
 import { parseName } from './lib/redump.mjs';
+import { stripRefsAndComments, stripTags } from './lib/text.mjs';
 
 const ENDPOINT = 'https://query.wikidata.org/sparql';
 // Wikimedia demande un User-Agent qui identifie le projet (on peut y ajouter un contact).
@@ -158,11 +159,9 @@ const normalizeTitle = (s) => (s ?? '').normalize('NFD').replace(/\p{M}/gu, '').
 // Titre d'article Wikipédia comparable : espaces, première lettre en majuscule
 const articleKey = (t) => { const s = t.replace(/_/g, ' ').trim(); return s && s[0].toUpperCase() + s.slice(1); };
 // Wikitexte → texte : [[Lien|Texte]] → Texte, modèles, balises et références retirés
-const plainText = (s) => s
-  .replace(/<ref[^>]*\/>|<ref[^>]*>[\s\S]*?<\/ref>/gi, '')
+const plainText = (s) => stripTags(stripRefsAndComments(s)
   .replace(/\[\[(?:[^\]|]*\|)?([^\]]*)\]\]/g, '$1')
-  .replace(/\{\{[^{}]*\}\}/g, '')
-  .replace(/<[^>]+>/g, '')
+  .replace(/\{\{[^{}]*\}\}/g, ''))
   .replace(/'{2,}/g, '')
   .trim();
 

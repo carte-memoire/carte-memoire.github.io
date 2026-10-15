@@ -19,6 +19,7 @@
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { consoleFromArgs, nextMigrationStamp } from './lib/consoles.mjs';
+import { decodeEntities, stripRefsAndComments, stripTags } from './lib/text.mjs';
 
 const USER_AGENT = 'carte-memoire-import/1.0 (projet personnel, import ponctuel)';
 const WIKIPEDIA_API = 'https://en.wikipedia.org/w/api.php';
@@ -115,11 +116,8 @@ function splitTopLevel(str, separators) {
 // Retire les références et commentaires, et déplie les modèles qui contiennent du texte utile :
 // {{sort|clé|texte}} → texte ; {{Not a typo|Med|iEvil}} → MediEvil
 // Le modèle {{sup|JP, KO}} (listes PS2) vaut <sup>JP, KO</sup> (listes PS1).
-const stripRefs = (s) => s
-  .replace(/\{\{\s*sup\s*\|([^{}]*)\}\}/gi, '<sup>$1</sup>')
-  .replace(/<ref[^>]*\/>/gi, '')
-  .replace(/<ref[^>]*>[\s\S]*?<\/ref>/gi, '')
-  .replace(/<!--[\s\S]*?-->/g, '')
+const stripRefs = (s) => stripRefsAndComments(s
+  .replace(/\{\{\s*sup\s*\|([^{}]*)\}\}/gi, '<sup>$1</sup>'))
   .replace(/\{\{\s*not a typo\s*\|([^{}]*)\}\}/gi, (_, p) => p.split('|').join(''))
   // {{ill|Phase Paradox|ja|フェイズパラドックス}} (article dans une autre langue) → Phase Paradox
   .replace(/\{\{\s*ill\s*\|([^|{}]*)[^{}]*\}\}/gi, '$1')
@@ -127,15 +125,13 @@ const stripRefs = (s) => s
 
 // Wikitexte → texte lisible
 function clean(s) {
-  return stripRefs(s)
+  return decodeEntities(stripTags(stripRefs(s)
     .replace(/<sup>[\s\S]*?<\/sup>/gi, '')
     .replace(/\{\{\s*nihongo[^|}]*\|([^|}]*)[^}]*\}\}/gi, '$1')
     .replace(/\{\{\s*(?:lang|transl)\s*\|[^|}]*\|([^|}]*)[^}]*\}\}/gi, '$1')
     .replace(/\{\{[^{}]*\}\}/g, '')
     .replace(/\[\[(?:[^\]|]*\|)?([^\]]*)\]\]/g, '$1')
-    .replace(/'{2,}/g, '')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&ndash;/g, '–').replace(/&mdash;/g, '—')
+    .replace(/'{2,}/g, '')))
     .replace(/^[\s•·*]+/, '')
     .replace(/\s+/g, ' ')
     .trim();
@@ -261,7 +257,7 @@ function parseRow(cells, page) {
   // Retire les attributs en tête de cellule : style="…" | contenu
   cells = cells.map((c) => {
     const parts = splitTopLevel(c, ['|']);
-    return parts.length > 1 && /^\s*([a-z-]+\s*=\s*("[^"]*"|[^\s"]+)\s*)*$/i.test(parts[0]) ? parts.slice(1).join('|') : c;
+    return parts.length > 1 && /^\s*(?:[a-z-]+\s*=\s*(?:"[^"]*"|[^\s"]+)(?:\s+|$))*$/i.test(parts[0]) ? parts.slice(1).join('|') : c;
   });
   if (cells.length < 6) { stats.anomalies.push(`${page} : ligne à ${cells.length} cellules : ${clean(cells[0] ?? '').slice(0, 60)}`); return null; }
 
