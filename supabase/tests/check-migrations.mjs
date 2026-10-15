@@ -1155,6 +1155,13 @@ await ok('nettoyage (membres)', (async () => {
   await db.query(`delete from auth.users where id in ($1, $2)`, [G_MEMBRE, G_PIRATE]);
 })());
 
+console.log('\nJaquettes publiques : pas de liste des fichiers par l\'API');
+await db.query(`insert into storage.objects (bucket_id, name) values ('covers', 'essai-liste/a.webp'), ('covers', 'essai-liste/b.webp')`);
+await egal('un visiteur ne liste pas les jaquettes (leur adresse publique suffit)', lignes(en(null, `select count(*)::int as n from storage.objects where bucket_id = 'covers' and name like 'essai-liste/%'`)), [{ n: 0 }]);
+await egal('…un membre non plus', lignes(en(MEMBRE, `select count(*)::int as n from storage.objects where bucket_id = 'covers' and name like 'essai-liste/%'`)), [{ n: 0 }]);
+await egal('…un modérateur oui (supprimer, télécharger une jaquette)', lignes(en(AUTRE, `select count(*)::int as n from storage.objects where bucket_id = 'covers' and name like 'essai-liste/%'`, [], 'aal2')), [{ n: 2 }]);
+await db.query(`delete from storage.objects where bucket_id = 'covers' and name like 'essai-liste/%'`);
+
 console.log('\nDroits de l\'API sur les tables');
 await egal('aucune table ne se vide, ni ne reçoit de déclencheur ou de clé étrangère, par l\'API (TRUNCATE, TRIGGER, REFERENCES)',
   val(`select grantee || ' ' || table_name || ' ' || privilege_type as droit from information_schema.role_table_grants
