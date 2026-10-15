@@ -848,6 +848,18 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .cover-tile-complete { color: var(--triangle); }
 .cover-tile-badges { display: flex; flex-wrap: wrap; gap: 4px; }
 .cover-tile .link-button { align-self: flex-start; font-size: 0.8rem; }
+/* Étagère : sur une rangée, les jaquettes (PS1 carrées, PS2 hautes) sont posées sur la même
+   ligne et les titres, infos, badges et « Modifier » alignés d'une tuile à l'autre (les tuiles
+   partagent les lignes de la grille). Navigateur trop ancien : affichage simple, sans alignement. */
+@supports (grid-template-rows: subgrid) {
+  .cover-grid { row-gap: 0; }
+  .cover-grid > .cover-tile {
+    display: grid; grid-row: span 5; grid-template-rows: subgrid; row-gap: 4px; align-content: start; margin-bottom: 14px;
+  }
+  .cover-grid .cover-tile-link { grid-row: span 2; display: grid; grid-template-rows: subgrid; row-gap: 6px; }
+  .cover-grid .cover-tile-link .cover { align-self: end; }
+  .cover-grid > .cover-tile > .link-button { grid-row: 5; justify-self: start; }
+}
 /* Animations (voir lib/motion.ts : réglage de l'appareil, ou choix fait dans Mon compte) */
 .motion .cover-grid > li { animation: fade-up 240ms ease-out both; }
 .motion .cover-tile .cover { transition: border-color 150ms ease, transform 150ms ease; }
