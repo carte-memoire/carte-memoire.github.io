@@ -8,6 +8,7 @@ import { PsSymbol } from '../components/PsSymbol';
 import { inRecovery, markRecovery } from '../lib/preferences';
 import { tr } from '../lib/i18n';
 import { usePageTitle } from '../lib/title';
+import { LEAKED_PASSWORD_MESSAGE, passwordLeaked } from '../lib/pwned';
 
 // Page ouverte depuis le lien « mot de passe oublié » : le lien a déjà ouvert
 // une session temporaire, il ne reste qu'à choisir le nouveau mot de passe.
@@ -52,6 +53,10 @@ export function ResetPassword() {
     if (!passwordIsValid(password)) return setError(tr('Le mot de passe ne respecte pas toutes les règles.'));
     if (password !== confirm) return setError(tr('Les deux mots de passe ne sont pas identiques.'));
     setBusy(true);
+    if (await passwordLeaked(password)) {
+      setBusy(false);
+      return setError(LEAKED_PASSWORD_MESSAGE);
+    }
     const { error } = await supabase.auth.updateUser({ password });
     if (error) {
       setBusy(false);

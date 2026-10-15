@@ -96,6 +96,9 @@ export function Privacy() {
           <strong>{tr('Ton compte')}</strong>{tr(" : adresse e-mail, pseudo, mot de passe (enregistré sous une forme illisible, jamais en clair), passkeys et double authentification, et la version des conditions d'utilisation que tu as acceptée. Pour te connecter et protéger ton compte.")}
         </li>
         <li>
+          <strong>{tr('Vérification du mot de passe')}</strong>{tr(" : quand tu choisis un mot de passe, le site vérifie qu'il n'apparaît pas dans des fuites de données connues (service Have I Been Pwned). Ton mot de passe n'est jamais envoyé : seuls les 5 premiers caractères de son empreinte chiffrée partent, et la comparaison se fait sur ton appareil.")}
+        </li>
+        <li>
           <strong>{tr('Ta collection')}</strong>{tr(" : jeux possédés ou recherchés et leurs détails (état, prix, lieu d'achat, notes). Pour faire fonctionner ta collection. Elle est privée par défaut : personne d'autre ne la voit, à moins que tu la rendes publique. Même publique, sa page ne montre que les jeux, leur état, leur contenu et ce que tu proposes à l'échange : jamais les prix, les lieux et dates d'achat, ni tes notes.")}
         </li>
         <li>

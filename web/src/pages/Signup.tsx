@@ -9,6 +9,7 @@ import { useAuth } from '../auth/AuthContext';
 import { TERMS_VERSION } from './Legal';
 import { lang, tr } from '../lib/i18n';
 import { usePageTitle } from '../lib/title';
+import { LEAKED_PASSWORD_MESSAGE, passwordLeaked } from '../lib/pwned';
 
 const USERNAME = /^[A-Za-z0-9_-]{3,30}$/;
 
@@ -33,6 +34,10 @@ export function Signup() {
     if (!accepted) return setError(tr("Pour créer un compte, accepte les conditions d'utilisation."));
     setBusy(true);
     setError('');
+    if (await passwordLeaked(password)) {
+      setBusy(false);
+      return setError(LEAKED_PASSWORD_MESSAGE);
+    }
     const { error } = await supabase.auth.signUp({
       email: email.trim(),
       password,

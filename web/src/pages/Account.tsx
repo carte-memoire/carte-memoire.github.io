@@ -14,6 +14,7 @@ import { tr, locale } from '../lib/i18n';
 import { motionChoice, setMotionChoice, systemReducesMotion, type MotionChoice } from '../lib/motion';
 import { forgetTrust } from '../lib/trust';
 import { usePageTitle } from '../lib/title';
+import { LEAKED_PASSWORD_MESSAGE, passwordLeaked } from '../lib/pwned';
 
 export function Account() {
   usePageTitle(tr('Mon compte'));
@@ -272,6 +273,7 @@ function PasswordSection() {
     e.preventDefault();
     if (!passwordIsValid(password)) return setError(tr('Le mot de passe ne respecte pas toutes les règles.'));
     if (password !== confirm) return setError(tr('Les deux mots de passe ne sont pas identiques.'));
+    if (await passwordLeaked(password)) return setError(LEAKED_PASSWORD_MESSAGE);
     if (!(await ensureCode(tr('Pour changer de mot de passe, confirme aussi avec ton application d’authentification.')))) return;
     const { error } = await supabase.auth.updateUser({ password, nonce: code.trim() });
     if (error) return setError(errorMessage(error));
