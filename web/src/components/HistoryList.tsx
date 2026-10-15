@@ -8,6 +8,7 @@ import type { CatalogChange, DatePrecision } from '../lib/types';
 import { useConfirm } from './Confirm';
 import { formatBarcode } from '../lib/barcode';
 import { tr } from '../lib/i18n';
+import { UserTag } from './UserTag';
 
 // Noms lisibles des champs modifiés
 const FIELDS: Record<string, string> = {
@@ -42,7 +43,7 @@ export function HistoryList({ gameId, onUndone, limit = 50, refresh }: { gameId?
 
   const load = useCallback(async () => {
     let query = supabase.from('catalog_change')
-      .select('id, table_name, row_key, game_id, action, old_values, new_values, changed_at, undone_at, author:changed_by(username), undoer:undone_by(username)')
+      .select('id, table_name, row_key, game_id, action, old_values, new_values, changed_at, undone_at, author:changed_by(username, avatar), undoer:undone_by(username, avatar)')
       .order('changed_at', { ascending: false }).order('id', { ascending: false }).limit(limit);
     if (gameId) query = query.eq('game_id', gameId);
     const { data, error } = await query;
@@ -109,12 +110,12 @@ export function HistoryList({ gameId, onUndone, limit = 50, refresh }: { gameId?
               {!gameId && c.game_id && (
                 <> · {titles.has(c.game_id) ? <Link to={gamePath({ id: c.game_id, ...titles.get(c.game_id)! })}>{titles.get(c.game_id)!.title}</Link> : <span className="muted">{tr('jeu n° ')}{c.game_id}{tr(' (supprimé)')}</span>}</>
               )}
-              <span className="muted small"> · {c.author?.username ?? tr('compte supprimé')}, {formatDateTime(c.changed_at)}</span>
+              <span className="muted small"> · <UserTag user={c.author} />, {formatDateTime(c.changed_at)}</span>
             </p>
             <ul className="history-details">
               {describe(c).map((line) => <li key={line}>{line}</li>)}
             </ul>
-            {c.undone_at && <p className="muted small">{tr('Annulée par ')}{c.undoer?.username ?? '?'}{tr(' le {0}', formatDateTime(c.undone_at))}</p>}
+            {c.undone_at && <p className="muted small">{tr('Annulée par ')}<UserTag user={c.undoer} />{tr(' le {0}', formatDateTime(c.undone_at))}</p>}
             {undoable(c) && <button type="button" className="link-button small" onClick={() => undo(c)}>{tr('Annuler')}</button>}
           </li>
         ))}

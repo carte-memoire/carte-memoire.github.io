@@ -22,7 +22,7 @@ import { removeAvatarFolder } from '../lib/avatar';
 
 const PAGE_SIZE = 50;
 
-interface MemberName { username: string; total_count: number }
+interface MemberName { username: string; avatar: string | null; total_count: number }
 interface AdminMember {
   id: string;
   username: string;
@@ -120,7 +120,11 @@ export function MemberDirectory() {
           ) : (
             <ul className="member-names">
               {(rows as MemberName[]).map((m) => (
-                <li key={m.username}><Link to={`/membre/${encodeURIComponent(m.username)}`}>{m.username}</Link></li>
+                <li key={m.username}>
+                  <Link to={`/membre/${encodeURIComponent(m.username)}`} className="user-tag">
+                    <Avatar username={m.username} path={m.avatar} size="small" /><span>{m.username}</span>
+                  </Link>
+                </li>
               ))}
             </ul>
           )}

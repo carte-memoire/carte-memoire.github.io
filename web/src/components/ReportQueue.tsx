@@ -6,6 +6,7 @@ import { errorMessage } from '../lib/errors';
 import type { Report } from '../lib/types';
 import { PsSymbol } from './PsSymbol';
 import { tr } from '../lib/i18n';
+import { UserTag } from './UserTag';
 
 // Modération : erreurs signalées par les membres, des plus anciennes aux plus récentes
 export function ReportQueue({ onCount }: { onCount: (n: number) => void }) {
@@ -14,7 +15,7 @@ export function ReportQueue({ onCount }: { onCount: (n: number) => void }) {
 
   const load = useCallback(async () => {
     const { data, error } = await supabase.from('report')
-      .select('id, game_id, release_id, kind, message, status, review_note, created_at, reviewed_at, author:author_id(username), game:game_id(id, title, slug)')
+      .select('id, game_id, release_id, kind, message, status, review_note, created_at, reviewed_at, author:author_id(username, avatar), game:game_id(id, title, slug)')
       .eq('status', 'open').order('created_at').limit(200);
     setError(error ? errorMessage(error) : '');
     const list = (data as unknown as Report[]) ?? [];
@@ -58,7 +59,7 @@ function ReportCard({ report: r, onDone }: { report: Report; onDone: () => void 
         {r.release_id && <span className="muted small">{tr(' · version n° ')}{r.release_id}</span>}
       </p>
       <p className="report-message">{r.message}</p>
-      <p className="muted small">{tr('Signalé par ')}{r.author?.username ?? tr('compte supprimé')}{tr(' le {0}', formatDateTime(r.created_at))}</p>
+      <p className="muted small">{tr('Signalé par ')}<UserTag user={r.author} />{tr(' le {0}', formatDateTime(r.created_at))}</p>
       <label className="field">
         <span className="field-label">{tr("Mot pour l'auteur (facultatif)")}</span>
         <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} placeholder={tr("Merci, c'est corrigé ! / Wikipédia et la notice disent…")} />

@@ -5,7 +5,7 @@ import { avatarUrl } from '../lib/avatar';
 // (toujours la même couleur pour un même pseudo). Décorative : le pseudo est écrit à côté.
 const COLORS = ['var(--triangle)', 'var(--circle)', 'var(--cross)', 'var(--square)'];
 
-export function Avatar({ username, path, size = 'small' }: { username: string; path?: string | null; size?: 'small' | 'medium' | 'large' }) {
+export function Avatar({ username, path, size = 'small' }: { username: string; path?: string | null; size?: 'tiny' | 'small' | 'medium' | 'large' }) {
   const [failed, setFailed] = useState<string | null>(null);
   if (path && failed !== path) {
     return <img className={`avatar avatar-${size}`} src={avatarUrl(path)} alt="" loading="lazy" onError={() => setFailed(path)} />;

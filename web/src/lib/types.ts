@@ -180,7 +180,7 @@ export interface Submission {
   review_note: string | null;
   created_at: string;
   created_game_id?: number | null;
-  author?: { username: string } | null;
+  author?: { username: string; avatar?: string | null } | null;
 }
 
 // Familles de genres (RPG, Course…) : filtres du catalogue et progression
@@ -248,7 +248,7 @@ export interface Report {
   review_note: string | null;
   created_at: string;
   reviewed_at: string | null;
-  author?: { username: string } | null;
+  author?: { username: string; avatar?: string | null } | null;
   game?: { id: number; title: string } | null;
 }
 
@@ -263,8 +263,8 @@ export interface CatalogChange {
   new_values: Record<string, unknown> | null;
   changed_at: string;
   undone_at: string | null;
-  author?: { username: string } | null;
-  undoer?: { username: string } | null;
+  author?: { username: string; avatar?: string | null } | null;
+  undoer?: { username: string; avatar?: string | null } | null;
 }
 
 // Un studio (développeur ou éditeur) et son nombre de jeux (fonction search_companies)

@@ -1101,7 +1101,7 @@ await ok('Gérard a un jeu dans sa collection', en(G_MEMBRE, `insert into public
 await ko('visiteur : pas de liste des membres', en(null, `select * from public.member_names()`), '');
 await ko('membre : pas de liste des membres', en(MEMBRE, `select * from public.member_names()`), 'Réservé aux modérateurs');
 await ko('modérateur sans double authentification : refusé', en(AUTRE, `select * from public.member_names()`, [], 'aal1'), 'double authentification');
-await egal('modérateur : les pseudos, et rien d\'autre', lignes(en(AUTRE, `select * from public.member_names('ger')`, [], 'aal2')), [{ username: 'Gerard', total_count: 1 }]);
+await egal('modérateur : les pseudos, et rien d\'autre', lignes(en(AUTRE, `select * from public.member_names('ger')`, [], 'aal2')), [{ username: 'Gerard', avatar: null, total_count: 1 }]);
 await ko('modérateur : pas de fiche complète', en(AUTRE, `select * from public.admin_members()`, [], 'aal2'), 'Réservé aux admins');
 await ko('admin sans double authentification : pas de fiche complète', en(ADMIN, `select * from public.admin_members()`, [], 'aal1'), 'Réservé aux admins');
 await egal('admin : fiche complète (adresse, confirmation, collection)',

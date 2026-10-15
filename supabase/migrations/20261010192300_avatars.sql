@@ -16,6 +16,8 @@
 --   espion…). Le site construit l'adresse de l'image à partir de ce chemin.
 -- - Une photo inappropriée : l'admin la retire du profil (admin_remove_avatar),
 --   puis le fichier est supprimé (règle des modérateurs).
+-- - La photo accompagne le pseudo partout sur le site : propositions, signalements,
+--   historique, listes des membres (member_names et admin_members la renvoient).
 -- =====================================================================
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -73,6 +75,31 @@ end;
 $$;
 revoke execute on function public.admin_remove_avatar(uuid) from public, anon;
 grant execute on function public.admin_remove_avatar(uuid) to authenticated;
+
+-- Liste des membres (modérateurs) : les pseudos et leur photo de profil, publique comme
+-- sur la page de chaque membre ; toujours rien d'autre
+drop function public.member_names(text, integer, integer);
+create function public.member_names(search text default null, max_results integer default 50, start_at integer default 0)
+returns table (username text, avatar text, total_count bigint)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  if not (select private.is_moderator()) or not (select private.is_aal2()) then
+    raise exception 'Réservé aux modérateurs, en double authentification';
+  end if;
+  return query
+    select p.username, p.avatar, count(*) over ()
+    from public.profile p
+    where search is null or p.username ilike '%' || search || '%'
+    order by lower(p.username)
+    limit least(greatest(max_results, 1), 200) offset greatest(start_at, 0);
+end;
+$$;
+revoke execute on function public.member_names(text, integer, integer) from public, anon;
+grant execute on function public.member_names(text, integer, integer) to authenticated;
 
 -- Fiche des membres (admin) : avec la photo de profil
 drop function public.admin_members(text, integer, integer);
