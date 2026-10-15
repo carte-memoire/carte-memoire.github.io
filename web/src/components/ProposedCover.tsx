@@ -2,20 +2,27 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { caseFormatFor, type CaseFormat, type Quad } from '../lib/coverPhoto';
-import { extensionOf, loadPhoto } from '../lib/images';
+import { extensionOf, loadPhoto, prepareCover } from '../lib/images';
 import { CoverEditor } from './CoverEditor';
 import { Dialog } from './Dialog';
 import { ImageZoom } from './ImageZoom';
 import { PsSymbol } from './PsSymbol';
 import { tr } from '../lib/i18n';
 
-// À l'acceptation : la jaquette publique (bucket covers), copie de l'image du membre,
-// ou version recadrée par le modérateur. Renvoie son chemin (sans extension en entrée).
+// À l'acceptation : la jaquette publique (bucket covers), version recadrée par le
+// modérateur ou image du membre. Jamais le fichier du membre tel quel : il est décodé
+// puis réencodé ici, comme à l'envoi. Un fichier trafiqué en contournant le site (autre
+// chose qu'une image sous un type d'image) est refusé ; une vraie image ressort propre,
+// sans données cachées ni position GPS. Renvoie le chemin (sans extension en entrée).
 export async function publishProposedCover(source: string, edited: Blob | null, destination: string): Promise<string> {
-  const path = `${destination}.${edited ? extensionOf(edited) : source.endsWith('.jpg') ? 'jpg' : 'webp'}`;
-  const { error } = edited
-    ? await supabase.storage.from('covers').upload(path, edited, { contentType: edited.type, upsert: false })
-    : await supabase.storage.from('submission-images').copy(source, path, { destinationBucket: 'covers' });
+  let image = edited;
+  if (!image) {
+    const { data, error: readError } = await supabase.storage.from('submission-images').download(source);
+    if (readError || !data) throw readError ?? new Error(tr("Ce fichier n'est pas une image lisible."));
+    image = await prepareCover(data, 'front', 0.85);
+  }
+  const path = `${destination}.${extensionOf(image)}`;
+  const { error } = await supabase.storage.from('covers').upload(path, image, { contentType: image.type, upsert: false });
   if (error) throw error;
   return path;
 }

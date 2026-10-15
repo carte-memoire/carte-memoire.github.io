@@ -26,7 +26,8 @@ export const ACCEPT_ATTRIBUTE = ACCEPTED.join(',');
 // Extension du fichier envoyé, selon le format produit (WebP, ou JPEG en secours)
 export const extensionOf = (blob: Blob) => (blob.type === 'image/webp' ? 'webp' : 'jpg');
 
-export async function prepareCover(file: File, type: ImageType = 'front'): Promise<Blob> {
+// `quality` : pour réencoder une image déjà compressée une fois (moins de perte), sinon celle du format
+export async function prepareCover(file: Blob, type: ImageType = 'front', quality?: number): Promise<Blob> {
   if (!ACCEPTED.includes(file.type)) throw new Error(tr('Formats acceptés : JPEG, PNG ou WebP.'));
   if (file.size > MAX_INPUT) throw new Error(tr('Image trop lourde (15 Mo maximum).'));
 
@@ -53,7 +54,7 @@ export async function prepareCover(file: File, type: ImageType = 'front'): Promi
   context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
   bitmap.close();
 
-  return encodeImage(canvas, box.quality);
+  return encodeImage(canvas, quality ?? box.quality);
 }
 
 // Image prête (déjà à la bonne taille) → fichier WebP. Un navigateur qui ne sait pas
