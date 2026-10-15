@@ -99,6 +99,9 @@ export function Privacy() {
           <strong>{tr('Vérification du mot de passe')}</strong>{tr(" : quand tu choisis un mot de passe, le site vérifie qu'il n'apparaît pas dans des fuites de données connues (service Have I Been Pwned). Ton mot de passe n'est jamais envoyé : seuls les 5 premiers caractères de son empreinte chiffrée partent, et la comparaison se fait sur ton appareil.")}
         </li>
         <li>
+          <strong>{tr('Photo de profil')}</strong>{tr(" (facultative) : visible par tout le monde à côté de ton pseudo (page publique, menu), même si ta collection est privée. Elle est recadrée, réduite à 256 px et réencodée sur ton appareil, ce qui efface ses données cachées et sa position GPS. Tu peux la retirer à tout moment ; elle est supprimée avec ton compte.")}
+        </li>
+        <li>
           <strong>{tr('Ta collection')}</strong>{tr(" : jeux possédés ou recherchés et leurs détails (état, prix, lieu d'achat, notes). Pour faire fonctionner ta collection. Elle est privée par défaut : personne d'autre ne la voit, à moins que tu la rendes publique. Même publique, sa page ne montre que les jeux, leur état, leur contenu et ce que tu proposes à l'échange : jamais les prix, les lieux et dates d'achat, ni tes notes.")}
         </li>
         <li>
@@ -190,6 +193,9 @@ export function Terms() {
         </li>
         <li>
           {tr("Interdits : contenus illicites, injurieux ou haineux, publicité, données personnelles d'autrui, liens vers des copies pirates (ROM, ISO), envois en masse.")}
+        </li>
+        <li>
+          {tr("Photo de profil : mêmes interdits, et pas de photo d'une autre personne sans son accord. Une photo inappropriée peut être retirée par l'administrateur.")}
         </li>
       </ul>
 

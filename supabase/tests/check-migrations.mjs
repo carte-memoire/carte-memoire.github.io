@@ -1162,6 +1162,28 @@ await egal('…un membre non plus', lignes(en(MEMBRE, `select count(*)::int as n
 await egal('…un modérateur oui (supprimer, télécharger une jaquette)', lignes(en(AUTRE, `select count(*)::int as n from storage.objects where bucket_id = 'covers' and name like 'essai-liste/%'`, [], 'aal2')), [{ n: 2 }]);
 await db.query(`delete from storage.objects where bucket_id = 'covers' and name like 'essai-liste/%'`);
 
+console.log('\nPhoto de profil (avatar)');
+await egal('bucket « avatars » : public, WebP ou JPEG, 200 Ko au plus',
+  val(`select public, file_size_limit, allowed_mime_types from storage.buckets where id = 'avatars'`), [{ public: true, file_size_limit: 204800, allowed_mime_types: ['image/webp', 'image/jpeg'] }]);
+const monAvatar = `${MEMBRE}/a1b2c3.webp`;
+await ok('un membre dépose sa photo dans son dossier', en(MEMBRE, `insert into storage.objects (bucket_id, name) values ('avatars', $1)`, [monAvatar]));
+await ko('…pas dans le dossier d\'un autre', en(MEMBRE, `insert into storage.objects (bucket_id, name) values ('avatars', $1)`, [`${ADMIN}/x.webp`]), 'row-level security');
+await ko('un visiteur ne dépose rien', en(null, `insert into storage.objects (bucket_id, name) values ('avatars', 'x/y.webp')`), 'row-level security');
+await ok('…et l\'affiche sur son profil', en(MEMBRE, `update public.profile set avatar = $1 where id = $2`, [monAvatar, MEMBRE]));
+await ko('profil : pas d\'image hébergée ailleurs', en(MEMBRE, `update public.profile set avatar = 'https://pirate.example/espion.png' where id = $1`, [MEMBRE]), 'profile_avatar_own_file');
+await ko('profil : pas la photo d\'un autre membre', en(MEMBRE, `update public.profile set avatar = $1 where id = $2`, [`${ADMIN}/x.webp`, MEMBRE]), 'profile_avatar_own_file');
+await ko('profil : pas de chemin détourné', en(MEMBRE, `update public.profile set avatar = $1 where id = $2`, [`${MEMBRE}/../${ADMIN}/x.webp`, MEMBRE]), 'profile_avatar_own_file');
+await ko('profil : pas un autre format qu\'une image', en(MEMBRE, `update public.profile set avatar = $1 where id = $2`, [`${MEMBRE}/page.html`, MEMBRE]), 'profile_avatar_own_file');
+await egal('un visiteur ne liste pas les photos (leur adresse publique suffit)', lignes(en(null, `select count(*)::int as n from storage.objects where bucket_id = 'avatars'`)), [{ n: 0 }]);
+await egal('un autre membre non plus', lignes(en(SIMPLE, `select count(*)::int as n from storage.objects where bucket_id = 'avatars'`)), [{ n: 0 }]);
+await egal('le membre voit la sienne (pour la remplacer)', lignes(en(MEMBRE, `select count(*)::int as n from storage.objects where bucket_id = 'avatars'`)), [{ n: 1 }]);
+await ko('un autre membre ne supprime pas la photo', en(SIMPLE, `delete from storage.objects where bucket_id = 'avatars' and name = $1`, [monAvatar]).then((r) => { if (r.affectedRows === 0) throw new Error('refusé (aucune ligne)'); }), '');
+await ko('modérateur : ne retire pas une photo du profil (admin seulement)', en(AUTRE, `select public.admin_remove_avatar($1)`, [MEMBRE], 'aal2'), 'Réservé aux admins');
+await egal('admin : retire la photo du profil, et récupère le chemin du fichier', lignes(en(ADMIN, `select public.admin_remove_avatar($1) as chemin`, [MEMBRE])), [{ chemin: monAvatar }]);
+await egal('…le profil n\'a plus de photo', val(`select avatar from public.profile where id = $1`, [MEMBRE]), [{ avatar: null }]);
+await egal('…la fiche admin des membres donne la photo', lignes(en(ADMIN, `select count(*)::int as n from public.admin_members() where avatar is null`)), [{ n: Number((await val(`select count(*) from public.profile`))[0].count) }]);
+await ok('…et un modérateur supprime le fichier', en(AUTRE, `delete from storage.objects where bucket_id = 'avatars' and name = $1`, [monAvatar], 'aal2').then((r) => { if (r.affectedRows !== 1) throw new Error('aucun fichier supprimé'); }));
+
 console.log('\nDroits de l\'API sur les tables');
 await egal('aucune table ne se vide, ni ne reçoit de déclencheur ou de clé étrangère, par l\'API (TRUNCATE, TRIGGER, REFERENCES)',
   val(`select grantee || ' ' || table_name || ' ' || privilege_type as droit from information_schema.role_table_grants

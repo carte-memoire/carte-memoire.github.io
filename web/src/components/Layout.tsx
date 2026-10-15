@@ -9,6 +9,7 @@ import { IdleLogout } from '../auth/IdleLogout';
 import { TrophyWatcher } from './TrophyWatcher';
 import { ErrorBoundary } from './ErrorBoundary';
 import { tr, lang, setLanguage } from '../lib/i18n';
+import { Avatar } from './Avatar';
 
 // Chaque rubrique prend la couleur d'un bouton de la manette quand on s'y trouve
 const LINKS: { to: string; label: string; short?: string; icon: NavIconName; accent: string }[] = [
@@ -125,7 +126,10 @@ function Frame() {
           <PhoneLinkBadge />
           {session ? (
             <details className="account-menu">
-              <summary>{profile?.username ?? tr('Mon compte')}</summary>
+              <summary>
+                {profile && <Avatar username={profile.username} path={profile.avatar} size="small" />}
+                <span className="account-name">{profile?.username ?? tr('Mon compte')}</span>
+              </summary>
               <div className="account-menu-panel">
                 {profile && <Link to={`/membre/${encodeURIComponent(profile.username)}`}>{tr('Ma page publique')}</Link>}
                 <Link to="/trophees">{tr('Mes trophées')}</Link>

@@ -15,6 +15,8 @@ import { motionChoice, setMotionChoice, systemReducesMotion, type MotionChoice }
 import { forgetTrust } from '../lib/trust';
 import { usePageTitle } from '../lib/title';
 import { LEAKED_PASSWORD_MESSAGE, passwordLeaked } from '../lib/pwned';
+import { Avatar } from '../components/Avatar';
+import { AVATAR_ACCEPT, deleteAvatar, removeAvatarFolder, saveAvatar } from '../lib/avatar';
 
 export function Account() {
   usePageTitle(tr('Mon compte'));
@@ -65,10 +67,58 @@ function ProfileSection() {
     await refresh();
   }
 
+  // Photo de profil : nouvelle (recadrée, réduite, réencodée) ou retirée
+  const [photoBusy, setPhotoBusy] = useState(false);
+  async function changePhoto(file: File | undefined) {
+    if (!file || !session) return;
+    setPhotoBusy(true);
+    setMessage('');
+    setError('');
+    try {
+      await saveAvatar(session.user.id, file, profile?.avatar ?? null);
+      setMessage(tr('Photo de profil enregistrée.'));
+      await refresh();
+    } catch (e) {
+      setError(errorMessage(e));
+    }
+    setPhotoBusy(false);
+  }
+  async function removePhoto() {
+    if (!session || !profile?.avatar) return;
+    setPhotoBusy(true);
+    setMessage('');
+    try {
+      await deleteAvatar(session.user.id, profile.avatar);
+      setMessage(tr('Photo de profil retirée.'));
+      await refresh();
+    } catch (e) {
+      setError(errorMessage(e));
+    }
+    setPhotoBusy(false);
+  }
+
   return (
     <div className="panel">
       <h2>{tr('Profil')}</h2>
       <p className="muted small">{tr('Connecté avec ')}{session?.user.email}</p>
+      <div className="avatar-editor">
+        <Avatar username={profile?.username ?? '?'} path={profile?.avatar} size="large" />
+        <div className="avatar-editor-actions">
+          <div className="actions">
+            <label className={`button button-small file-button${photoBusy ? ' is-disabled' : ''}`}>
+              <input type="file" accept={AVATAR_ACCEPT} className="sr-only" disabled={photoBusy}
+                onChange={(e) => { changePhoto(e.target.files?.[0]); e.target.value = ''; }} />
+              <PsSymbol shape="triangle" />{profile?.avatar ? tr(' Changer de photo') : tr(' Ajouter une photo')}
+            </label>
+            {profile?.avatar && (
+              <button type="button" className="button button-small" onClick={removePhoto} disabled={photoBusy}>
+                <PsSymbol shape="circle" />{tr(' Retirer')}
+              </button>
+            )}
+          </div>
+          <p className="muted small">{tr('Facultative. Recadrée en carré au centre et réduite (256 px). Visible par tout le monde à côté de ton pseudo, même si ta collection est privée.')}</p>
+        </div>
+      </div>
       <form onSubmit={save} className="form inline-form">
         <label className="field">
           <span className="field-label">{tr('Pseudo')}</span>
@@ -465,6 +515,7 @@ function DeleteAccountSection() {
     const folder = session!.user.id;
     const { data: files } = await supabase.storage.from('submission-images').list(folder, { limit: 1000 });
     if (files?.length) await supabase.storage.from('submission-images').remove(files.map((f) => `${folder}/${f.name}`));
+    await removeAvatarFolder(folder);
     const { error } = await supabase.rpc('delete_my_account', { confirmation: typed.trim() });
     if (error) {
       setBusy(false);

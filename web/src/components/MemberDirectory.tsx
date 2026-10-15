@@ -10,6 +10,8 @@ import { Dialog } from './Dialog';
 import { Pagination } from './Pagination';
 import { PsSymbol } from './PsSymbol';
 import { tr } from '../lib/i18n';
+import { Avatar } from './Avatar';
+import { removeAvatarFolder } from '../lib/avatar';
 
 // Modération → Membres.
 // - Modérateurs : les pseudos des membres, rien d'autre.
@@ -24,6 +26,7 @@ interface MemberName { username: string; total_count: number }
 interface AdminMember {
   id: string;
   username: string;
+  avatar: string | null;
   role: UserRole;
   email: string | null;
   created_at: string;
@@ -163,6 +166,17 @@ function MemberCard({ member: m, onChanged }: { member: AdminMember; onChanged: 
     if (ok) await run(supabase.rpc('set_user_role', { target_user: m.id, new_role: role }));
   }
 
+  // Photo inappropriée : retirée du profil, puis le fichier supprimé
+  async function removePhoto() {
+    const ok = await confirm({ title: tr('Retirer la photo de profil'), message: tr('La photo de {0} sera supprimée. Il pourra en mettre une autre.', m.username), confirmLabel: tr('Retirer la photo'), danger: true });
+    if (!ok) return;
+    const done = await run(supabase.rpc('admin_remove_avatar', { target: m.id }).then(async (result) => {
+      if (!result.error && typeof result.data === 'string') await supabase.storage.from('avatars').remove([result.data]);
+      return result;
+    }));
+    if (done) setError('');
+  }
+
   async function unban() {
     const ok = await confirm({ title: tr('Lever la suspension'), message: tr('{0} pourra de nouveau se connecter et contribuer.', m.username), confirmLabel: tr('Lever la suspension') });
     if (ok) await run(supabase.rpc('admin_unban_member', { target: m.id }));
@@ -171,6 +185,7 @@ function MemberCard({ member: m, onChanged }: { member: AdminMember; onChanged: 
   return (
     <li className="panel member-card">
       <div className="member-head">
+        <Avatar username={m.username} path={m.avatar} size="medium" />
         <Link to={`/membre/${encodeURIComponent(m.username)}`} className="block-title">{m.username}</Link>
         <span className={`badge badge-role-${m.role}`}>{roleLabel(m.role)}</span>
         {m.banned_until && <span className="badge badge-banned">{banText(m.banned_until)}</span>}
@@ -217,6 +232,11 @@ function MemberCard({ member: m, onChanged }: { member: AdminMember; onChanged: 
           ) : m.role !== 'admin' && (
             <button type="button" className="button button-small" onClick={() => setDialog('ban')} disabled={busy}>
               <PsSymbol shape="square" />{tr(' Suspendre')}
+            </button>
+          )}
+          {m.avatar && (
+            <button type="button" className="button button-small" onClick={removePhoto} disabled={busy}>
+              <PsSymbol shape="circle" />{tr(' Retirer la photo')}
             </button>
           )}
           {m.role !== 'admin' && (
@@ -318,6 +338,7 @@ function DeleteDialog({ member: m, onClose, onDone }: ActionProps) {
       // Images envoyées avec ses propositions (son dossier du stockage), comme « Supprimer mon compte »
       const { data: files } = await supabase.storage.from('submission-images').list(m.id, { limit: 1000 });
       if (files?.length) await supabase.storage.from('submission-images').remove(files.map((f) => `${m.id}/${f.name}`));
+      await removeAvatarFolder(m.id);
       return supabase.rpc('admin_delete_member', { target: m.id, confirmation: typed.trim() });
     });
   }

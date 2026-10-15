@@ -17,6 +17,7 @@ import { MemberSkeleton } from '../components/Skeleton';
 import { TrophyStrip } from '../components/TrophyBoard';
 import { computeTrophies, type TrophyStats } from '../lib/trophies';
 import { usePageTitle } from '../lib/title';
+import { Avatar } from '../components/Avatar';
 
 interface PublicProfile {
   username: string;
@@ -176,9 +177,12 @@ export function MemberPage() {
   return (
     <section className="stack">
       <div className="page-head">
-        <div>
-          <h1>{tr('Collection de ')}{profile.username}</h1>
-          <p className="muted">{tr('Membre depuis ')}{monthYear.format(new Date(`${profile.member_since}T00:00:00Z`))}</p>
+        <div className="member-title">
+          <Avatar username={profile.username} path={profile.avatar} size="large" />
+          <div>
+            <h1>{tr('Collection de ')}{profile.username}</h1>
+            <p className="muted">{tr('Membre depuis ')}{monthYear.format(new Date(`${profile.member_since}T00:00:00Z`))}</p>
+          </div>
         </div>
         {profile.is_public && (
           <div className="actions">
