@@ -98,7 +98,8 @@ jobs:
         working-directory: web
         run: npm ci
       # 404.html = index.html : une adresse comme /jeu/42 ouverte directement charge
-      # quand même le site, qui affiche la bonne page
+      # quand même le site, qui affiche la bonne page. Puis .well-known/security.txt
+      # (où signaler une faille), refait à chaque publication pour ne jamais expirer.
       - name: Compiler
         working-directory: web
         env:
@@ -106,6 +107,7 @@ jobs:
         run: |
           npm run build
           cp dist/index.html dist/404.html
+          node scripts/security-txt.mjs
       # Référencement : une page par jeu, sitemap.xml, robots.txt. En cas d'échec, simple
       # avertissement : le site part tel qu'il a été compilé juste au-dessus.
       - name: Générer les fiches pour les moteurs de recherche
@@ -117,6 +119,8 @@ jobs:
       - uses: actions/upload-pages-artifact@v4
         with:
           path: web/dist
+          # .well-known/security.txt : dossier « caché » (nom en point), exclu par défaut
+          include-hidden-files: true
 
   deploy:
     name: Publier
