@@ -10,6 +10,9 @@ import { TERMS_VERSION } from './Legal';
 import { lang, tr } from '../lib/i18n';
 import { usePageTitle } from '../lib/title';
 import { LEAKED_PASSWORD_MESSAGE, passwordLeaked } from '../lib/pwned';
+import { useTurnstile } from '../lib/turnstile';
+import { TurnstileBox } from '../components/TurnstileBox';
+import { DiscChallenge } from '../components/DiscChallenge';
 
 const USERNAME = /^[A-Za-z0-9_-]{3,30}$/;
 
@@ -25,6 +28,9 @@ export function Signup() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
+  const [inserted, setInserted] = useState(false);
+  const turnstile = useTurnstile('signup');
+  const emailRedirectTo = `${window.location.origin}/connexion?confirme=1`;
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -32,6 +38,7 @@ export function Signup() {
     if (!passwordIsValid(password)) return setError(tr('Le mot de passe ne respecte pas toutes les règles.'));
     if (password !== confirm) return setError(tr('Les deux mots de passe ne sont pas identiques.'));
     if (!accepted) return setError(tr("Pour créer un compte, accepte les conditions d'utilisation."));
+    if (!inserted) return setError(tr("Insère d'abord le disque dans la console, juste au-dessus."));
     setBusy(true);
     setError('');
     if (await passwordLeaked(password)) {
@@ -45,7 +52,8 @@ export function Signup() {
         // Version des conditions acceptées, gardée avec le compte (preuve de l'acceptation) ;
         // langue du site : celle des e-mails envoyés au compte (confirmation, mot de passe…)
         data: { username, terms_version: TERMS_VERSION, lang },
-        emailRedirectTo: `${window.location.origin}/connexion?confirme=1`,
+        emailRedirectTo,
+        captchaToken: await turnstile.takeToken(),
       },
     });
     setBusy(false);
@@ -67,8 +75,9 @@ export function Signup() {
           email={email.trim()}
           type="email"
           onVerified={async () => { await refresh(); navigate('/collection', { replace: true }); }}
-          onResend={() => supabase.auth.resend({ type: 'signup', email: email.trim(), options: { emailRedirectTo: `${window.location.origin}/connexion?confirme=1` } })}
+          onResend={async () => supabase.auth.resend({ type: 'signup', email: email.trim(), options: { emailRedirectTo, captchaToken: await turnstile.takeToken() } })}
         />
+        <TurnstileBox turnstile={turnstile} />
         <p className="small center"><Link to="/connexion"><PsSymbol shape="circle" />{tr(' Retour à la connexion')}</Link></p>
       </section>
     );
@@ -103,6 +112,8 @@ export function Signup() {
             {tr("J'ai lu et j'accepte les ")}<Link to="/conditions" target="_blank" rel="noopener">{tr("conditions d'utilisation")}</Link>{tr(" ; mes données sont traitées comme l'explique la page ")}<Link to="/confidentialite" target="_blank" rel="noopener">{tr('confidentialité')}</Link>.
           </span>
         </label>
+        <DiscChallenge onDone={() => { setInserted(true); setError(''); }} />
+        <TurnstileBox turnstile={turnstile} />
         {error && <p className="error" role="alert">{error}</p>}
         <button type="submit" className="button button-primary button-block" disabled={busy}><PsSymbol shape="cross" />{tr(' Créer mon compte')}</button>
         <p className="muted small">{tr('Une fois connecté, tu pourras ajouter une passkey et la double authentification dans « Mon compte ».')}</p>

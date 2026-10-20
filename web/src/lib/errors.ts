@@ -18,6 +18,8 @@ const AUTH_MESSAGES: Record<string, string> = {
   session_not_found: tr('Ta session a expiré : reconnecte-toi.'),
   insufficient_aal: tr('Cette action demande la double authentification.'),
   webauthn_challenge_expired: tr('Délai dépassé : réessaie.'),
+  // Vérification anti-robots (Turnstile) refusée ou absente : script bloqué, jeton expiré…
+  captcha_failed: tr("La vérification anti-robots n'a pas abouti. Recharge la page et réessaie ; si un bloqueur de publicités est actif, autorise challenges.cloudflare.com."),
   user_banned: tr('Ce compte est suspendu. Pour en savoir plus, écris-nous (adresse dans les mentions légales).'),
 };
 

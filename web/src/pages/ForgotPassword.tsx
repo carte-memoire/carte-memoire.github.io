@@ -8,6 +8,8 @@ import { EmailCodeForm } from '../components/EmailCodeForm';
 import { PsSymbol } from '../components/PsSymbol';
 import { tr } from '../lib/i18n';
 import { usePageTitle } from '../lib/title';
+import { useTurnstile } from '../lib/turnstile';
+import { TurnstileBox } from '../components/TurnstileBox';
 
 export function ForgotPassword() {
   usePageTitle(tr('Mot de passe oublié'));
@@ -17,9 +19,11 @@ export function ForgotPassword() {
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const turnstile = useTurnstile('recover');
 
-  const send = () => supabase.auth.resetPasswordForEmail(email.trim(), {
+  const send = async () => supabase.auth.resetPasswordForEmail(email.trim(), {
     redirectTo: `${window.location.origin}/reinitialiser`,
+    captchaToken: await turnstile.takeToken(),
   });
 
   async function submit(e: FormEvent) {
@@ -53,6 +57,7 @@ export function ForgotPassword() {
               : tr('Ouvre le lien dans ce navigateur-ci : par sécurité, il ne marche pas ailleurs.')}
           </p>
           <EmailCodeForm email={email.trim()} type="recovery" onVerified={verified} onResend={send} />
+          <TurnstileBox turnstile={turnstile} />
         </>
       ) : (
         <form onSubmit={submit} className="form">
@@ -60,6 +65,7 @@ export function ForgotPassword() {
             <span className="field-label">{tr('Adresse e-mail')}</span>
             <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} maxLength={254} />
           </label>
+          <TurnstileBox turnstile={turnstile} />
           {error && <p className="error" role="alert">{error}</p>}
           <button type="submit" className="button button-primary button-block" disabled={busy}><PsSymbol shape="cross" /> {EMAIL_CODES ? tr('Recevoir un code') : tr('Recevoir un lien')}</button>
         </form>

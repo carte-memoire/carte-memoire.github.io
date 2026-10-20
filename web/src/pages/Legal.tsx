@@ -99,6 +99,9 @@ export function Privacy() {
           <strong>{tr('Vérification du mot de passe')}</strong>{tr(" : quand tu choisis un mot de passe, le site vérifie qu'il n'apparaît pas dans des fuites de données connues (service Have I Been Pwned). Ton mot de passe n'est jamais envoyé : seuls les 5 premiers caractères de son empreinte chiffrée partent, et la comparaison se fait sur ton appareil.")}
         </li>
         <li>
+          <strong>{tr('Vérification anti-robots')}</strong>{tr(" : sur les pages d'inscription, de connexion et de mot de passe oublié, le service Turnstile de Cloudflare vérifie que tu n'es pas un robot, le plus souvent sans rien te demander. Il analyse pour cela des données techniques (adresse IP, navigateur, façon d'utiliser la page), sans publicité ni suivi d'un site à l'autre. Pour protéger les comptes contre les robots (inscriptions en masse, essais de mots de passe).")}
+        </li>
+        <li>
           <strong>{tr('Photo de profil')}</strong>{tr(" (facultative) : visible par tout le monde à côté de ton pseudo (page publique, menu), même si ta collection est privée. Elle est recadrée, réduite à 256 px et réencodée sur ton appareil, ce qui efface ses données cachées et sa position GPS. Tu peux la retirer à tout moment ; elle est supprimée avec ton compte.")}
         </li>
         <li>
@@ -126,7 +129,7 @@ export function Privacy() {
 
       <h2>{tr('Qui y a accès ?')}</h2>
       <p>
-        {tr("Toi ; les modérateurs pour les propositions, signalements et l'historique, et la liste des pseudos (jamais ta collection privée) ; l'administrateur du site pour la gestion des comptes : adresse e-mail, dates d'inscription et de dernière connexion, nombre de jeux de ta collection (pas son contenu) ; et nos hébergeurs : Supabase, qui stocke les données sur des serveurs situés à Paris, et GitHub, qui sert les pages du site et garde l'adresse IP des visiteurs dans ses journaux de sécurité. Ces deux sociétés étant américaines, elles s'engagent par contrat (clauses contractuelles types de la Commission européenne) à protéger ces données.")}
+        {tr("Toi ; les modérateurs pour les propositions, signalements et l'historique, et la liste des pseudos (jamais ta collection privée) ; l'administrateur du site pour la gestion des comptes : adresse e-mail, dates d'inscription et de dernière connexion, nombre de jeux de ta collection (pas son contenu) ; nos hébergeurs : Supabase, qui stocke les données sur des serveurs situés à Paris, et GitHub, qui sert les pages du site et garde l'adresse IP des visiteurs dans ses journaux de sécurité ; Brevo, société française qui envoie les e-mails du site (confirmation, codes, mot de passe oublié) ; et Cloudflare, pour la vérification anti-robots. GitHub, Supabase et Cloudflare étant des sociétés américaines, elles s'engagent par contrat (clauses contractuelles types de la Commission européenne) à protéger ces données.")}
       </p>
 
       <h2>{tr('Combien de temps ?')}</h2>
@@ -148,6 +151,7 @@ export function Privacy() {
       <h2>{tr('Cookies')}</h2>
       <p>
         {tr("Pas de cookies publicitaires, ni de mesure d'audience. Ton navigateur garde seulement ta session de connexion, tes préférences d'affichage (console, région, liste ou jaquettes, animations), la liste des trophées déjà annoncés et, si tu l'as demandé, sa marque de « navigateur de confiance » (30 jours sans code à 6 chiffres) : c'est indispensable au fonctionnement du site, donc aucun consentement n'est demandé.")}
+        {tr(" La vérification anti-robots de Cloudflare n'est faite que pour la sécurité du site, pas pour te suivre.")}
       </p>
     </article>
   );

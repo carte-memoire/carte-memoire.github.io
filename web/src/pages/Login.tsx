@@ -8,6 +8,8 @@ import { codeStillNeeded } from '../lib/trust';
 import { PsSymbol } from '../components/PsSymbol';
 import { tr } from '../lib/i18n';
 import { usePageTitle } from '../lib/title';
+import { useTurnstile } from '../lib/turnstile';
+import { TurnstileBox } from '../components/TurnstileBox';
 
 export function Login() {
   usePageTitle(tr('Connexion'));
@@ -19,6 +21,7 @@ export function Login() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const { refresh } = useAuth();
+  const turnstile = useTurnstile('login');
   const passkeysSupported = typeof window !== 'undefined' && 'PublicKeyCredential' in window;
 
   // Après connexion : le code du second facteur, sauf passkey ou navigateur de confiance
@@ -36,7 +39,7 @@ export function Login() {
     e.preventDefault();
     setBusy(true);
     setError('');
-    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password, options: { captchaToken: await turnstile.takeToken() } });
     setBusy(false);
     if (error) return setError(errorMessage(error));
     await afterSignIn();
@@ -45,7 +48,7 @@ export function Login() {
   async function signInWithPasskey() {
     setBusy(true);
     setError('');
-    const { error } = await supabase.auth.signInWithPasskey();
+    const { error } = await supabase.auth.signInWithPasskey({ options: { captchaToken: await turnstile.takeToken() } });
     setBusy(false);
     if (error) return setError(errorMessage(error));
     await afterSignIn();
@@ -78,6 +81,7 @@ export function Login() {
           <span className="field-label">{tr('Mot de passe')}</span>
           <input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} maxLength={128} />
         </label>
+        <TurnstileBox turnstile={turnstile} />
         {error && <p className="error" role="alert">{error}</p>}
         <button type="submit" className="button button-block" disabled={busy}><PsSymbol shape="cross" />{tr(' Se connecter')}</button>
       </form>

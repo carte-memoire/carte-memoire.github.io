@@ -286,6 +286,51 @@ textarea { resize: vertical; }
 .separator { display: flex; align-items: center; gap: 10px; color: var(--muted); margin: 16px 0; font-size: 0.85rem; }
 .separator::before, .separator::after { content: ''; flex: 1; border-top: 1px solid var(--line); }
 
+/* Inscription : insérer le disque dans la console (DiscChallenge) */
+.disc-challenge { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.disc-art { display: block; width: 100%; max-width: 400px; height: auto; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.console-label { font-family: var(--sans); font-weight: 700; letter-spacing: 0.2px; pointer-events: none; }
+.disc { cursor: grab; touch-action: none; outline: none; }
+.step-dragging .disc { cursor: grabbing; }
+.step-inserting .disc, .step-spinning .disc, .step-closing .disc, .step-done .disc { cursor: default; }
+.disc-face { transform-box: fill-box; transform-origin: center; }
+.disc-focus { fill: none; stroke: var(--triangle); stroke-width: 3; opacity: 0; }
+.disc:focus-visible .disc-focus { opacity: 1; }
+.disc-target { fill: none; stroke: var(--triangle); stroke-width: 2; stroke-dasharray: 6 7; opacity: 0.75; }
+.is-near .disc-target { opacity: 1; stroke-dasharray: none; stroke-width: 3; }
+.step-inserting .disc-target, .step-spinning .disc-target, .step-closing .disc-target, .step-done .disc-target { opacity: 0; }
+/* Capot : relevé au départ (on en voit le dessous, raccourci par la perspective), il
+   bascule sur sa charnière et se rabat vers l'avant */
+.lid-under { transform-box: fill-box; transform-origin: 50% 100%; transform: scaleY(0.3); }
+.lid-top { transform-box: fill-box; transform-origin: 50% 0; transform: scaleY(0); }
+.lid-closed .lid-under { transform: scaleY(0); }
+.lid-closed .lid-top { transform: none; }
+.lid-closed .lid-hinge { opacity: 0; }
+.disc-led { fill: #4a4a48; }
+.step-done .disc-led { fill: #5be27a; filter: drop-shadow(0 0 2.5px #5be27a); }
+.power-cap { transform-box: fill-box; transform-origin: center; }
+.disc-status { margin: 0; font-size: 0.88rem; color: var(--muted); text-align: center; }
+.disc-status.success-text { color: var(--triangle); font-weight: 600; }
+.motion .disc { transition: transform 420ms cubic-bezier(0.3, 0.8, 0.3, 1); }
+.motion .step-dragging .disc { transition: none; }
+.motion .lid-under { transition: transform 200ms ease-in; }
+.motion .lid-top { transition: transform 280ms cubic-bezier(0.35, 0.6, 0.45, 1) 200ms; }
+.motion .disc-target { transition: opacity 200ms; }
+.motion .step-idle .disc-target { animation: disc-target 1.6s ease-in-out infinite; }
+.motion .step-idle .disc-face { animation: disc-nudge 2.6s ease-in-out 1.2s 3; }
+/* Le disque prend de la vitesse, puis tourne jusqu'à la fermeture du capot ; on appuie
+   ensuite sur Power */
+.motion .step-spinning .disc-face, .motion .step-closing .disc-face { animation: disc-spin 0.9s cubic-bezier(0.55, 0, 1, 1), disc-spin 0.32s linear 0.9s infinite; }
+.motion .step-done .power-cap { animation: power-press 300ms ease-out; }
+@keyframes disc-spin { to { transform: rotate(360deg); } }
+@keyframes disc-target { 50% { opacity: 0.3; } }
+@keyframes disc-nudge { 0%, 32%, 100% { transform: none; } 12% { transform: translateX(-14px); } 22% { transform: translateX(-5px); } }
+@keyframes power-press { 40% { transform: scale(0.9); } }
+
+/* Vérification anti-robots (TurnstileBox) : rien à voir pour la plupart des visiteurs */
+.turnstile { display: flex; justify-content: center; }
+.form > .turnstile:not(.is-visible) { margin-top: -14px; }
+
 /* ---------- Messages ---------- */
 .error, .success, .warning, .notice { border-radius: var(--radius); padding: 10px 12px; margin: 0; font-size: 0.92rem; }
 .error { background: rgba(255, 90, 110, 0.12); border-left: 3px solid var(--circle); color: #ffc3cb; }
