@@ -48,6 +48,8 @@ npx supabase config push      # l'envoie, après confirmation
 
 Tests de la base (migrations, contraintes, règles de sécurité) : `supabase/tests/check-migrations.mjs`.
 
+Sauvegarde (base complète et images, sur l'ordinateur, jamais dans le dépôt ; Docker Desktop requis) : `node scripts/backup.mjs`, une fois par semaine par exemple. Les copies de plus de 60 jours sont effacées ; le détail est en tête du script.
+
 ## Imports de données
 
 Scripts dans `scripts/` (dépendances : `cd scripts && npm install`). Chacun écrit une migration SQL dans `supabase/migrations/`, à envoyer avec `npx supabase db push`.

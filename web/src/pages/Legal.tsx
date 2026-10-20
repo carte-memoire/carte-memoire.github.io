@@ -135,6 +135,7 @@ export function Privacy() {
       <h2>{tr('Combien de temps ?')}</h2>
       <p>
         {tr('Tant que ton compte existe. Si tu le supprimes, ton compte, ton profil et ta collection sont effacés aussitôt ; tes contributions au catalogue restent, sans ton nom.')}
+        {tr(' Des copies de sauvegarde de la base et des images sont faites régulièrement, et chacune est effacée au bout de 60 jours : une donnée supprimée disparaît donc aussi des sauvegardes en 60 jours au plus.')}
       </p>
 
       <h2>{tr('Tes droits')}</h2>
