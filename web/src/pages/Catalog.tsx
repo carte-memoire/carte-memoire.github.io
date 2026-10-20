@@ -422,6 +422,11 @@ export function Catalog() {
         <div className="panel empty">
           <p>{page > 1 ? tr('Plus aucun jeu sur cette page.') : ownership === 'owned' ? tr('Aucun jeu coché pour le moment : à toi de jouer !') : tr('Aucun jeu ne correspond à ces filtres.')}</p>
           {page > 1 && <button type="button" className="button" onClick={() => goToPage(1)}><PsSymbol shape="circle" />{tr(' Première page')}</button>}
+          {page === 1 && query.trim() && ownership !== 'owned' && (
+            <p className="small">
+              {tr('Il manque à la base ? ')}<Link to={`/proposer?titre=${encodeURIComponent(query.trim())}`}>{tr('Propose-le')}</Link>.
+            </p>
+          )}
         </div>
       )}
 

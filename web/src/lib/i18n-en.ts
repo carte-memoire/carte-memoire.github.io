@@ -1642,4 +1642,6 @@ export const EN: Record<string, string> = {
   "Lecture du disque…": "Reading the disc…",
   "Dernière étape : glisse le disque dans la console, ou touche-le.": "Last step: drag the disc into the console, or tap it.",
   "Dernière étape : glisse le disque dans la console, ou clique dessus.": "Last step: drag the disc into the console, or click it.",
+  "Des copies de sauvegarde de la base et des images sont faites régulièrement, et chacune est effacée au bout de 60 jours : une donnée supprimée disparaît donc aussi des sauvegardes en 60 jours au plus.": "Backup copies of the database and images are made regularly, and each one is erased after 60 days: deleted data therefore also disappears from the backups within 60 days at most.",
+  "Il manque à la base ?": "Missing from the database?",
 };

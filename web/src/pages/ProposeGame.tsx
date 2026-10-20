@@ -26,7 +26,11 @@ export function ProposeGame() {
   const platforms = usePlatforms();
   const [regions, setRegions] = useState<Region[]>([]);
 
-  const [title, setTitle] = useState('');
+  // Venu d'une recherche sans résultat (?titre=…) : ce qui a été tapé, comme titre ou
+  // comme code produit (SCES-00867)
+  const searched = (params.get('titre') ?? '').trim().slice(0, 200);
+  const searchedCode = /^[A-Z]{4}[-_ .]?\d{3}\.?\d{2}$/i.test(searched);
+  const [title, setTitle] = useState(searchedCode ? '' : searched);
   const [platformId, setPlatformId] = useState<number | ''>('');
   const [zone, setZone] = useState<Zone | ''>('');
   const [localTitle, setLocalTitle] = useState('');
@@ -34,7 +38,7 @@ export function ProposeGame() {
   const [regionCode, setRegionCode] = useState('');
   const [precision, setPrecision] = useState<DatePrecision>('day');
   const [dateValue, setDateValue] = useState('');
-  const [productCode, setProductCode] = useState('');
+  const [productCode, setProductCode] = useState(searchedCode ? searched.toUpperCase() : '');
   const [editionType, setEditionType] = useState<EditionType>('standard');
   const [editionName, setEditionName] = useState('');
   const [languages, setLanguages] = useState<string[]>([]);

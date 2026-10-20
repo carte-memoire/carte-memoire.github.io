@@ -1,4 +1,5 @@
 import { useEffect, useId, useState, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { countryName, formatNumber, yearOf } from '../lib/format';
 import type { CompanyResult, SearchResult } from '../lib/types';
@@ -17,10 +18,12 @@ interface Props {
   action?: ReactNode;
   // Proposer aussi les studios qui correspondent (page d'accueil)
   onSelectStudio?: (studio: CompanyResult) => void;
+  // Rien trouvé : lien pour proposer le jeu, avec ce qui a été tapé (page d'accueil)
+  proposeMissing?: boolean;
 }
 
 // Champ de recherche de jeux : interroge la base pendant la frappe (après une courte pause)
-export function GameSearch({ onSelect, placeholder = tr('Final Fantasy VII, Crash, Biohazard, SCES-00867…'), autoFocus, initialQuery = '', label = tr('Rechercher un jeu'), platform = null, action, onSelectStudio }: Props) {
+export function GameSearch({ onSelect, placeholder = tr('Final Fantasy VII, Crash, Biohazard, SCES-00867…'), autoFocus, initialQuery = '', label = tr('Rechercher un jeu'), platform = null, action, onSelectStudio, proposeMissing }: Props) {
   const [query, setQuery] = useState(initialQuery);
   const { results, loading, error } = useGameSearch(query, 20, platform);
   const studios = useStudioSearch(onSelectStudio ? query : '', platform);
@@ -47,7 +50,14 @@ export function GameSearch({ onSelect, placeholder = tr('Final Fantasy VII, Cras
       </div>
       {error && <p className="error">{error}</p>}
       {query.trim().length >= 2 && !loading && results.length === 0 && studios.length === 0 && !error && (
-        <p className="muted">{tr('Aucun jeu trouvé.')}</p>
+        <p className="muted">
+          {tr('Aucun jeu trouvé.')}
+          {proposeMissing && (
+            <>
+              {tr(' Il manque à la base ? ')}<Link to={`/proposer?titre=${encodeURIComponent(query.trim())}`}>{tr('Propose-le')}</Link>.
+            </>
+          )}
+        </p>
       )}
       {studios.length > 0 && onSelectStudio && (
         <ul className="studio-results" aria-label={tr('Studios')}>

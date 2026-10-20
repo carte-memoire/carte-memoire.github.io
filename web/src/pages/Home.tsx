@@ -103,6 +103,7 @@ export function Home() {
             </button>
           )}
           autoFocus
+          proposeMissing
           label={tr('Rechercher un jeu{0} ou un studio (titre, titre japonais ou européen, code produit…)', current ? ` ${current.name}` : '')}
         />
       </div>
