@@ -42,8 +42,9 @@ await db.exec(`
   grant usage on schema auth to anon, authenticated;
   grant usage on schema extensions to anon, authenticated;
   grant usage on schema public to anon, authenticated;
-  alter default privileges in schema public grant all on tables to anon, authenticated;
-  alter default privileges in schema public grant all on sequences to anon, authenticated;
+  -- Depuis le 30 octobre 2026, Supabase ne donne plus d'office aux rôles de l'API les droits
+  -- sur les nouvelles tables (ni sur leurs séquences) : chaque migration les accorde
+  -- elle-même. Les fonctions, elles, restent exécutables par défaut.
   alter default privileges in schema public grant all on functions to anon, authenticated;
 `);
 
@@ -1189,6 +1190,19 @@ await egal('aucune table ne se vide, ni ne reçoit de déclencheur ou de clé é
   val(`select grantee || ' ' || table_name || ' ' || privilege_type as droit from information_schema.role_table_grants
        where grantee in ('anon', 'authenticated') and table_schema = 'public' and privilege_type in ('TRUNCATE', 'TRIGGER', 'REFERENCES')
        order by 1`).then((r) => r.map((x) => x.droit)), []);
+await egal('un visiteur (sans compte) ne fait que lire, jamais écrire',
+  val(`select table_name || ' ' || privilege_type as droit from information_schema.role_table_grants
+       where grantee = 'anon' and table_schema = 'public' and privilege_type <> 'SELECT'
+       order by 1`).then((r) => r.map((x) => x.droit)), []);
+// Une table sans aucun droit est invisible pour le site : un oubli, sauf si elle ne sert
+// qu'aux fonctions de la base (liste ci-dessous)
+const TABLES_INTERNES = ['company_alias'];
+await egal('chaque table de l\'API a ses droits, accordés par sa migration (Supabase n\'en donne plus d\'office)',
+  val(`select c.relname as t from pg_class c join pg_namespace n on n.oid = c.relnamespace
+       where n.nspname = 'public' and c.relkind in ('r', 'v', 'm', 'p')
+         and not exists (select 1 from information_schema.role_table_grants g
+                         where g.table_schema = 'public' and g.table_name = c.relname and g.grantee in ('anon', 'authenticated'))
+       order by 1`).then((r) => r.map((x) => x.t).filter((t) => !TABLES_INTERNES.includes(t))), []);
 console.log('\nCohérence du catalogue (imports compris)');
 await egal('chaque jeu importé a au moins une sortie', val(`select count(*)::int as n from public.game g where g.wikidata_id is not null and not exists (select 1 from public.release r where r.game_id = g.id)`), [{ n: 0 }]);
 await egal('chaque date de sortie est cohérente avec sa précision', val(`select count(*)::int as n from public.release_region where (release_date is null) <> (date_precision is null)`), [{ n: 0 }]);
