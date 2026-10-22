@@ -1,3 +1,5 @@
+// Fichier lu aussi tel quel par scripts/prerender.mjs : rester en JavaScript pur (pas de
+// types ni d'import), sinon les pages publiées des fiches ne sont plus écrites.
 // Champs lus pour afficher une sortie complète (réutilisés par plusieurs pages)
 export const RELEASE_FIELDS = `
   id, game_id, zone, local_title, edition_type, edition_name, product_code, media_count, languages, reissue_of,

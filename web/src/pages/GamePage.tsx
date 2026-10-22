@@ -28,21 +28,36 @@ import { lang, tr } from '../lib/i18n';
 import { loadOrReload } from '../lib/reload';
 import { usePageTitle } from '../lib/title';
 
+// Page publiée de la fiche (scripts/prerender.mjs) : elle contient les données du jeu. La
+// fiche s'affiche aussitôt, sans attendre la base, et même si la base ne répond pas : c'est
+// ce que lisent les robots des moteurs de recherche. Elle est relue ensuite.
+function publishedGame(address: string | null): Game | null {
+  if (!address) return null;
+  try {
+    const data = JSON.parse(document.getElementById('fiche-jeu')?.textContent ?? 'null') as Game | null;
+    return data?.slug === address ? data : null;
+  } catch {
+    return null;
+  }
+}
+
 export function GamePage() {
   const { id, console: consoleName, slug } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const { session, needsMfa, isModerator } = useAuth();
-  const [game, setGame] = useState<Game | null>(null);
   // Adresse lisible (ps1/final-fantasy-vii) : le jeu est retrouvé par la base, y compris
   // sous une ancienne adresse (titre corrigé, fiches fusionnées). Ancienne forme : /jeu/36-…
   const address = consoleName && slug ? `${consoleName}/${slug}`.toLowerCase() : null;
+  const [game, setGame] = useState<Game | null>(() => publishedGame(address));
   const [found, setFound] = useState<{ address: string; id: number | null } | null>(null);
   // undefined : adresse en cours de recherche ; null ou NaN : aucun jeu
   const gameId = !address ? Number.parseInt(id ?? '', 10)
     : game?.slug === address ? game.id
     : found?.address === address ? found.id : undefined;
-  const [state, setState] = useState<'loading' | 'ok' | 'missing'>('loading');
+  // error : la base ne répond pas (ce n'est pas un jeu introuvable) ; retry relance la lecture
+  const [state, setState] = useState<'loading' | 'ok' | 'missing' | 'error'>(() => (game ? 'ok' : 'loading'));
+  const [retry, setRetry] = useState(0);
   const [proposeSummary, setProposeSummary] = useState(false);
   const [reporting, setReporting] = useState(false);
   // Résumé replié sur quelques lignes : les versions, l'essentiel, restent proches
@@ -79,18 +94,23 @@ export function GamePage() {
   useEffect(() => {
     if (!address || game?.slug === address || found?.address === address) return;
     let active = true;
-    supabase.rpc('game_id_by_slug', { path: address })
-      .then(({ data, error }) => { if (active) setFound({ address, id: error ? null : (data as number | null) }); });
+    supabase.rpc('game_id_by_slug', { path: address }).then(({ data, error }) => {
+      if (!active) return;
+      if (error) return setState('error');
+      setFound({ address, id: data as number | null });
+    });
     return () => { active = false; };
-  }, [address, game, found]);
+  }, [address, game, found, retry]);
 
   useEffect(() => {
     if (gameId === undefined) return;
     if (gameId === null || !Number.isInteger(gameId)) return setState('missing');
     // Passage rapide d'un jeu à l'autre : la réponse d'un jeu quitté est ignorée
     let active = true;
-    supabase.from('game').select(GAME_FIELDS).eq('id', gameId).maybeSingle().then(({ data }) => {
+    supabase.from('game').select(GAME_FIELDS).eq('id', gameId).maybeSingle().then(({ data, error }) => {
       if (!active) return;
+      // Base injoignable : la fiche déjà affichée (celle de la page publiée) reste à l'écran
+      if (error) return setState(game?.id === gameId ? 'ok' : 'error');
       if (!data) return setState('missing');
       setGame(data as unknown as Game);
       setState('ok');
@@ -98,7 +118,7 @@ export function GamePage() {
     supabase.from('game').select('origin').eq('id', gameId).maybeSingle()
       .then(({ data }) => { if (active) setOrigin((data as { origin: string | null } | null)?.origin ?? null); });
     return () => { active = false; };
-  }, [gameId]);
+  }, [gameId, retry]);
 
   // Adresse à jour dans la barre d'adresse : /jeu/ps1/final-fantasy-vii (sans nouvelle
   // entrée dans l'historique du navigateur ; ?version=… et #… sont gardés)
@@ -141,7 +161,7 @@ export function GamePage() {
   // (scripts/prerender.mjs) : Google lit la page une fois le site chargé
   const platformNames = [...new Map((game?.release ?? []).map((r) => [r.platform.short_name, r.platform.name ?? r.platform.short_name])).entries()]
     .sort(([a], [b]) => a.localeCompare(b, 'en', { numeric: true })).map(([, name]) => name).join(', ');
-  usePageTitle(state === 'missing' ? tr('Jeu introuvable')
+  usePageTitle(state === 'missing' ? tr('Jeu introuvable') : state === 'error' ? tr('Fiche indisponible pour le moment')
     : game ? tr('{0} ({1}) : versions et collection', game.title, platformNames || 'PlayStation') : null);
 
   // La version scannée : on l'amène à l'écran
@@ -152,6 +172,17 @@ export function GamePage() {
   }, [state, focusId]);
 
   if (state === 'loading') return <GameSkeleton />;
+  if (state === 'error') {
+    return (
+      <section className="panel">
+        <h1>{tr('Fiche indisponible pour le moment')}</h1>
+        <p>{tr('La base de données ne répond pas : vérifie ta connexion internet, puis réessaie.')}</p>
+        <button type="button" className="button" onClick={() => { setState('loading'); setRetry((n) => n + 1); }}>
+          <PsSymbol shape="triangle" />{tr(' Réessayer')}
+        </button>
+      </section>
+    );
+  }
   if (state === 'missing' || !game) return <section className="panel"><h1>{tr('Jeu introuvable')}</h1><Link to="/"><PsSymbol shape="circle" />{tr(' Retour à la recherche')}</Link></section>;
 
   // Japon, Amérique, Europe ; dans chaque zone, la standard d'abord, puis la langue choisie dans le catalogue

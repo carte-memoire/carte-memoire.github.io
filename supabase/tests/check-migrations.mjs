@@ -1073,6 +1073,11 @@ await egal('titre sans lettres latines : le code produit', adresseDe(jJ), 'ps1/s
 await ok('…un modérateur lui donne un titre en lettres latines pour l’adresse', en(ADMIN, `update public.game set slug_title = 'Chou Nazo Ou Test' where id = $1`, [jJ]));
 await egal('…nouvelle adresse lisible', adresseDe(jJ), 'ps1/chou-nazo-ou-test');
 await egal('…l’ancienne (code produit) mène toujours au jeu', jeuParAdresse(null, 'ps1/slps-99999'), jJ);
+await egal('titres surtout japonais : plus d\'adresse réduite à quelques lettres (ps1/the, ps1/q2…)',
+  val(`select slug from public.game where slug in ('ps1/the', 'ps1/q2', 'ps1/ii', 'ps1/100', 'ps1/98', 'ps1/2001') order by 1`), []);
+await egal('…une vraie adresse, en lettres latines', val(`select slug from public.game where title = 'ハイスクール!奇面組 THE テーブルホッケー'`),
+  [{ slug: 'ps1/high-school-kimengumi-the-table-hockey' }]);
+await egal('…et l\'ancienne mène toujours au jeu', jeuParAdresse(null, 'ps1/the').then(async (id) => id === (await val(`select id from public.game where title = 'ハイスクール!奇面組 THE テーブルホッケー'`))[0].id), true);
 await ok('fusion : le troisième jeu rejoint le premier', en(ADMIN, `select public.merge_games($1, $2)`, [jA, jC]));
 await egal('…l\'adresse du jeu fusionné mène au jeu gardé', jeuParAdresse(null, 'ps2/jeu-adresse-temoin-2003-2'), jA);
 await egal('les listes du site donnent l\'adresse : catalogue', catalogue(null, { console: 'PS2', search: 'jeu adresse temoin', size: 10 }).then((r) => r.map((x) => x.slug).sort()),

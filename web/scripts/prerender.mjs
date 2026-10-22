@@ -63,11 +63,11 @@ function shorten(text, max = 155) {
 }
 
 // --- Lecture du catalogue public (1 000 jeux par appel) ----------------
-const SELECT = [
-  'id', 'title', 'slug', 'summary', 'first_release_date',
-  'game_developer(company(name))', 'game_series(series(name))', 'game_genre(genre(name))',
-  'release(id, local_title, zone, edition_type, edition_name, product_code, languages, platform(short_name, name), image(type, path))',
-].join(',');
+// Les mêmes champs que la fiche du site (src/lib/queries.ts, en JavaScript pur pour être
+// lu ici tel quel) : chaque page contient les données de sa fiche, que le site affiche
+// sans attendre la base (et que les robots des moteurs de recherche lisent ainsi)
+const queries = await import(`data:text/javascript,${encodeURIComponent(readFileSync(join(root, 'src', 'lib', 'queries.ts'), 'utf8'))}`);
+const SELECT = queries.GAME_FIELDS.replace(/\s+/g, '');
 
 async function readAll(table, select, order) {
   const rows = [];
@@ -84,7 +84,7 @@ async function readAll(table, select, order) {
 // --- Une page par jeu ---------------------------------------------------
 const template = readFileSync(join(dist, 'index.html'), 'utf8');
 
-function page({ title, description, path, image, jsonLd, body, noindex = false }) {
+function page({ title, description, path, image, jsonLd, body, data, noindex = false }) {
   const url = `${SITE}${path}`;
   const head = [
     `<title>${escape(title)}</title>`,
@@ -100,11 +100,14 @@ function page({ title, description, path, image, jsonLd, body, noindex = false }
     `<meta name="twitter:card" content="${image ? 'summary_large_image' : 'summary'}" />`,
     // Données structurées : jamais de « </ » dans le JSON (fin de balise)
     jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>` : '',
+    // Données de la fiche pour le site (pages/GamePage.tsx), même précaution
+    data ? `<script type="application/json" id="fiche-jeu">${JSON.stringify(data).replace(/</g, '\\u003c')}</script>` : '',
   ].filter(Boolean).join('\n    ');
+  // Remplacements par fonction : un « $ » dans un résumé ($&, $'…) resterait tel quel
   let html = template
-    .replace(/<title>[\s\S]*?<\/title>/, head)
-    .replace(/<meta name="description" content="[^"]*" \/>/, `<meta name="description" content="${escape(description)}" />`);
-  if (body) html = html.replace('<div id="root"></div>', `<div id="root">${body}</div>`);
+    .replace(/<title>[\s\S]*?<\/title>/, () => head)
+    .replace(/<meta name="description" content="[^"]*" \/>/, () => `<meta name="description" content="${escape(description)}" />`);
+  if (body) html = html.replace('<div id="root"></div>', () => `<div id="root">${body}</div>`);
   if (!html.includes(escape(title)) || (body && !html.includes(body))) throw new Error(`Modèle de page inattendu (${path})`);
   return html;
 }
@@ -156,7 +159,7 @@ function gamePage(game) {
     ...(developers.length ? { author: developers.map((name) => ({ '@type': 'Organization', name })) } : {}),
     ...(game.first_release_date ? { datePublished: game.first_release_date } : {}),
   };
-  return { path, html: page({ title, description, path, image, jsonLd, body }) };
+  return { path, html: page({ title, description, path, image, jsonLd, body, data: game }) };
 }
 
 // Ancienne adresse → la fiche : renvoi immédiat (garde ?version=… et #…), adresse
