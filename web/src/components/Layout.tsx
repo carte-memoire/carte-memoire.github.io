@@ -8,7 +8,7 @@ import { ScannerProvider, useScanner } from './Scanner';
 import { IdleLogout } from '../auth/IdleLogout';
 import { TrophyWatcher } from './TrophyWatcher';
 import { ErrorBoundary } from './ErrorBoundary';
-import { tr, lang, setLanguage } from '../lib/i18n';
+import { tr, lang, setLanguage, offerEnglish, keepFrench } from '../lib/i18n';
 import { Avatar } from './Avatar';
 
 // Chaque rubrique prend la couleur d'un bouton de la manette quand on s'y trouve
@@ -35,6 +35,21 @@ export function Layout() {
     <ScannerProvider>
       <Frame />
     </ScannerProvider>
+  );
+}
+
+// Navigateur dans une autre langue que le français : le site (en français par défaut)
+// propose l'anglais, une fois. Écrit en anglais, et jamais repris dans les extraits de
+// Google (data-nosnippet).
+function EnglishOffer() {
+  const [open, setOpen] = useState(offerEnglish);
+  if (!open) return null;
+  return (
+    <div className="language-offer" lang="en" data-nosnippet="">
+      <span>This site is also available in English.</span>
+      <button type="button" className="button button-small button-primary" onClick={() => setLanguage('en')}>Switch to English</button>
+      <button type="button" className="link-button" onClick={() => { keepFrench(); setOpen(false); }}>Keep French</button>
+    </div>
   );
 }
 
@@ -146,6 +161,7 @@ function Frame() {
           )}
         </div>
       </header>
+      <EnglishOffer />
 
       {/* La clé change avec la page : l'animation d'arrivée se rejoue à chaque navigation */}
       <main className="main" id="contenu" tabIndex={-1} key={page.key}>

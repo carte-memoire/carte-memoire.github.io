@@ -1166,6 +1166,11 @@ fieldset.studio-decision { padding: 10px 12px; display: flex; flex-direction: co
   border: 1px solid var(--bevel-light); border-radius: var(--radius);
 }
 .lang-switch:hover { border-color: var(--cross); }
+/* Proposition de lire le site en anglais (navigateur dans une autre langue) */
+.language-offer {
+  display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px 14px;
+  padding: 8px 16px; background: var(--panel-2); border-bottom: 1px solid var(--line); font-size: 0.9rem;
+}
 @media (max-width: 420px) {
   .account { gap: 6px; }
   .lang-switch { padding: 4px 6px; }
