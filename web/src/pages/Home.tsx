@@ -1,15 +1,14 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ConsoleShowcase } from '../components/ConsoleArt';
 import { CountUp } from '../components/CountUp';
 import { GameSearch } from '../components/GameSearch';
 import { useScanner } from '../components/Scanner';
-import { PlatformSelect } from '../components/PlatformSelect';
 import { PsSymbol, type PsShape } from '../components/PsSymbol';
 import { useAuth } from '../auth/AuthContext';
 import { gamePath } from '../lib/format';
-import { ALL_PLATFORMS, DEFAULT_PLATFORM, rememberPlatform, rememberedPlatform } from '../lib/preferences';
-import { useKnownPlatform, usePlatforms } from '../lib/usePlatforms';
+import { DEFAULT_PLATFORM } from '../lib/preferences';
+import { usePlatforms } from '../lib/usePlatforms';
 import { tr } from '../lib/i18n';
 
 // Un code-barres
@@ -22,6 +21,9 @@ function ScanIcon() {
 }
 
 // Ce que propose le site, pour qui arrive sans le connaître (visiteurs non connectés)
+// Durée d'affichage de chaque console au-dessus de la recherche
+const SHOWCASE_MS = 4000;
+
 const FEATURES: { shape: PsShape; title: string; text: string }[] = [
   { shape: 'triangle', title: tr('Explore'), text: tr('Chaque jeu, version par version : Black Label, Platinum, versions japonaises et américaines, codes produit, langues et jaquettes.') },
   { shape: 'circle', title: tr('Collectionne'), text: tr('Coche les versions que tu possèdes ou que tu cherches, note leur état et leur prix, suis ta progression et partage ta collection.') },
@@ -57,33 +59,32 @@ export function Home() {
   const { session, loading } = useAuth();
   const scanner = useScanner();
   const platforms = usePlatforms();
-  const [params, setParams] = useSearchParams();
+  const [params] = useSearchParams();
   // Arrivée après « Supprimer mon compte » (rechargement complet, voir Account.tsx)
   const accountDeleted = params.get('compte') === 'supprime';
-  const selected = useKnownPlatform(params.get('console') ?? rememberedPlatform());
-  const current = platforms.find((p) => p.short_name === selected);
-  const platformCode = selected === ALL_PLATFORMS ? null : selected;
-  // Nombre de jeux de la console choisie (ou de toutes), dès que la liste des consoles est lue
-  const gameCount = platformCode ? current?.game_count : platforms.reduce((n, p) => n + p.game_count, 0);
-
-  useEffect(() => { rememberPlatform(selected); }, [selected]);
+  // La recherche porte sur toutes les consoles ; au-dessus, les consoles défilent toutes
+  // seules (sans flèches, sans pause au survol), avec leur nombre de jeux
+  const [index, setIndex] = useState(0);
+  useEffect(() => {
+    if (platforms.length < 2) return;
+    const timer = setInterval(() => setIndex((i) => (i + 1) % platforms.length), SHOWCASE_MS);
+    return () => clearInterval(timer);
+  }, [platforms.length]);
+  // On commence par la PlayStation
+  const start = Math.max(0, platforms.findIndex((p) => p.short_name === DEFAULT_PLATFORM));
+  const current = platforms.length ? platforms[(start + index) % platforms.length] : undefined;
+  const selected = current?.short_name ?? DEFAULT_PLATFORM;
+  const gameCount = current?.game_count;
   // « Les {0} jeux » : le nombre défile jusqu'à sa valeur, au milieu de la phrase traduite
   const [countBefore, countAfter] = tr('Les {0} jeux', '{n}').split('{n}');
-
-  function choose(value: string) {
-    // On mémorise AVANT de changer l'adresse : pour la PlayStation, l'adresse ne
-    // porte plus de console et c'est la valeur mémorisée qui est relue.
-    rememberPlatform(value);
-    setParams(value === DEFAULT_PLATFORM ? {} : { console: value }, { replace: true });
-  }
 
   return (
     <section className="home">
       <div className="hero">
         <h1 className="hero-title">{tr('Carte Mémoire')}</h1>
         <p className="hero-subtitle">
-          {gameCount ? <>{countBefore}<CountUp value={gameCount} />{countAfter}</> : tr('Les jeux')}{platformCode ? tr(' de la') : ''}{' '}
-          <PlatformSelect value={selected} onChange={choose} />{tr(', version par version. Et ta collection.')}
+          {gameCount ? <>{countBefore}<CountUp key={selected} value={gameCount} />{countAfter}</> : tr('Les jeux')}{tr(' de la')}{' '}
+          <strong>{current?.name ?? 'PlayStation'}</strong>{tr(', version par version. Et ta collection.')}
         </p>
         {/* La console choisie, dessinée (ou les boutons de la manette), animée à chaque changement */}
         <ConsoleShowcase platform={selected} />
@@ -93,8 +94,6 @@ export function Home() {
 
       <div className="panel">
         <GameSearch
-          key={selected}
-          platform={platformCode}
           onSelect={(g) => navigate(gamePath(g))}
           onSelectStudio={(s) => navigate(`/catalogue?studio=${s.id}`)}
           action={(
@@ -104,17 +103,10 @@ export function Home() {
           )}
           autoFocus
           proposeMissing
-          label={tr('Rechercher un jeu{0} ou un studio (titre, titre japonais ou européen, code produit…)', current ? ` ${current.name}` : '')}
+          label={tr('Rechercher un jeu{0} ou un studio (titre, titre japonais ou européen, code produit…)', '')}
         />
       </div>
 
-      {/* Sous la recherche, pour qu'elle reste à sa place quand on change de console */}
-      {current && current.game_count === 0 && (
-        <p className="notice center">
-          {tr('Pas encore de jeux ')}<strong>{current.name}</strong>{tr(' dans la base : on commence par la PlayStation.')}{' '}
-          <Link to="/proposer">{tr('Propose le premier !')}</Link>
-        </p>
-      )}
 
       <p className="center">
         <Link to="/catalogue" className="button"><PsSymbol shape="square" />{tr(' Parcourir le catalogue complet')}</Link>

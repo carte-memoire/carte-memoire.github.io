@@ -32,5 +32,5 @@ export function useCountUp(target: number, duration = 700): number {
 // le texte autour ne bouge pas pendant le défilement.
 export function CountUp({ value, format = formatNumber }: { value: number; format?: (n: number) => string }) {
   const shown = useCountUp(value);
-  return <span className="count-up" style={{ minWidth: `${format(value).length}ch` }}>{format(shown)}</span>;
+  return <span className="count-up" style={shown === value ? undefined : { minWidth: `${format(value).length}ch` }}>{format(shown)}</span>;
 }
