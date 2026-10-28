@@ -1084,6 +1084,21 @@ await egal('les listes du site donnent l\'adresse : catalogue', catalogue(null, 
   ['ps2/jeu-adresse-temoin', 'ps2/jeu-adresse-temoin-2003']);
 await egal('…recherche', lignes(en(null, `select slug from public.search_games('jeu adresse temoin', 10) order by slug`)).then((r) => r.map((x) => x.slug)),
   ['ps1/jeu-adresse-temoin', 'ps2/jeu-adresse-temoin', 'ps2/jeu-adresse-temoin-2003']);
+
+console.log('\nRecherche mot par mot (console et studio avec le titre)');
+const chercheMots = (q) => lignes(en(null, `select s.title, s.slug from public.search_games($1, 50) s`, [q]));
+await egal('« crash ps2 » : des jeux Crash, tous sur PS2', chercheMots('crash ps2').then((r) => r.length > 0 && r.every((x) => x.slug.startsWith('ps2/') || x.title.toLowerCase().includes('crash'))), true);
+await egal('…et seulement des jeux sortis sur PS2', chercheMots('crash ps2').then(async (r) => {
+  const ids = (await val(`select count(*)::int as n from public.search_games('crash ps2', 50) s
+    where not exists (select 1 from public.release r join public.platform p on p.id = r.platform_id where r.game_id = s.id and p.short_name = 'PS2')`))[0].n;
+  return r.length > 0 && ids === 0;
+}), true);
+await egal('« Crash PlayStation 2 » : pareil', chercheMots('Crash PlayStation 2').then(async (r) => r.length === (await chercheMots('crash ps2')).length), true);
+await egal('« crash naughty dog » : le titre et le studio', chercheMots('crash naughty dog').then((r) => r.some((x) => x.title === 'Crash Bandicoot')), true);
+await egal('« square soft » : les jeux de Squaresoft', chercheMots('square soft').then((r) => r.some((x) => x.title === 'Final Fantasy VII')), true);
+await egal('« square enix » : des jeux de Square Enix', chercheMots('square enix').then((r) => r.length > 0), true);
+await egal('le titre exact reste en tête', chercheMots('final fantasy vii').then((r) => r[0]?.title), 'Final Fantasy VII');
+await egal('« the getaway » : trouvé', chercheMots('the getaway').then((r) => r.some((x) => x.title === 'The Getaway')), true);
 await ko('les anciennes adresses ne s\'écrivent pas par l\'API', en(MEMBRE, `insert into public.game_slug_history (slug, game_id) values ('ps1/piege', $1)`, [jA]), '');
 await ko('…pas même par un modérateur', en(ADMIN, `delete from public.game_slug_history`).then((r) => { if (r.affectedRows === 0) throw new Error('refusé (aucune ligne)'); }), '');
 await ok('nettoyage (adresses)', (async () => {
