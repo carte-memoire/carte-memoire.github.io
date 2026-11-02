@@ -9,6 +9,7 @@ import { CoverCamera } from '../components/CoverCamera';
 import { usePhotoSender } from '../lib/photoLink';
 import type { CaseFormat, Quad } from '../lib/coverPhoto';
 import { ManualCode, matchLabel, useScanner } from '../components/Scanner';
+import { InstallHint } from '../components/InstallHint';
 import { tr } from '../lib/i18n';
 import { usePageTitle } from '../lib/title';
 
@@ -42,7 +43,7 @@ function StandaloneScanner() {
   return (
     <section className="stack narrow">
       <h1>{tr('Scanner un jeu')}</h1>
-      <div className="panel stack"><ScanCamera onCode={handleCode} /><ManualCode onCode={handleCode} /></div>
+      <div className="panel stack"><ScanCamera onCode={handleCode} /><ManualCode onCode={handleCode} /><InstallHint /></div>
     </section>
   );
 }
@@ -110,7 +111,7 @@ function LinkedScanner({ link }: { link: string }) {
             <>
               <h2>{tr('Code envoyé : retourne sur ton ordinateur')}</h2>
               <p>
-                {last.status === 'found' && <>{tr('La fiche de ')}<strong>{last.title}</strong>{tr(" vient de s'y ouvrir.")}</>}
+                {last.status === 'found' && <><strong>{last.title}</strong>{tr(" s'y affiche : tu l'as déjà ou non, son prix, en un coup d'œil.")}</>}
                 {last.status === 'several' && tr('Plusieurs versions portent ce code : choisis la tienne sur l’ordinateur.')}
                 {last.status === 'unknown' && tr('Ce code n’est pas encore connu : retrouve ton jeu sur l’ordinateur pour l’associer à ta version.')}
               </p>

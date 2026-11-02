@@ -1,0 +1,23 @@
+{
+  "name": "Carte Mémoire",
+  "short_name": "Carte Mémoire",
+  "description": "La base de données collaborative des jeux vidéo, et ta collection. Scanne un jeu en brocante : tu sais aussitôt si tu l'as, si tu le cherches, et ce que les membres l'ont payé.",
+  "lang": "fr",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b0d1c",
+  "theme_color": "#0b0d1c",
+  "categories": ["games", "entertainment", "utilities"],
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Scanner un jeu", "short_name": "Scanner", "url": "/scanner", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Ma collection", "short_name": "Collection", "url": "/collection", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

@@ -3,9 +3,13 @@ import './styles.css';
 import { loadLanguage, tr } from './lib/i18n';
 import { startMotion } from './lib/motion';
 import { reloadForNewVersion } from './lib/reload';
+import { watchInstallPrompt } from './lib/install';
 
 // Animations : selon le réglage de l'appareil ou le choix fait dans Mon compte
 startMotion();
+
+// Installation sur l'écran d'accueil : le navigateur prévient tôt qu'il peut la proposer
+watchInstallPrompt();
 
 // Morceau du site introuvable (le site a été mis à jour depuis l'ouverture de l'onglet) :
 // on recharge une fois pour prendre la nouvelle version

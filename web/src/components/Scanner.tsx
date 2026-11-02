@@ -4,16 +4,22 @@ import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { cameraAvailable, formatBarcode, isTouchDevice, linkChannel, normalizeBarcode } from '../lib/barcode';
 import { editionLabel, gamePath, languagesShort, zoneLabel } from '../lib/format';
-import type { BarcodeMatch } from '../lib/types';
+import type { BarcodeMatch, Release } from '../lib/types';
+import { AddToCollection, savedText } from './AddToCollection';
 import { Dialog } from './Dialog';
+import { InstallHint } from './InstallHint';
+import { ScanVerdict } from './ScanVerdict';
+import { useToast } from './Toast';
 import { GameSearch } from './GameSearch';
 import { ScanCamera } from './ScanCamera';
 import { tr } from '../lib/i18n';
 
-// Scan du code-barres d'une boîte de jeu, pour ouvrir directement la fiche de sa version.
+// Scan du code-barres d'une boîte de jeu : le verdict s'affiche aussitôt (ScanVerdict :
+// tu l'as déjà, tu le cherches, prix payés par les membres), avec l'ajout à la collection
+// sans quitter le scanner, pour enchaîner les jeux en brocante.
 // - Téléphone : l'appareil photo s'ouvre dans la fenêtre.
 // - Ordinateur : un QR code relie le téléphone (page /scanner) ; chaque code scanné sur
-//   le téléphone ouvre la fiche ici, tant que la liaison reste active. Le téléphone
+//   le téléphone donne son verdict ici, tant que la liaison reste active. Le téléphone
 //   n'envoie que des chiffres, revérifiés ici (clé de contrôle) avant toute recherche.
 // - Code inconnu : on retrouve le jeu, puis sa version, et le code lui est associé.
 
@@ -22,6 +28,7 @@ type View =
   | { kind: 'phone' }
   | { kind: 'looking'; code: string }
   | { kind: 'choices'; code: string; matches: BarcodeMatch[] }
+  | { kind: 'verdict'; code: string; match: BarcodeMatch }
   | { kind: 'unknown'; code: string }
   | { kind: 'error'; code: string; message: string };
 
@@ -58,6 +65,9 @@ export function ScannerProvider({ children }: { children: ReactNode }) {
   const [phoneReady, setPhoneReady] = useState(false);
   const [notice, setNotice] = useState('');
   const noticeTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // Version qu'on ajoute à la collection depuis le verdict (fenêtre d'ajout à la place du scanner)
+  const [adding, setAdding] = useState<Release | null>(null);
+  const { toast, show: showToast } = useToast();
 
   async function handleCode(code: string, fromPhone = false) {
     setView({ kind: 'looking', code });
@@ -67,18 +77,14 @@ export function ScannerProvider({ children }: { children: ReactNode }) {
       return setView({ kind: 'error', code, message: errorMessage(error) });
     }
     const matches = (data as BarcodeMatch[]) ?? [];
-    if (matches.length === 1) {
-      setOpen(false);
-      navigate(versionPath(matches[0]));
-      if (fromPhone) {
-        clearTimeout(noticeTimer.current);
-        setNotice(tr('Code reçu du téléphone : {0}', matches[0].local_title));
-        noticeTimer.current = setTimeout(() => setNotice(''), 4000);
-      }
-      return;
-    }
     setOpen(true);
-    setView(matches.length > 0 ? { kind: 'choices', code, matches } : { kind: 'unknown', code });
+    setView(matches.length === 1 ? { kind: 'verdict', code, match: matches[0] }
+      : matches.length > 1 ? { kind: 'choices', code, matches } : { kind: 'unknown', code });
+    if (fromPhone && matches.length === 1) {
+      clearTimeout(noticeTimer.current);
+      setNotice(tr('Code reçu du téléphone : {0}', matches[0].local_title));
+      noticeTimer.current = setTimeout(() => setNotice(''), 4000);
+    }
   }
 
   // Les messages du téléphone appellent toujours la dernière version de handleCode
@@ -111,6 +117,13 @@ export function ScannerProvider({ children }: { children: ReactNode }) {
     setOpen(true);
   }
 
+  // Depuis le verdict : la fenêtre d'ajout remplace le scanner ; une fois l'exemplaire
+  // enregistré, le scanner revient pour le jeu suivant
+  function startAdding(release: Release) {
+    setOpen(false);
+    setAdding(release);
+  }
+
   function close() {
     setOpen(false);
     // Téléphone jamais relié : la liaison ne sert à rien
@@ -135,22 +148,35 @@ export function ScannerProvider({ children }: { children: ReactNode }) {
           phoneReady={phoneReady}
           onCode={(code) => handleCode(code)}
           onView={(v) => { if (v.kind === 'phone' && !link) setLink(crypto.randomUUID()); setView(v); }}
-          onPick={(m) => { setOpen(false); navigate(versionPath(m)); }}
+          onPick={(m) => setView({ kind: 'verdict', code: m.barcode, match: m })}
+          onOpen={(m) => { setOpen(false); navigate(versionPath(m)); }}
+          onAdd={startAdding}
+          onAgain={openScanner}
           onUnknownGame={(path) => { setOpen(false); navigate(path); }}
         />
       </Dialog>
+      <AddToCollection
+        open={adding !== null}
+        initialReleaseId={adding?.id ?? null}
+        onClose={() => { setAdding(null); setOpen(true); }}
+        onSaved={(saved) => { setAdding(null); showToast({ text: savedText(saved), saved: true }); openScanner(); }}
+      />
       {notice && <div className="toast" role="status">{notice}</div>}
+      {toast}
     </ScannerContext.Provider>
   );
 }
 
-function ScannerView({ view, link, phoneReady, onCode, onView, onPick, onUnknownGame }: {
+function ScannerView({ view, link, phoneReady, onCode, onView, onPick, onOpen, onAdd, onAgain, onUnknownGame }: {
   view: View;
   link: string | null;
   phoneReady: boolean;
   onCode: (code: string) => void;
   onView: (view: View) => void;
   onPick: (match: BarcodeMatch) => void;
+  onOpen: (match: BarcodeMatch) => void;
+  onAdd: (release: Release) => void;
+  onAgain: () => void;
   onUnknownGame: (path: string) => void;
 }) {
   const touch = isTouchDevice();
@@ -161,6 +187,7 @@ function ScannerView({ view, link, phoneReady, onCode, onView, onPick, onUnknown
           <ScanCamera onCode={onCode} />
           <ManualCode onCode={onCode} />
           {!touch && <button type="button" className="link-button small" onClick={() => onView({ kind: 'phone' })}>{tr('Scanner plutôt avec mon téléphone')}</button>}
+          <InstallHint />
         </>
       );
     case 'phone':
@@ -168,12 +195,12 @@ function ScannerView({ view, link, phoneReady, onCode, onView, onPick, onUnknown
         <>
           {link && <PhoneQr link={link} />}
           <p className={phoneReady ? 'success' : 'notice'} aria-live="polite">
-            {phoneReady ? tr('Téléphone relié : scanne le code-barres de ton jeu, sa fiche s’ouvrira ici.') : tr('En attente du téléphone…')}
+            {phoneReady ? tr('Téléphone relié : scanne le code-barres de ton jeu, son verdict s’affichera ici.') : tr('En attente du téléphone…')}
           </p>
           <ol className="steps small">
             <li>{tr("Ouvre l'appareil photo de ton téléphone et vise ce QR code.")}</li>
             <li>{tr("Touche le lien qui apparaît : le scanner du site s'ouvre.")}</li>
-            <li>{tr("Scanne le code-barres au dos de la boîte : la fiche de ta version s'ouvre sur cet ordinateur. Tu peux enchaîner les jeux.")}</li>
+            <li>{tr("Scanne le code-barres au dos de la boîte : le verdict s'affiche sur cet ordinateur (tu l'as déjà, tu le cherches, prix payés). Tu peux enchaîner les jeux.")}</li>
           </ol>
           <ManualCode onCode={onCode} />
           {cameraAvailable() && <button type="button" className="link-button small" onClick={() => onView({ kind: 'camera' })}>{tr('Utiliser plutôt la webcam de cet ordinateur')}</button>}
@@ -192,6 +219,8 @@ function ScannerView({ view, link, phoneReady, onCode, onView, onPick, onUnknown
           </ul>
         </>
       );
+    case 'verdict':
+      return <ScanVerdict key={view.match.release_id} match={view.match} onAdd={onAdd} onOpen={() => onOpen(view.match)} onAgain={onAgain} />;
     case 'unknown':
       return (
         <>

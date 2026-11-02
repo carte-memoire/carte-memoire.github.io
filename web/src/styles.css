@@ -1133,6 +1133,26 @@ kbd {
 .priciest { margin: 0 0 10px; padding-left: 20px; font-size: 0.9rem; }
 .progress-stats.panel { padding: 14px; }
 
+/* ---------- Scanner : le verdict après un scan ---------- */
+.verdict { display: flex; flex-direction: column; gap: 12px; }
+.verdict-head { display: flex; gap: 12px; align-items: flex-start; }
+.verdict-head > div { min-width: 0; }
+.verdict-head strong { display: block; font-size: 1.1rem; margin-bottom: 6px; }
+.verdict-line {
+  margin: 0; padding: 12px 14px; border-radius: var(--radius); font-weight: 600; font-size: 1.05rem;
+  background: var(--panel-2); border: 1px solid var(--line);
+}
+.verdict-line.is-owned { background: rgba(47, 214, 166, 0.14); border-color: var(--triangle); color: #b5f3e1; }
+.verdict-line.is-wanted { background: rgba(255, 134, 217, 0.14); border-color: var(--square); color: #ffc4ec; }
+.verdict-line small { display: block; font-weight: 400; font-size: 0.85rem; color: var(--muted); margin-top: 4px; }
+.verdict-line.muted { font-weight: 400; }
+.verdict-facts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 0.9rem; }
+.motion .verdict-line { animation: pop 360ms cubic-bezier(0.3, 1.4, 0.5, 1) both; }
+
+/* ---------- Installer l'application (écran d'accueil) ---------- */
+.install-hint { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0; font-size: 0.85rem; color: var(--muted); }
+.install-hint .link-button { text-align: left; font-size: inherit; }
+
 /* ---------- Téléphone relié : code envoyé, retour à l'ordinateur ---------- */
 .scan-done { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; padding: 28px 20px; }
 .scan-done h2, .scan-done p { margin: 0; }
