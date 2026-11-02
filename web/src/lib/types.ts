@@ -44,6 +44,9 @@ export interface PlatformInfo extends Platform {
   generation: number | null;
   type: 'home' | 'handheld' | 'hybrid';
   game_count: number;
+  // Première et dernière année de sortie connues de ses jeux (null : aucun jeu daté)
+  first_year: number | null;
+  last_year: number | null;
 }
 
 export interface ReleaseImage {

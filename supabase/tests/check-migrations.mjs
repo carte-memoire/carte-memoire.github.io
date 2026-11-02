@@ -317,6 +317,9 @@ await egal('pas de constructeur en double', val(`select count(*)::int as n from 
 const consoles = await lignes(en(null, `select short_name, manufacturer, game_count from public.list_platforms()`));
 await egal('la liste des consoles est publique, avec le nombre de jeux', consoles.find((c) => c.short_name === 'PS1').game_count > 4000 && consoles.find((c) => c.short_name === 'NES').game_count === 0, true);
 await egal('…rangée par constructeur', consoles.find((c) => c.short_name === 'NSW2').manufacturer, 'Nintendo');
+const annees = await lignes(en(null, `select short_name, first_year, last_year from public.list_platforms()`));
+await egal('années d\'activité de la PS1 (filtre « année » du catalogue) : lancée en 1994, jeux datés jusque dans les années 2000', [annees.find((c) => c.short_name === 'PS1').first_year, annees.find((c) => c.short_name === 'PS1').last_year >= 2000], [1994, true]);
+await egal('console sans jeu daté : son année de lancement, pas de dernière année (le site garde sa large fourchette)', annees.find((c) => c.short_name === 'NES'), { short_name: 'NES', first_year: 1983, last_year: null });
 const filtre = (q, c) => lignes(en(null, `select title from public.search_games($1, 20, $2)`, [q, c]));
 await egal('recherche limitée à la PS1 : FF7 trouvé', filtre('final fantasy vii', 'PS1').then((r) => r[0]?.title), 'Final Fantasy VII');
 await egal('recherche limitée à la NES : aucun jeu pour l\'instant', filtre('final fantasy', 'NES').then((r) => r.length), 0);

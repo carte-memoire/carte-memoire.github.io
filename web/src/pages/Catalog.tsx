@@ -11,7 +11,7 @@ import {
   ALL_LANGUAGES, ALL_PLATFORMS, ALL_ZONES, DEFAULT_LANGUAGE, DEFAULT_PLATFORM, pageSizeFrom, pageSizeParam, rememberLanguage, rememberPageSize,
   rememberPlatform, rememberZone, rememberedLanguage, rememberedPageSize, rememberedPlatform, rememberedZone,
 } from '../lib/preferences';
-import type { CatalogRelease, CatalogRow, CollectionItem, GenreFamily, Ownership, ProgressRow, Zone } from '../lib/types';
+import type { CatalogRelease, CatalogRow, CollectionItem, GenreFamily, Ownership, PlatformInfo, ProgressRow, Zone } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
 import { AddToCollection, savedText } from '../components/AddToCollection';
 import { CountUp } from '../components/CountUp';
@@ -23,7 +23,7 @@ import { PsSymbol } from '../components/PsSymbol';
 import { CatalogSkeleton } from '../components/Skeleton';
 import { useToast } from '../components/Toast';
 import { notifyCollectionChanged } from '../lib/trophies';
-import { useKnownPlatform } from '../lib/usePlatforms';
+import { useKnownPlatform, usePlatforms } from '../lib/usePlatforms';
 import { tr } from '../lib/i18n';
 import { usePageTitle } from '../lib/title';
 
@@ -46,10 +46,15 @@ const OWNERSHIP: { value: Ownership; label: string }[] = [
   { value: 'wanted', label: tr('Ceux que je cherche') },
 ];
 
-// Années proposées : celles de la vie de la console (PS1 : 1994 à 2006, PS2 : 2000 à 2013)
-const CONSOLE_YEARS: Record<string, [number, number]> = { PS1: [1994, 2006], PS2: [2000, 2013] };
-function yearsFor(platform: string): number[] {
-  const [from, to] = CONSOLE_YEARS[platform] ?? [1972, new Date().getFullYear()];
+// Années proposées : celles de la vie de la console (première et dernière sortie connues,
+// données par la base) ; toutes les consoles : de la plus ancienne à la plus récente.
+// Sans information (console sans jeu daté, liste pas encore lue) : large fourchette.
+function yearsFor(platform: string, platforms: PlatformInfo[]): number[] {
+  const chosen = platforms.filter((p) => (platform === ALL_PLATFORMS ? p.game_count > 0 : p.short_name === platform));
+  const firsts = chosen.map((p) => p.first_year).filter((y): y is number => y !== null);
+  const lasts = chosen.map((p) => p.last_year).filter((y): y is number => y !== null);
+  const from = firsts.length ? Math.min(...firsts) : 1972;
+  const to = lasts.length ? Math.max(...lasts) : new Date().getFullYear();
   return Array.from({ length: to - from + 1 }, (_, i) => from + i);
 }
 
@@ -64,6 +69,7 @@ export function Catalog() {
 
   // Filtres lus dans l'adresse (une valeur inconnue est ignorée)
   const platform = useKnownPlatform(params.get('console') ?? rememberedPlatform());
+  const platforms = usePlatforms();
   const zoneParam = params.get('zone') ?? rememberedZone();
   const zone = zoneParam === ALL_ZONES || CATALOG_ZONES.some((z) => z.value === zoneParam) ? zoneParam : ALL_ZONES;
   const letterParam = params.get('lettre')?.toUpperCase() ?? null;
@@ -356,7 +362,7 @@ export function Catalog() {
               <span className="field-label">{tr('Année')}</span>
               <select value={year ?? ''} onChange={(e) => update({ annee: e.target.value || null })}>
                 <option value="">{tr('Toutes')}</option>
-                {yearsFor(platform).map((y) => <option key={y} value={y}>{y}</option>)}
+                {yearsFor(platform, platforms).map((y) => <option key={y} value={y}>{y}</option>)}
               </select>
             </label>
             {session && (
