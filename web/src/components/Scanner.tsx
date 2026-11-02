@@ -83,7 +83,7 @@ export function ScannerProvider({ children }: { children: ReactNode }) {
 
   // Les messages du téléphone appellent toujours la dernière version de handleCode
   const handleRef = useRef(handleCode);
-  handleRef.current = handleCode;
+  useEffect(() => { handleRef.current = handleCode; });
 
   useEffect(() => {
     if (!link) return;

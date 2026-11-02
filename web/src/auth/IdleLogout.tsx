@@ -23,7 +23,7 @@ export function IdleLogout() {
   const location = useLocation();
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
   const where = useRef('');
-  where.current = location.pathname + location.search;
+  useEffect(() => { where.current = location.pathname + location.search; });
   const userId = session?.user.id ?? null;
   // La connexion compte comme une activité (date du serveur, la même dans tous les onglets)
   const signedInAt = Date.parse(session?.user.last_sign_in_at ?? '') || 0;

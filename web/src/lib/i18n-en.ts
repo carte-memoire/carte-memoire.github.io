@@ -1646,4 +1646,7 @@ export const EN: Record<string, string> = {
   "Il manque à la base ?": "Missing from the database?",
   "Fiche indisponible pour le moment": "Game page unavailable for now",
   "La base de données ne répond pas : vérifie ta connexion internet, puis réessaie.": "The database isn't responding: check your internet connection, then try again.",
+  "useAuth doit être utilisé dans <AuthProvider>": "useAuth must be used inside <AuthProvider>",
+  "useConfirm doit être utilisé dans <ConfirmProvider>": "useConfirm must be used inside <ConfirmProvider>",
+  "useScanner doit être utilisé dans <ScannerProvider>": "useScanner must be used inside <ScannerProvider>",
 };

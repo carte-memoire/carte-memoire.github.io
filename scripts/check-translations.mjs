@@ -14,7 +14,7 @@ const files = [];
   for (const name of readdirSync(dir)) {
     const path = join(dir, name);
     if (statSync(path).isDirectory()) walk(path);
-    else if (/\.tsx?$/.test(name) && !/i18n(-en)?\.ts$/.test(name)) files.push(path);
+    else if (/\.tsx?$/.test(name) && !/i18n(-en)?\.ts$/.test(name) && !/\.test\.ts$/.test(name)) files.push(path);
   }
 })(SRC);
 
@@ -33,3 +33,4 @@ for (const file of files) {
 }
 for (const [text, file] of missing) console.log(`${file} : ${text}`);
 console.log(missing.size ? `\n${missing.size} texte(s) sans traduction anglaise` : 'Tous les textes ont leur traduction anglaise.');
+process.exitCode = missing.size ? 1 : 0;

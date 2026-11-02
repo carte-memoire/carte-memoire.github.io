@@ -33,7 +33,7 @@ export function ScanCamera({ onCode, continuous = false }: { onCode: (code: stri
   const [flash, setFlash] = useState(false);
   // Toujours la dernière version du rappel, sans relancer la caméra
   const callback = useRef(onCode);
-  callback.current = onCode;
+  useEffect(() => { callback.current = onCode; });
 
   useEffect(() => {
     if (!navigator.mediaDevices?.getUserMedia) {

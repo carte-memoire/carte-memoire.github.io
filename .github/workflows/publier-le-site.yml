@@ -3,7 +3,8 @@
 #
 # À chaque envoi sur main (ou à la demande, onglet Actions → « Run workflow ») :
 #   1. les tests de la base (migrations, règles de sécurité) doivent passer ;
-#   2. le site est compilé avec l'adresse et la clé PUBLIQUE de Supabase,
+#   2. le code du site est vérifié (types, lint, tests, traductions), puis le site est
+#      compilé avec l'adresse et la clé PUBLIQUE de Supabase,
 #      lues dans les variables du dépôt (Settings → Secrets and variables →
 #      Actions → Variables) : VITE_SUPABASE_URL et VITE_SUPABASE_PUBLISHABLE_KEY
 #      (rangées par erreur dans « Secrets », elles sont lues aussi), et l'adresse de
@@ -97,6 +98,11 @@ jobs:
       - name: Installer
         working-directory: web
         run: npm ci
+      # Lint (oxlint), tests du front (Vitest, modules de src/lib) et textes sans traduction
+      # anglaise (scripts/check-translations.mjs) : un oubli arrête la publication
+      - name: Vérifier le code du site
+        working-directory: web
+        run: npm run check
       # 404.html = index.html : une adresse comme /jeu/42 ouverte directement charge
       # quand même le site, qui affiche la bonne page. Puis .well-known/security.txt
       # (où signaler une faille), refait à chaque publication pour ne jamais expirer.
