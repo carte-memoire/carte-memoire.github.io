@@ -16,12 +16,20 @@ cp .env.example .env.local   # puis y mettre l'adresse et la clé PUBLIQUE du pr
 npm run dev                  # http://localhost:5173
 ```
 
+Avant d'envoyer du code (le workflow de publication refait ces vérifications) :
+
+```bash
+cd web
+npm run typecheck   # TypeScript
+npm run check       # lint (oxlint), tests du front (Vitest : src/lib/*.test.ts), textes sans traduction anglaise
+```
+
 ## Site publié
 
 https://carte-memoire.app — publié par GitHub Pages à chaque envoi sur `main` (l'ancienne adresse
 https://carte-memoire.github.io y renvoie)
 (workflow [`.github/workflows/publier-le-site.yml`](.github/workflows/publier-le-site.yml)) : les tests de la base
-doivent passer, puis le site est compilé et mis en ligne.
+doivent passer, le code du site est vérifié (types, lint, tests, traductions), puis le site est compilé et mis en ligne.
 
 Réglages, une fois pour toutes, dans le dépôt GitHub :
 
@@ -93,7 +101,21 @@ npx supabase db query --linked -f .covers-import/link-covers.sql   # APRÈS l'en
 | Images | Formats et poids limités par le stockage, chacun n'écrit que dans son dossier, images ré-encodées dans le navigateur (métadonnées GPS supprimées) |
 | Navigateur | Politique de sécurité du contenu (CSP) sur le site publié, aucun HTML injecté, liens externes en `noopener` |
 
-À faire avant d'ouvrir le site au public : serveur d'e-mails dédié (SMTP), CAPTCHA (Cloudflare Turnstile), adresse de production dans `config.toml` (redirections) et dans le tableau de bord Supabase → Authentication → Passkeys (les réglages de passkeys ne passent pas par `config push`).
+| Anti-robots | Cloudflare Turnstile à l'inscription, à la connexion et au mot de passe oublié ; épreuve « Insère le disque » à l'inscription ; mots de passe divulgués refusés (Have I Been Pwned, sans envoyer le mot de passe) |
+| E-mails | Serveur dédié (Brevo), modèles du site avec code à 6 chiffres (`supabase/templates/`) |
+| Signalement | [`SECURITY.md`](SECURITY.md) et `/.well-known/security.txt` (RFC 9116), refait à chaque publication |
+
+Réglages qui ne passent pas par le dépôt : l'adresse du site dans le tableau de bord Supabase → Authentication → Passkeys (voir « Site publié »).
+
+## Organisation du code
+
+- `web/src/pages/` : une page par fichier ; la page de modification d'un jeu (modérateurs) est découpée dans `pages/edit/` (jeu, genres, origine, versions, dates, fusion, suppression…) ;
+- `web/src/components/` : éléments réutilisés (jaquette, recherche, scanner, fenêtres…) ;
+- `web/src/lib/` : logique sans affichage (formats, CSV, codes-barres, traductions…), c'est elle qui a des tests unitaires ;
+- `web/scripts/` : pages pour les moteurs de recherche et `security.txt`, générés à la publication.
+
+Les consoles (nom, constructeur, champs techniques, années d'activité) viennent toutes de la table `platform` : ajouter
+une console ne demande rien au code du site, seulement ses données.
 
 ## Licence des données
 
