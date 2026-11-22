@@ -10,8 +10,8 @@
 #      (rangées par erreur dans « Secrets », elles sont lues aussi), et l'adresse de
 #      contact des pages légales : VITE_CONTACT_EMAIL ;
 #   3. une page HTML par jeu est générée pour les moteurs de recherche, avec le plan
-#      du site (web/scripts/prerender.mjs) ; si cette étape échoue, le site est
-#      publié quand même, sans elles ;
+#      du site (web/scripts/prerender.mjs) ; si cette étape échoue, RIEN n'est publié :
+#      la version en ligne (avec ses fiches) reste en place et GitHub prévient par e-mail ;
 #   4. il est publié sur https://carte-memoire.app (nom de domaine réglé dans
 #      Settings → Pages ; l'ancienne adresse carte-memoire.github.io y renvoie).
 #      Variable SITE_URL pour en changer.
@@ -114,14 +114,15 @@ jobs:
           npm run build
           cp dist/index.html dist/404.html
           node scripts/security-txt.mjs
-      # Référencement : une page par jeu, sitemap.xml, robots.txt. En cas d'échec, simple
-      # avertissement : le site part tel qu'il a été compilé juste au-dessus.
+      # Référencement : une page par jeu, sitemap.xml, robots.txt. Un échec arrête la
+      # publication : publier sans ces pages effacerait toutes les fiches connues de Google
+      # (c'est arrivé sans que personne ne le voie : l'échec n'était qu'un avertissement).
       - name: Générer les fiches pour les moteurs de recherche
         working-directory: web
         env:
           SITE_URL: ${{ vars.SITE_URL || 'https://carte-memoire.app' }}
         run: |
-          node scripts/prerender.mjs || echo "::warning::Fiches pour les moteurs de recherche non générées, le site est publié sans elles"
+          node scripts/prerender.mjs
       # v5 : la première à savoir inclure les dossiers « cachés » (nom en point) comme
       # .well-known/security.txt ; la v4 les excluait toujours
       - uses: actions/upload-pages-artifact@v5

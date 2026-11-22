@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  editionClass, editionLabel, formatDate, formatPercent, gamePath, languagesLong, languagesShort, pickSummary, searchKey, slugify, speaksLanguage, yearOf, zoneOrder,
+  editionClass, editionLabel, formatDate, formatPercent, gamePath, languagesLong, languagesShort, pickSummary, readableSpaces, searchKey, slugify, speaksLanguage, yearOf, zoneOrder,
 } from './format';
 
 describe('slugify et gamePath', () => {
@@ -107,5 +107,12 @@ describe('pickSummary', () => {
   });
   it('rien sans aucun résumé (anciennes données sans colonnes anglaises comprises)', () => {
     expect(pickSummary({ summary: null, summary_source: null }, 'fr')).toBeNull();
+  });
+});
+
+describe('readableSpaces', () => {
+  it('remplace l’espace fine (invisible dans la police du site) par une insécable normale', () => {
+    expect(readableSpaces('4\u202f485')).toBe('4\u00a0485');
+    expect(readableSpaces('Final Fantasy VII')).toBe('Final Fantasy VII');
   });
 });

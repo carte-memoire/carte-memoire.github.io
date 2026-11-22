@@ -62,22 +62,35 @@ function shorten(text, max = 155) {
   return `${cut.slice(0, Math.max(cut.lastIndexOf(' '), max - 20)).replace(/[\s,;:.]+$/, '')}…`;
 }
 
-// --- Lecture du catalogue public (1 000 jeux par appel) ----------------
+// --- Lecture du catalogue public (250 jeux par appel) ------------------
 // Les mêmes champs que la fiche du site (src/lib/queries.ts, en JavaScript pur pour être
 // lu ici tel quel) : chaque page contient les données de sa fiche, que le site affiche
 // sans attendre la base (et que les robots des moteurs de recherche lisent ainsi)
 const queries = await import(`data:text/javascript,${encodeURIComponent(readFileSync(join(root, 'src', 'lib', 'queries.ts'), 'utf8'))}`);
 const SELECT = queries.GAME_FIELDS.replace(/\s+/g, '');
 
-async function readAll(table, select, order) {
+// Par paquets de 250, à la suite de la dernière clé lue (pas de « offset », de plus en
+// plus lent) : 1 000 jeux avec toutes leurs versions dépassaient le temps accordé aux
+// visiteurs par la base (« statement timeout », erreur 57014), et la génération échouait
+// à chaque publication depuis que le catalogue a doublé. Un paquet refusé est redemandé.
+const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+async function readAll(table, select, key, size = 250) {
   const rows = [];
-  for (let offset = 0; ; offset += 1000) {
-    const url = `${SUPABASE_URL}/rest/v1/${table}?select=${encodeURIComponent(select)}&order=${order}&limit=1000&offset=${offset}`;
-    const response = await fetch(url, { headers: { apikey: KEY, Accept: 'application/json' } });
-    if (!response.ok) throw new Error(`Lecture du catalogue impossible (${response.status}) : ${(await response.text()).slice(0, 300)}`);
-    const page = await response.json();
+  for (let after = null; ;) {
+    const url = `${SUPABASE_URL}/rest/v1/${table}?select=${encodeURIComponent(select)}&order=${key}&limit=${size}`
+      + (after === null ? '' : `&${key}=gt.${encodeURIComponent(after)}`);
+    let page;
+    for (let attempt = 1; ; attempt++) {
+      const response = await fetch(url, { headers: { apikey: KEY, Accept: 'application/json' } });
+      if (response.ok) { page = await response.json(); break; }
+      const text = (await response.text()).slice(0, 300);
+      if (attempt >= 5 || response.status < 500) throw new Error(`Lecture du catalogue impossible (${response.status}) : ${text}`);
+      console.log(`  ${table} : réponse ${response.status}, nouvel essai dans ${attempt * 5} s`);
+      await pause(attempt * 5000);
+    }
     rows.push(...page);
-    if (page.length < 1000) return rows;
+    if (page.length < size) return rows;
+    after = page.at(-1)[key];
   }
 }
 

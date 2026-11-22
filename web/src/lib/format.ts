@@ -153,7 +153,7 @@ export function yearOf(date: string | null): string {
 }
 
 export function formatPrice(value: number | null): string {
-  return value === null ? '' : new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR' }).format(value);
+  return value === null ? '' : readableSpaces(new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR' }).format(value));
 }
 
 // Texte → nom de fichier ou morceau d'adresse : minuscules, sans accents ni ponctuation
@@ -233,10 +233,18 @@ const percentFormat = new Intl.NumberFormat(locale, { style: 'percent', maximumF
 
 // 312 sur 1 286 → « 24,3 % »
 export function formatPercent(part: number, total: number): string {
-  return percentFormat.format(total ? part / total : 0);
+  return readableSpaces(percentFormat.format(total ? part / total : 0));
 }
 
-export const formatNumber = new Intl.NumberFormat(locale).format;
+// Le français sépare les milliers (et le symbole € ou %) par une espace fine insécable,
+// qui ne fait que 2 pixels dans la police du site : « 4 485 » se lisait « 4485 ».
+// Elle devient une espace insécable normale.
+export function readableSpaces(text: string): string {
+  return text.replace(/ /g, ' ');
+}
+
+const numberFormat = new Intl.NumberFormat(locale);
+export const formatNumber = (n: number): string => readableSpaces(numberFormat.format(n));
 
 // Clé de recherche : sans accents, ni majuscules, ni ponctuation (« Biohazard 2 » → « biohazard2 »)
 export function searchKey(text: string): string {

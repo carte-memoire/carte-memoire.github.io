@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from './supabase';
 import { locale, tr } from './i18n';
+import { formatNumber, readableSpaces } from './format';
 import type { AcquisitionType, ItemCondition } from './types';
 
 // Prix médian selon l'état : ce que les membres ont payé (voir la migration
@@ -39,13 +40,14 @@ export function priceCategory(condition: ItemCondition | '' | null, acquisition:
 }
 
 // Prix arrondis à l'euro : « 20 € »
-export const formatEuros = new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format;
+const eurosFormat = new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+export const formatEuros = (n: number): string => readableSpaces(eurosFormat.format(n));
 
 // « 20 € (19 – 31 €) » : la médiane, et la fourchette où se trouve la moitié des prix
 export function priceText(price: ReleasePrice): string {
   if (price.median === null) return '';
   return price.low !== null && price.high !== null && price.low !== price.high
-    ? tr('{0} ({1} – {2})', formatEuros(price.median), new Intl.NumberFormat(locale).format(price.low), formatEuros(price.high))
+    ? tr('{0} ({1} – {2})', formatEuros(price.median), formatNumber(price.low), formatEuros(price.high))
     : formatEuros(price.median);
 }
 
