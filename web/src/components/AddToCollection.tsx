@@ -1,7 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { ACQUISITIONS, CONDITIONS, TRADE_STATUSES, zoneOrder } from '../lib/format';
+import { ACQUISITIONS, CONDITIONS, TRADE_STATUSES, zoneOrderFrom } from '../lib/format';
+import { preferredZone } from '../lib/preferences';
 import { errorMessage } from '../lib/errors';
 import { RELEASE_FIELDS } from '../lib/queries';
 import { standInFor } from '../lib/images';
@@ -72,9 +73,10 @@ export function AddToCollection({ open, onClose, onSaved, initialReleaseId, edit
     setGame(g);
     const { data, error } = await supabase.from('release').select(RELEASE_FIELDS).eq('game_id', g.id);
     if (error) return setError(errorMessage(error));
-    // Console par console (PS1, puis PS2…), puis zone par zone
+    // Console par console (PS1, puis PS2…), puis zone par zone, celle du visiteur d'abord
+    const zoneRank = zoneOrderFrom(preferredZone());
     const list = (data as unknown as Release[]).sort((a, b) => (a.platform.launch_date ?? '').localeCompare(b.platform.launch_date ?? '')
-      || zoneOrder(a.zone) - zoneOrder(b.zone) || a.id - b.id);
+      || zoneRank(a.zone) - zoneRank(b.zone) || a.id - b.id);
     setReleases(list);
     if (list.length === 1) {
       setRelease(list[0]);

@@ -5,9 +5,9 @@ import { errorMessage } from '../lib/errors';
 import { Dialog } from '../components/Dialog';
 import { GAME_FIELDS } from '../lib/queries';
 import {
-  boxRegionName, countryName, editionClass, editionLabel, familyLabel, formatDate, languagesLong, languagesShort, pickSummary, speaksLanguage, zoneLabel, zoneOrder, genreName, regionName,
+  boxRegionName, countryName, editionClass, editionLabel, familyLabel, formatDate, languagesLong, languagesShort, pickSummary, speaksLanguage, zoneLabel, zoneOrderFrom, genreName, regionName,
 } from '../lib/format';
-import { rememberedLanguage, rememberedPlatform } from '../lib/preferences';
+import { preferredZone, rememberedLanguage, rememberedPlatform } from '../lib/preferences';
 import { describeSpecs } from '../lib/specs';
 import type { Game, ItemStatus, Release } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
@@ -186,9 +186,12 @@ export function GamePage() {
   }
   if (state === 'missing' || !game) return <section className="panel"><h1>{tr('Jeu introuvable')}</h1><Link to="/"><PsSymbol shape="circle" />{tr(' Retour à la recherche')}</Link></section>;
 
-  // Japon, Amérique, Europe ; dans chaque zone, la standard d'abord, puis la langue choisie dans le catalogue
+  // La zone du visiteur d'abord, puis Japon, Amérique, Europe ; dans chaque zone, la standard
+  // d'abord, puis la langue choisie dans le catalogue
   const language = rememberedLanguage();
-  const releases = [...game.release].sort((a, b) => zoneOrder(a.zone) - zoneOrder(b.zone)
+  const myZone = preferredZone();
+  const zoneRank = zoneOrderFrom(myZone);
+  const releases = [...game.release].sort((a, b) => zoneRank(a.zone) - zoneRank(b.zone)
     || Number(b.edition_type === 'standard') - Number(a.edition_type === 'standard')
     || Number(speaksLanguage({ ...b, box_country: b.box_region?.code }, language)) - Number(speaksLanguage({ ...a, box_country: a.box_region?.code }, language)) || a.id - b.id);
   const copies = (r: Release) => mine.filter((m) => m.release_id === r.id && m.status === 'owned').length;
@@ -209,7 +212,7 @@ export function GamePage() {
   // PS1 n'aide pas à reconnaître la version PS2)
   const samePlatform = (r: Release) => releases.filter((x) => x.platform.id === r.platform.id);
   const heroPool = byPlatform[0]?.releases ?? releases;
-  const heroImages = heroPool.find((r) => r.zone === 'PAL' && r.image.length)?.image ?? heroPool.find((r) => r.image.length)?.image
+  const heroImages = heroPool.find((r) => r.zone === myZone && r.image.length)?.image ?? heroPool.find((r) => r.image.length)?.image
     ?? releases.find((r) => r.image.length)?.image ?? [];
   // Genres (avec leurs familles, cliquables vers le catalogue) et thèmes (sans famille)
   const genres = game.game_genre.map((g) => g.genre).filter((g) => g.families.length > 0);

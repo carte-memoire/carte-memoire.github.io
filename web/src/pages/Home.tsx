@@ -59,7 +59,9 @@ export function Home() {
   const navigate = useNavigate();
   const { session, loading } = useAuth();
   const scanner = useScanner();
-  const platforms = usePlatforms();
+  // Seulement les consoles qui ont des jeux : « Les jeux de la PlayStation 4 » s'affichait
+  // alors que la base n'en a encore aucun
+  const platforms = usePlatforms().filter((p) => p.game_count > 0);
   const [params] = useSearchParams();
   // Arrivée après « Supprimer mon compte » (rechargement complet, voir Account.tsx)
   const accountDeleted = params.get('compte') === 'supprime';

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  editionClass, editionLabel, formatDate, formatPercent, gamePath, languagesLong, languagesShort, pickSummary, readableSpaces, searchKey, slugify, speaksLanguage, yearOf, zoneOrder,
+  editionClass, editionLabel, formatDate, formatPercent, gamePath, languagesLong, languagesShort, pickSummary, readableSpaces, searchKey, slugify, speaksLanguage, yearOf, zoneOrder, zoneOrderFrom,
 } from './format';
 
 describe('slugify et gamePath', () => {
@@ -114,5 +114,15 @@ describe('readableSpaces', () => {
   it('remplace l’espace fine (invisible dans la police du site) par une insécable normale', () => {
     expect(readableSpaces('4\u202f485')).toBe('4\u00a0485');
     expect(readableSpaces('Final Fantasy VII')).toBe('Final Fantasy VII');
+  });
+});
+
+describe('zoneOrderFrom', () => {
+  it('met la zone du visiteur en tête, puis Japon, Amérique, Europe', () => {
+    const rank = zoneOrderFrom('PAL');
+    expect((['NTSC-J', 'PAL', 'NTSC-U', null] as const).slice().sort((a, b) => rank(a) - rank(b))).toEqual(['PAL', 'NTSC-J', 'NTSC-U', null]);
+  });
+  it('une version sans zone ne passe jamais devant', () => {
+    expect(zoneOrderFrom('PAL')(null)).toBeGreaterThan(zoneOrderFrom('PAL')('NTSC-U'));
   });
 });

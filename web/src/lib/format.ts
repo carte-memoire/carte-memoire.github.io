@@ -18,6 +18,12 @@ export function zoneOrder(zone: Zone | null): number {
   return ({ 'NTSC-J': 0, 'NTSC-U': 1, PAL: 2, region_free: 3 } as Record<string, number>)[zone ?? ''] ?? 4;
 }
 
+// Même ordre, mais la zone du visiteur d'abord (celle choisie dans le catalogue, l'Europe
+// par défaut) : un collectionneur français voit sa version PAL en tête de la fiche
+export function zoneOrderFrom(preferred: string): (zone: Zone | null) => number {
+  return (zone) => (zone !== null && zone === preferred ? -1 : zoneOrder(zone));
+}
+
 export const EDITION_TYPES: { value: EditionType; label: string }[] = [
   { value: 'standard', label: tr('Standard') },
   { value: 'reissue', label: tr('Réédition (Platinum, Greatest Hits, The Best…)') },

@@ -26,6 +26,8 @@ export const rememberedPlatform = () => read(PLATFORM_KEY, DEFAULT_PLATFORM);
 export const rememberPlatform = (value: string) => write(PLATFORM_KEY, value);
 export const rememberedZone = () => read(ZONE_KEY, DEFAULT_ZONE);
 export const rememberZone = (value: string) => write(ZONE_KEY, value);
+// Zone du visiteur pour ordonner les versions : celle du catalogue, l'Europe si « toutes »
+export const preferredZone = () => { const zone = rememberedZone(); return zone === ALL_ZONES ? DEFAULT_ZONE : zone; };
 
 // Console des files de modération (jeux sans genre, jaquettes manquantes…) : choisie sur
 // la page Modération, indépendamment de l'accueil et du catalogue
