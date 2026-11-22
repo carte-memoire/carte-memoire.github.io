@@ -3,9 +3,11 @@ import { groupByManufacturer, usePlatforms } from '../lib/usePlatforms';
 import { tr } from '../lib/i18n';
 
 // Choix de la console, glissé dans une phrase (« Tous les jeux [PlayStation ▾] ») :
-// un mot souligné avec une flèche, pour qu'on comprenne qu'il se clique
+// un mot souligné avec une flèche, pour qu'on comprenne qu'il se clique. Seules les consoles
+// qui ont des jeux sont proposées (et celle déjà choisie, venue d'un lien) : une liste de
+// consoles « bientôt » donnait l'impression d'un site vide
 export function PlatformSelect({ value, onChange }: { value: string; onChange: (value: string) => void }) {
-  const platforms = usePlatforms();
+  const platforms = usePlatforms().filter((p) => p.game_count > 0 || p.short_name === value);
   return (
     <span className="inline-select-wrap">
       <select className="inline-select" value={value} onChange={(e) => onChange(e.target.value)} aria-label={tr('Choisir la console')}>

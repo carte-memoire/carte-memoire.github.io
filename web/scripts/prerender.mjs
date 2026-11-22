@@ -144,7 +144,8 @@ function gamePage(game) {
     + `<article class="panel"><h1>${escape(game.title)}</h1>`
     + (facts ? `<p class="muted">${escape(facts)}</p>` : '')
     + (series.length ? `<p>Série : ${escape(series.join(', '))}</p>` : '')
-    + (game.summary ? `<p>${escape(game.summary)}</p>` : '')
+    // Sans résumé français, le résumé anglais (balisé comme tel pour les moteurs de recherche)
+    + (game.summary ? `<p>${escape(game.summary)}</p>` : game.summary_en ? `<p lang="en">${escape(game.summary_en)}</p>` : '')
     + `<h2>Versions (${releases.length})</h2><ul>${versions}</ul></article></div>`;
 
   const jsonLd = {
@@ -153,7 +154,7 @@ function gamePage(game) {
     name: game.title,
     url: `${SITE}${path}`,
     ...(image ? { image } : {}),
-    ...(game.summary ? { description: shorten(game.summary, 500) } : {}),
+    ...(game.summary || game.summary_en ? { description: shorten(game.summary || game.summary_en, 500) } : {}),
     gamePlatform: platforms,
     ...(genres.length ? { genre: genres } : {}),
     ...(developers.length ? { author: developers.map((name) => ({ '@type': 'Organization', name })) } : {}),

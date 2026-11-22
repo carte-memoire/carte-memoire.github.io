@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  editionClass, editionLabel, formatDate, formatPercent, gamePath, languagesLong, languagesShort, searchKey, slugify, speaksLanguage, yearOf, zoneOrder,
+  editionClass, editionLabel, formatDate, formatPercent, gamePath, languagesLong, languagesShort, pickSummary, searchKey, slugify, speaksLanguage, yearOf, zoneOrder,
 } from './format';
 
 describe('slugify et gamePath', () => {
@@ -92,5 +92,20 @@ describe('dates et nombres (site en français)', () => {
   it('calcule un pourcentage à une décimale, 0 % quand le total est nul', () => {
     expect(formatPercent(312, 1286).replace(/\s/g, ' ')).toBe('24,3 %');
     expect(formatPercent(3, 0).replace(/\s/g, ' ')).toBe('0 %');
+  });
+});
+
+describe('pickSummary', () => {
+  const both = { summary: 'Résumé', summary_source: 'https://fr.wikipedia.org/wiki/X', summary_en: 'Summary', summary_en_source: 'https://en.wikipedia.org/wiki/X' };
+  it('prend la langue du site', () => {
+    expect(pickSummary(both, 'fr')).toEqual({ text: 'Résumé', source: 'https://fr.wikipedia.org/wiki/X', lang: 'fr' });
+    expect(pickSummary(both, 'en')).toEqual({ text: 'Summary', source: 'https://en.wikipedia.org/wiki/X', lang: 'en' });
+  });
+  it('sinon l’autre langue', () => {
+    expect(pickSummary({ ...both, summary: null, summary_source: null }, 'fr')?.lang).toBe('en');
+    expect(pickSummary({ ...both, summary_en: null, summary_en_source: null }, 'en')?.lang).toBe('fr');
+  });
+  it('rien sans aucun résumé (anciennes données sans colonnes anglaises comprises)', () => {
+    expect(pickSummary({ summary: null, summary_source: null }, 'fr')).toBeNull();
   });
 });

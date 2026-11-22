@@ -11,7 +11,7 @@ export const RELEASE_FIELDS = `
 `;
 
 export const GAME_FIELDS = `
-  id, title, slug, summary, summary_source, first_release_date, first_release_precision,
+  id, title, slug, summary, summary_source, summary_en, summary_en_source, first_release_date, first_release_precision,
   game_developer(company(id, name)),
   game_series(series(id, name)),
   genres_reviewed,

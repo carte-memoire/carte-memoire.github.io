@@ -66,7 +66,7 @@ Scripts dans `scripts/` (dépendances : `cd scripts && npm install`). Chacun éc
 |---|---|---|
 | `import-wikidata.mjs` | Wikidata (CC0) | Jeux d'une console, développeurs, genres, séries, dates |
 | `import-wikipedia.mjs` | Wikipédia EN (CC BY-SA) | Liste complète des jeux d'une console, versions par région, éditeurs |
-| `import-summaries.mjs` | Wikipédia FR (CC BY-SA) | Résumés (introduction des articles), avec lien source |
+| `import-summaries.mjs` | Wikipédia FR, ou EN avec `--langue en` (CC BY-SA) | Résumés (introduction des articles), avec lien source ; l'anglais sert la version anglaise du site, et la française à défaut de résumé français |
 | `import-covers.mjs` | libretro-thumbnails | Jaquettes (recto) |
 | `import-redump.mjs` | Redump (via libretro-database) | Codes produits, langues, disques, versions nationales et rééditions (Platinum `/P`, Greatest Hits `GH`) — utilisé pour la PS2 |
 
@@ -115,7 +115,11 @@ Réglages qui ne passent pas par le dépôt : l'adresse du site dans le tableau 
 - `web/scripts/` : pages pour les moteurs de recherche et `security.txt`, générés à la publication.
 
 Les consoles (nom, constructeur, champs techniques, années d'activité) viennent toutes de la table `platform` : ajouter
-une console ne demande rien au code du site, seulement ses données.
+une console demande ses données, et une ligne dans [`web/src/lib/cases.ts`](web/src/lib/cases.ts) (forme de son
+boîtier, nom de son édition standard), le seul endroit du site qui connaît les consoles une par une.
+
+Les scripts qui n'ont servi qu'une fois (corrections ponctuelles, ancien import PS1 en deux temps) sont rangés dans
+`scripts/archives/`, pour mémoire.
 
 ## Licence des données
 

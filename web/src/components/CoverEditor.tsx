@@ -46,11 +46,11 @@ export function CoverEditor({ image, quad: initialQuad, format, onFormat, onBack
   const preview = useRef<HTMLCanvasElement>(null);
   const loupe = useRef<HTMLCanvasElement>(null);
 
-  // La photo elle-même est affichée telle quelle (canvas), sous les coins
+  // La photo elle-même est affichée telle quelle (canvas, mis en forme par
+  // .cover-editor-holder > canvas), sous les coins
   useEffect(() => {
     const box = holder.current;
     if (!box) return;
-    source.className = 'cover-editor-photo';
     box.replaceChildren(source);
     const observer = new ResizeObserver(() => {
       const width = source.getBoundingClientRect().width;

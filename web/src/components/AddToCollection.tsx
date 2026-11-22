@@ -145,6 +145,7 @@ function ItemForm({ release, item, onBack, onSaved }: { release: Release; item: 
   const [acquisition, setAcquisition] = useState<AcquisitionType | ''>(item?.acquisition ?? '');
   const [place, setPlace] = useState(item?.purchase_place ?? '');
   const [hasSpineCard, setHasSpineCard] = useState(item?.has_spine_card ?? false);
+  const [today] = useState(() => new Date().toISOString().slice(0, 10)); // date d'achat : pas dans le futur
   const [tradeStatus, setTradeStatus] = useState<TradeStatus | ''>(item?.trade_status ?? '');
   // La spine card (bande sur la tranche) n'existe que sur les boîtes japonaises
   const spineCard = release.zone === 'NTSC-J';
@@ -247,7 +248,7 @@ function ItemForm({ release, item, onBack, onSaved }: { release: Release; item: 
             </label>
             <label className="field">
               <span className="field-label">{tr("Date d'achat")}</span>
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} max={new Date().toISOString().slice(0, 10)} />
+              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} max={today} />
             </label>
           </div>
           {reference && (

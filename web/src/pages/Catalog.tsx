@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { COLLECTION_FIELDS } from '../lib/queries';
@@ -157,12 +157,14 @@ export function Catalog() {
   // et l'adresse n'est mise à jour qu'après une courte pause
   const [text, setText] = useState(query);
   const sentQuery = useRef(query);
+  const sendQuery = useEffectEvent((value: string) => {
+    if (value === query) return;
+    sentQuery.current = value;
+    update({ q: value || null }, { replace: true });
+  });
   useEffect(() => {
-    if (text.trim() === query) return;
-    const timer = setTimeout(() => {
-      sentQuery.current = text.trim();
-      update({ q: text.trim() || null }, { replace: true });
-    }, 300);
+    if (text.trim() === sentQuery.current) return;
+    const timer = setTimeout(() => sendQuery(text.trim()), 300);
     return () => clearTimeout(timer);
   }, [text]);
   // L'adresse a changé sans passer par le champ (bouton Retour, lien) : le champ suit,
@@ -491,7 +493,6 @@ function FocusBanner({ kind, id, platformCode, zoneCode, zoneShort, userId, vers
 }) {
   const [info, setInfo] = useState<FocusInfo | null | undefined>(undefined);
   const [counts, setCounts] = useState<{ all: number; owned: number } | null>(null);
-  const filter = kind === 'studio' ? { company_filter: id } : { series_filter: id };
 
   useEffect(() => {
     let active = true;
@@ -506,6 +507,7 @@ function FocusBanner({ kind, id, platformCode, zoneCode, zoneShort, userId, vers
   useEffect(() => {
     if (!userId) return setCounts(null);
     let active = true;
+    const filter = kind === 'studio' ? { company_filter: id } : { series_filter: id };
     const count = (ownership: string | null) => supabase.rpc('catalog_games', {
       platform_code: platformCode, zone_code: zoneCode, ownership, page_size: 1, ...filter,
     }).then(({ data }) => ((data as CatalogRow[] | null) ?? [])[0]?.total_count ?? 0);

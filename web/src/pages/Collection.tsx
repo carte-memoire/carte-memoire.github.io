@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useEffectEvent, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { COLLECTION_FIELDS } from '../lib/queries';
@@ -28,6 +28,12 @@ import { useToast } from '../components/Toast';
 import { notifyCollectionChanged } from '../lib/trophies';
 import { usePlatforms } from '../lib/usePlatforms';
 import { tr } from '../lib/i18n';
+import { loadOrReload } from '../lib/reload';
+
+// Fenêtre « Proposer une jaquette » : chargée seulement quand on s'en sert
+const CoverProposal = lazy(() => loadOrReload(() => import('../components/CoverProposal')).then((m) => ({ default: m.CoverProposal })));
+
+const hasOwnCover = (item: CollectionItem) => item.release.image.some((i) => i.type === 'front');
 import { usePageTitle } from '../lib/title';
 
 // L'API renvoie au plus 1 000 lignes par requête : on lit la collection par paquets
@@ -87,6 +93,8 @@ export function Collection() {
   // Versions des jeux dont l'exemplaire n'a pas de jaquette (id du jeu → versions avec recto)
   const [siblings, setSiblings] = useState<Map<number, CoverSource[]>>(new Map());
   const [dialog, setDialog] = useState<{ open: boolean; releaseId?: number | null; item?: CollectionItem | null }>({ open: false });
+  // Exemplaire dont on prend la jaquette en photo (fenêtre « Proposer une jaquette »)
+  const [coverFor, setCoverFor] = useState<CollectionItem | null>(null);
   const [error, setError] = useState('');
   const [loaded, setLoaded] = useState(false);
   const { toast, show: showToast } = useToast();
@@ -109,6 +117,8 @@ export function Collection() {
   const condition = params.get('etat') ?? '';
   const content = (CONTENTS.some((c) => c.value === params.get('contenu')) ? params.get('contenu') : '') as Content | '';
   const offer = params.get('echange') ?? '';
+  // « Mes jeux sans jaquette » : les versions possédées qui n'ont pas encore leur propre recto
+  const noCover = tab === 'owned' && params.get('jaquette') === 'manquante';
   const sortParam = params.get('tri') as Sort | null;
   const sort: Sort = SORTS.some((s) => s.value === sortParam && (tab === 'owned' || !s.ownedOnly)) ? sortParam! : 'recent';
   // Nombre d'exemplaires par page (0 = tout) et page affichée
@@ -199,11 +209,12 @@ export function Collection() {
   }, [items, loaded]);
 
   // Arrivée depuis la fiche d'un jeu : /collection?ajouter=<id de la version>
+  const clearAddParam = useEffectEvent(() => update({ ajouter: null }, { keepPage: true }));
   useEffect(() => {
     const releaseId = Number.parseInt(params.get('ajouter') ?? '', 10);
     if (Number.isInteger(releaseId)) {
       setDialog({ open: true, releaseId });
-      update({ ajouter: null }, { keepPage: true });
+      clearAddParam();
     }
   }, [params]);
 
@@ -229,8 +240,9 @@ export function Collection() {
     downloadCsv(tr('carte-memoire-collection-{0}.csv', new Date().toISOString().slice(0, 10)), toCsv([EXPORT_HEADERS, ...sorted.map(itemToRow)]));
   }
 
-  const owned = items.filter((i) => i.status === 'owned');
-  const wanted = items.filter((i) => i.status === 'wanted');
+  const owned = useMemo(() => items.filter((i) => i.status === 'owned'), [items]);
+  const missingCovers = useMemo(() => owned.filter((i) => !hasOwnCover(i)).length, [owned]);
+  const wanted = useMemo(() => items.filter((i) => i.status === 'wanted'), [items]);
   // Consoles présentes dans la collection, avec leur nom complet (liste des consoles)
   const platforms = usePlatforms();
   const consoles = [...new Set(items.map((i) => i.release.platform.short_name))]
@@ -249,14 +261,15 @@ export function Collection() {
       if (condition && (condition === UNKNOWN_CONDITION ? item.condition !== null : item.condition !== condition)) return false;
       if (content && !hasContent(item, content)) return false;
       if (offer && item.trade_status !== offer) return false;
+      if (noCover && hasOwnCover(item)) return false;
       return true;
     });
     const compare = COMPARE[sort];
     return compare ? [...list].sort(compare) : list;
-  }, [items, tab, text, platform, zone, condition, content, offer, sort]);
+  }, [owned, wanted, tab, text, platform, zone, condition, content, offer, noCover, sort]);
 
   const total = tab === 'owned' ? owned.length : wanted.length;
-  const filtered = Boolean(text || platform || zone || (tab === 'owned' && (condition || content || offer)));
+  const filtered = Boolean(text || platform || zone || (tab === 'owned' && (condition || content || offer || noCover)));
   const pages = pageSize === 0 ? 1 : Math.max(1, Math.ceil(shown.length / pageSize));
   // Page au-delà de la dernière (exemplaires retirés, filtre plus strict) : la dernière
   const current = Math.min(page, pages);
@@ -301,6 +314,16 @@ export function Collection() {
           {tr('Recherchés (')}{formatNumber(wanted.length)})
         </button>
       </div>
+
+      {tab === 'owned' && missingCovers > 0 && (
+        <p className="notice help-covers">
+          <PsSymbol shape="circle" colored />{' '}
+          {tr('{0} version{1?s} de ta collection n’{2?ont:a} pas encore de jaquette. Prends-la en photo avec ton téléphone : toute la communauté en profite.', formatNumber(missingCovers), missingCovers > 1, missingCovers > 1)}{' '}
+          <button type="button" className="link-button" onClick={() => update({ jaquette: noCover ? null : 'manquante' })}>
+            {noCover ? tr('Voir tous mes jeux') : tr('Voir lesquelles')}
+          </button>
+        </p>
+      )}
 
       {total > 0 && (
         <div className="panel catalog-filters">
@@ -393,13 +416,13 @@ export function Collection() {
       {view === 'list' ? (
         <ul className="memory-card">
           {visible.map((item) => (
-            <ItemBlock key={item.id} item={item} value={values.get(item.id) ?? null} fresh={item.release.id === justSaved} showPlatform={multiPlatform} standIn={standInOf(item)} onEdit={() => setDialog({ open: true, item })} onRemove={() => remove(item)} />
+            <ItemBlock key={item.id} item={item} value={values.get(item.id) ?? null} fresh={item.release.id === justSaved} showPlatform={multiPlatform} standIn={standInOf(item)} onEdit={() => setDialog({ open: true, item })} onRemove={() => remove(item)} onPhoto={item.status === 'owned' && !hasOwnCover(item) ? () => setCoverFor(item) : undefined} />
           ))}
         </ul>
       ) : (
         <ul className="cover-grid">
           {visible.map((item) => (
-            <ItemTile key={item.id} item={item} fresh={item.release.id === justSaved} showPlatform={multiPlatform} standIn={standInOf(item)} onEdit={() => setDialog({ open: true, item })} />
+            <ItemTile key={item.id} item={item} fresh={item.release.id === justSaved} showPlatform={multiPlatform} standIn={standInOf(item)} onEdit={() => setDialog({ open: true, item })} onPhoto={item.status === 'owned' && !hasOwnCover(item) ? () => setCoverFor(item) : undefined} />
           ))}
         </ul>
       )}
@@ -415,14 +438,19 @@ export function Collection() {
         onClose={() => setDialog({ open: false })}
         onSaved={saved}
       />
+      {coverFor && (
+        <Suspense fallback={null}>
+          <CoverProposal open release={coverFor.release} gameTitle={coverFor.release.game.title} onClose={() => setCoverFor(null)} />
+        </Suspense>
+      )}
       {toast}
     </section>
   );
 }
 
 // Vue en liste : tous les détails de l'exemplaire
-function ItemBlock({ item, value, fresh, showPlatform, standIn, onEdit, onRemove }: {
-  item: CollectionItem; value: number | null; fresh: boolean; showPlatform: boolean; standIn: StandIn | null; onEdit: () => void; onRemove: () => void;
+function ItemBlock({ item, value, fresh, showPlatform, standIn, onEdit, onRemove, onPhoto }: {
+  item: CollectionItem; value: number | null; fresh: boolean; showPlatform: boolean; standIn: StandIn | null; onEdit: () => void; onRemove: () => void; onPhoto?: () => void;
 }) {
   const r = item.release;
   const complete = item.has_box && item.has_manual && item.has_media;
@@ -458,6 +486,7 @@ function ItemBlock({ item, value, fresh, showPlatform, standIn, onEdit, onRemove
         {item.notes && <p className="block-notes">{item.notes}</p>}
         <div className="block-actions">
           <button type="button" className="button button-small" onClick={onEdit}><PsSymbol shape="triangle" />{tr(' Modifier')}</button>
+          {onPhoto && <button type="button" className="button button-small" onClick={onPhoto} title={tr('Cette version n’a pas encore sa jaquette : propose la tienne')}><PsSymbol shape="circle" />{tr(' Prendre la jaquette en photo')}</button>}
           <button type="button" className="button button-small button-danger" onClick={onRemove}>{tr('Retirer')}</button>
         </div>
       </div>
@@ -466,7 +495,7 @@ function ItemBlock({ item, value, fresh, showPlatform, standIn, onEdit, onRemove
 }
 
 // Vue en grille : la jaquette d'abord, comme une étagère
-function ItemTile({ item, fresh, showPlatform, standIn, onEdit }: { item: CollectionItem; fresh: boolean; showPlatform: boolean; standIn: StandIn | null; onEdit: () => void }) {
+function ItemTile({ item, fresh, showPlatform, standIn, onEdit, onPhoto }: { item: CollectionItem; fresh: boolean; showPlatform: boolean; standIn: StandIn | null; onEdit: () => void; onPhoto?: () => void }) {
   const r = item.release;
   const complete = item.has_box && item.has_manual && item.has_media;
   return (
@@ -485,7 +514,10 @@ function ItemTile({ item, fresh, showPlatform, standIn, onEdit }: { item: Collec
           {item.trade_status && <span className="badge badge-trade">{tradeStatusLabel(item.trade_status)}</span>}
         </span>
       )}
-      <button type="button" className="link-button small" onClick={onEdit}>{tr('Modifier')}</button>
+      <span className="cover-tile-actions">
+        <button type="button" className="link-button small" onClick={onEdit}>{tr('Modifier')}</button>
+        {onPhoto && <button type="button" className="link-button small" onClick={onPhoto} title={tr('Cette version n’a pas encore sa jaquette : propose la tienne')}>{tr('Photo de la jaquette')}</button>}
+      </span>
     </li>
   );
 }

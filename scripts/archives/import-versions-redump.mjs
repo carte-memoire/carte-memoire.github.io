@@ -12,12 +12,12 @@
 // Rien n'est écrit dans la base.
 //
 // Usage (depuis le dossier carte-memoire) :
-//   node scripts/import-versions-redump.mjs
+//   node scripts/archives/import-versions-redump.mjs
 // =====================================================================
 
 import { mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { ROOT, USER_AGENT, loadPs1Releases, normalize, parseName, publicApi, readEnv } from './lib/redump.mjs';
+import { ROOT, USER_AGENT, loadPs1Releases, normalize, parseName, publicApi, readEnv } from '../lib/redump.mjs';
 
 const DAT_URL = 'https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/redump/Sony%20-%20PlayStation.dat';
 const CODE = /^[A-Z]{4}-\d{5}$/;
@@ -109,10 +109,10 @@ writeFileSync(join(ROOT, '.redump-import', 'versions.json'), JSON.stringify(resu
 
 // ---------------------------------------------------------------------
 // Écriture de la migration : versions nationales PAL et rééditions
-// (node scripts/import-versions-redump.mjs --ecrire)
+// (node scripts/archives/import-versions-redump.mjs --ecrire)
 // ---------------------------------------------------------------------
 if (!process.argv.includes('--ecrire')) {
-  console.log('\nPour écrire la migration (nationales PAL et rééditions) : node scripts/import-versions-redump.mjs --ecrire');
+  console.log('\nPour écrire la migration (nationales PAL et rééditions) : node scripts/archives/import-versions-redump.mjs --ecrire');
   process.exit(0);
 }
 

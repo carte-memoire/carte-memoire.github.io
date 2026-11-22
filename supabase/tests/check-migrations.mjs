@@ -530,7 +530,7 @@ await ko('la dernière version ne se supprime pas seule', en(ADMIN, `select publ
 await egal('supprimer le jeu renvoie les jaquettes restantes', lignes(en(ADMIN, `select public.delete_game($1, 'Jeu inexistant') as p`, [jetable])).then((r) => r[0].p), ['releases/test/a.webp']);
 await egal('…le jeu, ses versions, images et genres ont disparu', val(`select (select count(*)::int from public.game where id = $1) as g, (select count(*)::int from public.release where game_id = $1) as r, (select count(*)::int from public.image where path like 'releases/test/%') as i, (select count(*)::int from public.game_genre where game_id = $1) as gg`, [jetable]), [{ g: 0, r: 0, i: 0, gg: 0 }]);
 await egal('…la proposition en attente est refusée, avec un motif', val(`select status, review_note from public.submission where id = $1`, [propSuppr]), [{ status: 'rejected', review_note: 'Jeu supprimé du catalogue.' }]);
-await egal('journal : la version puis le jeu, avec le motif et l\'auteur', lignes(en(ADMIN, `select kind, title, reason, deleted_by from public.catalog_deletion order by id`)),
+await egal('journal : la version puis le jeu, avec le motif et l\'auteur', lignes(en(ADMIN, `select kind, title, reason, deleted_by from public.catalog_deletion where deleted_by is not null order by id`)),
   [{ kind: 'release', title: 'Jeu À Supprimer JP', reason: 'Version en double', deleted_by: ADMIN }, { kind: 'game', title: 'Jeu À Supprimer', reason: 'Jeu inexistant', deleted_by: ADMIN }]);
 await egal('un membre ne lit pas le journal', lignes(en(MEMBRE, `select count(*)::int as n from public.catalog_deletion`)), [{ n: 0 }]);
 await ko('personne n\'écrit directement dans le journal', en(ADMIN, `insert into public.catalog_deletion (kind, object_id, title) values ('game', 1, 'x')`), 'permission denied');
@@ -1230,6 +1230,46 @@ console.log('\nCohérence du catalogue (imports compris)');
 await egal('chaque jeu importé a au moins une sortie', val(`select count(*)::int as n from public.game g where g.wikidata_id is not null and not exists (select 1 from public.release r where r.game_id = g.id)`), [{ n: 0 }]);
 await egal('chaque date de sortie est cohérente avec sa précision', val(`select count(*)::int as n from public.release_region where (release_date is null) <> (date_precision is null)`), [{ n: 0 }]);
 await egal('aucune réédition vers un autre jeu', val(`select count(*)::int as n from public.release r join public.release o on o.id = r.reissue_of where o.game_id <> r.game_id`), [{ n: 0 }]);
+
+console.log('\nDoublons PS2 fusionnés (même jeu, deux éléments Wikidata)');
+await egal('une seule fiche PS2 pour chacun des 17 jeux fusionnés', val(`
+  select count(*)::int as n from (
+    select g.title_key from public.game g join public.release r on r.game_id = g.id
+    join public.platform p on p.id = r.platform_id and p.short_name = 'PS2'
+    where g.title_key in (select title_key from public.game where wikidata_id in (
+      'Q103067818', 'Q50272813', 'Q5215108', 'Q21039876', 'Q8375136', 'Q6007482', 'Q63165538', 'Q137216114', 'Q3541765',
+      'Q2087318', 'Q136756899', 'Q47461217', 'Q61091433', 'Q88323752', 'Q7934910', 'Q63165269', 'Q56707738'))
+    group by g.title_key having count(distinct g.id) > 1
+  ) d`), [{ n: 0 }]);
+await egal('les fiches gardent l\'élément Wikidata de la version PS2 (Ys V, Crimson Sea 2, Quake III Revolution)', val(`
+  select count(*)::int as n from public.game where wikidata_id in ('Q2450491', 'Q5185708', 'Q726545')`), [{ n: 0 }]);
+await egal('Ys V PS2 : ses versions ont suivi', val(`
+  select count(*)::int as n from public.game g join public.release r on r.game_id = g.id where g.wikidata_id = 'Q56707738'`), [{ n: 1 }]);
+await egal('Sonic Mega Collection Plus : une seule version par zone', val(`
+  select count(*)::int as n from (select r.zone from public.game g join public.release r on r.game_id = g.id
+  where g.wikidata_id = 'Q88323752' and r.edition_type = 'standard' group by r.zone having count(*) > 1) z`), [{ n: 0 }]);
+await egal('Defender (2002) ne reprend pas les studios du jeu d\'arcade de 1981', val(`
+  select count(*)::int as n from public.game g join public.game_developer d on d.game_id = g.id
+  join public.company c on c.id = d.company_id where g.wikidata_id = 'Q21039876' and c.name ilike '%williams%'`), [{ n: 0 }]);
+await egal('Cabela\'s Outdoor Adventures 2005 et 2009 : deux jeux, retirés des doublons possibles', val(`
+  select count(*)::int as n from public.possible_duplicate_game p
+  where p.title_key = (select title_key from public.game where wikidata_id = 'Q5015339')`), [{ n: 0 }]);
+
+console.log('\nVersions vides en trop (import Wikidata)');
+await egal('plus de version vide à côté de vraies versions sur la même console', val(`
+  select count(*)::int as n from public.release r
+  where r.zone is null and r.product_code is null and r.edition_type = 'standard'
+    and not exists (select 1 from public.image i where i.release_id = r.id)
+    and exists (select 1 from public.release o where o.game_id = r.game_id and o.platform_id = r.platform_id and o.zone is not null)`), [{ n: 0 }]);
+await egal('chaque version retirée est notée dans le journal des suppressions', val(`
+  select (count(*) > 0) as notee from public.catalog_deletion where kind = 'release' and reason like 'Version vide en double%'`), [{ notee: true }]);
+
+console.log('\nRésumés anglais et appel à l\'aide');
+await ok('un visiteur lit le résumé anglais', en(null, `select summary_en, summary_en_source from public.game limit 1`));
+await ko('un résumé anglais vient de Wikipédia en anglais', db.query(`update public.game set summary_en = 'x', summary_en_source = 'https://fr.wikipedia.org/wiki/X' where id = (select min(id) from public.game)`), 'game_summary_en_source_check');
+await egal('un membre ne change pas le résumé anglais (aucune ligne modifiée, ou refus)', en(MEMBRE, `update public.game set summary_en = 'x' where id = (select min(id) from public.game) returning id`).then((r) => r.rows.length, () => 0), 0);
+await egal('un visiteur lit ce qui manque au catalogue', val(`select (releases_without_cover >= 0 and games_without_summary >= 0 and games_without_genre >= 0) as ok from public.catalog_gaps()`), [{ ok: true }]);
+await ok('…par l\'API, sans compte', en(null, `select * from public.catalog_gaps()`));
 
 console.log(echecs ? `\n${echecs} test(s) en échec` : '\nTous les tests passent');
 process.exit(echecs ? 1 : 0);

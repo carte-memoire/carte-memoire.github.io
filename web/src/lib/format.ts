@@ -1,3 +1,4 @@
+import { hasBlackLabel } from './cases';
 import type { AcquisitionType, DatePrecision, EditionType, GenreFamily, ItemCondition, Release, ReportKind, TradeStatus, Zone } from './types';
 import { tr, locale, lang } from './i18n';
 
@@ -27,11 +28,12 @@ export const EDITION_TYPES: { value: EditionType; label: string }[] = [
 ];
 
 // « Black Label » : nom donné par les collectionneurs à l'édition standard PS1 / PS2
-// européenne et américaine (pas au Japon, où l'on dit simplement l'édition standard)
+// européenne et américaine (pas au Japon, où l'on dit simplement l'édition standard) ;
+// les consoles concernées sont dans lib/cases.ts
 export function editionLabel(release: Pick<Release, 'edition_type' | 'edition_name'> & { platform: { short_name: string }; zone?: Zone | null }): string {
   if (release.edition_name) return release.edition_name;
   if (release.edition_type === 'standard') {
-    return ['PS1', 'PS2'].includes(release.platform.short_name) && release.zone !== 'NTSC-J' ? tr('Black Label') : tr('Standard');
+    return hasBlackLabel(release.platform.short_name) && release.zone !== 'NTSC-J' ? tr('Black Label') : tr('Standard');
   }
   return EDITION_TYPES.find((e) => e.value === release.edition_type)?.label.split(' (')[0] ?? release.edition_type;
 }
@@ -256,3 +258,16 @@ export function reportKindLabel(kind: string): string {
 
 const dateTimeFormat = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' });
 export const formatDateTime = (iso: string) => dateTimeFormat.format(new Date(iso));
+
+// Résumé à afficher dans la langue du site : celui de cette langue, sinon l'autre
+// (le site dit alors en quelle langue il est). Un résumé français sans source a été
+// écrit par la communauté.
+export interface ShownSummary { text: string; source: string | null; lang: 'fr' | 'en' }
+export function pickSummary(
+  game: { summary: string | null; summary_source: string | null; summary_en?: string | null; summary_en_source?: string | null },
+  siteLang: string,
+): ShownSummary | null {
+  const fr = game.summary ? { text: game.summary, source: game.summary_source, lang: 'fr' as const } : null;
+  const en = game.summary_en ? { text: game.summary_en, source: game.summary_en_source ?? null, lang: 'en' as const } : null;
+  return (siteLang === 'en' ? en ?? fr : fr ?? en) ?? null;
+}

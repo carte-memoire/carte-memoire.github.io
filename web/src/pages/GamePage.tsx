@@ -1,11 +1,11 @@
-import { Fragment, lazy, Suspense, useEffect, useState, type FormEvent } from 'react';
+import { Fragment, lazy, Suspense, useEffect, useEffectEvent, useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { Dialog } from '../components/Dialog';
 import { GAME_FIELDS } from '../lib/queries';
 import {
-  boxRegionName, countryName, editionClass, editionLabel, familyLabel, formatDate, languagesLong, languagesShort, speaksLanguage, zoneLabel, zoneOrder, genreName, regionName,
+  boxRegionName, countryName, editionClass, editionLabel, familyLabel, formatDate, languagesLong, languagesShort, pickSummary, speaksLanguage, zoneLabel, zoneOrder, genreName, regionName,
 } from '../lib/format';
 import { rememberedLanguage, rememberedPlatform } from '../lib/preferences';
 import { describeSpecs } from '../lib/specs';
@@ -102,6 +102,8 @@ export function GamePage() {
     return () => { active = false; };
   }, [address, game, found, retry]);
 
+  // Base injoignable : la fiche déjà affichée (celle de la page publiée) reste à l'écran
+  const loadFailed = useEffectEvent((id: number) => setState(game?.id === id ? 'ok' : 'error'));
   useEffect(() => {
     if (gameId === undefined) return;
     if (gameId === null || !Number.isInteger(gameId)) return setState('missing');
@@ -109,8 +111,7 @@ export function GamePage() {
     let active = true;
     supabase.from('game').select(GAME_FIELDS).eq('id', gameId).maybeSingle().then(({ data, error }) => {
       if (!active) return;
-      // Base injoignable : la fiche déjà affichée (celle de la page publiée) reste à l'écran
-      if (error) return setState(game?.id === gameId ? 'ok' : 'error');
+      if (error) return loadFailed(gameId);
       if (!data) return setState('missing');
       setGame(data as unknown as Game);
       setState('ok');
@@ -213,6 +214,7 @@ export function GamePage() {
   // Genres (avec leurs familles, cliquables vers le catalogue) et thèmes (sans famille)
   const genres = game.game_genre.map((g) => g.genre).filter((g) => g.families.length > 0);
   const themes = game.game_genre.map((g) => g.genre).filter((g) => g.families.length === 0);
+  const summary = pickSummary(game, lang);
   const families = [...new Set(genres.flatMap((g) => g.families))];
 
   // Ajout sur place (fenêtre de l'exemplaire), sans quitter la fiche
@@ -333,21 +335,23 @@ export function GamePage() {
             )}
             {themes.length > 0 && (<><dt>{tr('Thèmes')}</dt><dd>{themes.map((g) => genreName(g.name)).join(', ')}</dd></>)}
           </dl>
-          {game.summary && (
+          {summary && (
             <div className="summary-block">
-              <p className={summaryOpen || game.summary.length < 320 ? 'summary' : 'summary is-clamped'}>{game.summary}</p>
-              {game.summary.length >= 320 && (
+              <p className={summaryOpen || summary.text.length < 320 ? 'summary' : 'summary is-clamped'} lang={summary.lang !== lang ? summary.lang : undefined}>{summary.text}</p>
+              {summary.text.length >= 320 && (
                 <button type="button" className="link-button small" aria-expanded={summaryOpen} onClick={() => setSummaryOpen((v) => !v)}>
                   {summaryOpen ? tr('Réduire') : tr('Lire la suite')}
                 </button>
               )}
-              {lang === 'en' && <p className="summary-source">Summary in French: English summaries will come later.</p>}
-              {game.summary_source && (
+              {summary.lang !== lang && (
+                <p className="summary-source">{summary.lang === 'en' ? tr("Résumé en anglais : ce jeu n'a pas encore de résumé en français.") : tr("Résumé en français : ce jeu n'a pas encore de résumé en anglais.")}</p>
+              )}
+              {summary.source && (
                 <p className="summary-source">
                   {tr('Résumé extrait de Wikipédia (licence')}{' '}
                   <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.fr" target="_blank" rel="noopener noreferrer">{tr('CC BY-SA 4.0')}</a>)
                   {' · '}
-                  <a href={game.summary_source} target="_blank" rel="noopener noreferrer">{tr("lire l'article")}</a>
+                  <a href={summary.source} target="_blank" rel="noopener noreferrer">{tr("lire l'article")}</a>
                 </p>
               )}
             </div>

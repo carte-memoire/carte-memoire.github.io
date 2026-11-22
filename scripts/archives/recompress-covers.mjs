@@ -9,7 +9,7 @@
 // est laissée telle quelle.
 //
 // Étapes (depuis le dossier carte-memoire) :
-//   1. node scripts/recompress-covers.mjs
+//   1. node scripts/archives/recompress-covers.mjs
 //        → .covers-recompress/upload/ (nouvelles images) et .covers-recompress/repoint.sql
 //   2. npx supabase storage cp -r .covers-recompress/upload/releases ss:///covers --linked --experimental --jobs 8 --content-type image/webp
 //   3. npx supabase db query --linked -f .covers-recompress/repoint.sql
@@ -19,7 +19,7 @@
 
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { ROOT, publicApi, readEnv } from './lib/redump.mjs';
+import { ROOT, publicApi, readEnv } from '../lib/redump.mjs';
 
 const sharp = (await import('sharp')).default;
 const env = readEnv();

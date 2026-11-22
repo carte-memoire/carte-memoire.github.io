@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { CATALOG_ZONES, editionClass, editionLabel, formatNumber, gamePath, zoneLabel } from '../lib/format';
 import { errorMessage } from '../lib/errors';
 import { ACCEPT_ATTRIBUTE, imageFromClipboard, uploadReleaseImage } from '../lib/images';
-import { ALL_PLATFORMS, rememberedPageSize, rememberPageSize } from '../lib/preferences';
+import { ALL_PLATFORMS, DEFAULT_PLATFORM, rememberedPageSize, rememberPageSize } from '../lib/preferences';
 import type { EditionType, Zone } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
 import { Cover } from './Cover';
@@ -233,7 +233,7 @@ export function CoverQueue({ onCount, active, platform }: { onCount: (n: number)
           <CoverCard
             key={row.id}
             row={row}
-            platform={row.platform_short_name ?? platformCode ?? 'PS1'}
+            platform={row.platform_short_name ?? platformCode ?? DEFAULT_PLATFORM}
             isTarget={row.id === target?.id}
             busy={busyId === row.id}
             onTarget={() => setTargetId(row.id)}
@@ -249,7 +249,7 @@ export function CoverQueue({ onCount, active, platform }: { onCount: (n: number)
   );
 }
 
-function label(row: CoverRow, platform = 'PS1') {
+function label(row: CoverRow, platform = DEFAULT_PLATFORM) {
   return editionLabel({ ...row, platform: { short_name: platform } });
 }
 

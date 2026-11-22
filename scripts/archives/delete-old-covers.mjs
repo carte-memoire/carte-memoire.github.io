@@ -8,14 +8,14 @@
 // commande officielle : npx supabase storage rm … --linked
 //
 // Usage (depuis le dossier carte-memoire) :
-//   node scripts/delete-old-covers.mjs              → bilan seul, rien n'est supprimé
-//   node scripts/delete-old-covers.mjs --confirmer  → supprime
+//   node scripts/archives/delete-old-covers.mjs              → bilan seul, rien n'est supprimé
+//   node scripts/archives/delete-old-covers.mjs --confirmer  → supprime
 // =====================================================================
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { ROOT, publicApi, readEnv } from './lib/redump.mjs';
+import { ROOT, publicApi, readEnv } from '../lib/redump.mjs';
 
 const confirmed = process.argv.includes('--confirmer');
 const list = readFileSync(join(ROOT, '.covers-recompress', 'anciennes-a-supprimer.txt'), 'utf8').split('\n').map((l) => l.trim()).filter(Boolean);
@@ -43,7 +43,7 @@ if (unsafe.length) {
 console.log(`  ${list.length} anciennes jaquettes, aucune n'est utilisée.`);
 
 if (!confirmed) {
-  console.log('\nPour les supprimer : node scripts/delete-old-covers.mjs --confirmer');
+  console.log('\nPour les supprimer : node scripts/archives/delete-old-covers.mjs --confirmer');
   process.exit(0);
 }
 

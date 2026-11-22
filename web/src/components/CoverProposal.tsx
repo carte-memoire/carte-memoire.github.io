@@ -24,7 +24,7 @@ type Step = 'choose' | 'camera' | 'phone' | 'edit' | 'done';
 export function CoverProposal({ open, onClose, release, gameTitle }: {
   open: boolean;
   onClose: () => void;
-  release: Pick<Release, 'id' | 'local_title' | 'zone' | 'edition_type' | 'edition_name' | 'platform' | 'image'>;
+  release: Pick<Release, 'id' | 'local_title' | 'zone' | 'edition_type' | 'edition_name' | 'image'> & { platform: { short_name: string } };
   gameTitle: string;
 }) {
   const hasCover = release.image.some((i) => i.type === 'front');
@@ -36,7 +36,7 @@ export function CoverProposal({ open, onClose, release, gameTitle }: {
 }
 
 function ProposalBody({ release, gameTitle, hasCover, onClose }: {
-  release: Pick<Release, 'id' | 'local_title' | 'zone' | 'edition_type' | 'edition_name' | 'platform'>;
+  release: Pick<Release, 'id' | 'local_title' | 'zone' | 'edition_type' | 'edition_name'> & { platform: { short_name: string } };
   gameTitle: string;
   hasCover: boolean;
   onClose: () => void;

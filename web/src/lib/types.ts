@@ -91,6 +91,10 @@ export interface Game {
   slug: string | null;
   summary: string | null;
   summary_source: string | null;
+  // Introduction de l'article Wikipédia en anglais : version anglaise du site, et
+  // version française quand il n'y a pas de résumé en français
+  summary_en: string | null;
+  summary_en_source: string | null;
   first_release_date: string | null;
   first_release_precision: DatePrecision | null;
   game_developer: { company: { id: number; name: string } }[];

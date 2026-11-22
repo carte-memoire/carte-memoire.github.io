@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { lang, tr } from './i18n';
+import { lang, tr, frenchSpacing } from './i18n';
 
 // Sans navigateur, le site est en français : tr() rend le texte tel quel, valeurs remplies
 describe('tr (français, langue d’origine)', () => {
@@ -21,5 +21,14 @@ describe('tr (français, langue d’origine)', () => {
   });
   it('garde les espaces au début et à la fin', () => {
     expect(tr(' Retour ')).toBe(' Retour ');
+  });
+});
+
+describe('frenchSpacing', () => {
+  it('rend insécables les espaces des guillemets et de la ponctuation haute', () => {
+    expect(frenchSpacing('« Proposer un résumé » : vas-y ? Oui !')).toBe('«\u00a0Proposer un résumé\u00a0»\u00a0: vas-y\u202f? Oui\u202f!');
+  });
+  it('ne touche pas au reste', () => {
+    expect(frenchSpacing('Final Fantasy VII, 1997')).toBe('Final Fantasy VII, 1997');
   });
 });

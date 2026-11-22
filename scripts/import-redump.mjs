@@ -3,8 +3,8 @@
 //
 // Redump recense chaque disque vérifié, avec le code imprimé dessus. Source :
 // « Sony - PlayStation 2.dat » de libretro-database, tiré de Redump.
-// Pour la PS1, le même travail a été fait en deux scripts (import-product-codes.mjs
-// puis import-versions-redump.mjs) ; celui-ci fait tout d'un coup, pour une seule
+// Pour la PS1, le même travail a été fait en deux scripts (archives/import-product-codes.mjs
+// puis archives/import-versions-redump.mjs) ; celui-ci fait tout d'un coup, pour une seule
 // migration à envoyer.
 //
 // Pour chaque disque (disque 1 ou disque unique, hors démos et prototypes), on

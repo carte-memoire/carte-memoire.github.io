@@ -417,6 +417,9 @@ img.avatar { border: 2px solid var(--bevel-light); }
 .welcome-circle { --accent: var(--circle); }
 .welcome-cross { --accent: var(--cross); }
 .welcome-square { --accent: var(--square); }
+.help-wanted .welcome-grid { margin-bottom: 0; }
+.welcome-card .help-count { color: var(--text); font-weight: 700; margin-bottom: 4px; }
+.welcome-card .help-link { margin-top: 8px; }
 .welcome-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: 0; }
 .buttons-legend { display: flex; justify-content: center; margin: 0; }
 .ps-triangle { color: var(--triangle); }
@@ -924,6 +927,7 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .cover-tile-complete { color: var(--triangle); }
 .cover-tile-badges { display: flex; flex-wrap: wrap; gap: 4px; }
 .cover-tile .link-button { align-self: flex-start; font-size: 0.8rem; }
+.cover-tile-actions { display: flex; flex-wrap: wrap; gap: 2px 12px; align-items: baseline; }
 /* Étagère : sur une rangée, les jaquettes (PS1 carrées, PS2 hautes) sont posées sur la même
    ligne et les titres, infos, badges et « Modifier » alignés d'une tuile à l'autre (les tuiles
    partagent les lignes de la grille). Navigateur trop ancien : affichage simple, sans alignement. */
@@ -1447,7 +1451,7 @@ button.cover { padding: 0; font: inherit; color: inherit; }
 .cover-editor-body { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
 .cover-editor-stage { position: relative; flex: 1 1 380px; min-width: 0; display: flex; justify-content: center; }
 .cover-editor-frame { position: relative; display: inline-block; max-width: 100%; line-height: 0; }
-.cover-editor-photo { display: block; width: auto; height: auto; max-width: 100%; max-height: 62vh; }
+.cover-editor-holder > canvas { display: block; width: auto; height: auto; max-width: 100%; max-height: 62vh; }
 .cover-editor-overlay { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
 .cover-editor-shade { fill: rgba(0, 0, 0, 0.45); }
 .cover-editor-edge { fill: none; stroke: var(--triangle); stroke-width: 2; vector-effect: non-scaling-stroke; }
@@ -1466,7 +1470,7 @@ button.cover { padding: 0; font: inherit; color: inherit; }
 .cover-compare { display: flex; flex-wrap: wrap; gap: 20px; }
 .cover-compare figure { margin: 0; display: flex; flex-direction: column; gap: 6px; }
 @media (max-width: 640px) {
-  .cover-editor-photo { max-height: 50vh; }
+  .cover-editor-holder > canvas { max-height: 50vh; }
   .cover-editor-side { flex-direction: row; justify-content: center; width: 100%; }
   .cover-editor-preview { width: 110px; }
 }

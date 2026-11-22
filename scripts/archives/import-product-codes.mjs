@@ -14,13 +14,13 @@
 // Rien de ce qui est déjà renseigné n'est écrasé.
 //
 // Usage (depuis le dossier carte-memoire) :
-//   node scripts/import-product-codes.mjs            → analyse seule
-//   node scripts/import-product-codes.mjs --ecrire   → écrit la migration
+//   node scripts/archives/import-product-codes.mjs            → analyse seule
+//   node scripts/archives/import-product-codes.mjs --ecrire   → écrit la migration
 // =====================================================================
 
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { ROOT, USER_AGENT, bestMatch, buildIndex, loadPs1Releases, parseName, publicApi, readEnv } from './lib/redump.mjs';
+import { ROOT, USER_AGENT, bestMatch, buildIndex, loadPs1Releases, parseName, publicApi, readEnv } from '../lib/redump.mjs';
 
 const write = process.argv.includes('--ecrire');
 const DAT_URL = 'https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/redump/Sony%20-%20PlayStation.dat';
@@ -121,7 +121,7 @@ for (const row of rows.filter((_, i) => i % Math.ceil(rows.length / 25) === 0)) 
 }
 
 if (!write) {
-  console.log('\nPour écrire la migration : node scripts/import-product-codes.mjs --ecrire');
+  console.log('\nPour écrire la migration : node scripts/archives/import-product-codes.mjs --ecrire');
   process.exit(0);
 }
 

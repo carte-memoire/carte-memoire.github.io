@@ -1,17 +1,21 @@
 // =====================================================================
-// Carte Mémoire · Résumés des jeux depuis Wikipédia en français
+// Carte Mémoire · Résumés des jeux depuis Wikipédia (en français, ou en anglais)
 //
 // 1. lit dans la base (API publique, en lecture seule) les jeux qui ont un
-//    identifiant Wikidata et pas encore de résumé ;
-// 2. demande à Wikidata l'article Wikipédia français de chacun ;
+//    identifiant Wikidata et pas encore de résumé dans cette langue ;
+// 2. demande à Wikidata l'article Wikipédia de chacun dans cette langue ;
 // 3. récupère l'introduction de l'article, en texte brut ;
 // 4. écrit une migration SQL qui remplit game.summary et game.summary_source
-//    (lien de l'article : obligatoire, licence CC BY-SA 4.0).
+//    (en anglais : game.summary_en et game.summary_en_source ; lien de l'article
+//    obligatoire, licence CC BY-SA 4.0).
 // Un résumé déjà présent (écrit par la communauté) n'est jamais écrasé.
+// Le résumé anglais sert la version anglaise du site, et la version française
+// quand le jeu n'a pas d'article en français (avec la mention « en anglais »).
 //
 // Usage (depuis le dossier carte-memoire) :
-//   node scripts/import-summaries.mjs            → écrit la migration
-//   node scripts/import-summaries.mjs --dry-run  → affiche seulement le bilan
+//   node scripts/import-summaries.mjs                       → français, écrit la migration
+//   node scripts/import-summaries.mjs --langue en           → anglais
+//   node scripts/import-summaries.mjs --langue en --dry-run → affiche seulement le bilan
 // =====================================================================
 
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -21,6 +25,14 @@ import { nextMigrationStamp } from './lib/consoles.mjs';
 const ROOT = join(import.meta.dirname, '..');
 const USER_AGENT = 'carte-memoire-import/1.0 (projet personnel, import ponctuel)';
 const dryRun = process.argv.includes('--dry-run');
+const LANG = process.argv.includes('--langue') ? process.argv[process.argv.indexOf('--langue') + 1] : 'fr';
+if (!['fr', 'en'].includes(LANG)) throw new Error(`Langue inconnue : ${LANG} (fr ou en)`);
+const LANG_NAME = { fr: 'français', en: 'anglais' }[LANG];
+const SUMMARY = LANG === 'fr' ? 'summary' : 'summary_en';
+const SOURCE = LANG === 'fr' ? 'summary_source' : 'summary_en_source';
+const WIKI = `${LANG}wiki`;
+// Page d'homonymie : « X peut désigner… », « X may refer to… »
+const DISAMBIGUATION = { fr: /^.{0,120}(peut désigner|peut faire référence|peut renvoyer)/s, en: /^.{0,120}(may refer to|may also refer to|can refer to)/s }[LANG];
 const MAX_LENGTH = 1500;
 const MIN_LENGTH = 60;
 
@@ -63,40 +75,49 @@ async function getJson(url, label, init = {}) {
 // ---------------------------------------------------------------------
 console.log('Lecture des jeux sans résumé…');
 const games = [];
+// Colonne pas encore envoyée en ligne (migration en attente de db push) : aucun jeu n'a
+// encore de résumé dans cette langue, on les prend tous
+let filter = `&${SUMMARY}=is.null`;
+try {
+  await getJson(`${SUPABASE_URL}/rest/v1/game?select=id${filter}&limit=1`, 'base de données', { headers: { apikey: PUBLIC_KEY } });
+} catch {
+  console.log(`  (colonne ${SUMMARY} absente de la base en ligne : tous les jeux sont pris)`);
+  filter = '';
+}
 for (let offset = 0; ; offset += 1000) {
   const page = await getJson(
-    `${SUPABASE_URL}/rest/v1/game?select=id,title,wikidata_id&wikidata_id=not.is.null&summary=is.null&order=id&limit=1000&offset=${offset}`,
+    `${SUPABASE_URL}/rest/v1/game?select=id,title,wikidata_id&wikidata_id=not.is.null${filter}&order=id&limit=1000&offset=${offset}`,
     'base de données',
     { headers: { apikey: PUBLIC_KEY } },
   );
   games.push(...page);
   if (page.length < 1000) break;
 }
-console.log(`  ${games.length} jeux avec un identifiant Wikidata et sans résumé`);
+console.log(`  ${games.length} jeux avec un identifiant Wikidata et sans résumé en ${LANG_NAME}`);
 
 
 // ---------------------------------------------------------------------
 // 2. Article Wikipédia français de chaque jeu (via Wikidata)
 // ---------------------------------------------------------------------
-console.log('Recherche des articles en français…');
-const frTitle = new Map(); // QID → titre de l'article
+console.log(`Recherche des articles en ${LANG_NAME}…`);
+const articleTitle = new Map(); // QID → titre de l'article
 for (let i = 0; i < games.length; i += 50) {
   const ids = games.slice(i, i + 50).map((g) => g.wikidata_id);
   const json = await getJson(
     `https://www.wikidata.org/w/api.php?${new URLSearchParams({
-      action: 'wbgetentities', ids: ids.join('|'), props: 'sitelinks', sitefilter: 'frwiki', format: 'json',
+      action: 'wbgetentities', ids: ids.join('|'), props: 'sitelinks', sitefilter: WIKI, format: 'json',
     })}`,
     `Wikidata ${i + 1}`,
   );
   for (const [qid, entity] of Object.entries(json.entities ?? {})) {
-    const title = entity.sitelinks?.frwiki?.title;
-    if (title) frTitle.set(qid, title);
+    const title = entity.sitelinks?.[WIKI]?.title;
+    if (title) articleTitle.set(qid, title);
     // Identifiant redirigé vers un autre : on garde l'identifiant demandé
-    if (entity.redirects?.from && title) frTitle.set(entity.redirects.from, title);
+    if (entity.redirects?.from && title) articleTitle.set(entity.redirects.from, title);
   }
   await pause(2000); // politesse envers Wikimedia : sinon refus temporaire (429)
 }
-console.log(`  ${frTitle.size} jeux ont un article en français`);
+console.log(`  ${articleTitle.size} jeux ont un article en ${LANG_NAME}`);
 
 
 // ---------------------------------------------------------------------
@@ -104,11 +125,11 @@ console.log(`  ${frTitle.size} jeux ont un article en français`);
 // ---------------------------------------------------------------------
 console.log('Lecture des introductions…');
 const extracts = new Map(); // titre demandé → { text, url }
-const titles = [...new Set(frTitle.values())];
+const titles = [...new Set(articleTitle.values())];
 for (let i = 0; i < titles.length; i += 20) {
   const batch = titles.slice(i, i + 20);
   const json = await getJson(
-    `https://fr.wikipedia.org/w/api.php?${new URLSearchParams({
+    `https://${LANG}.wikipedia.org/w/api.php?${new URLSearchParams({
       action: 'query', prop: 'extracts|info', inprop: 'url', exintro: '1', explaintext: '1',
       exlimit: '20', redirects: '1', titles: batch.join('|'), format: 'json', formatversion: '2',
     })}`,
@@ -138,7 +159,7 @@ function clean(raw) {
     .replace(/[ \t]+/g, ' ')
     .replace(/ +([,.;:])/g, '$1')
     .trim();
-  if (/^.{0,120}(peut désigner|peut faire référence|peut renvoyer)/s.test(text)) { stats.disambiguation++; return null; }
+  if (DISAMBIGUATION.test(text)) { stats.disambiguation++; return null; }
 
   // Les premiers paragraphes, sans dépasser MAX_LENGTH ; coupe à la fin d'une phrase
   const paragraphs = text.split(/\n+/).map((p) => p.trim()).filter(Boolean);
@@ -160,7 +181,7 @@ function clean(raw) {
 
 const rows = [];
 for (const g of games) {
-  const title = frTitle.get(g.wikidata_id);
+  const title = articleTitle.get(g.wikidata_id);
   const extract = title && extracts.get(title);
   if (!extract) continue;
   const summary = clean(extract.text);
@@ -171,7 +192,7 @@ const avg = rows.length ? Math.round(rows.reduce((n, r) => n + r.summary.length,
 console.log(`
 Bilan
   Jeux sans résumé            ${games.length}
-  Avec un article français    ${frTitle.size}
+  Avec un article (${LANG})     ${articleTitle.size}
   Introductions récupérées    ${extracts.size}
   Résumés retenus             ${rows.length}  (longueur moyenne ${avg} caractères, ${stats.cut} raccourcis)
   Écartés                     ${stats.short} trop courts, ${stats.disambiguation} pages d'homonymie
@@ -189,7 +210,7 @@ if (dryRun) process.exit(0);
 const lit = (v) => `'${String(v).replaceAll("'", "''")}'`;
 const now = new Date();
 const stamp = nextMigrationStamp(ROOT);
-const file = join(ROOT, 'supabase', 'migrations', `${stamp}_import_summaries_fr.sql`);
+const file = join(ROOT, 'supabase', 'migrations', `${stamp}_import_summaries_${LANG}.sql`);
 const values = [];
 for (let i = 0; i < rows.length; i += 200) {
   values.push(`insert into import_summary (wikidata_id, summary, source) values\n  ${rows
@@ -199,12 +220,12 @@ for (let i = 0; i < rows.length; i += 200) {
 }
 
 writeFileSync(file, `-- =====================================================================
--- Carte Mémoire · Résumés des jeux : introduction des articles de Wikipédia en français
--- Fichier GÉNÉRÉ par scripts/import-summaries.mjs le ${now.toISOString().slice(0, 10)} : ne pas modifier à la main.
+-- Carte Mémoire · Résumés des jeux : introduction des articles de Wikipédia en ${LANG_NAME}
+-- Fichier GÉNÉRÉ par scripts/import-summaries.mjs${LANG === 'fr' ? '' : ` --langue ${LANG}`} le ${now.toISOString().slice(0, 10)} : ne pas modifier à la main.
 --
--- Textes issus de Wikipédia en français, licence CC BY-SA 4.0
+-- Textes issus de Wikipédia en ${LANG_NAME}, licence CC BY-SA 4.0
 --   https://creativecommons.org/licenses/by-sa/4.0/deed.fr
--- Chaque résumé garde l'adresse de son article (game.summary_source), affichée
+-- Chaque résumé garde l'adresse de son article (game.${SOURCE}), affichée
 -- sur la fiche du jeu. Auteurs : voir l'historique de chaque article.
 --
 -- ${rows.length} résumés. Un résumé déjà présent n'est jamais écrasé.
@@ -215,11 +236,11 @@ create temporary table import_summary (wikidata_id text primary key, summary tex
 ${values.join('\n\n')}
 
 update public.game g
-set summary = i.summary, summary_source = i.source
+set ${SUMMARY} = i.summary, ${SOURCE} = i.source
 from import_summary i
 where g.wikidata_id = i.wikidata_id
-  and g.summary is null;
+  and g.${SUMMARY} is null;
 
 drop table import_summary;
 `);
-console.log(`Migration écrite : supabase/migrations/${stamp}_import_summaries_fr.sql`);
+console.log(`Migration écrite : supabase/migrations/${stamp}_import_summaries_${LANG}.sql`);

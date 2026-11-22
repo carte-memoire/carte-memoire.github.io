@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { caseFormatFor, type CaseFormat, type Quad } from '../lib/coverPhoto';
+import { platformCase } from '../lib/cases';
 import { extensionOf, loadPhoto, prepareCover } from '../lib/images';
 import { CoverEditor } from './CoverEditor';
 import { Dialog } from './Dialog';
@@ -74,7 +75,7 @@ export function ProposedCover({ path, platform, editionType, edited, onEdited, s
   const shown = editedUrl || url;
   // Cadre aux proportions exactes de l'image proposée (le modérateur la voit entière, sans
   // bandes ni rognage) ; avant chargement, celles du boîtier choisi
-  const tall = format === 'dvd' || (format === 'free' && platform === 'PS2');
+  const tall = format === 'dvd' || (format === 'free' && platformCase(platform) === 'dvd');
   const [natural, setNatural] = useState<number | null>(null);
   const fullQuad = (c: HTMLCanvasElement): Quad => [{ x: 0, y: 0 }, { x: c.width, y: 0 }, { x: c.width, y: c.height }, { x: 0, y: c.height }];
 

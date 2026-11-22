@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ConsoleShowcase } from '../components/ConsoleArt';
 import { CountUp } from '../components/CountUp';
 import { GameSearch } from '../components/GameSearch';
+import { HelpWanted } from '../components/HelpWanted';
 import { useScanner } from '../components/Scanner';
 import { PsSymbol, type PsShape } from '../components/PsSymbol';
 import { useAuth } from '../auth/AuthContext';
@@ -114,6 +115,8 @@ export function Home() {
 
       {/* Pour qui découvre le site ; les membres connectés le connaissent déjà */}
       {!loading && !session && <Welcome />}
+      {/* Ce qui manque encore, et comment aider (tout le monde) */}
+      {!loading && <HelpWanted signedIn={Boolean(session)} />}
     </section>
   );
 }

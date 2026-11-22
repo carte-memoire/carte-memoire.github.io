@@ -13,14 +13,14 @@
 //      créé), les faux liens Wikidata et les pays qui en venaient sont retirés.
 //
 // Usage (depuis le dossier carte-memoire) :
-//   node scripts/fix-developer-companies.mjs           → bilan seul
-//   node scripts/fix-developer-companies.mjs --ecrire  → écrit la migration
+//   node scripts/archives/fix-developer-companies.mjs           → bilan seul
+//   node scripts/archives/fix-developer-companies.mjs --ecrire  → écrit la migration
 // =====================================================================
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { ROOT, USER_AGENT, normalize, publicApi, readEnv } from './lib/redump.mjs';
-import { stripTags } from './lib/text.mjs';
+import { ROOT, USER_AGENT, normalize, publicApi, readEnv } from '../lib/redump.mjs';
+import { stripTags } from '../lib/text.mjs';
 
 const write = process.argv.includes('--ecrire');
 const CACHE = join(ROOT, '.origins-import');

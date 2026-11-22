@@ -62,5 +62,12 @@ export function tr(text: string, ...values: unknown[]): string {
     if (yes !== undefined) return value ? yes : (no ?? '');
     return value === undefined || value === null ? '' : String(value);
   });
-  return before + filled + after;
+  return before + (lang === 'en' ? filled : frenchSpacing(filled)) + after;
+}
+
+// Typographie française : espaces insécables à l'intérieur des guillemets (« … »),
+// devant : (insécable) et devant ; ? ! (fine insécable), pour qu'un « ou un ? ne se
+// retrouve jamais seul en début ou en fin de ligne
+export function frenchSpacing(text: string): string {
+  return text.replace(/« /g, '«\u00a0').replace(/ »/g, '\u00a0»').replace(/ :/g, '\u00a0:').replace(/ ([;?!])/g, '\u202f$1');
 }
