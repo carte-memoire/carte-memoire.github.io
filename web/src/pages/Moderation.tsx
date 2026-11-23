@@ -77,7 +77,7 @@ export function Moderation() {
           <Link to="/compte">{tr('Active-la ou valide-la dans « Mon compte »')}</Link>.
         </p>
       )}
-      <div className="tabs" role="tablist">
+      <div className="tabs tabs-many" role="tablist">
         {([
           ['submissions', tr('Propositions'), tr('Propositions des membres'), counts.submissions],
           ['reports', tr('Signalements'), tr('Signalements d’erreurs'), counts.reports],
@@ -90,7 +90,7 @@ export function Moderation() {
         ] as [Tab, string, string, number | null][]).map(([value, label, title, count]) => (
           <button key={value} type="button" role="tab" aria-selected={tab === value} className={tab === value ? 'tab active' : 'tab'}
             title={title} onClick={() => setTab(value)}>
-            {label}{count !== null && <span className="tab-count">{formatNumber(count)}</span>}
+            {label}{count !== null && count > 0 && <span className="tab-count">{formatNumber(count)}</span>}
           </button>
         ))}
       </div>

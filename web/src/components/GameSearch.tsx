@@ -84,6 +84,7 @@ export function GameSearch({ onSelect, placeholder = tr('Final Fantasy VII, Cras
                   <span className="result-title">{r.title}</span>
                   {r.matched_title !== r.title && <span className="result-alt">« {r.matched_title} »</span>}
                   <span className="result-meta">
+                    {r.platforms?.map((p) => <span key={p} className="badge badge-console result-console">{p}</span>)}
                     {r.matched_code && <span className="code result-code">{r.matched_code}</span>}
                     {yearOf(r.first_release_date)}
                     {r.release_count > 1 && tr(' · {0} versions', r.release_count)}

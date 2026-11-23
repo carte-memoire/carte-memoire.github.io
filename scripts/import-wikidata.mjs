@@ -572,9 +572,11 @@ update public.company c set country = i.country
 from import_company i
 where c.wikidata_id = i.wikidata_id and c.country is null and i.country is not null;
 
--- « on conflict do nothing » sans cible : ignore aussi un nom de genre déjà pris
+-- « on conflict do nothing » sans cible : ignore aussi un nom de genre déjà pris.
+-- Un genre fusionné ou retiré (public.genre_alias) n'est jamais recréé.
 insert into public.genre (name, wikidata_id)
-select name, wikidata_id from import_genre
+select name, wikidata_id from import_genre i
+where i.wikidata_id is null or not exists (select 1 from public.genre_alias a where a.wikidata_id = i.wikidata_id)
 on conflict do nothing;
 
 insert into public.series (name, wikidata_id)
@@ -620,11 +622,18 @@ join public.game g on g.wikidata_id = i.game
 join public.company c on c.wikidata_id = i.company
 on conflict do nothing;
 
+-- Le genre par son identifiant Wikidata (il a pu être renommé), sinon par l'alias d'un genre
+-- fusionné (un genre retiré n'est pas relié), sinon par son nom
 insert into public.game_genre (game_id, genre_id)
-select g.id, ge.id
+select g.id, coalesce(ge.id, al.genre_id, gn.id)
 from import_game_genre i
 join public.game g on g.wikidata_id = i.game
-join public.genre ge on ge.name = i.genre
+left join import_genre ig on ig.name = i.genre
+left join public.genre ge on ge.wikidata_id = ig.wikidata_id
+left join public.genre_alias al on al.wikidata_id = ig.wikidata_id
+left join public.genre gn on gn.name = i.genre
+where coalesce(ge.id, al.genre_id, gn.id) is not null
+  and not exists (select 1 from public.genre_alias x where x.wikidata_id = ig.wikidata_id and x.genre_id is null)
 on conflict do nothing;
 
 insert into public.game_series (game_id, series_id)

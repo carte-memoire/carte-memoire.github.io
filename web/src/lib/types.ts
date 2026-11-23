@@ -22,6 +22,8 @@ export interface SearchResult {
   cover_path: string | null;
   // Code produit de la version trouvée, si la recherche portait sur un code
   matched_code: string | null;
+  // Consoles du jeu (PS1, PS2…), de la plus ancienne à la plus récente
+  platforms?: string[] | null;
 }
 
 export interface Region {

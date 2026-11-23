@@ -31,6 +31,9 @@
 *, *::before, *::after { box-sizing: border-box; }
 
 html { -webkit-text-size-adjust: 100%; }
+/* Fenêtre ouverte (ajout, proposition, zoom…) : la page derrière ne défile plus, et la
+   place de la barre de défilement reste réservée (rien ne bouge) */
+html:has(dialog[open]) { overflow: hidden; scrollbar-gutter: stable; }
 
 body {
   margin: 0;
@@ -441,6 +444,7 @@ img.avatar { border: 2px solid var(--bevel-light); }
 .result-title, .choice-title { font-weight: 600; display: block; }
 .result-alt { color: var(--muted); font-size: 0.9rem; }
 .result-meta { color: var(--muted); font-size: 0.85rem; }
+.result-console { margin-right: 6px; font-size: 0.72rem; padding: 0 6px; vertical-align: 1px; }
 .chosen { display: flex; gap: 12px; align-items: center; }
 
 /* ---------- Jaquettes ---------- */
@@ -538,12 +542,23 @@ img.avatar { border: 2px solid var(--bevel-light); }
   background: var(--panel-2); color: var(--muted); border: 1px solid var(--line);
 }
 .tab.active .tab-count { color: var(--text); border-color: var(--triangle); }
+/* Beaucoup d'onglets (Modération) : sous 1 100 px de large, des pastilles qui passent à la
+   ligne, comme sur téléphone, plutôt qu'un dernier onglet coupé au bord */
+@media (max-width: 1100px) {
+  .tabs.tabs-many { flex-wrap: wrap; overflow: visible; gap: 6px; border-bottom: 0; }
+  .tabs.tabs-many .tab {
+    padding: 6px 12px; font-size: 0.85rem;
+    background: var(--bg-2); border: 1px solid var(--line); border-radius: 999px;
+  }
+  .tabs.tabs-many .tab.active { color: #fff; background: #3446b0; border-color: var(--cross); }
+  .tabs.tabs-many .tab.active .tab-count { color: #fff; border-color: rgba(255, 255, 255, 0.45); background: rgba(255, 255, 255, 0.12); }
+}
 /* Choix de la console, à droite du titre (page Modération) */
 .console-choice { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .tab {
   flex: none; white-space: nowrap;
   font: inherit; font-size: clamp(0.8rem, 0.68rem + 0.4vw, 1rem); color: var(--muted); background: none; cursor: pointer;
-  border: 0; border-bottom: 3px solid transparent; padding: 8px clamp(7px, 1.1vw, 14px);
+  border: 0; border-bottom: 3px solid transparent; padding: 8px clamp(7px, 0.9vw, 12px);
 }
 .tab.active { color: var(--text); border-bottom-color: var(--triangle); }
 .memory-card {
@@ -562,6 +577,15 @@ img.avatar { border: 2px solid var(--bevel-light); }
 .block-meta { margin: 0; font-size: 0.85rem; color: var(--muted); }
 .block-notes { margin: 0; font-size: 0.85rem; font-style: italic; color: var(--muted); display: block; }
 /* Les boutons passent à la ligne plutôt que de dépasser du cadre (cartes étroites) */
+/* Pastille « appareil photo » sur la jaquette d'un exemplaire sans jaquette propre */
+.photo-cover { position: relative; flex: none; align-self: flex-start; }
+.photo-cover-button {
+  position: absolute; top: 6px; right: 6px; z-index: 1;
+  width: 34px; height: 34px; padding: 0; border-radius: 999px;
+  display: grid; place-items: center; cursor: pointer;
+  color: var(--text); background: rgba(11, 13, 28, 0.85); border: 1px solid var(--bevel-light);
+}
+.photo-cover-button:hover, .photo-cover-button:focus-visible { color: var(--circle); border-color: var(--circle); }
 .block-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; padding-top: 6px; }
 
 /* ---------- Listes simples ---------- */
@@ -917,7 +941,7 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
   list-style: none; margin: 0; padding: 0;
   display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px;
 }
-.cover-tile { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.cover-tile { position: relative; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .cover-tile .cover { width: 100%; }
 .cover-tile-link { display: flex; flex-direction: column; gap: 6px; color: var(--text); text-decoration: none; }
 .cover-tile-link:hover { color: var(--cross); }
@@ -927,7 +951,6 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .cover-tile-complete { color: var(--triangle); }
 .cover-tile-badges { display: flex; flex-wrap: wrap; gap: 4px; }
 .cover-tile .link-button { align-self: flex-start; font-size: 0.8rem; }
-.cover-tile-actions { display: flex; flex-wrap: wrap; gap: 2px 12px; align-items: baseline; }
 /* Étagère : sur une rangée, les jaquettes (PS1 carrées, PS2 hautes) sont posées sur la même
    ligne et les titres, infos, badges et « Modifier » alignés d'une tuile à l'autre (les tuiles
    partagent les lignes de la grille). Navigateur trop ancien : affichage simple, sans alignement. */

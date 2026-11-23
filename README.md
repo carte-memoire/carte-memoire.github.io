@@ -29,7 +29,7 @@ npm run check       # lint (oxlint), tests du front (Vitest : src/lib/*.test.ts)
 https://carte-memoire.app — publié par GitHub Pages à chaque envoi sur `main` (l'ancienne adresse
 https://carte-memoire.github.io y renvoie)
 (workflow [`.github/workflows/publier-le-site.yml`](.github/workflows/publier-le-site.yml)) : les tests de la base
-doivent passer, le code du site est vérifié (types, lint, tests, traductions), puis le site est compilé et mis en ligne.
+doivent passer, le code du site est vérifié (types, lint, tests, traductions), puis le site est compilé, mis en ligne, et contrôlé en ligne juste après (accueil, robots.txt, plan du site, trois fiches au hasard : un échec passe la publication en rouge).
 
 Réglages, une fois pour toutes, dans le dépôt GitHub :
 

@@ -129,7 +129,24 @@ export function regionName(region: { code: string; name: string }): string {
 }
 
 // Nom d'un genre de la base (venu de Wikipédia, en français ou en anglais) : traduit s'il est connu
-export const genreName = (name: string) => tr(name);
+// Nom d'un genre à l'écran. En français, le « jeu » est sous-entendu sur un site de jeux :
+// « Jeu d'action-aventure » → « Action-aventure », « Jeu vidéo d’horreur » → « Horreur ».
+// Sauf quand le mot ne veut plus rien dire seul (« Jeu de rôle… », « Jeu de plateau »).
+// En anglais, c'est la traduction du nom complet qui fait foi.
+const KEEP_GAME_WORD = /^(rôle|plateau|société)/i;
+export function genreName(name: string): string {
+  if (lang === 'en') return tr(name);
+  const short = name.replace(/^jeux? (?:vidéo (?:de |d['’]|du )?|de |d['’]|du )/i, '');
+  if (short === name || KEEP_GAME_WORD.test(short) || short.length < 2) return tr(name);
+  return tr(short.charAt(0).toUpperCase() + short.slice(1));
+}
+
+// Les genres précis d'un jeu à afficher à côté de ses familles, sans répéter une famille
+// déjà affichée (« Jeu de sport » est la famille Sport, « Jeu de combat » la famille Combat)
+export function genresBesideFamilies(genres: { name: string; families: string[] }[]): string[] {
+  const shown = new Set(genres.flatMap((g) => g.families).map((f) => searchKey(familyLabel(f))));
+  return [...new Set(genres.map((g) => genreName(g.name)))].filter((label) => !shown.has(searchKey(label)));
+}
 
 // Langues d'une version en abrégé : « FR », « EN · FR · DE », « Multi » au-delà de trois
 export function languagesShort(languages: string[] | null | undefined): string {

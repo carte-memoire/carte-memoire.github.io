@@ -456,7 +456,10 @@ function ItemBlock({ item, value, fresh, showPlatform, standIn, onEdit, onRemove
   const complete = item.has_box && item.has_manual && item.has_media;
   return (
     <li className={fresh ? 'block just-saved' : 'block'}>
-      <Cover images={r.image} title={r.local_title} size="medium" platform={r.platform.short_name} standIn={standIn} />
+      <div className="photo-cover">
+        <Cover images={r.image} title={r.local_title} size="medium" platform={r.platform.short_name} standIn={standIn} />
+        {onPhoto && <PhotoButton onClick={onPhoto} />}
+      </div>
       <div className="block-body">
         <Link to={gamePath(r.game)} className="block-title">{r.local_title}</Link>
         <p className="block-badges">
@@ -486,7 +489,6 @@ function ItemBlock({ item, value, fresh, showPlatform, standIn, onEdit, onRemove
         {item.notes && <p className="block-notes">{item.notes}</p>}
         <div className="block-actions">
           <button type="button" className="button button-small" onClick={onEdit}><PsSymbol shape="triangle" />{tr(' Modifier')}</button>
-          {onPhoto && <button type="button" className="button button-small" onClick={onPhoto} title={tr('Cette version n’a pas encore sa jaquette : propose la tienne')}><PsSymbol shape="circle" />{tr(' Prendre la jaquette en photo')}</button>}
           <button type="button" className="button button-small button-danger" onClick={onRemove}>{tr('Retirer')}</button>
         </div>
       </div>
@@ -514,10 +516,22 @@ function ItemTile({ item, fresh, showPlatform, standIn, onEdit, onPhoto }: { ite
           {item.trade_status && <span className="badge badge-trade">{tradeStatusLabel(item.trade_status)}</span>}
         </span>
       )}
-      <span className="cover-tile-actions">
-        <button type="button" className="link-button small" onClick={onEdit}>{tr('Modifier')}</button>
-        {onPhoto && <button type="button" className="link-button small" onClick={onPhoto} title={tr('Cette version n’a pas encore sa jaquette : propose la tienne')}>{tr('Photo de la jaquette')}</button>}
-      </span>
+      <button type="button" className="link-button small" onClick={onEdit}>{tr('Modifier')}</button>
+      {onPhoto && <PhotoButton onClick={onPhoto} />}
     </li>
+  );
+}
+
+// Pastille « appareil photo » posée sur la jaquette (coin haut droit) d'un exemplaire dont
+// la version n'a pas encore sa propre jaquette (celle affichée est alors provisoire)
+function PhotoButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button type="button" className="photo-cover-button" onClick={onClick}
+      title={tr('Cette version n’a pas encore sa propre jaquette : prends-la en photo')} aria-label={tr('Prendre la jaquette en photo')}>
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+        <path d="M4 8h3l2-3h6l2 3h3v11H4z" />
+        <circle cx="12" cy="13" r="3.5" />
+      </svg>
+    </button>
   );
 }

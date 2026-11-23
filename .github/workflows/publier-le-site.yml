@@ -144,3 +144,40 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  # Contrôle du site EN LIGNE, juste après la publication : l'accueil, robots.txt, le plan
+  # du site (au moins 1 000 adresses) et trois fiches de jeux tirées au hasard doivent
+  # répondre 200. Un échec fait passer la publication en rouge, et GitHub prévient par
+  # e-mail : en novembre 2026, les fiches avaient disparu pour Google sans que rien ne le
+  # signale. Le cache de GitHub Pages peut servir l'ancienne version quelques minutes :
+  # chaque adresse a 10 essais, une minute d'écart.
+  verify:
+    name: Vérifier le site en ligne
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Accueil, robots.txt, plan du site et fiches
+        env:
+          SITE_URL: ${{ vars.SITE_URL || 'https://carte-memoire.app' }}
+        run: |
+          site=$(printf '%s' "$SITE_URL" | sed 's#/*$##')
+          check() {
+            for i in 1 2 3 4 5 6 7 8 9 10; do
+              code=$(curl -s -o /dev/null -w '%{http_code}' "$1")
+              if [ "$code" = 200 ]; then echo "OK  $1"; return 0; fi
+              echo "…   $1 répond $code, nouvel essai dans 60 s"; sleep 60
+            done
+            echo "::error::$1 répond $code au lieu de 200"
+            return 1
+          }
+          check "$site/"
+          check "$site/robots.txt"
+          check "$site/sitemap.xml"
+          curl -s "$site/sitemap.xml" -o sitemap.xml
+          n=$(grep -o '<loc>' sitemap.xml | wc -l)
+          echo "Plan du site : $n adresses"
+          if [ "$n" -lt 1000 ]; then echo "::error::Le plan du site ne contient que $n adresses"; exit 1; fi
+          for url in $(grep -o '<loc>[^<]*/jeu/[^<]*</loc>' sitemap.xml | sed -e 's#<loc>##' -e 's#</loc>##' | shuf -n 3); do
+            check "$url"
+          done

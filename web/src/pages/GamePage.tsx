@@ -5,7 +5,7 @@ import { errorMessage } from '../lib/errors';
 import { Dialog } from '../components/Dialog';
 import { GAME_FIELDS } from '../lib/queries';
 import {
-  boxRegionName, countryName, editionClass, editionLabel, familyLabel, formatDate, languagesLong, languagesShort, pickSummary, speaksLanguage, zoneLabel, zoneOrderFrom, genreName, regionName,
+  boxRegionName, countryName, editionClass, editionLabel, familyLabel, formatDate, languagesLong, languagesShort, pickSummary, speaksLanguage, zoneLabel, zoneOrderFrom, genreName, genresBesideFamilies, regionName,
 } from '../lib/format';
 import { preferredZone, rememberedLanguage, rememberedPlatform } from '../lib/preferences';
 import { describeSpecs } from '../lib/specs';
@@ -332,7 +332,7 @@ export function GamePage() {
                   <span className="family-tags">
                     {families.map((f) => <Link key={f} to={`/catalogue?genre=${f}`} className="badge badge-family">{familyLabel(f)}</Link>)}
                   </span>
-                  <span className="muted small"> {genres.map((g) => genreName(g.name)).join(', ')}</span>
+                  {genresBesideFamilies(genres).length > 0 && <span className="muted small"> {genresBesideFamilies(genres).join(', ')}</span>}
                 </dd>
               </>
             )}

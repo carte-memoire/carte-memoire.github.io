@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  editionClass, editionLabel, formatDate, formatPercent, gamePath, languagesLong, languagesShort, pickSummary, readableSpaces, searchKey, slugify, speaksLanguage, yearOf, zoneOrder, zoneOrderFrom,
+  editionClass, editionLabel, formatDate, formatPercent, gamePath, languagesLong, languagesShort, genreName, genresBesideFamilies, pickSummary, readableSpaces, searchKey, slugify, speaksLanguage, yearOf, zoneOrder, zoneOrderFrom,
 } from './format';
 
 describe('slugify et gamePath', () => {
@@ -124,5 +124,26 @@ describe('zoneOrderFrom', () => {
   });
   it('une version sans zone ne passe jamais devant', () => {
     expect(zoneOrderFrom('PAL')(null)).toBeGreaterThan(zoneOrderFrom('PAL')('NTSC-U'));
+  });
+});
+
+describe('genreName et genresBesideFamilies (français)', () => {
+  it('retire le « jeu » sous-entendu', () => {
+    expect(genreName("Jeu d'action-aventure")).toBe('Action-aventure');
+    expect(genreName('Jeu vidéo musical')).toBe('Musical');
+    expect(genreName('Jeu de tir à la troisième personne')).toBe('Tir à la troisième personne');
+  });
+  it('le garde quand le mot ne veut plus rien dire seul', () => {
+    expect(genreName('Jeu de rôle à perspectives multiples')).toBe('Jeu de rôle à perspectives multiples');
+    expect(genreName('Jeu de plateau')).toBe('Jeu de plateau');
+    expect(genreName('Jeu télévisé')).toBe('Jeu télévisé');
+    expect(genreName('Survival horror')).toBe('Survival horror');
+  });
+  it('ne répète pas une famille déjà affichée', () => {
+    expect(genresBesideFamilies([
+      { name: 'Jeu de sport', families: ['sports'] },
+      { name: 'Jeu de football', families: ['sports'] },
+      { name: "Jeu d'action-aventure", families: ['adventure', 'action'] },
+    ])).toEqual(['Football', 'Action-aventure']);
   });
 });

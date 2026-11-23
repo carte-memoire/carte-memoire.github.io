@@ -367,7 +367,7 @@ await egal('une recherche par titre reste inchangée', parCode('final fantasy VI
 console.log('\nCatalogue à cocher et progression');
 await egal('Action-RPG compte en RPG et en Action, Tactical RPG en RPG et en Stratégie', val(`select name, array_to_string(families, ',') as f from public.genre where name in ('RPG', 'Tactical RPG', 'Action-RPG') order by name`),
   [{ name: 'Action-RPG', f: 'rpg,action' }, { name: 'RPG', f: 'rpg' }, { name: 'Tactical RPG', f: 'rpg,strategy' }]);
-await egal('un thème (science-fiction) n\'a pas de famille', val(`select cardinality(families) as n from public.genre where name = 'Jeu de science-fiction'`), [{ n: 0 }]);
+await egal('un thème (science-fiction) n\'a pas de famille', val(`select cardinality(families) as n from public.genre where name in ('Science-fiction', 'Jeu de science-fiction')`), [{ n: 0 }]);
 
 // Genres d'un jeu importé, par son identifiant Wikidata
 const genresDe = (qid) => val(`select string_agg(ge.name, ', ' order by ge.name) as g from public.game g join public.game_genre gg on gg.game_id = g.id join public.genre ge on ge.id = gg.genre_id where g.wikidata_id = $1`, [qid]).then((r) => r[0].g);
@@ -1100,6 +1100,19 @@ await egal('« Crash PlayStation 2 » : pareil', chercheMots('Crash PlayStation 
 await egal('« crash naughty dog » : le titre et le studio', chercheMots('crash naughty dog').then((r) => r.some((x) => x.title === 'Crash Bandicoot')), true);
 await egal('« square soft » : les jeux de Squaresoft', chercheMots('square soft').then((r) => r.some((x) => x.title === 'Final Fantasy VII')), true);
 await egal('« square enix » : des jeux de Square Enix', chercheMots('square enix').then((r) => r.length > 0), true);
+await egal('chaque résultat dit sur quelle console est sorti le jeu', val(`
+  select bool_and(cardinality(platforms) > 0) as ok from public.search_games('crash', 50)`), [{ ok: true }]);
+await egal('« crash ps2 » : seulement PS2 dans les consoles affichées', val(`
+  select bool_and(platforms = array['PS2']) as ok from public.search_games('crash ps2', 50)`), [{ ok: true }]);
+await egal('…un jeu sorti sur PS1 et PS2 les montre dans l\'ordre de sortie des consoles', val(`
+  with dual as (
+    select g.id, g.title from public.game g
+    where exists (select 1 from public.release r join public.platform p on p.id = r.platform_id where r.game_id = g.id and p.short_name = 'PS1')
+      and exists (select 1 from public.release r join public.platform p on p.id = r.platform_id where r.game_id = g.id and p.short_name = 'PS2')
+    order by g.id limit 1
+  )
+  select (s.platforms = array['PS1', 'PS2']) as ok from dual cross join lateral public.search_games(dual.title, 50) s where s.id = dual.id`), [{ ok: true }]);
+await ok('la recherche reste ouverte aux visiteurs (droits redonnés après la recréation)', en(null, `select * from public.search_games('crash')`));
 await egal('le titre exact reste en tête', chercheMots('final fantasy vii').then((r) => r[0]?.title), 'Final Fantasy VII');
 await egal('« the getaway » : trouvé', chercheMots('the getaway').then((r) => r.some((x) => x.title === 'The Getaway')), true);
 await ko('les anciennes adresses ne s\'écrivent pas par l\'API', en(MEMBRE, `insert into public.game_slug_history (slug, game_id) values ('ps1/piege', $1)`, [jA]), '');
@@ -1263,6 +1276,38 @@ await egal('plus de version vide à côté de vraies versions sur la même conso
     and exists (select 1 from public.release o where o.game_id = r.game_id and o.platform_id = r.platform_id and o.zone is not null)`), [{ n: 0 }]);
 await egal('chaque version retirée est notée dans le journal des suppressions', val(`
   select (count(*) > 0) as notee from public.catalog_deletion where kind = 'release' and reason like 'Version vide en double%'`), [{ notee: true }]);
+
+console.log('\nFiches vides : fantômes supprimés, doublons sous un autre titre fusionnés');
+await egal('les fiches fantômes ont disparu (Deadly Premonition, WWE \'12, Placid Plastic Duck Simulator « sur PS1 »)', val(`
+  select count(*)::int as n from public.game where wikidata_id in ('Q1180940', 'Q1191816', 'Q113434032')`), [{ n: 0 }]);
+await egal('…chacune notée au journal des suppressions', val(`
+  select (count(*) >= 3) as ok from public.catalog_deletion where kind = 'game' and reason like 'Fiche fantôme%'`), [{ ok: true }]);
+// (La base de test n'a pas tous les codes produits PS1 de la base en ligne : là où le code
+// manque, la fusion n'a rien à faire et ces vérifications passent sans objet.)
+await egal('Metal Slug X et Raiden DX : la fiche de leurs versions porte leur titre et leur élément Wikidata', val(`
+  select count(*)::int as n from public.release r join public.game g on g.id = r.game_id
+  where (r.product_code = 'SLUS-01212' and (g.title <> 'Metal Slug X' or g.wikidata_id is distinct from 'Q1072820'))
+     or (r.product_code = 'SLPS-00728' and (g.title <> 'Raiden DX' or g.wikidata_id is distinct from 'Q6141713'))`), [{ n: 0 }]);
+await egal('Momotarou Densetsu : la fiche vide « Momotaro Densetsu » lui a apporté son élément Wikidata', val(`
+  select g.title from public.game g where g.wikidata_id = 'Q85881473'`), [{ title: 'Momotarou Densetsu' }]);
+await egal('plus de fiche vide pour un jeu dont la vraie fiche a été retrouvée par son code', val(`
+  select count(*)::int as n from (values ('Q1072820', 'SLUS-01212'), ('Q6141713', 'SLPS-00728'), ('Q719960', 'SLES-03662')) as p(qid, code)
+  join public.game g on g.wikidata_id = p.qid
+  where exists (select 1 from public.release r where r.product_code = p.code)
+    and not exists (select 1 from public.release r where r.game_id = g.id and r.zone is not null)`), [{ n: 0 }]);
+
+console.log('\nThèmes : libellés français, doublons fusionnés, faux thèmes retirés');
+await egal('plus aucun thème au libellé anglais « … video game »', val(`
+  select name from public.genre where families = '{}' and name ilike '%video game%' order by name`), []);
+await egal('un seul thème LGBT', val(`select (count(*) <= 1) as ok from public.genre where name ilike '%LGBT%'`), [{ ok: true }]);
+await egal('les catégories qui ne disent rien du jeu sont retirées', val(`
+  select count(*)::int as n from public.genre where name in ('Infographie tridimensionnelle', 'Vue objective', 'Manga et animé romantique', 'Jeu vidéo en 3D')`), [{ n: 0 }]);
+await egal('les vrais genres rangés sans famille ont rejoint la leur (cricket → sport, rallye → course)', val(`
+  select count(*)::int as n from public.genre where name in ('Jeu de cricket', 'Jeu de rallye') and families = '{}'`), [{ n: 0 }]);
+await egal('un genre fusionné ou retiré garde son identifiant Wikidata en alias (pas recréé par un import)', val(`
+  select count(*)::int as n from public.genre_alias a where exists (select 1 from public.genre g where g.wikidata_id = a.wikidata_id)`), [{ n: 0 }]);
+await ok('les alias de genres sont lisibles par tous', en(null, `select * from public.genre_alias limit 1`));
+await ko('un membre n\'écrit pas dans les alias de genres', en(MEMBRE, `insert into public.genre_alias (wikidata_id) values ('Q1')`), 'permission denied');
 
 console.log('\nRésumés anglais et appel à l\'aide');
 await ok('un visiteur lit le résumé anglais', en(null, `select summary_en, summary_en_source from public.game limit 1`));
