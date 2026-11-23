@@ -542,8 +542,10 @@ img.avatar { border: 2px solid var(--bevel-light); }
   background: var(--panel-2); color: var(--muted); border: 1px solid var(--line);
 }
 .tab.active .tab-count { color: var(--text); border-color: var(--triangle); }
-/* Beaucoup d'onglets (Modération) : sous 1 100 px de large, des pastilles qui passent à la
-   ligne, comme sur téléphone, plutôt qu'un dernier onglet coupé au bord */
+/* Beaucoup d'onglets (Modération) : jamais un dernier onglet coupé au bord. Sur ordinateur,
+   ils passent à la ligne s'ils ne tiennent plus (compteurs qui grandissent) ; sous 1 100 px
+   de large, ce sont des pastilles, comme sur téléphone */
+.tabs.tabs-many { flex-wrap: wrap; overflow: visible; row-gap: 2px; }
 @media (max-width: 1100px) {
   .tabs.tabs-many { flex-wrap: wrap; overflow: visible; gap: 6px; border-bottom: 0; }
   .tabs.tabs-many .tab {
