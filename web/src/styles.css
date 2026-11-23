@@ -1338,13 +1338,6 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
     linear-gradient(90deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.08) 9%, transparent 22%),
     linear-gradient(90deg, #1e1e22, #0e0e10 55%, #19191c);
 }
-/* La charnière : le boîtier est en deux parties ; le couvercle pivote sur deux tétons
-   (en haut et en bas, côté tranche) qui s'emboîtent dans la base, visibles sur les bords */
-.cv-pin {
-  left: 3.5%; top: 18%; width: calc(var(--case-h) * 0.05); aspect-ratio: 1; border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #fff, rgba(225, 230, 240, 0.75) 42%, rgba(140, 146, 160, 0.55));
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4), inset 0 -1px 1px rgba(0, 0, 0, 0.25);
-}
 .cv-ps1-pal .cv-edge {
   background:
     linear-gradient(90deg, #121214 0 9%, transparent 9%),

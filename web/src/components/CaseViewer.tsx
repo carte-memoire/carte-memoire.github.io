@@ -151,8 +151,8 @@ export function CaseViewer({ pulled, onClose, onEdit }: { pulled: Pulled; onClos
               {kind === 'ps1' && <SpineFace release={pulled.release} />}
               <span className="cv-gloss" />
             </div>
-            <div className="cv-face cv-edge cv-top" style={face({ width: w - 2 * round, left: round, height: d, top: (h - d) / 2, transform: `rotateX(90deg) translateZ(${h / 2}px)` })}>{kind === 'ps1' && <span className="cv-pin" />}</div>
-            <div className="cv-face cv-edge cv-bottom" style={face({ width: w - 2 * round, left: round, height: d, top: (h - d) / 2, transform: `rotateX(-90deg) translateZ(${h / 2}px)` })}>{kind === 'ps1' && <span className="cv-pin" />}</div>
+            <div className="cv-face cv-edge cv-top" style={face({ width: w - 2 * round, left: round, height: d, top: (h - d) / 2, transform: `rotateX(90deg) translateZ(${h / 2}px)` })} />
+            <div className="cv-face cv-edge cv-bottom" style={face({ width: w - 2 * round, left: round, height: d, top: (h - d) / 2, transform: `rotateX(-90deg) translateZ(${h / 2}px)` })} />
             {round > 0 && cornerFacets(w, h, round).map((c, i) => (
               <div key={i} className="cv-face cv-round" style={face({ width: facet, height: d, left: (w - facet) / 2, top: (h - d) / 2,
                 transform: `translate(${c.x}px, ${c.y}px) rotateZ(${c.angle}deg) rotateX(90deg) translateZ(${round * Math.cos(Math.PI / 8)}px)` })} />
