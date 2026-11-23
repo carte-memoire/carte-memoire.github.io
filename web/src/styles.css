@@ -1319,11 +1319,9 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
     linear-gradient(180deg, rgba(236, 240, 250, 0.62) 0 20%, rgba(28, 28, 34, 0.88) 20% 62%, rgba(236, 240, 250, 0.45) 62%);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
 }
-/* Le rebord transparent continue sur les tranches (en haut et en bas), comme sur la face */
-.cv-ps1-pal .cv-spine, .cv-ps1-pal .cv-side {
-  background: linear-gradient(180deg, rgba(228, 232, 242, 0.45) 0 1.1%, transparent 1.1% 98.9%, rgba(228, 232, 242, 0.38) 98.9%), #0b0b0d;
-}
-.cv-ps1-pal .cv-spine .spine-face, .cv-ps1-pal .cv-side .spine-face { top: 1.1%; bottom: 1.1%; height: auto; }
+/* Les tranches : l'étiquette va jusqu'au bout ; l'acrylique transparent du bout, ce sont les
+   coins arrondis et les bords du dessus et du dessous (plus de barre claire en haut et en bas) */
+.cv-ps1-pal .cv-spine, .cv-ps1-pal .cv-side { background: #0b0b0d; }
 /* L'arête noire (la tranche qui rejoint la charnière de la face) légèrement arrondie : un
    reflet qui passe d'une face à l'autre, comme la lumière sur un angle arrondi */
 .cv-ps1-pal .cv-spine .spine-face::after, .cv-ps2 .cv-spine .spine-face::after {
@@ -1386,11 +1384,6 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .cv-ps1-pal .cv-edge { background: linear-gradient(90deg, rgba(10, 10, 12, 0.3) 0 7.5%, transparent 7.5%), var(--acrylic); }
 /* Le coin arrondi prend la lumière, comme les arêtes */
 .cv-ps1-pal .cv-round::after { content: ''; position: absolute; inset: 0; background: rgba(255, 255, 255, 0.08); }
-.cv-ps1-pal .cv-spine, .cv-ps1-pal .cv-side {
-  background:
-    linear-gradient(180deg, rgba(244, 247, 252, 0.62), rgba(228, 232, 242, 0.42) 1.1%, transparent 1.1% 98.9%, rgba(228, 232, 242, 0.38) 98.9%, rgba(244, 247, 252, 0.58)),
-    #0b0b0d;
-}
 
 /* PS2 : boîtier DVD européen bleu (135 × 190 × 14 mm), coins arrondis. La jaquette sous la
    pochette transparente, avec un fin liseré bleu autour ; la tranche blanche du verso ;
