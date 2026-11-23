@@ -73,8 +73,12 @@ export const rememberedPageSize = (list: string, fallback: number) => pageSizeFr
 export const rememberPageSize = (list: string, size: number) => write(`carte-memoire:par-page:${list}`, pageSizeParam(size));
 
 const COLLECTION_VIEW_KEY = 'carte-memoire:vue-collection';
-export type CollectionView = 'list' | 'grid';
-export const rememberedCollectionView = (): CollectionView => (read(COLLECTION_VIEW_KEY, 'list') === 'grid' ? 'grid' : 'list');
+export type CollectionView = 'shelf' | 'grid' | 'list';
+// L'étagère de tranches par défaut ; les jaquettes ou la liste pour qui les a choisies
+export const rememberedCollectionView = (): CollectionView => {
+  const value = read(COLLECTION_VIEW_KEY, 'shelf');
+  return value === 'list' || value === 'grid' ? value : 'shelf';
+};
 export const rememberCollectionView = (value: CollectionView) => write(COLLECTION_VIEW_KEY, value);
 
 // Déconnexion après inactivité, réglée pour CET appareil (un PC partagé n'a pas besoin

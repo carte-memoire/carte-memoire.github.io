@@ -1,6 +1,6 @@
-import { Fragment, lazy, Suspense, useCallback, useEffect, useEffectEvent, useMemo, useState, type ReactNode } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { Fragment, lazy, Suspense, useCallback, useEffect, useEffectEvent, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { coverUrl, supabase } from '../lib/supabase';
 import { COLLECTION_FIELDS } from '../lib/queries';
 import { standInFor, type CoverSource, type StandIn } from '../lib/images';
 import {
@@ -18,7 +18,10 @@ import { AddToCollection, savedText, type SavedItem } from '../components/AddToC
 import { CollectionImport } from '../components/CollectionImport';
 import { CollectionProgress } from '../components/CollectionProgress';
 import { ProgressStrip } from '../components/ProgressStrip';
-import { Cover } from '../components/Cover';
+import { Cover, tilt, untilt } from '../components/Cover';
+import { travel, type Voyage } from '../lib/voyage';
+import { SpineFace } from '../components/Spine';
+import { CaseViewer, type Pulled } from '../components/CaseViewer';
 import { PageSizeSelect, Pagination } from '../components/Pagination';
 import { CollectionSkeleton } from '../components/Skeleton';
 import { TrophyIcon } from '../components/TrophyIcon';
@@ -97,6 +100,8 @@ export function Collection() {
   const [dialog, setDialog] = useState<{ open: boolean; releaseId?: number | null; item?: CollectionItem | null }>({ open: false });
   // Exemplaire dont on prend la jaquette en photo (fenêtre « Proposer une jaquette »)
   const [coverFor, setCoverFor] = useState<CollectionItem | null>(null);
+  // Jeu sorti de l'étagère (CaseViewer) et son exemplaire
+  const [pulled, setPulled] = useState<{ view: Pulled; item: CollectionItem } | null>(null);
   const [error, setError] = useState('');
   const [loaded, setLoaded] = useState(false);
   const { toast, show: showToast } = useToast();
@@ -422,8 +427,9 @@ export function Collection() {
                   {/* Le nombre par page ne sert que lorsque tout ne tient pas sur une page de 100 */}
                   {(pages > 1 || total > FULL_PAGE) && <PageSizeSelect value={pageSize} onChange={choosePageSize} />}
                   <div className="view-switch" role="group" aria-label={tr('Affichage')}>
-                    <button type="button" className={view === 'list' ? 'zone-option active' : 'zone-option'} aria-pressed={view === 'list'} onClick={() => chooseView('list')}>{tr('▤ Liste')}</button>
+                    <button type="button" className={view === 'shelf' ? 'zone-option active' : 'zone-option'} aria-pressed={view === 'shelf'} onClick={() => chooseView('shelf')}>{tr('Étagère')}</button>
                     <button type="button" className={view === 'grid' ? 'zone-option active' : 'zone-option'} aria-pressed={view === 'grid'} onClick={() => chooseView('grid')}>{tr('▦ Jaquettes')}</button>
+                    <button type="button" className={view === 'list' ? 'zone-option active' : 'zone-option'} aria-pressed={view === 'list'} onClick={() => chooseView('list')}>{tr('▤ Liste')}</button>
                   </div>
                 </div>
               </div>
@@ -442,7 +448,37 @@ export function Collection() {
 
           {!loaded && !error && <CollectionSkeleton />}
 
-          {view === 'list' ? (
+          {view === 'shelf' ? (
+            // L'étagère : les tranches, rangées par console ; un clic sort le boîtier
+            <div className="shelves">
+              {consoles.filter((c) => visible.some((i) => i.release.platform.short_name === c.code)).map((c) => {
+                const games = visible.filter((i) => i.release.platform.short_name === c.code);
+                return (
+                  <section key={c.code} className="shelf-group" aria-label={c.name}>
+                    <h2 className="shelf-name">{c.name}<span className="shelf-count">{formatNumber(games.length)}</span></h2>
+                    <ul className="shelf">
+                      {games.map((item, index) => (
+                        <li key={item.id} style={{ ['--i' as string]: Math.min(index, 40) } as CSSProperties}>
+                          <button type="button" className={item.status === 'wanted' ? 'shelf-spine is-wanted' : 'shelf-spine'} title={item.release.local_title}
+                            aria-label={tr('Sortir « {0} » de l’étagère', item.release.local_title)}
+                            onClick={(event) => {
+                              const path = item.release.image.find((i) => i.type === 'front')?.path ?? standInOf(item)?.path;
+                              setPulled({ item, view: {
+                                from: event.currentTarget.getBoundingClientRect(), release: item.release, src: path ? coverUrl(path) : null,
+                                meta: [c.name, zoneLabel(item.release.zone), notableEdition(item.release) ? editionLabel(item.release) : null, item.status === 'owned' ? contentText(item) : tr('Recherché')].filter(Boolean).join(' · '),
+                                gameHref: gamePath(item.release.game),
+                              } });
+                            }}>
+                            <SpineFace release={item.release} />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                );
+              })}
+            </div>
+          ) : view === 'list' ? (
             <ul className="memory-card">
               {visible.map((item) => (
                 <ItemBlock key={item.id} item={item} value={values.get(item.id) ?? null} fresh={item.release.id === justSaved} showPlatform={multiPlatform} standIn={standInOf(item)} onEdit={() => setDialog({ open: true, item })} onPhoto={item.status === 'owned' && !hasOwnCover(item) ? () => setCoverFor(item) : undefined} />
@@ -450,8 +486,8 @@ export function Collection() {
             </ul>
           ) : (
             <ul className="cover-grid">
-              {visible.map((item) => (
-                <ItemTile key={item.id} item={item} fresh={item.release.id === justSaved} showPlatform={multiPlatform} standIn={standInOf(item)} onEdit={() => setDialog({ open: true, item })} onPhoto={item.status === 'owned' && !hasOwnCover(item) ? () => setCoverFor(item) : undefined} />
+              {visible.map((item, index) => (
+                <ItemTile key={item.id} index={index} item={item} fresh={item.release.id === justSaved} showPlatform={multiPlatform} standIn={standInOf(item)} onEdit={() => setDialog({ open: true, item })} onPhoto={item.status === 'owned' && !hasOwnCover(item) ? () => setCoverFor(item) : undefined} />
               ))}
             </ul>
           )}
@@ -475,6 +511,7 @@ export function Collection() {
           <CoverProposal open release={coverFor.release} gameTitle={coverFor.release.game.title} onClose={() => setCoverFor(null)} />
         </Suspense>
       )}
+      {pulled && <CaseViewer pulled={pulled.view} onClose={() => setPulled(null)} onEdit={() => setDialog({ open: true, item: pulled.item })} />}
       {toast}
     </section>
   );
@@ -546,13 +583,21 @@ function ItemBlock({ item, value, fresh, showPlatform, standIn, onEdit, onPhoto 
   );
 }
 
-// Vue en grille : la jaquette d'abord, comme une étagère
-function ItemTile({ item, fresh, showPlatform, standIn, onEdit, onPhoto }: { item: CollectionItem; fresh: boolean; showPlatform: boolean; standIn: StandIn | null; onEdit: () => void; onPhoto?: () => void }) {
+// Vue « Jaquettes » : l'étagère. Les boîtiers posés sur leur tablette se soulèvent et
+// penchent vers la souris ; un clic fait voyager la jaquette jusqu'à la fiche du jeu.
+function ItemTile({ item, index, fresh, showPlatform, standIn, onEdit, onPhoto }: { item: CollectionItem; index: number; fresh: boolean; showPlatform: boolean; standIn: StandIn | null; onEdit: () => void; onPhoto?: () => void }) {
   const r = item.release;
   const complete = item.has_box && item.has_manual && item.has_media;
+  const navigate = useNavigate();
+  const coverPath = r.image.find((i) => i.type === 'front')?.path ?? standIn?.path;
   return (
-    <li className={fresh ? 'cover-tile just-saved' : 'cover-tile'}>
-      <Link to={gamePath(r.game)} className="cover-tile-link" title={r.local_title}>
+    <li className={fresh ? 'cover-tile just-saved' : 'cover-tile'} style={{ ['--i' as string]: Math.min(index, 16) } as CSSProperties}>
+      <Link to={gamePath(r.game)} className="cover-tile-link" title={r.local_title} onPointerMove={tilt} onPointerLeave={untilt}
+        onClick={(event) => {
+          if (!coverPath) return;
+          const voyage: Voyage = { releaseId: r.id, path: coverPath, platform: r.platform.short_name, title: r.local_title };
+          travel(event, event.currentTarget.querySelector<HTMLElement>('.cover'), () => navigate(gamePath(r.game), { state: { voyage } }));
+        }}>
         <Cover images={r.image} title={r.local_title} size="medium" platform={r.platform.short_name} standIn={standIn} />
         <span className="cover-tile-title">{r.local_title}</span>
       </Link>

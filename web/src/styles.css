@@ -1109,6 +1109,227 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
   .cover-grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
 }
 
+/* ---------- Ma collection : l'étagère (vue « Jaquettes ») ----------
+   Les boîtiers sont posés sur une tablette sombre qui court d'une jaquette à l'autre (un
+   morceau sous chaque boîtier, qui déborde de la moitié de l'espacement). Au survol, le
+   boîtier se soulève et penche vers la souris avec un reflet, les autres s'effacent ; à
+   l'arrivée, les boîtiers se retournent en vague (la tablette, elle, reste en place). */
+.cover-grid { gap: 30px 18px; }
+.cover-grid .cover { position: relative; z-index: 1; border: 0; border-radius: 3px; box-shadow: 0 14px 18px -8px rgba(0, 0, 0, 0.85); }
+.cover-grid .cover::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; opacity: 0;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+  background:
+    radial-gradient(circle at var(--shine-x, 50%) var(--shine-y, 0%), rgba(255, 255, 255, 0.34), transparent 55%),
+    linear-gradient(115deg, transparent 38%, rgba(255, 255, 255, 0.1) 48%, transparent 58%);
+  transition: opacity 0.4s;
+}
+.cover-tile-link:hover .cover::after, .cover-tile-link:focus-visible .cover::after { opacity: 1; }
+.cover-tile-link:hover { color: #fff; }
+.cover-tile-link:hover .cover { border-color: transparent; }
+@supports (grid-template-rows: subgrid) {
+  .cover-grid .cover-tile-link { row-gap: 18px; }
+  .cover-grid .cover-tile-link .cover { grid-row: 1; grid-column: 1; }
+  .cover-grid .cover-tile-title { grid-row: 2; }
+  .cover-grid .cover-tile-link::before {
+    content: ''; grid-row: 1; grid-column: 1; align-self: end; height: 9px; margin: 0 -9px -9px;
+    background: linear-gradient(#2a2a31, #121215); border-radius: 2px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 12px 18px rgba(0, 0, 0, 0.6);
+  }
+}
+@media (max-width: 640px) {
+  .cover-grid { gap: 26px 10px; }
+  .cover-grid .cover-tile-link::before { margin-inline: -5px; }
+}
+.motion .cover-grid > li { animation: none; }
+.motion .cover-grid .cover {
+  animation: wall-in 0.6s var(--ease) backwards; animation-delay: calc(var(--i, 0) * 28ms);
+  transform: perspective(700px) rotateX(0deg) rotateY(0deg);
+  transition: transform 0.6s var(--ease), box-shadow 0.6s var(--ease), opacity 0.4s, filter 0.4s;
+}
+.motion .cover-tile-link:hover .cover, .motion .cover-tile-link:focus-visible .cover {
+  transform: perspective(700px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-8px) scale(1.05);
+  box-shadow: 0 28px 40px -12px rgba(0, 0, 0, 0.9);
+  transition-duration: 0.18s, 0.4s, 0.4s, 0.4s;
+}
+@media (hover: hover) {
+  .cover-grid:has(.cover-tile-link:hover) .cover-tile-link:not(:hover) .cover { opacity: 0.4; filter: saturate(0.35); }
+}
+
+/* ---------- Ma collection : l'étagère de tranches (Spine.tsx) ----------
+   Une étagère par console ; les tranches serrées les unes contre les autres sur une
+   tablette (un morceau sous chaque tranche). Proportions réelles, au format européen :
+   1,8 px par mm (PS1 PAL : 17 × 130 mm ; PS2 : 14 × 190 mm). */
+.shelves { display: flex; flex-direction: column; gap: 36px; }
+.shelf-name { margin: 0 0 14px; font-size: var(--fs-1); font-weight: 650; text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted); }
+.shelf-count { margin-left: 10px; letter-spacing: 0; color: var(--text); }
+.shelf { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: flex-end; row-gap: 40px; }
+.shelf > li { position: relative; display: flex; padding-right: 6px; }
+.shelf > li::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: -9px; height: 9px;
+  background: linear-gradient(#2a2a31, #121215);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 12px 18px rgba(0, 0, 0, 0.6);
+}
+.shelf-spine { display: block; padding: 0; border: 0; background: none; cursor: pointer; color: inherit; font: inherit; }
+.shelf-spine:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.shelf .spine-ps1 { --spine-w: 31px; height: 234px; }
+.shelf .spine-ps2 { --spine-w: 25px; height: 342px; }
+@media (max-width: 640px) {
+  .shelf > li { padding-right: 4px; }
+  .shelf .spine-ps1 { --spine-w: 25px; height: 190px; }
+  .shelf .spine-ps2 { --spine-w: 20px; height: 272px; }
+}
+.shelf-spine.is-wanted .spine-face { opacity: 0.5; outline: 1px dashed rgba(255, 255, 255, 0.55); outline-offset: -1px; }
+
+/* La tranche */
+.spine-face {
+  position: relative; display: flex; flex-direction: column; align-items: center; width: var(--spine-w); height: 100%; overflow: hidden;
+  font-family: 'Arial Narrow', 'Roboto Condensed', 'Helvetica Neue', Arial, sans-serif; font-stretch: condensed;
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.14), inset -1px 0 0 rgba(0, 0, 0, 0.55);
+}
+.spine-band { flex: none; width: 100%; display: flex; align-items: center; justify-content: center; }
+.spine-mark { font-weight: 800; font-size: calc(var(--spine-w) * 0.36); letter-spacing: 0.02em; line-height: 1; }
+.spine-title {
+  flex: 1 1 auto; min-height: 0; padding: 7px 0; writing-mode: vertical-rl;
+  font-weight: 700; font-size: calc(var(--spine-w) * 0.58); line-height: 1; letter-spacing: 0.02em; text-transform: uppercase;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* Titre très long : deux lignes côte à côte, plus petites (Spine.tsx, titleFit). Le code
+   produit (SLES…) garde toujours sa place en bas : seul le titre rétrécit. */
+.spine-title.is-two-lines { white-space: normal; text-overflow: clip; line-height: 1.08; }
+.spine-code { flex: none; padding-bottom: 5px; font-weight: 700; font-size: calc(var(--spine-w) * 0.27); line-height: 1.15; text-align: center; }
+/* PS1 (PAL), proportions relevées sur photos : en haut, la marque dans un carré arrondi
+   (≈ 0,8 de la largeur) sur une zone de 1,6 largeur ; le titre blanc commence juste dessous,
+   de haut en bas, à ≈ 60 % de la largeur ; le code en bas avec sa marge */
+.spine-ps1 { background: linear-gradient(90deg, #1c1c20, #0c0c0e 40%, #151518); color: #f2f2f2; }
+.spine-ps1 .spine-band { height: calc(var(--spine-w) * 1.6); }
+.spine-ps1 .spine-mark { display: grid; place-items: center; width: calc(var(--spine-w) * 0.8); aspect-ratio: 1; border: 1px solid rgba(255, 255, 255, 0.7); border-radius: 2px; font-size: calc(var(--spine-w) * 0.3); }
+.spine-ps1 .spine-title { font-size: calc(var(--spine-w) * 0.6 * var(--fit, 1)); padding-top: calc(var(--spine-w) * 0.15); }
+.spine-ps1 .spine-code { padding-bottom: calc(var(--spine-w) * 0.35); }
+/* PS2 (PAL) : blanche, bandeau noir en haut, titre noir de bas en haut */
+.spine-ps2 { background: linear-gradient(90deg, #e6e6e2, #fbfbf9 45%, #dfdfdb); color: #111; }
+/* PS2 (PAL) : bandeau noir ≈ 15 % de la hauteur, titre ≈ 55 % de la largeur, écrit à partir du bas */
+.spine-ps2 .spine-band { height: 15%; background: #0d0d10; color: #fff; }
+.spine-ps2 .spine-title { font-size: calc(var(--spine-w) * 0.55 * var(--fit, 1)); }
+.spine-ps2 .spine-mark { writing-mode: vertical-rl; transform: rotate(180deg); }
+.spine-ps2 .spine-title { transform: rotate(180deg); }
+/* Réédition (Platinum) : grise, jamais noire, titre foncé */
+.spine-face.is-reissue { background: linear-gradient(90deg, #a7abb4, #d8dbe1 45%, #9da1aa); color: #17181c; }
+.spine-ps1.is-reissue .spine-mark { border-color: rgba(0, 0, 0, 0.55); }
+
+/* Les tranches tombent sur la tablette à l'arrivée ; au survol, on tire un peu le jeu */
+@keyframes spine-in { from { opacity: 0; transform: translateY(-26px); } }
+.motion .shelf-spine { animation: spine-in 0.5s var(--ease) backwards; animation-delay: calc(var(--i, 0) * 14ms); transition: transform 0.35s var(--ease), filter 0.35s; }
+.motion .shelf-spine:hover, .motion .shelf-spine:focus-visible { transform: translateY(-12px); filter: brightness(1.12); }
+
+/* ---------- Jeu sorti de l'étagère (CaseViewer.tsx) ---------- */
+.case-viewer { position: fixed; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: transparent; color: var(--text); overflow: hidden; }
+.case-viewer::backdrop { background: rgba(0, 0, 0, 0.78); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.cv-stage { position: absolute; inset: 0; perspective: 1800px; }
+.cv-box { position: absolute; left: 50%; top: 40%; transform-style: preserve-3d; }
+.cv-turn { position: absolute; inset: 0; transform-style: preserve-3d; transform: rotateX(var(--turn-x, 0deg)) rotateY(var(--turn-y, 0deg)); transition: transform 0.5s var(--ease); }
+/* Faces du boîtier, d'après des photos de boîtiers PAL sous plusieurs angles */
+.cv-face { backface-visibility: hidden; overflow: hidden; }
+.cv-face > * { position: absolute; }
+.cv-inlay { overflow: hidden; }
+.cv-inlay img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cv-nocover { position: static; display: flex; align-items: center; justify-content: center; height: 100%; padding: 16px; text-align: center; font-weight: 700; }
+.cv-spine .spine-face, .cv-side .spine-face { height: 100%; }
+/* Le reflet du plastique, sur toutes les faces vues de face */
+.cv-gloss { inset: 0; pointer-events: none; background: linear-gradient(120deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.03) 32%, transparent 52%, rgba(255, 255, 255, 0.06) 78%, transparent); }
+.cv-back-inlay { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: rgba(255, 255, 255, 0.55); font-weight: 700; text-align: center; padding: 12%; }
+.cv-back-inlay small { font-weight: 500; letter-spacing: 0.06em; }
+
+/* PS1 : boîtier CD (142 × 125 × 10,4 mm). Le livret (120 mm) est posé sous le couvercle
+   transparent : autour, la marge de plastique sur le fond noir, et côté charnière la
+   bande nervurée (≈ 9 mm) au-dessus de la tranche noire du verso. */
+.cv-ps1 .cv-front, .cv-ps1 .cv-back { background: #0b0b0d; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35), inset 0 0 0 2px rgba(0, 0, 0, 0.6); border-radius: 2px; }
+.cv-ps1 .cv-hinge { left: 0; top: 0; bottom: 0; width: 6.3%; background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.16) 0 1px, rgba(255, 255, 255, 0.02) 1px 3px), #141417; box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.3); }
+.cv-ps1 .cv-front .cv-inlay { left: 8.5%; right: 3%; top: 2%; bottom: 2%; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5); }
+.cv-ps1 .cv-back-inlay { inset: 2% 3%; background: linear-gradient(160deg, #1a1a1f, #0d0d10); }
+/* Bords : plastique clair, le plateau noir au milieu, les nervures de la charnière à gauche */
+.cv-ps1 .cv-edge {
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.28) 0 1px, transparent 1px 3px) left / 7% 100% no-repeat,
+    linear-gradient(180deg, rgba(230, 234, 245, 0.55) 0 22%, #101013 22% 78%, rgba(230, 234, 245, 0.55) 78%);
+}
+.cv-ps1 .cv-side { background: #0b0b0d; box-shadow: inset 0 0 0 1px rgba(230, 234, 245, 0.45); }
+/* PS1 Europe (PAL), d'après photos : boîtier plus épais ; sur la face, la charnière noire
+   (≈ 13 mm) où « PlayStation » est moulé dans le plastique, lu de bas en haut ; sur les
+   bords, cette charnière noire au bout du plastique clair */
+.cv-ps1-pal .cv-hinge {
+  top: 1.1%; bottom: 1.1%; width: 9%; display: flex; align-items: center; justify-content: center; border-radius: 2px;
+  background: linear-gradient(90deg, #1e1e22, #0e0e10 55%, #19191c);
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.12), inset 1px 0 0 rgba(255, 255, 255, 0.08);
+}
+.cv-hinge-text {
+  position: static; writing-mode: vertical-rl; transform: rotate(180deg); letter-spacing: 0.02em;
+  font: 600 calc(var(--case-h) * 0.06) / 1 system-ui, sans-serif; color: #0b0b0d;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.16), 0 -1px 0 rgba(0, 0, 0, 0.7);
+}
+.cv-ps1-pal .cv-front .cv-inlay { left: 10.5%; right: 2.5%; top: 1.6%; bottom: 1.6%; }
+/* La coque en acrylique fait tout le tour : en haut et en bas, sur toute la largeur, son
+   rebord transparent prolonge le boîtier au-dessus et au-dessous de la partie noire */
+.cv-ps1-pal .cv-front {
+  background:
+    linear-gradient(180deg, rgba(228, 232, 242, 0.45) 0 1.1%, transparent 1.1% 98.9%, rgba(228, 232, 242, 0.38) 98.9%),
+    #0b0b0d;
+}
+/* Coque en acrylique transparent : bords épais et clairs qui prennent la lumière, plateau
+   noir vu au travers, reflet plus franc qu'une simple pochette */
+.cv-ps1 .cv-front { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6), inset 0 0 0 4px rgba(225, 230, 242, 0.22), inset 0 0 0 5px rgba(255, 255, 255, 0.28); }
+.cv-ps1 .cv-gloss { background: linear-gradient(125deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.07) 30%, transparent 50%, rgba(255, 255, 255, 0.12) 76%, transparent); }
+.cv-ps1-pal .cv-edge {
+  background:
+    linear-gradient(90deg, #121214 0 8%, transparent 8%),
+    linear-gradient(180deg, rgba(236, 240, 250, 0.62) 0 20%, rgba(28, 28, 34, 0.88) 20% 62%, rgba(236, 240, 250, 0.45) 62%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+}
+/* Le rebord transparent continue sur les tranches (en haut et en bas), comme sur la face */
+.cv-ps1-pal .cv-spine, .cv-ps1-pal .cv-side {
+  background: linear-gradient(180deg, rgba(228, 232, 242, 0.45) 0 1.1%, transparent 1.1% 98.9%, rgba(228, 232, 242, 0.38) 98.9%), #0b0b0d;
+}
+.cv-ps1-pal .cv-spine .spine-face, .cv-ps1-pal .cv-side .spine-face { top: 1.1%; bottom: 1.1%; height: auto; }
+/* L'arête noire (la tranche qui rejoint la charnière de la face) légèrement arrondie : un
+   reflet qui passe d'une face à l'autre, comme la lumière sur un angle arrondi */
+.cv-ps1-pal .cv-spine .spine-face::after {
+  content: ''; position: absolute; top: 0; bottom: 0; right: 0; width: 16%; pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1) 60%, rgba(255, 255, 255, 0.2));
+}
+.cv-ps1-pal .cv-hinge {
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.08) 9%, transparent 22%),
+    linear-gradient(90deg, #1e1e22, #0e0e10 55%, #19191c);
+}
+/* La charnière : le boîtier est en deux parties ; le couvercle pivote sur deux tétons
+   (en haut et en bas, côté tranche) qui s'emboîtent dans la base, visibles sur les bords */
+.cv-pin {
+  left: 3.5%; top: 18%; width: calc(var(--case-h) * 0.05); aspect-ratio: 1; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #fff, rgba(225, 230, 240, 0.75) 42%, rgba(140, 146, 160, 0.55));
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4), inset 0 -1px 1px rgba(0, 0, 0, 0.25);
+}
+.cv-ps1-pal .cv-edge {
+  background:
+    linear-gradient(90deg, #121214 0 9%, transparent 9%),
+    linear-gradient(180deg, rgba(230, 234, 245, 0.55) 0 22%, #101013 22% 78%, rgba(230, 234, 245, 0.55) 78%);
+}
+
+/* PS2 : boîtier DVD européen bleu (135 × 190 × 14 mm), coins arrondis. La jaquette sous la
+   pochette transparente, avec un fin liseré bleu autour ; la tranche blanche du verso ;
+   côté ouverture, le plastique bleu nervuré. */
+.cv-ps2 .cv-front, .cv-ps2 .cv-back { background: linear-gradient(160deg, #4b50d2, #2c2f9a); border-radius: 5px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35); }
+.cv-ps2 .cv-hinge { display: none; }
+.cv-ps2 .cv-front .cv-inlay, .cv-ps2 .cv-back-inlay { left: 2.5%; right: 2%; top: 1.6%; bottom: 1.6%; border-radius: 2px; }
+.cv-ps2 .cv-back-inlay { background: linear-gradient(160deg, #1d1d23, #0e0e11); }
+.cv-ps2 .cv-edge { background: linear-gradient(180deg, #5358dc, #3337a8 50%, #262a86); }
+.cv-ps2 .cv-side { background: repeating-linear-gradient(180deg, #4348c6 0 3px, #33379f 3px 5px); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25); }
+.cv-ps2 .cv-spine { box-shadow: inset 0 0 0 1px #3a3fb6; }
+.cv-info { position: absolute; left: 16px; right: 16px; bottom: max(24px, 5vh); display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+.cv-info h2 { margin: 0; font-size: var(--fs-5); }
+.cv-info p { margin: 0 0 8px; }
+.cv-info .actions { justify-content: center; }
+.motion .cv-info { animation: hero-rise 0.6s var(--ease) 0.35s backwards; }
+
 /* ---------- Import d'une collection (CSV) ---------- */
 .dialog-wide { width: min(980px, calc(100vw - 32px)); }
 .import-summary { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 0; font-weight: 700; }
