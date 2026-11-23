@@ -8,12 +8,24 @@ import { prefersReducedMotion } from '../lib/motion';
 // disque sort de son logement et file jusqu'à l'onglet « Ma collection », puis le boîtier
 // se referme et se repose. Les boîtiers sont dessinés d'après les modèles officiels :
 //   PS1 : boîtier CD simple (cristal), plateau noir, cuvette ronde, rosace à dents,
-//         couvercle transparent à deux pattes pour le livret ;
+//         couvercle transparent à deux pattes pour le livret ; en Europe (PAL), une
+//         charnière noire à gauche, qui reste immobile quand le couvercle en acrylique
+//         s'ouvre, et le décroché de l'acrylique entre elle et la jaquette ;
 //   PS2 : boîtier DVD européen, bleu translucide, tranche à nervures, deux agrafes à
 //         notice à gauche ; à droite le porte-carte mémoire moulé en haut, puis la
 //         cuvette et son ergot à trois branches.
 // (Sans le logo PlayStation moulé : c'est une marque.)
 const CASE: Record<string, string> = { PS1: 'jewel', PS2: 'dvd' };
+
+// PS1 européen (ou de zone inconnue) : charnière noire à gauche de la jaquette (styles.css,
+// .case-jewel-pal : 10,5 % de sa largeur, puis 1,6 % de décroché) ; le couvercle pivote sur
+// les tétons, à 4,2 % du bord extérieur (5 mm sur un livret de 120)
+function isPal(opening: Opening): boolean {
+  return CASE[opening.platform] === 'jewel' && (!opening.zone || opening.zone === 'PAL');
+}
+const HINGE = 0.105;
+const STEP = 0.016;
+const PIVOT = 0.042;
 
 export function hasCase(platform: string | undefined): boolean {
   return Boolean(platform && CASE[platform] && discMedia(platform));
@@ -23,6 +35,8 @@ export interface Opening {
   from: DOMRect;
   src: string;
   platform: string;
+  // Zone de la version : les boîtiers PS1 européens (ou de zone inconnue) ont la charnière noire
+  zone?: string | null;
   label: DiscLabel | null;
 }
 
@@ -53,7 +67,10 @@ export function CaseOpening({ opening, onDone }: { opening: Opening; onDone: () 
     // tienne dans l'écran : la charnière (bord gauche) au centre de la jaquette, si possible
     const scale = Math.min(1.7, Math.max(1.1, 230 / from.width));
     const half = from.width * scale;
-    const hinge = Math.min(Math.max(from.left + from.width / 2, 16 + half), window.innerWidth - 16 - half);
+    // Ouvert, le couvercle d'un boîtier PS1 européen se pose plus à gauche : il pivote sur
+    // les tétons, près du bord extérieur de la charnière noire
+    const extra = isPal(opening) ? from.width * 2 * (HINGE + STEP - PIVOT) * scale : 0;
+    const hinge = Math.min(Math.max(from.left + from.width / 2, 16 + half + extra), window.innerWidth - 16 - half);
     const shift = hinge - from.left;
     // Trajet du disque, mesuré dans le boîtier agrandi
     const cx = hinge + (from.width / 2) * scale;
@@ -109,6 +126,7 @@ export function CaseOpening({ opening, onDone }: { opening: Opening; onDone: () 
   }, [opening]);
 
   const kind = CASE[opening.platform];
+  const pal = isPal(opening);
   const media = discMedia(opening.platform)!;
   const { from } = opening;
   const depth = boxDepth(opening.platform, from.width);
@@ -117,7 +135,7 @@ export function CaseOpening({ opening, onDone }: { opening: Opening; onDone: () 
   const origin = `${from.left + from.width / 2}px ${from.top + from.height / 2}px`;
   return createPortal(
     <div ref={root} className="case-fly" aria-hidden="true" style={{ perspectiveOrigin: origin }}>
-      <div className={`case-box case-${kind}`} style={{ left: from.left, top: from.top, width: from.width, height: from.height, ['--depth' as string]: `${depth}px`, ['--case-w' as string]: `${from.width}px` }}>
+      <div className={`case-box case-${kind}${pal ? ' case-jewel-pal' : ''}`} style={{ left: from.left, top: from.top, width: from.width, height: from.height, ['--depth' as string]: `${depth}px`, ['--case-w' as string]: `${from.width}px` }}>
         <div className="case-base">
           {kind === 'dvd' && <span className="case-memory"><span className="case-memory-slot" /><span>MEMORY CARD<br />HOLDER</span></span>}
           <span className="case-well"><span className="case-hub" /></span>
@@ -127,9 +145,19 @@ export function CaseOpening({ opening, onDone }: { opening: Opening; onDone: () 
           <span className="case-wall case-wall-left" />
           <span className="case-wall case-wall-right" />
         </div>
+        {/* PS1 Europe : la charnière noire, fixée à la base (elle ne bouge pas à l'ouverture),
+            avec « PlayStation » moulé, et ses parois noires */}
+        {pal && (
+          <div className="case-hinge">
+            <span className="case-hinge-top"><span className="case-hinge-text">PlayStation</span></span>
+            <span className="case-hinge-wall case-hinge-wall-top" />
+            <span className="case-hinge-wall case-hinge-wall-bottom" />
+          </div>
+        )}
         <div className={`case-disc media-disc-${media}`}><DiscFace media={media} label={opening.label} /></div>
         <div className="case-lid">
           <img className="case-lid-front" src={opening.src} alt="" />
+          {pal && <span className="case-lid-step" />}
           <div className="case-lid-back"><span className="case-clip case-clip-top" /><span className="case-clip case-clip-bottom" /></div>
           {/* La tranche du couvercle, côté ouverture : visible quand il pivote */}
           <span className="case-lid-edge" />

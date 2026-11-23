@@ -17,6 +17,14 @@ const CASE_MM: Record<string, { w: number; h: number; d: number }> = {
   ps2: { w: 135, h: 190, d: 14 },
 };
 
+// Coins arrondis (vus de face) du boîtier PS1 européen : chaque coin est un quart de cylindre
+// en deux facettes, sur toute l'épaisseur. Pour chacune : le centre de l'arrondi et l'angle de
+// la facette autour de l'axe de profondeur (0° = vers le haut, sens des aiguilles d'une montre).
+function cornerFacets(w: number, h: number, r: number): { x: number; y: number; angle: number }[] {
+  const corners: [number, number, number][] = [[-w / 2 + r, -h / 2 + r, 0], [w / 2 - r, -h / 2 + r, 90], [w / 2 - r, h / 2 - r, 180], [-w / 2 + r, h / 2 - r, 270]];
+  return corners.flatMap(([x, y, start]) => [start - 67.5, start - 22.5].map((angle) => ({ x, y, angle })));
+}
+
 export interface Pulled {
   from: DOMRect;
   // La tranche sur l'étagère : sa place reste vide tant que le jeu est sorti
@@ -44,6 +52,11 @@ export function CaseViewer({ pulled, onClose, onEdit }: { pulled: Pulled; onClos
   const height = Math.min(window.innerHeight * 0.5, 400);
   const k = height / mm.h;
   const [w, h, d] = [mm.w * k, height, mm.d * k];
+  // PS1 Europe, d'après photos : coins arrondis (≈ 2 mm). Les tranches et les bords du dessus et
+  // du dessous s'arrêtent avant le coin, que des facettes arrondissent : l'acrylique du dessus
+  // s'enroule jusqu'à la tranche, sans angle vif ni trou au sommet
+  const round = format === 'ps1-pal' ? h * 0.016 : 0;
+  const facet = 2 * round * Math.sin(Math.PI / 8) * 1.06;
 
   // Trajet entre la tranche sur l'étagère et le centre de la scène
   function keyframes(): Keyframe[] {
@@ -113,12 +126,14 @@ export function CaseViewer({ pulled, onClose, onEdit }: { pulled: Pulled; onClos
       onCancel={(event) => { event.preventDefault(); close(); }}
       onClick={(event) => { if (event.target === event.currentTarget) close(); }}>
       <div className="cv-stage" onPointerMove={follow} onClick={(event) => { if (event.target === event.currentTarget) close(); }}>
-        <div ref={box} className="cv-box" style={{ width: w, height: h, marginLeft: -w / 2, marginTop: -h / 2, ['--case-h' as string]: `${h}px` } as CSSProperties}>
+        <div ref={box} className="cv-box" style={{ width: w, height: h, marginLeft: -w / 2, marginTop: -h / 2, ['--case-h' as string]: `${h}px`, ['--round' as string]: `${round}px` } as CSSProperties}>
           <div ref={turn} className="cv-turn">
             {/* Face : la jaquette sous le plastique (couvercle transparent du boîtier CD,
                 pochette du boîtier DVD), avec ce qu'on voit autour d'elle */}
             <div className="cv-face cv-front" style={face({ width: w, height: h, transform: `translateZ(${d / 2}px)` })}>
               <span className="cv-hinge">{format === 'ps1-pal' && <span className="cv-hinge-text">PlayStation</span>}</span>
+              {/* PS1 Europe : le décroché du couvercle en acrylique, entre la charnière noire et la jaquette */}
+              {format === 'ps1-pal' && <span className="cv-step" />}
               <span className="cv-inlay">{pulled.src ? <img src={pulled.src} alt="" /> : <span className="cv-nocover">{title}</span>}</span>
               <span className="cv-gloss" />
             </div>
@@ -127,17 +142,21 @@ export function CaseViewer({ pulled, onClose, onEdit }: { pulled: Pulled; onClos
               <span className="cv-inlay cv-back-inlay"><span>{title}</span>{pulled.release.product_code && <small>{pulled.release.product_code}</small>}</span>
               <span className="cv-gloss" />
             </div>
-            <div className="cv-face cv-spine" style={face({ width: d, height: h, left: (w - d) / 2, transform: `rotateY(-90deg) translateZ(${w / 2}px)`, ['--spine-w' as string]: `${d}px` })}>
+            <div className="cv-face cv-spine" style={face({ width: d, height: h - 2 * round, top: round, left: (w - d) / 2, transform: `rotateY(-90deg) translateZ(${w / 2}px)`, ['--spine-w' as string]: `${d}px` })}>
               <SpineFace release={pulled.release} />
               <span className="cv-gloss" />
             </div>
             {/* Côté ouverture : la seconde tranche du verso (boîtier CD), le plastique nervuré (DVD) */}
-            <div className="cv-face cv-side" style={face({ width: d, height: h, left: (w - d) / 2, transform: `rotateY(90deg) translateZ(${w / 2}px)`, ['--spine-w' as string]: `${d}px` })}>
+            <div className="cv-face cv-side" style={face({ width: d, height: h - 2 * round, top: round, left: (w - d) / 2, transform: `rotateY(90deg) translateZ(${w / 2}px)`, ['--spine-w' as string]: `${d}px` })}>
               {kind === 'ps1' && <SpineFace release={pulled.release} />}
               <span className="cv-gloss" />
             </div>
-            <div className="cv-face cv-edge cv-top" style={face({ width: w, height: d, top: (h - d) / 2, transform: `rotateX(90deg) translateZ(${h / 2}px)` })}>{kind === 'ps1' && <span className="cv-pin" />}</div>
-            <div className="cv-face cv-edge cv-bottom" style={face({ width: w, height: d, top: (h - d) / 2, transform: `rotateX(-90deg) translateZ(${h / 2}px)` })}>{kind === 'ps1' && <span className="cv-pin" />}</div>
+            <div className="cv-face cv-edge cv-top" style={face({ width: w - 2 * round, left: round, height: d, top: (h - d) / 2, transform: `rotateX(90deg) translateZ(${h / 2}px)` })}>{kind === 'ps1' && <span className="cv-pin" />}</div>
+            <div className="cv-face cv-edge cv-bottom" style={face({ width: w - 2 * round, left: round, height: d, top: (h - d) / 2, transform: `rotateX(-90deg) translateZ(${h / 2}px)` })}>{kind === 'ps1' && <span className="cv-pin" />}</div>
+            {round > 0 && cornerFacets(w, h, round).map((c, i) => (
+              <div key={i} className="cv-face cv-round" style={face({ width: facet, height: d, left: (w - facet) / 2, top: (h - d) / 2,
+                transform: `translate(${c.x}px, ${c.y}px) rotateZ(${c.angle}deg) rotateX(90deg) translateZ(${round * Math.cos(Math.PI / 8)}px)` })} />
+            ))}
           </div>
         </div>
       </div>

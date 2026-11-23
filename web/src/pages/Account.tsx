@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { useAuth } from '../auth/AuthContext';
-import { DEFAULT_IDLE_MINUTES, IDLE_CHOICES, MODERATOR_MAX_IDLE_MINUTES, idleMinutes, rememberIdleMinutes } from '../lib/preferences';
+import { DEFAULT_IDLE_MINUTES, IDLE_CHOICES, MODERATOR_MAX_IDLE_MINUTES, idleMinutes, rememberCollectionView, rememberIdleMinutes, rememberedCollectionView, type CollectionView } from '../lib/preferences';
+import { COLLECTION_VIEWS } from '../components/CollectionViews';
 import { PasswordField, passwordIsValid } from '../components/PasswordRules';
 import { useConfirm } from '../components/Confirm';
 import { CodeInput } from '../components/CodeInput';
@@ -376,9 +377,11 @@ function IdleSetting() {
   );
 }
 
-// Animations sur cet appareil : comme le système le demande, ou forcées, ou coupées
+// Animations sur cet appareil : comme le système le demande, ou forcées, ou coupées ; et la
+// présentation de Ma collection
 function DisplaySection() {
   const [choice, setChoice] = useState<MotionChoice>(motionChoice);
+  const [view, setView] = useState<CollectionView>(rememberedCollectionView);
   const reduced = systemReducesMotion();
   const options: { value: MotionChoice; label: string }[] = [
     { value: 'auto', label: reduced ? tr("Comme l'appareil (coupées)") : tr("Comme l'appareil (activées)") },
@@ -407,6 +410,19 @@ function DisplaySection() {
             ? tr("Ton appareil demande moins d'animations (sous Windows : Paramètres › Accessibilité › Effets visuels › Effets d'animation). « Toujours » les rétablit ici, sans toucher au réglage du système.")
             : tr("Les animations suivent le réglage d'accessibilité de ton appareil ; « Jamais » les coupe ici seulement.")}
         </span>
+      </fieldset>
+      <fieldset className="pill-choice">
+        <legend className="field-label">{tr('Présentation de Ma collection')}</legend>
+        <div className="pills">
+          {COLLECTION_VIEWS.map((v) => (
+            <label key={v.value} className={view === v.value ? 'pill view-option active' : 'pill view-option'}>
+              <input type="radio" name="collection-view" className="sr-only" checked={view === v.value}
+                onChange={() => { rememberCollectionView(v.value); setView(v.value); }} />
+              {v.icon}{v.label}
+            </label>
+          ))}
+        </div>
+        <span className="hint">{COLLECTION_VIEWS.find((v) => v.value === view)?.hint}{tr(' (sur cet appareil ; se change aussi depuis Ma collection)')}</span>
       </fieldset>
     </div>
   );

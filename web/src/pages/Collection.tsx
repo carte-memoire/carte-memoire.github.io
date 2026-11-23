@@ -22,6 +22,7 @@ import { Cover, tilt, untilt } from '../components/Cover';
 import { travel, type Voyage } from '../lib/voyage';
 import { SpineFace } from '../components/Spine';
 import { CaseViewer, type Pulled } from '../components/CaseViewer';
+import { COLLECTION_VIEWS } from '../components/CollectionViews';
 import { PageSizeSelect, Pagination } from '../components/Pagination';
 import { CollectionSkeleton } from '../components/Skeleton';
 import { TrophyIcon } from '../components/TrophyIcon';
@@ -426,10 +427,14 @@ export function Collection() {
                 <div className="list-tools">
                   {/* Le nombre par page ne sert que lorsque tout ne tient pas sur une page de 100 */}
                   {(pages > 1 || total > FULL_PAGE) && <PageSizeSelect value={pageSize} onChange={choosePageSize} />}
-                  <div className="view-switch" role="group" aria-label={tr('Affichage')}>
-                    <button type="button" className={view === 'shelf' ? 'zone-option active' : 'zone-option'} aria-pressed={view === 'shelf'} onClick={() => chooseView('shelf')}>{tr('Étagère')}</button>
-                    <button type="button" className={view === 'grid' ? 'zone-option active' : 'zone-option'} aria-pressed={view === 'grid'} onClick={() => chooseView('grid')}>{tr('▦ Jaquettes')}</button>
-                    <button type="button" className={view === 'list' ? 'zone-option active' : 'zone-option'} aria-pressed={view === 'list'} onClick={() => chooseView('list')}>{tr('▤ Liste')}</button>
+                  {/* Chaque collectionneur range sa collection à sa façon (choix retenu sur l'appareil) */}
+                  <div className="view-switch" role="group" aria-label={tr('Présentation de la collection')}>
+                    {COLLECTION_VIEWS.map((v) => (
+                      <button key={v.value} type="button" className={view === v.value ? 'zone-option view-option active' : 'zone-option view-option'}
+                        aria-pressed={view === v.value} title={v.hint} onClick={() => chooseView(v.value)}>
+                        {v.icon}{v.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -583,7 +588,7 @@ function ItemBlock({ item, value, fresh, showPlatform, standIn, onEdit, onPhoto 
   );
 }
 
-// Vue « Jaquettes » : l'étagère. Les boîtiers posés sur leur tablette se soulèvent et
+// Vue « Exposition » : l'étagère. Les boîtiers posés sur leur tablette se soulèvent et
 // penchent vers la souris ; un clic fait voyager la jaquette jusqu'à la fiche du jeu.
 function ItemTile({ item, index, fresh, showPlatform, standIn, onEdit, onPhoto }: { item: CollectionItem; index: number; fresh: boolean; showPlatform: boolean; standIn: StandIn | null; onEdit: () => void; onPhoto?: () => void }) {
   const r = item.release;

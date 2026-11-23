@@ -263,7 +263,7 @@ export function GamePage() {
     const image = document.querySelector<HTMLImageElement>(`#version-${releaseId} .cover img`);
     const release = releases.find((r) => r.id === releaseId);
     if (owned && image && release && hasCase(release.platform.short_name) && !prefersReducedMotion() && collectionTarget()) {
-      setOpening({ from: image.getBoundingClientRect(), src: image.currentSrc || image.src, platform: release.platform.short_name, label: discLabelOf(release) });
+      setOpening({ from: image.getBoundingClientRect(), src: image.currentSrc || image.src, platform: release.platform.short_name, zone: release.zone, label: discLabelOf(release) });
     } else {
       flyToCollection(image);
     }

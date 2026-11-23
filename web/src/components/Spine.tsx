@@ -47,31 +47,45 @@ function titleFit(kind: string, title: string): { fit: number; twoLines: boolean
 // on le rétrécit (puis on le passe sur deux lignes) tant qu'il dépasse, en hauteur comme en
 // largeur. On recommence quand la tranche prend sa taille réelle (boîtier 3D : la fenêtre
 // s'ouvre après le premier rendu) et quand les polices ont fini de charger.
+// La mesure se fait sur une copie de la tranche posée à plat hors de l'écran : la vraie peut
+// être en train de tourner en 3D (boîtier sorti de l'étagère, vu de biais ou de profil),
+// grandie par l'animation ou en train de tomber sur l'étagère, et ses tailles à l'écran ne
+// diraient plus si le titre tient (il était alors réduit au minimum, illisible).
 function fitTitle(el: HTMLElement, start: number, startTwoLines: boolean) {
-  if (!el.clientHeight || !el.clientWidth) return;
-  el.classList.toggle('is-two-lines', startTwoLines);
+  const face = el.parentElement;
+  if (!face || !face.offsetWidth || !face.offsetHeight) return;
+  const probe = face.cloneNode(true) as HTMLElement;
+  probe.style.cssText = `position: fixed; left: -10000px; top: 0; width: ${face.offsetWidth}px; height: ${face.offsetHeight}px;`
+    + ` visibility: hidden; pointer-events: none; --spine-w: ${getComputedStyle(face).getPropertyValue('--spine-w')}`;
+  const title = probe.querySelector<HTMLElement>('.spine-title');
+  if (!title) return;
+  document.body.append(probe);
+  title.classList.toggle('is-two-lines', startTwoLines);
   let fit = start;
-  el.style.setProperty('--fit', fit.toFixed(3));
+  title.style.setProperty('--fit', fit.toFixed(3));
   // Le texte réellement dessiné (toutes ses lignes) doit tenir : en hauteur dans la place
   // réservée au titre, marges comprises (rien dans la marge qui le sépare du code), en largeur
   // dans la tranche entière (le cadre du titre lui-même n'a que la largeur d'une ligne, que les
   // lettres dessinées dépassent toujours un peu)
-  const style = getComputedStyle(el);
+  const style = getComputedStyle(title);
   const overflows = () => {
-    const frame = el.getBoundingClientRect();
+    const frame = title.getBoundingClientRect();
     const top = frame.top + parseFloat(style.paddingTop);
     const bottom = frame.bottom - parseFloat(style.paddingBottom);
-    const spine = (el.parentElement ?? el).getBoundingClientRect();
+    const spine = probe.getBoundingClientRect();
     const range = document.createRange();
-    range.selectNodeContents(el);
+    range.selectNodeContents(title);
     const text = range.getBoundingClientRect();
     return text.left < spine.left - 0.5 || text.right > spine.right + 0.5 || text.top < top - 0.5 || text.bottom > bottom + 0.5;
   };
   for (let i = 0; i < 60 && overflows() && fit > 0.16; i++) {
     fit *= 0.94;
-    if (fit < 0.62 && !el.classList.contains('is-two-lines')) { el.classList.add('is-two-lines'); fit = Math.min(0.7, fit * 2); }
-    el.style.setProperty('--fit', fit.toFixed(3));
+    if (fit < 0.62 && !title.classList.contains('is-two-lines')) { title.classList.add('is-two-lines'); fit = Math.min(0.7, fit * 2); }
+    title.style.setProperty('--fit', fit.toFixed(3));
   }
+  probe.remove();
+  el.classList.toggle('is-two-lines', title.classList.contains('is-two-lines'));
+  el.style.setProperty('--fit', fit.toFixed(3));
 }
 
 function useFittedTitle(title: string, start: number, startTwoLines: boolean) {

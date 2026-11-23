@@ -1074,7 +1074,10 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .badge-trade { color: #ffd6f1; border-color: var(--square); }
 
 /* ---------- Ma collection : vue en grille de jaquettes ---------- */
-.view-switch { display: flex; gap: 4px; }
+.view-switch { display: flex; gap: 4px; flex-wrap: wrap; }
+/* Présentation de la collection : un pictogramme devant chaque choix */
+.view-option { display: inline-flex; align-items: center; gap: 6px; }
+.view-option svg { width: 16px; height: 16px; flex: none; }
 .cover-grid {
   list-style: none; margin: 0; padding: 0;
   display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px;
@@ -1287,7 +1290,18 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
   font: 600 calc(var(--case-h) * 0.06) / 1 system-ui, sans-serif; color: #0b0b0d;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.16), 0 -1px 0 rgba(0, 0, 0, 0.7);
 }
-.cv-ps1-pal .cv-front .cv-inlay { left: 10.5%; right: 2.5%; top: 1.6%; bottom: 1.6%; }
+/* La jaquette va du décroché jusqu'au cadre de droite (le rebord transparent, ≈ 5 px) */
+.cv-ps1-pal .cv-front .cv-inlay { left: 10.5%; right: 1.3%; top: 1.6%; bottom: 1.6%; }
+/* Le décroché du couvercle (photo d'un boîtier PAL) : entre la charnière noire et la jaquette,
+   l'acrylique forme une marche, une fine bande claire ; un liseré brillant côté charnière, une
+   ombre fine là où la jaquette commence. Elle s'arrête au rebord du haut et du bas, comme la
+   charnière : le rebord passe sans interruption (pas de carré à la jonction) */
+.cv-step {
+  left: 9%; top: 1.1%; bottom: 1.1%; width: 1.5%;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.7) 0 1px, transparent 1px calc(100% - 1px), rgba(0, 0, 0, 0.55) calc(100% - 1px)),
+    linear-gradient(90deg, rgba(232, 236, 246, 0.5), rgba(214, 220, 234, 0.32) 60%, rgba(200, 206, 222, 0.22));
+}
 /* La coque en acrylique fait tout le tour : en haut et en bas, sur toute la largeur, son
    rebord transparent prolonge le boîtier au-dessus et au-dessous de la partie noire */
 .cv-ps1-pal .cv-front {
@@ -1316,6 +1330,11 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
   content: ''; position: absolute; top: 0; bottom: 0; right: 0; width: 16%; pointer-events: none;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1) 60%, rgba(255, 255, 255, 0.2));
 }
+/* Même arrondi sur l'arête de l'autre côté (l'ouverture), entre la face et le côté droit : le
+   reflet longe le bord droit de la face et repart sur le côté */
+.cv-ps1-pal .cv-front::after, .cv-ps1-pal .cv-side::after { content: ''; position: absolute; top: 0; bottom: 0; pointer-events: none; }
+.cv-ps1-pal .cv-front::after { right: 0; width: 1.3%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.14) 55%, rgba(255, 255, 255, 0.28)); }
+.cv-ps1-pal .cv-side::after { left: 0; width: 16%; background: linear-gradient(270deg, transparent, rgba(255, 255, 255, 0.1) 60%, rgba(255, 255, 255, 0.2)); }
 .cv-ps1-pal .cv-hinge {
   background:
     linear-gradient(90deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.08) 9%, transparent 22%),
@@ -1332,6 +1351,45 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
   background:
     linear-gradient(90deg, #121214 0 9%, transparent 9%),
     linear-gradient(180deg, rgba(230, 234, 245, 0.55) 0 22%, #101013 22% 78%, rgba(230, 234, 245, 0.55) 78%);
+}
+/* Arrondis, d'après photos de boîtiers PAL (de face, de dos, couché, de biais) : l'acrylique
+   n'a pas d'angle vif. Les coins, vus de face, sont légèrement arrondis (≈ 2 mm, --round) : la
+   face et le dos ont leurs coins arrondis ; tranches et bords s'arrêtent avant, et des facettes
+   (CaseViewer.tsx) font le tour du coin sur toute l'épaisseur. */
+.cv-ps1-pal .cv-front, .cv-ps1-pal .cv-back { border-radius: var(--round); }
+/* Les arêtes arrondies prennent la lumière : une bande claire de part et d'autre de l'arête,
+   plus franche au sommet de l'arrondi, qui fond vers le centre de chaque face. Arête noire
+   (tranche ↔ charnière) et arête de l'ouverture (face ↔ côté droit) */
+.cv-ps1-pal .cv-spine .spine-face::after { content: none; }
+.cv-ps1-pal .cv-spine::after, .cv-ps1-pal .cv-side::after { content: ''; position: absolute; top: 0; bottom: 0; width: 24%; pointer-events: none; }
+.cv-ps1-pal .cv-spine::after { right: 0; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.09) 45%, rgba(236, 240, 250, 0.26) 80%, rgba(244, 247, 252, 0.46)); }
+.cv-ps1-pal .cv-side::after { left: 0; background: linear-gradient(270deg, transparent, rgba(255, 255, 255, 0.09) 45%, rgba(236, 240, 250, 0.26) 80%, rgba(244, 247, 252, 0.46)); }
+.cv-ps1-pal .cv-hinge {
+  background:
+    linear-gradient(90deg, rgba(244, 247, 252, 0.42), rgba(236, 240, 250, 0.18) 7%, rgba(255, 255, 255, 0.05) 17%, transparent 28%),
+    linear-gradient(90deg, #1e1e22, #0e0e10 55%, #19191c);
+}
+.cv-ps1-pal .cv-front::after { width: 1.6%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.16) 45%, rgba(244, 247, 252, 0.44)); }
+/* Le dessus et le dessous : un bloc d'acrylique clair sur toute l'épaisseur (photos : on voit
+   au travers), avec la jonction du couvercle et de la base (--seam, côté face) ; les coins
+   arrondis ont la même matière. Au-dessus de la charnière, le noir se devine sous l'acrylique. */
+.cv-ps1-pal .cv-edge, .cv-ps1-pal .cv-round {
+  --seam: 64%;
+  --acrylic:
+    linear-gradient(180deg, transparent calc(var(--seam) - 1px), rgba(255, 255, 255, 0.5) var(--seam), transparent calc(var(--seam) + 1px)),
+    linear-gradient(180deg, rgba(242, 245, 252, 0.62), rgba(216, 222, 234, 0.46) 22%, rgba(196, 202, 218, 0.4) 50%, rgba(216, 222, 234, 0.46) 78%, rgba(242, 245, 252, 0.62));
+  background: var(--acrylic);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32), inset 0 -1px 0 rgba(255, 255, 255, 0.32);
+}
+/* Le bas est tourné dans l'autre sens : sa face est en haut */
+.cv-ps1-pal .cv-bottom { --seam: 36%; }
+.cv-ps1-pal .cv-edge { background: linear-gradient(90deg, rgba(10, 10, 12, 0.3) 0 7.5%, transparent 7.5%), var(--acrylic); }
+/* Le coin arrondi prend la lumière, comme les arêtes */
+.cv-ps1-pal .cv-round::after { content: ''; position: absolute; inset: 0; background: rgba(255, 255, 255, 0.08); }
+.cv-ps1-pal .cv-spine, .cv-ps1-pal .cv-side {
+  background:
+    linear-gradient(180deg, rgba(244, 247, 252, 0.62), rgba(228, 232, 242, 0.42) 1.1%, transparent 1.1% 98.9%, rgba(228, 232, 242, 0.38) 98.9%, rgba(244, 247, 252, 0.58)),
+    #0b0b0d;
 }
 
 /* PS2 : boîtier DVD européen bleu (135 × 190 × 14 mm), coins arrondis. La jaquette sous la
@@ -2100,6 +2158,44 @@ button.proposed-cover-image { padding: 0; font: inherit; color: inherit; cursor:
 .case-jewel .case-clip { position: absolute; left: 0; width: 6%; height: 10%; background: rgba(255, 255, 255, 0.38); border-radius: 0 3px 3px 0; }
 .case-jewel .case-clip-top { top: 9%; }
 .case-jewel .case-clip-bottom { bottom: 9%; }
+/* PS1 Europe (PAL), d'après photos : à gauche de la jaquette, la charnière noire (≈ 13 mm
+   pour un livret de 120) fixée à la base, puis le décroché de l'acrylique (≈ 2 mm). Le
+   boîtier reste calé sur la jaquette de la page : base et couvercle s'étendent à gauche,
+   et le couvercle pivote sur le bord de la charnière noire, qui ne bouge pas. */
+/* (mêmes proportions que HINGE, STEP et PIVOT dans CaseOpening.tsx) */
+.case-jewel-pal { --hinge-w: calc(var(--case-w) * 0.105); --step: calc(var(--case-w) * 0.016); --pivot: calc(var(--case-w) * 0.042); }
+.case-jewel-pal .case-base { left: calc(-1 * (var(--hinge-w) + var(--step))); background: linear-gradient(160deg, #18181c, #0b0b0e); }
+.case-jewel-pal .case-wall-left { background: #0b0b0d; }
+.case-jewel-pal .case-wall-top, .case-jewel-pal .case-wall-bottom { background: linear-gradient(90deg, #121214 0 var(--hinge-w), transparent 0), var(--wall); }
+/* Le couvercle pivote sur les tétons, près du bord extérieur de la charnière (5 mm) : ouvert,
+   il se pose à gauche et laisse voir la charnière noire, restée en place entre lui et le plateau */
+.case-jewel-pal .case-lid { left: calc(-1 * var(--step)); transform-origin: calc(var(--pivot) - var(--hinge-w)) 50%; }
+.case-jewel-pal .case-lid-front { left: var(--step); width: calc(100% - var(--step)); border-radius: 0 3px 3px 0; }
+.case-lid-step {
+  position: absolute; left: 0; top: 0; bottom: 0; width: var(--step); backface-visibility: hidden;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.7) 0 1px, transparent 1px calc(100% - 1px), rgba(0, 0, 0, 0.55) calc(100% - 1px)),
+    linear-gradient(90deg, rgba(232, 236, 246, 0.5), rgba(214, 220, 234, 0.32) 60%, rgba(200, 206, 222, 0.22)), #0b0b0e;
+}
+.case-hinge {
+  position: absolute; top: 0; bottom: 0; left: calc(-1 * (var(--hinge-w) + var(--step))); width: var(--hinge-w);
+  transform-style: preserve-3d;
+}
+.case-hinge-top {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; transform: translateZ(var(--depth));
+  border-radius: 3px 0 0 3px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.08) 9%, transparent 22%), linear-gradient(90deg, #1e1e22, #0e0e10 55%, #19191c);
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.12), inset 1px 0 0 rgba(255, 255, 255, 0.08);
+}
+.case-hinge-text {
+  writing-mode: vertical-rl; transform: rotate(180deg); letter-spacing: 0.02em;
+  font: 600 calc(var(--case-w) * 0.062) / 1 system-ui, sans-serif; color: #0b0b0d;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.16), 0 -1px 0 rgba(0, 0, 0, 0.7);
+}
+/* Les parois de la charnière (vues quand le boîtier penche) : noires */
+.case-hinge-wall { position: absolute; left: 0; right: 0; height: var(--depth); background: #121214; }
+.case-hinge-wall-top { top: 0; transform-origin: top; transform: rotateX(90deg); }
+.case-hinge-wall-bottom { bottom: 0; transform-origin: bottom; transform: rotateX(-90deg); }
 
 /* PS2 : boîtier DVD européen, bleu translucide. À droite, le porte-carte mémoire moulé en
    haut, puis la cuvette (plus bas) et son ergot à trois branches ; à gauche, deux agrafes. */
