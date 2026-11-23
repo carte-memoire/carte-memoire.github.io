@@ -19,6 +19,8 @@ export const CONSOLES = {
     wikipediaFormat: 'dates-by-zone',
     redump: 'Sony - PlayStation',
     thumbnails: 'libretro-thumbnails/Sony_-_PlayStation',
+    // Liste des jeux sur Wikipédia en japonais (une page par année : « … (1998年) »)
+    jaWikipediaList: 'PlayStationのゲームタイトル一覧',
   },
   PS2: {
     code: 'PS2',
@@ -30,6 +32,7 @@ export const CONSOLES = {
     wikipediaFormat: 'first-date-and-zones',
     redump: 'Sony - PlayStation 2',
     thumbnails: 'libretro-thumbnails/Sony_-_PlayStation_2',
+    jaWikipediaList: 'PlayStation 2のゲームタイトル一覧',
     // Un jeu Wikidata n'est importé que si la liste Wikipédia ou Redump le confirme
     // (Wikidata classe aussi en PS2 des jeux annulés ou sortis seulement en compilation)
     confirmWikidata: true,

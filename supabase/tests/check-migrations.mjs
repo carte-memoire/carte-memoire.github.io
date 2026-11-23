@@ -479,9 +479,11 @@ await egal('nouveau genre « Pachinko et pachislot », famille Société', val(`
 await egal('Hissatsu Pachi-Slot Station : pachinko et pachislot', genresDuTitre('Hissatsu Pachi-Slot Station'), 'Pachinko et pachislot');
 await egal('Minna no Shogi: Jokyuuhen : shogi', genresDuTitre('Minna no Shogi: Jokyuuhen'), 'Shogi video game');
 await egal('Cross Romance: Koi to Mahjong to Hanafuda to : mahjong ET cartes', genresDuTitre('Cross Romance: Koi to Mahjong to Hanafuda to'), 'Jeu de cartes, Jeu de mah-jong');
-await egal('cas ambigu écarté : Tennis no Oujisama: Sweat & Tears reste sans genre', genresDuTitre('Tennis no Oujisama: Sweat & Tears'), null);
+// (Le titre ne l'a pas classé ; Wikipédia en japonais l'a fait ensuite, avec le bon genre)
+await egal('cas ambigu : Tennis no Oujisama: Sweat & Tears n\'est pas pris pour un jeu de tennis', genresDuTitre('Tennis no Oujisama: Sweat & Tears').then((g) => !String(g ?? '').includes('tennis')), true);
 const file = (q, uid = MEMBRE) => lignes(en(uid, `select title, total_count from public.games_without_genre('PS1', null, $1, 1, 100)`, [q]));
-await egal('file des jeux sans genre : le cas ambigu y est', file('tennis no oujisama').then((r) => r.map((x) => x.title)), ['Tennis no Oujisama: Sweat & Tears']);
+await egal('file des jeux sans genre : un jeu classé depuis (Wikipédia en japonais) n\'y est plus', file('tennis no oujisama').then((r) => r.map((x) => x.title)), []);
+await egal('…et elle contient bien les jeux encore sans genre', file('').then((r) => r.length > 0), true);
 await egal('…mais plus les jeux classés par leur titre', file('hissatsu pachi').then((r) => r.length), 0);
 await ko('un visiteur ne peut pas lire la file', file('a', null), 'permission denied');
 
