@@ -1,4 +1,3 @@
-import { SectionMark } from '../components/PsSymbol';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import type { RealtimeChannel } from '@supabase/supabase-js';
@@ -43,7 +42,7 @@ function StandaloneScanner() {
   const { handleCode } = useScanner();
   return (
     <section className="stack narrow">
-      <h1><SectionMark shape="cross" />{tr('Scanner un jeu')}</h1>
+      <h1>{tr('Scanner un jeu')}</h1>
       <div className="panel stack"><ScanCamera onCode={handleCode} /><ManualCode onCode={handleCode} /><InstallHint /></div>
     </section>
   );
@@ -95,7 +94,7 @@ function LinkedScanner({ link }: { link: string }) {
 
   return (
     <section className="stack narrow">
-      <h1><SectionMark shape="cross" />{tr("Scanner vers l'ordinateur")}</h1>
+      <h1>{tr("Scanner vers l'ordinateur")}</h1>
       {step === 'scanning' && (
         <>
           <p className={connected ? 'success' : 'notice'} aria-live="polite">
@@ -165,7 +164,7 @@ function LinkedPhoto({ link, initialFormat }: { link: string; initialFormat: Cas
 
   return (
     <section className="stack narrow photo-page">
-      <h1><SectionMark shape="cross" />{tr('Photo de la jaquette')}</h1>
+      <h1>{tr('Photo de la jaquette')}</h1>
       {step === 'camera' && (
         <>
           <p className={computerReady ? 'small rule-ok' : 'small muted'} aria-live="polite">

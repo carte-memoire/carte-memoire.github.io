@@ -1,4 +1,3 @@
-import { SectionMark } from '../components/PsSymbol';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -28,7 +27,7 @@ export function TrophiesPage() {
     <section className="stack">
       <div className="page-head">
         <div>
-          <h1><SectionMark shape="circle" />{tr('Mes trophées')}</h1>
+          <h1>{tr('Mes trophées')}</h1>
           <p className="muted">{tr("Des objectifs de collectionneur, propres à Carte Mémoire : ils se débloquent au fil de ta collection et de tes contributions.")}</p>
         </div>
         <div className="actions">

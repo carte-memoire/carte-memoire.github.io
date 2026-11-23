@@ -1,7 +1,4 @@
 import '@fontsource/press-start-2p/400.css';
-// Titres : Chakra Petch (OFL), servie par le site comme la police pixel
-import '@fontsource/chakra-petch/600.css';
-import '@fontsource/chakra-petch/700.css';
 import './styles.css';
 import { loadLanguage, tr } from './lib/i18n';
 import { startMotion } from './lib/motion';

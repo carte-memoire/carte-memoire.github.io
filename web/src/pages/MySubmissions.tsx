@@ -1,4 +1,3 @@
-import { SectionMark } from '../components/PsSymbol';
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -78,7 +77,7 @@ export function MySubmissions() {
   return (
     <section className="stack">
       <div className="page-head">
-        <h1><SectionMark shape="square" />{tr('Mes propositions')}</h1>
+        <h1>{tr('Mes propositions')}</h1>
         <Link to="/proposer" className="button button-primary">{tr('Proposer un jeu')}</Link>
       </div>
       {error && <p className="error">{error}</p>}

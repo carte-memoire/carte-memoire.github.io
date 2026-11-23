@@ -11,7 +11,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useGameSearch } from '../components/GameSearch';
 import { Cover } from '../components/Cover';
 import { ProposedCover, publishProposedCover } from '../components/ProposedCover';
-import { PsSymbol, SectionMark } from '../components/PsSymbol';
+import { PsSymbol } from '../components/PsSymbol';
 import { useConfirm } from '../components/Confirm';
 import { CoverQueue } from '../components/CoverQueue';
 import { GenreQueue } from '../components/GenreQueue';
@@ -57,7 +57,7 @@ export function Moderation() {
   return (
     <section className="stack">
       <div className="page-head">
-        <h1><SectionMark shape="square" />{tr('Modération')}</h1>
+        <h1>{tr('Modération')}</h1>
         {consoles.length > 1 && (
           <div className="console-choice">
             <span className="muted small" title={tr('Pour les doublons, les jeux sans genre et les jaquettes manquantes')}>{tr('Console :')}</span>

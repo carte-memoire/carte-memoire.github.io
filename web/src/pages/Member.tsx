@@ -1,4 +1,3 @@
-import { SectionMark } from '../components/PsSymbol';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -181,7 +180,7 @@ export function MemberPage() {
         <div className="member-title">
           <Avatar username={profile.username} path={profile.avatar} size="large" />
           <div>
-            <h1><SectionMark shape="circle" />{tr('Collection de ')}{profile.username}</h1>
+            <h1>{tr('Collection de ')}{profile.username}</h1>
             <p className="muted">{tr('Membre depuis ')}{monthYear.format(new Date(`${profile.member_since}T00:00:00Z`))}</p>
           </div>
         </div>

@@ -7,7 +7,7 @@ import { GameSearch } from '../components/GameSearch';
 import { HelpWanted } from '../components/HelpWanted';
 import { ProgressStrip } from '../components/ProgressStrip';
 import { useScanner } from '../components/Scanner';
-import { PsSymbol, type PsShape } from '../components/PsSymbol';
+import type { PsShape } from '../components/PsSymbol';
 import { useAuth } from '../auth/AuthContext';
 import { formatNumber, gamePath, searchShortcut } from '../lib/format';
 import { usePlatforms } from '../lib/usePlatforms';
@@ -40,7 +40,7 @@ function Welcome() {
       <ul className="welcome-grid">
         {FEATURES.map((f) => (
           <li key={f.shape} className={`welcome-card welcome-${f.shape}`}>
-            <h3><PsSymbol shape={f.shape} colored /> {f.title}</h3>
+            <h3>{f.title}</h3>
             <p>{f.text}</p>
           </li>
         ))}

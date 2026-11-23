@@ -1,4 +1,3 @@
-import { SectionMark } from '../components/PsSymbol';
 import { Fragment, useEffect, useEffectEvent, useRef, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -289,7 +288,7 @@ export function Catalog() {
     <section className="stack">
       <div className="page-head">
         <div>
-          <h1><SectionMark shape="triangle" />{tr('Catalogue')}</h1>
+          <h1>{tr('Catalogue')}</h1>
           <p className="catalog-subtitle">
             {tr('Les jeux ')}<PlatformSelect value={platform} onChange={choosePlatform} />{tr(' sortis ')}<ZoneSelect value={zone} onChange={chooseZone} />
           </p>
@@ -329,7 +328,8 @@ export function Catalog() {
         </p>
       )}
 
-      <div className="panel catalog-filters">
+      {/* La recherche, toujours visible ; genre, origine, année, tri et lettres à la demande */}
+      <div className="catalog-filters filters-compact">
         <div className="row catalog-search-row">
           <label className="field catalog-search">
             <span className="field-label">{tr('Filtrer')}</span>

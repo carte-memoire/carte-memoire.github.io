@@ -27,7 +27,7 @@ function frameOf(platform: string | null | undefined, natural: number | null): {
 const ZOOM_NAME = 'jaquette-agrandie';
 
 // La boîte penche vers la souris, comme quand on la prend en main
-function tilt(event: PointerEvent<HTMLElement>) {
+export function tilt(event: PointerEvent<HTMLElement>) {
   if (event.pointerType !== 'mouse') return;
   const box = event.currentTarget.getBoundingClientRect();
   const x = (event.clientX - box.left) / box.width - 0.5;
@@ -38,7 +38,7 @@ function tilt(event: PointerEvent<HTMLElement>) {
   style.setProperty('--shine-x', `${Math.round((x + 0.5) * 100)}%`);
   style.setProperty('--shine-y', `${Math.round((y + 0.5) * 100)}%`);
 }
-function untilt(event: PointerEvent<HTMLElement>) {
+export function untilt(event: PointerEvent<HTMLElement>) {
   for (const name of ['--tilt-x', '--tilt-y', '--shine-x', '--shine-y']) event.currentTarget.style.removeProperty(name);
 }
 

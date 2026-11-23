@@ -11,7 +11,7 @@ import { groupByManufacturer, usePlatforms } from '../lib/usePlatforms';
 import { DEFAULT_PLATFORM, rememberedPlatform } from '../lib/preferences';
 import { useAuth } from '../auth/AuthContext';
 import { useGameSearch } from '../components/GameSearch';
-import { PsSymbol, SectionMark } from '../components/PsSymbol';
+import { PsSymbol } from '../components/PsSymbol';
 import { EMPTY_STUDIO, StudioField, type StudioValue } from '../components/StudioField';
 import { tr } from '../lib/i18n';
 import { usePageTitle } from '../lib/title';
@@ -178,7 +178,7 @@ export function ProposeGame() {
 
   return (
     <section className="stack">
-      <h1><SectionMark shape="square" />{existingGame ? tr('Proposer une nouvelle version') : tr('Proposer un jeu')}</h1>
+      <h1>{existingGame ? tr('Proposer une nouvelle version') : tr('Proposer un jeu')}</h1>
       <form onSubmit={submit} className="form panel" noValidate>
         {existingGame ? (
           <p>

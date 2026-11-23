@@ -178,27 +178,22 @@ function Frame() {
       {/* Trophées tout juste débloqués : annoncés en haut de l'écran */}
       {session && <TrophyWatcher userId={session.user.id} />}
 
+      {/* Deux lignes : les licences et marques en un paragraphe, puis les liens */}
       <footer className="footer">
-        <p>
+        <p className="footer-legal">
           {tr('Catalogue publié sous licence')}{' '}
           <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.fr" target="_blank" rel="noopener noreferrer">{tr('CC BY-SA 4.0')}</a>{tr('. Données issues en partie de')}{' '}
           {tr('Wikipédia')} (<a href="https://en.wikipedia.org/wiki/List_of_PlayStation_(console)_games_(A%E2%80%93L)" target="_blank" rel="noopener noreferrer">{tr('jeux PS1')}</a>,{' '}
           <a href="https://en.wikipedia.org/wiki/List_of_PlayStation_2_games_(A%E2%80%93K)" target="_blank" rel="noopener noreferrer">{tr('jeux PS2')}</a>){' '}
-          {tr('et de ')}<a href="https://www.wikidata.org" target="_blank" rel="noopener noreferrer">{tr('Wikidata')}</a>.
-        </p>
-        <p className="footer-note">
-          {tr('Les jaquettes et visuels des jeux appartiennent à leurs éditeurs respectifs et ne sont pas couverts par la licence du catalogue.')}
-        </p>
-        <p className="footer-note">
+          {tr('et de ')}<a href="https://www.wikidata.org" target="_blank" rel="noopener noreferrer">{tr('Wikidata')}</a>.{' '}
+          {tr('Les jaquettes et visuels des jeux appartiennent à leurs éditeurs respectifs et ne sont pas couverts par la licence du catalogue.')}{' '}
           {tr('Site de fans indépendant, sans lien avec les constructeurs ni les éditeurs. Les noms de consoles et de jeux sont des marques de leurs propriétaires respectifs.')}
         </p>
-        <p className="footer-note">
+        <p className="footer-links">
+          <Link to="/mentions-legales">{tr('Mentions légales')}</Link> · <Link to="/conditions">{tr("Conditions d'utilisation")}</Link> ·{' '}
+          <Link to="/confidentialite">{tr('Confidentialité')}</Link> ·{' '}
           {tr("Imaginé par Nameho, programmé avec l'aide d'une IA ·")}{' '}
           <a href="https://github.com/carte-memoire/carte-memoire.github.io" target="_blank" rel="noopener noreferrer">{tr('code source')}</a>
-        </p>
-        <p className="footer-note">
-          <Link to="/mentions-legales">{tr('Mentions légales')}</Link> · <Link to="/conditions">{tr("Conditions d'utilisation")}</Link> ·{' '}
-          <Link to="/confidentialite">{tr('Confidentialité')}</Link>
         </p>
       </footer>
     </div>

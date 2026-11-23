@@ -20,7 +20,7 @@ import { CollectionProgress } from '../components/CollectionProgress';
 import { ProgressStrip } from '../components/ProgressStrip';
 import { Cover } from '../components/Cover';
 import { PageSizeSelect, Pagination } from '../components/Pagination';
-import { PsSymbol, SectionMark } from '../components/PsSymbol';
+import { PsSymbol } from '../components/PsSymbol';
 import { CollectionSkeleton } from '../components/Skeleton';
 import { TrophyIcon } from '../components/TrophyIcon';
 import { formatEuros } from '../lib/prices';
@@ -289,7 +289,7 @@ export function Collection() {
     <section className="stack page-wide">
       <div className="page-head">
         <div>
-          <h1><SectionMark shape="circle" />{tr('Ma collection')}</h1>
+          <h1>{tr('Ma collection')}</h1>
           <p className="muted">
             {profile?.public_collection ? tr('Visible par tout le monde') : tr('Privée (visible par toi seul)')} ·{' '}
             <Link to="/compte">{tr('changer')}</Link>

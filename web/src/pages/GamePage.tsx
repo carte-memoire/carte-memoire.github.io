@@ -13,6 +13,7 @@ import type { Game, ItemStatus, Release } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
 import { AddToCollection, savedText } from '../components/AddToCollection';
 import { Cover } from '../components/Cover';
+import { Disc, hasDisc } from '../components/Disc';
 import { ReportDialog } from '../components/ReportDialog';
 import { GameSkeleton } from '../components/Skeleton';
 import { PriceSummary } from '../components/PriceSummary';
@@ -27,6 +28,8 @@ import { formatBarcode, normalizeBarcode } from '../lib/barcode';
 import { lang, tr } from '../lib/i18n';
 import { loadOrReload } from '../lib/reload';
 import { usePageTitle } from '../lib/title';
+import { VOYAGE, type Voyage } from '../lib/voyage';
+import { flyToCollection } from '../lib/fly';
 
 // Page publiée de la fiche (scripts/prerender.mjs) : elle contient les données du jeu. La
 // fiche s'affiche aussitôt, sans attendre la base, et même si la base ne répond pas : c'est
@@ -45,6 +48,8 @@ export function GamePage() {
   const { id, console: consoleName, slug } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  // Jaquette cliquée sur le mur de l'accueil (lib/voyage.ts) : affichée tout de suite
+  const voyage = (location.state as { voyage?: Voyage } | null)?.voyage;
   const { session, needsMfa, isModerator } = useAuth();
   // Adresse lisible (ps1/final-fantasy-vii) : le jeu est retrouvé par la base, y compris
   // sous une ancienne adresse (titre corrigé, fiches fusionnées). Ancienne forme : /jeu/36-…
@@ -174,7 +179,7 @@ export function GamePage() {
     return () => clearTimeout(timer);
   }, [state, focusId]);
 
-  if (state === 'loading') return <GameSkeleton />;
+  if (state === 'loading') return <GameSkeleton voyage={voyage} />;
   if (state === 'error') {
     return (
       <section className="panel">
@@ -214,8 +219,13 @@ export function GamePage() {
   // PS1 n'aide pas à reconnaître la version PS2)
   const samePlatform = (r: Release) => releases.filter((x) => x.platform.id === r.platform.id);
   const heroPool = byPlatform[0]?.releases ?? releases;
-  const heroImages = heroPool.find((r) => r.zone === myZone && r.image.length)?.image ?? heroPool.find((r) => r.image.length)?.image
+  // Arrivée depuis le mur de l'accueil : la jaquette cliquée reste celle de la fiche
+  const heroImages = (voyage ? releases.find((r) => r.id === voyage.releaseId && r.image.length)?.image : undefined)
+    ?? heroPool.find((r) => r.zone === myZone && r.image.length)?.image ?? heroPool.find((r) => r.image.length)?.image
     ?? releases.find((r) => r.image.length)?.image ?? [];
+  // Le disque sort de derrière la jaquette (seulement si le boîtier a sa jaquette)
+  const heroPlatform = byPlatform[0]?.platform.short_name;
+  const heroHasDisc = hasDisc(heroPlatform) && heroImages.some((i) => i.type === 'front');
   // Genres (avec leurs familles, cliquables vers le catalogue) et thèmes (sans famille)
   const genres = game.game_genre.map((g) => g.genre).filter((g) => g.families.length > 0);
   const themes = game.game_genre.map((g) => g.genre).filter((g) => g.families.length === 0);
@@ -275,6 +285,7 @@ export function GamePage() {
     setBusy(null);
     if (error) return setActionError(errorMessage(error));
     setJustWanted(item ? null : release.id);
+    if (!item) flyToCollection(document.querySelector(`#version-${release.id} .cover img`));
     setMineVersion((v) => v + 1);
     notifyCollectionChanged();
   }
@@ -282,7 +293,10 @@ export function GamePage() {
   return (
     <article className="game">
       <header className="game-head panel">
-        <Cover images={heroImages} title={game.title} size="large" platform={byPlatform[0]?.platform.short_name} zoomable />
+        <div className={`game-cover${voyage ? ' voyage-target' : ''}${heroHasDisc ? ' has-disc' : ''}`} style={voyage ? { viewTransitionName: VOYAGE } : undefined}>
+          {heroHasDisc && <Disc platform={heroPlatform} />}
+          <Cover images={heroImages} title={game.title} size="large" platform={heroPlatform} zoomable />
+        </div>
         <div className="game-info">
           <h1>{game.title}</h1>
           <dl className="facts">
@@ -376,6 +390,8 @@ export function GamePage() {
           <ReportDialog open={reporting} onClose={() => setReporting(false)} game={game} />
           <AddToCollection open={adding !== null} initialReleaseId={adding} onClose={() => setAdding(null)} onSaved={(saved) => {
             showToast({ text: savedText(saved), saved: true });
+            // La fenêtre se ferme, puis la jaquette de la version part vers « Ma collection »
+            window.setTimeout(() => flyToCollection(document.querySelector(`#version-${saved.releaseId} .cover img`)), 120);
             if (saved.status === 'owned') setJustAdded(saved.releaseId);
             else setJustWanted(saved.releaseId);
             setMineVersion((v) => v + 1);

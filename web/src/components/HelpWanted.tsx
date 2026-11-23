@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { formatNumber } from '../lib/format';
 import { tr } from '../lib/i18n';
-import { PsSymbol, type PsShape } from './PsSymbol';
+import type { PsShape } from './PsSymbol';
 
 interface Gaps { releases_without_cover: number; games_without_summary: number; games_without_genre: number }
 
@@ -59,7 +59,7 @@ export function HelpWanted({ signedIn }: { signedIn: boolean }) {
       <ul className="welcome-grid">
         {cards.map((c) => (
           <li key={c.shape} className={`welcome-card welcome-${c.shape}`}>
-            <h3><PsSymbol shape={c.shape} colored /> {c.title}</h3>
+            <h3>{c.title}</h3>
             {c.count && <p className="help-count">{c.count}</p>}
             <p>{c.text}</p>
             {c.link && <p className="help-link"><Link to={c.link.to}>{c.link.label}</Link></p>}

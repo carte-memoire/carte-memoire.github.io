@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState, type CSSProperties } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { gamePath, zoneLabel } from '../lib/format';
 import type { ImageType, Zone } from '../lib/types';
 import { tr } from '../lib/i18n';
-import { Cover } from './Cover';
+import { Cover, tilt, untilt } from './Cover';
+import { prefersReducedMotion } from '../lib/motion';
+import { travel, type Voyage } from '../lib/voyage';
 
 interface WallCover {
   id: number;
@@ -23,6 +25,12 @@ interface WallCover {
 const COUNT = 24;
 // Identifiants tirés au hasard : environ la moitié sont des rectos de jeux qui ont un résumé
 const SAMPLE = 120;
+
+// Mélanger : les jaquettes se retournent une à une, en vague depuis le coin en haut à
+// gauche (rangée + colonne) ; les nouvelles arrivent retournées de l'autre côté
+const FLIP_STEP = 30;
+const FLIP_OUT = 260;
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Plus grand identifiant d'image : lu une fois par visite
 let highest: Promise<number> | null = null;
@@ -69,6 +77,8 @@ export function CoverWall() {
   const [covers, setCovers] = useState<WallCover[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [round, setRound] = useState(0);
+  const [leaving, setLeaving] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     let active = true;
@@ -77,7 +87,20 @@ export function CoverWall() {
       () => { if (active) setFailed(true); },
     );
     return () => { active = false; };
-  }, [round]);
+  }, []);
+
+  // Les jaquettes se retournent pendant que les suivantes arrivent
+  async function reshuffle() {
+    if (leaving) return;
+    const motion = !prefersReducedMotion();
+    setLeaving(motion);
+    try {
+      const [list] = await Promise.all([randomCovers(), motion ? wait(FLIP_OUT + FLIP_STEP * 10) : null]);
+      setCovers(list);
+      setRound((r) => r + 1);
+    } catch { /* base injoignable : on garde les jaquettes affichées */ }
+    setLeaving(false);
+  }
 
   // Base injoignable : l'accueil reste utilisable sans le mur
   if (failed && !covers) return null;
@@ -86,15 +109,19 @@ export function CoverWall() {
     <section className="home-section" aria-labelledby="a-decouvrir">
       <div className="section-head">
         <h2 id="a-decouvrir">{tr('À découvrir')}</h2>
-        <button type="button" className="button button-small" onClick={() => setRound((r) => r + 1)}>
+        <button type="button" className="button button-small" onClick={reshuffle} disabled={leaving}>
           <span aria-hidden="true">↻</span>{tr(' Mélanger')}
         </button>
       </div>
-      <ul className="cover-wall" aria-busy={!covers}>
+      <ul className={leaving ? 'cover-wall is-leaving' : 'cover-wall'} aria-busy={!covers || leaving}>
         {covers
-          ? covers.map((c) => (
-            <li key={`${round}-${c.id}`}>
-              <Link to={gamePath(c.release.game)} className="cover-wall-link"
+          ? covers.map((c, i) => (
+            <li key={`${round}-${c.id}`} style={{ ['--i' as string]: (i % 8) + Math.floor(i / 8) } as CSSProperties}>
+              <Link to={gamePath(c.release.game)} className="cover-wall-link" onPointerMove={tilt} onPointerLeave={untilt}
+                onClick={(event) => {
+                  const voyage: Voyage = { releaseId: c.release.id, path: c.path, platform: c.release.platform.short_name, title: c.release.local_title };
+                  travel(event, event.currentTarget.querySelector<HTMLElement>('.cover'), () => navigate(gamePath(c.release.game), { state: { voyage } }));
+                }}
                 title={`${c.release.local_title} · ${c.release.platform.short_name} · ${zoneLabel(c.release.zone)}`}>
                 <Cover images={[{ id: c.id, type: c.type, path: c.path }]} title={c.release.local_title} size="small" platform={c.release.platform.short_name} />
                 <span className="cover-wall-title">{c.release.local_title}</span>

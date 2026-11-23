@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 import { tr } from '../lib/i18n';
+import { VOYAGE, type Voyage } from '../lib/voyage';
+import { Cover } from './Cover';
 
 // Silhouettes grises le temps du chargement : la page garde sa forme, rien ne saute
 // quand le contenu arrive. Les lecteurs d'écran entendent « Lecture… ».
@@ -60,12 +62,17 @@ export function CollectionSkeleton({ count = 4 }: { count?: number }) {
   );
 }
 
-// Fiche d'un jeu : l'en-tête (jaquette, titre, informations) et deux versions
-export function GameSkeleton() {
+// Fiche d'un jeu : l'en-tête (jaquette, titre, informations) et deux versions.
+// Arrivée depuis le mur de l'accueil (`voyage`) : la vraie jaquette est déjà là.
+export function GameSkeleton({ voyage }: { voyage?: Voyage }) {
   return (
     <Loading className="game">
       <div className="game-head panel">
-        <span className="skeleton cover cover-large" />
+        {voyage ? (
+          <div className="game-cover voyage-target" style={{ viewTransitionName: VOYAGE }}>
+            <Cover images={[{ id: 0, type: 'front', path: voyage.path }]} title={voyage.title} size="large" platform={voyage.platform} />
+          </div>
+        ) : <span className="skeleton cover cover-large" />}
         <div className="game-info skeleton-stack">
           {line('55%', ' skeleton-heading')}
           {line('40%')}
