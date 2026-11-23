@@ -1,5 +1,4 @@
 import { useId, useState } from 'react';
-import { PsSymbol } from './PsSymbol';
 import { tr } from '../lib/i18n';
 
 // Règle du mot de passe : la même que celle imposée par Supabase (config.toml :
@@ -14,7 +13,7 @@ export function PasswordRules({ password }: { password: string }) {
   const ok = passwordIsValid(password);
   return (
     <p className={ok ? 'password-rule rule-ok' : 'password-rule rule-todo'} aria-live="polite">
-      <PsSymbol shape={ok ? 'triangle' : 'circle'} />{' '}
+      <span aria-hidden="true">{ok ? '✓' : '○'}</span>{' '}
       {ok ? tr('{0} caractères : c’est bon.', password.length) : tr('{0} caractère{1?s} sur 12 au minimum.', password.length, password.length > 1)}
       <span className="muted">{tr(' Une phrase facile à retenir convient très bien ; un mot de passe déjà divulgué sur Internet sera refusé.')}</span>
     </p>

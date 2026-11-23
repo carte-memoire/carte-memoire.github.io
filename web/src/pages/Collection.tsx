@@ -20,7 +20,6 @@ import { CollectionProgress } from '../components/CollectionProgress';
 import { ProgressStrip } from '../components/ProgressStrip';
 import { Cover } from '../components/Cover';
 import { PageSizeSelect, Pagination } from '../components/Pagination';
-import { PsSymbol } from '../components/PsSymbol';
 import { CollectionSkeleton } from '../components/Skeleton';
 import { TrophyIcon } from '../components/TrophyIcon';
 import { formatEuros } from '../lib/prices';
@@ -340,7 +339,6 @@ export function Collection() {
         <>
           {tab === 'owned' && missingCovers > 0 && (
             <p className="notice help-covers">
-              <PsSymbol shape="circle" colored />{' '}
               {tr('{0} version{1?s} de ta collection n’{2?ont:a} pas encore de jaquette. Prends-la en photo avec ton téléphone : toute la communauté en profite.', formatNumber(missingCovers), missingCovers > 1, missingCovers > 1)}{' '}
               <button type="button" className="link-button" onClick={() => update({ jaquette: noCover ? null : 'manquante' })}>
                 {noCover ? tr('Voir tous mes jeux') : tr('Voir lesquelles')}

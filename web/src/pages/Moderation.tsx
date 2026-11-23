@@ -152,7 +152,7 @@ function SubmissionQueue({ onCount }: { onCount: (n: number) => void }) {
         </p>
       ))}
       {error && <p className="error">{error}</p>}
-      {loaded && items.length === 0 && <p className="panel empty">{tr('Aucune proposition en attente. ')}<PsSymbol shape="triangle" /></p>}
+      {loaded && items.length === 0 && <p className="panel empty">{tr('Aucune proposition en attente. ')}</p>}
       {items.map((s) => s.data.changes
         ? <CorrectionCard key={s.id} submission={s} onDone={(r) => finished(s, r)} />
         : s.action === 'update' && s.target === 'game'
@@ -578,7 +578,7 @@ function DuplicateList({ onCount, platform }: { onCount: (n: number) => void; pl
         {tr('Fiches qui portent le même titre (aux majuscules, accents et ponctuation près). Choisis la fiche à garder : les versions, développeurs et genres des autres y sont regroupés. Ou indique que ce ne sont pas des doublons.')}
       </p>
       {error && <p className="error" role="alert">{error}</p>}
-      {loaded && shown.length === 0 && <p className="panel empty">{tr('Aucun doublon possible. ')}<PsSymbol shape="triangle" /></p>}
+      {loaded && shown.length === 0 && <p className="panel empty">{tr('Aucun doublon possible. ')}</p>}
       {shown.map((group) => (
         <article key={group.title_key} className={`panel${busyKey === group.title_key ? ' is-busy' : ''}`}>
           <div className="duplicate-row">

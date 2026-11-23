@@ -26,7 +26,13 @@ export interface Opening {
   label: DiscLabel | null;
 }
 
-const DURATION = 2100;
+const DURATION = 2300;
+
+// Épaisseur de la base, à l'échelle de la jaquette : 10 mm pour 142 de large (boîtier CD),
+// 14 mm pour 135 (boîtier DVD) ; le couvercle a la sienne (CSS, .case-lid-edge)
+function boxDepth(platform: string, width: number): number {
+  return Math.round(width * (CASE[platform] === 'dvd' ? 0.1 : 0.07));
+}
 
 export function CaseOpening({ opening, onDone }: { opening: Opening; onDone: () => void }) {
   const root = useRef<HTMLDivElement>(null);
@@ -58,29 +64,37 @@ export function CaseOpening({ opening, onDone }: { opening: Opening; onDone: () 
     const end = Math.max(0.04, (to.width * 1.3) / (discSize * scale));
     const lift = -(60 + Math.abs(dx) * 0.1);
 
+    // Épaisseur du boîtier : le couvercle repose sur les parois de la base. Pendant
+    // l'ouverture, le boîtier penche vers soi : on voit ses parois et la tranche du
+    // couvercle ; il se remet à plat avant que le disque ne parte.
+    const depth = boxDepth(opening.platform, from.width);
+    const tilt = 'rotateX(24deg) rotateY(-10deg)';
+    const flat = 'rotateX(0deg) rotateY(0deg)';
     const animations = [
       box.animate([
-        { transform: 'translateX(0) scale(1)', easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
-        { transform: `translateX(${shift}px) scale(${scale})`, offset: 0.16 },
-        { transform: `translateX(${shift}px) scale(${scale})`, offset: 0.82, easing: 'cubic-bezier(0.5, 0, 0.2, 1)' },
-        { transform: 'translateX(0) scale(1)' },
+        { transform: `translateX(0) scale(1) ${flat}`, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
+        { transform: `translateX(${shift}px) scale(${scale}) ${tilt}`, offset: 0.18 },
+        { transform: `translateX(${shift}px) scale(${scale}) ${tilt}`, offset: 0.34, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' },
+        { transform: `translateX(${shift}px) scale(${scale}) ${flat}`, offset: 0.42 },
+        { transform: `translateX(${shift}px) scale(${scale}) ${flat}`, offset: 0.82, easing: 'cubic-bezier(0.5, 0, 0.2, 1)' },
+        { transform: `translateX(0) scale(1) ${flat}` },
       ], { duration: DURATION, fill: 'forwards' }),
       lid.animate([
-        { transform: 'perspective(1400px) rotateY(0deg)', offset: 0 },
-        { transform: 'perspective(1400px) rotateY(0deg)', offset: 0.1, easing: 'cubic-bezier(0.3, 1.25, 0.5, 1)' },
-        { transform: 'perspective(1400px) rotateY(-172deg)', offset: 0.32 },
-        { transform: 'perspective(1400px) rotateY(-172deg)', offset: 0.62, easing: 'cubic-bezier(0.5, 0, 0.3, 1)' },
-        { transform: 'perspective(1400px) rotateY(0deg)', offset: 0.8 },
-        { transform: 'perspective(1400px) rotateY(0deg)' },
+        { transform: `translateZ(${depth}px) rotateY(0deg)`, offset: 0 },
+        { transform: `translateZ(${depth}px) rotateY(0deg)`, offset: 0.1, easing: 'cubic-bezier(0.3, 1.25, 0.5, 1)' },
+        { transform: `translateZ(${depth}px) rotateY(-172deg)`, offset: 0.32 },
+        { transform: `translateZ(${depth}px) rotateY(-172deg)`, offset: 0.62, easing: 'cubic-bezier(0.5, 0, 0.3, 1)' },
+        { transform: `translateZ(${depth}px) rotateY(0deg)`, offset: 0.8 },
+        { transform: `translateZ(${depth}px) rotateY(0deg)` },
       ], { duration: DURATION, fill: 'forwards' }),
       disc.animate([
-        { transform: 'translate(0, 0) rotate(0deg) scale(1)', opacity: 1, offset: 0 },
-        { transform: 'translate(0, 0) rotate(0deg) scale(1)', opacity: 1, offset: 0.3, easing: 'cubic-bezier(0.2, 0.8, 0.3, 1)' },
-        { transform: 'translate(0, -6%) rotate(40deg) scale(1.1)', opacity: 1, offset: 0.4, easing: 'cubic-bezier(0.3, 0.6, 0.4, 1)' },
-        { transform: `translate(${dx * 0.45}px, ${dy * 0.45 + lift}px) rotate(320deg) scale(${Math.max(end, 0.5)})`, opacity: 1, offset: 0.56, easing: 'cubic-bezier(0.6, 0, 0.9, 0.5)' },
-        { transform: `translate(${dx}px, ${dy}px) rotate(640deg) scale(${end})`, opacity: 0.4, offset: 0.76 },
-        { transform: `translate(${dx}px, ${dy}px) rotate(640deg) scale(${end})`, opacity: 0, offset: 0.78 },
-        { transform: `translate(${dx}px, ${dy}px) rotate(640deg) scale(${end})`, opacity: 0 },
+        { transform: 'translateZ(2px) translate(0, 0) rotate(0deg) scale(1)', opacity: 1, offset: 0 },
+        { transform: 'translateZ(2px) translate(0, 0) rotate(0deg) scale(1)', opacity: 1, offset: 0.3, easing: 'cubic-bezier(0.2, 0.8, 0.3, 1)' },
+        { transform: `translateZ(${depth * 2}px) translate(0, -6%) rotate(40deg) scale(1.1)`, opacity: 1, offset: 0.42, easing: 'cubic-bezier(0.3, 0.6, 0.4, 1)' },
+        { transform: `translateZ(${depth * 2}px) translate(${dx * 0.45}px, ${dy * 0.45 + lift}px) rotate(320deg) scale(${Math.max(end, 0.5)})`, opacity: 1, offset: 0.57, easing: 'cubic-bezier(0.6, 0, 0.9, 0.5)' },
+        { transform: `translateZ(0px) translate(${dx}px, ${dy}px) rotate(640deg) scale(${end})`, opacity: 0.4, offset: 0.76 },
+        { transform: `translateZ(0px) translate(${dx}px, ${dy}px) rotate(640deg) scale(${end})`, opacity: 0, offset: 0.78 },
+        { transform: `translateZ(0px) translate(${dx}px, ${dy}px) rotate(640deg) scale(${end})`, opacity: 0 },
       ], { duration: DURATION, fill: 'forwards' }),
       root.current!.animate([{ opacity: 1 }, { opacity: 1, offset: 0.86 }, { opacity: 0 }], { duration: DURATION, fill: 'forwards' }),
     ];
@@ -97,17 +111,28 @@ export function CaseOpening({ opening, onDone }: { opening: Opening; onDone: () 
   const kind = CASE[opening.platform];
   const media = discMedia(opening.platform)!;
   const { from } = opening;
+  const depth = boxDepth(opening.platform, from.width);
+  // La perspective part du centre du boîtier (sinon il serait vu de biais depuis le
+  // milieu de l'écran)
+  const origin = `${from.left + from.width / 2}px ${from.top + from.height / 2}px`;
   return createPortal(
-    <div ref={root} className="case-fly" aria-hidden="true">
-      <div className={`case-box case-${kind}`} style={{ left: from.left, top: from.top, width: from.width, height: from.height }}>
+    <div ref={root} className="case-fly" aria-hidden="true" style={{ perspectiveOrigin: origin }}>
+      <div className={`case-box case-${kind}`} style={{ left: from.left, top: from.top, width: from.width, height: from.height, ['--depth' as string]: `${depth}px`, ['--case-w' as string]: `${from.width}px` }}>
         <div className="case-base">
           {kind === 'dvd' && <span className="case-memory"><span className="case-memory-slot" /><span>MEMORY CARD<br />HOLDER</span></span>}
           <span className="case-well"><span className="case-hub" /></span>
+          {/* Les parois : la base a une épaisseur, le couvercle repose dessus */}
+          <span className="case-wall case-wall-top" />
+          <span className="case-wall case-wall-bottom" />
+          <span className="case-wall case-wall-left" />
+          <span className="case-wall case-wall-right" />
         </div>
         <div className={`case-disc media-disc-${media}`}><DiscFace media={media} label={opening.label} /></div>
         <div className="case-lid">
           <img className="case-lid-front" src={opening.src} alt="" />
           <div className="case-lid-back"><span className="case-clip case-clip-top" /><span className="case-clip case-clip-bottom" /></div>
+          {/* La tranche du couvercle, côté ouverture : visible quand il pivote */}
+          <span className="case-lid-edge" />
         </div>
       </div>
     </div>,

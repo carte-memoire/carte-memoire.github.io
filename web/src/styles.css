@@ -636,7 +636,7 @@ img.avatar { border: 2px solid var(--bevel-light); }
   font-size: 0.78em; line-height: 1.55; vertical-align: 1px;
   background: var(--panel-2); color: var(--muted); border: 1px solid var(--line);
 }
-.tab.active .tab-count { color: var(--text); border-color: var(--triangle); }
+.tab.active .tab-count { color: var(--text); border-color: rgba(255, 255, 255, 0.5); }
 /* Beaucoup d'onglets (Modération) : jamais un dernier onglet coupé au bord. Sur ordinateur,
    ils passent à la ligne s'ils ne tiennent plus (compteurs qui grandissent) ; sous 1 100 px
    de large, ce sont des pastilles, comme sur téléphone */
@@ -648,7 +648,7 @@ img.avatar { border: 2px solid var(--bevel-light); }
     background: var(--bg-2); border: 1px solid var(--line); border-radius: 999px;
   }
   .tabs.tabs-many .tab.active { color: var(--on-accent); background: var(--text); border-color: var(--text); }
-  .tabs.tabs-many .tab.active .tab-count { color: #fff; border-color: rgba(255, 255, 255, 0.45); background: rgba(255, 255, 255, 0.12); }
+  .tabs.tabs-many .tab.active .tab-count { color: var(--on-accent); border-color: rgba(0, 0, 0, 0.35); background: rgba(0, 0, 0, 0.08); }
 }
 /* Choix de la console, à droite du titre (page Modération) */
 .console-choice { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -657,7 +657,7 @@ img.avatar { border: 2px solid var(--bevel-light); }
   font: inherit; font-size: clamp(0.8rem, 0.68rem + 0.4vw, 1rem); color: var(--muted); background: none; cursor: pointer;
   border: 0; border-bottom: 3px solid transparent; padding: 8px clamp(7px, 0.9vw, 12px);
 }
-.tab.active { color: var(--text); border-bottom-color: var(--triangle); }
+.tab.active { color: var(--text); border-bottom-color: #fff; }
 .memory-card {
   list-style: none; margin: 0; padding: 0;
   display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px;
@@ -1703,7 +1703,7 @@ button.proposed-cover-image { padding: 0; font: inherit; color: inherit; cursor:
     background: var(--bg-2); border: 1px solid var(--line); border-radius: 999px;
   }
   .tab.active { color: var(--on-accent); background: var(--text); border-color: var(--text); }
-  .tab.active .tab-count { color: #fff; border-color: rgba(255, 255, 255, 0.45); background: rgba(255, 255, 255, 0.12); }
+  .tab.active .tab-count { color: var(--on-accent); border-color: rgba(0, 0, 0, 0.35); background: rgba(0, 0, 0, 0.08); }
   /* Ma collection : l'action principale en entier, les autres en barre d'outils compacte */
   .collection-actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; width: 100%; }
   .collection-actions .button-primary { grid-column: 1 / -1; order: -1; }
@@ -1782,10 +1782,22 @@ button.proposed-cover-image { padding: 0; font: inherit; color: inherit; cursor:
 /* ---------- Boîtier qui s'ouvre (CaseOpening.tsx) ----------
    Dessinés d'après les boîtiers officiels ; le couvercle pivote sur la charnière (à gauche),
    le disque sort de sa cuvette. Les animations sont réglées dans le composant. */
-.case-fly { position: fixed; inset: 0; z-index: 1000; pointer-events: none; }
-.case-box { position: absolute; transform-origin: left center; filter: drop-shadow(0 24px 40px rgba(0, 0, 0, 0.7)); }
+/* Une scène en 3D : la perspective vient du conteneur (son point de fuite est posé au
+   centre du boîtier, CaseOpening.tsx) ; rien d'aplatissant (filtre, overflow) sur le
+   boîtier, sinon ses parois seraient écrasées */
+.case-fly { position: fixed; inset: 0; z-index: 1000; pointer-events: none; perspective: 1300px; }
+.case-box { position: absolute; transform-origin: left center; transform-style: preserve-3d; }
+.case-base { transform-style: preserve-3d; }
+/* Les parois de la base, debout sur ses quatre bords (hauteur : --depth) */
+.case-wall { position: absolute; display: block; background: var(--wall); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22); }
+.case-wall-top { left: 0; right: 0; top: 0; height: var(--depth); transform-origin: top; transform: rotateX(90deg); }
+.case-wall-bottom { left: 0; right: 0; bottom: 0; height: var(--depth); transform-origin: bottom; transform: rotateX(-90deg); }
+.case-wall-left { top: 0; bottom: 0; left: 0; width: var(--depth); transform-origin: left; transform: rotateY(-90deg); }
+.case-wall-right { top: 0; bottom: 0; right: 0; width: var(--depth); transform-origin: right; transform: rotateY(90deg); }
+/* La tranche du couvercle, côté ouverture, qui descend vers la base */
+.case-lid-edge { position: absolute; top: 0; bottom: 0; right: 0; width: var(--lid-depth); transform-origin: right; transform: rotateY(-90deg); background: var(--wall-edge, var(--wall)); }
 .case-base, .case-lid, .case-lid-front, .case-lid-back { position: absolute; inset: 0; }
-.case-lid { transform-origin: left center; transform-style: preserve-3d; }
+.case-lid { transform-origin: left center; transform-style: preserve-3d; transform: translateZ(var(--depth)); }
 .case-lid-front, .case-lid-back { width: 100%; height: 100%; backface-visibility: hidden; border-radius: 3px; }
 .case-lid-front { object-fit: cover; }
 .case-lid-back { transform: rotateY(180deg); }
@@ -1794,13 +1806,14 @@ button.proposed-cover-image { padding: 0; font: inherit; color: inherit; cursor:
 .case-disc .media-disc-face { display: block; width: 100%; height: 100%; }
 
 /* PS1 : boîtier CD simple, cadre cristal, plateau noir */
+.case-jewel { --wall: linear-gradient(90deg, rgba(225, 230, 245, 0.34), rgba(160, 168, 190, 0.18)); --wall-edge: rgba(225, 230, 245, 0.45); --lid-depth: max(3px, calc(var(--depth) * 0.3)); }
 .case-jewel .case-base {
   border-radius: 3px;
   background:
     repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.1) 0 2px, transparent 2px 5px) left / 7% 100% no-repeat,
     linear-gradient(90deg, transparent 7%, rgba(255, 255, 255, 0.16) 7% calc(7% + 1px), transparent calc(7% + 1px)),
     linear-gradient(160deg, #18181c, #0b0b0e);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3), inset 0 0 0 3px rgba(0, 0, 0, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3), inset 0 0 0 3px rgba(0, 0, 0, 0.55), 0 28px 50px rgba(0, 0, 0, 0.55);
 }
 .case-jewel .case-well { width: 90%; max-height: 96%; background: radial-gradient(circle, #131317 0 62%, #09090b 100%); box-shadow: inset 0 0 0 2px #202026, inset 0 3px 8px rgba(0, 0, 0, 0.85); }
 .case-jewel .case-hub {
@@ -1819,11 +1832,11 @@ button.proposed-cover-image { padding: 0; font: inherit; color: inherit; cursor:
 
 /* PS2 : boîtier DVD européen, bleu translucide. À droite, le porte-carte mémoire moulé en
    haut, puis la cuvette (plus bas) et son ergot à trois branches ; à gauche, deux agrafes. */
-.case-box { container-type: size; }
+.case-dvd { --wall: linear-gradient(90deg, #3f44c2, #2a2d92); --wall-edge: #3a3fb6; --lid-depth: calc(var(--depth) * 0.5); }
 .case-dvd .case-base, .case-dvd .case-lid-back {
   border-radius: 4px 7px 7px 4px;
   background: linear-gradient(160deg, rgba(255, 255, 255, 0.16), transparent 35%, rgba(255, 255, 255, 0.07) 70%, transparent), linear-gradient(160deg, #4b50d2, #2c2f9a);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4), inset 0 0 0 5px rgba(24, 26, 110, 0.35), inset 0 0 0 6px rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4), inset 0 0 0 5px rgba(24, 26, 110, 0.35), inset 0 0 0 6px rgba(255, 255, 255, 0.12), 0 28px 50px rgba(0, 0, 0, 0.55);
 }
 .case-dvd .case-base::before {
   content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5%; border-radius: 4px 0 0 4px;
@@ -1848,7 +1861,7 @@ button.proposed-cover-image { padding: 0; font: inherit; color: inherit; cursor:
   position: absolute; left: 24%; top: 3%; width: 52%; height: 24%;
   display: flex; align-items: center; justify-content: center; gap: 6%;
   border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 3px; background: rgba(20, 22, 100, 0.25);
-  color: rgba(255, 255, 255, 0.55); font: 700 4.3cqw/1.15 system-ui, sans-serif; letter-spacing: 0.04em; text-align: left;
+  color: rgba(255, 255, 255, 0.55); font: 700 calc(var(--case-w) * 0.043)/1.15 system-ui, sans-serif; letter-spacing: 0.04em; text-align: left;
 }
 .case-memory-slot { flex: none; width: 24%; height: 78%; border-radius: 2px; border: 1px solid rgba(255, 255, 255, 0.35); background: rgba(15, 16, 80, 0.45); }
 /* Les agrafes à notice, dans les coins extérieurs du couvercle ouvert */
