@@ -1189,22 +1189,28 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 }
 .spine-band { flex: none; width: 100%; display: flex; align-items: center; justify-content: center; }
 .spine-mark { font-weight: 800; font-size: calc(var(--spine-w) * 0.36); letter-spacing: 0.02em; line-height: 1; }
+/* Le titre : capitales grasses, larges et un peu espacées, comme sur les tranches PAL
+   (Montserrat, libre et servie par le site, la plus proche de la police des jaquettes) */
 .spine-title {
+  font-family: Montserrat, 'Arial Black', 'Helvetica Neue', Arial, sans-serif; font-stretch: normal;
   flex: 1 1 auto; min-height: 0; padding: 7px 0; writing-mode: vertical-rl;
-  font-weight: 700; font-size: calc(var(--spine-w) * 0.58); line-height: 1; letter-spacing: 0.02em; text-transform: uppercase;
+  font-weight: 800; font-size: calc(var(--spine-w) * 0.58); line-height: 1; letter-spacing: 0.05em; text-transform: uppercase;
   white-space: nowrap; overflow: hidden; text-overflow: clip; /* jamais de « … » : le titre rétrécit */
 }
 /* Titre très long : deux lignes côte à côte, plus petites (Spine.tsx, titleFit). Le code
    produit (SLES…) garde toujours sa place en bas : seul le titre rétrécit. */
 .spine-title.is-two-lines { white-space: normal; text-overflow: clip; line-height: 1.08; }
 .spine-code { flex: none; padding-bottom: 5px; font-weight: 700; font-size: calc(var(--spine-w) * 0.27); line-height: 1.15; text-align: center; }
+/* Version sans code connu : la place reste vide, le titre ne la prend jamais */
+.spine-code.is-empty { visibility: hidden; }
 /* PS1 (PAL), proportions relevées sur photos : en haut, la marque dans un carré arrondi
    (≈ 0,8 de la largeur) sur une zone de 1,6 largeur ; le titre blanc commence juste dessous,
    de haut en bas, à ≈ 60 % de la largeur ; le code en bas avec sa marge */
 .spine-ps1 { background: linear-gradient(90deg, #1c1c20, #0c0c0e 40%, #151518); color: #f2f2f2; }
 .spine-ps1 .spine-band { height: calc(var(--spine-w) * 1.6); }
 .spine-ps1 .spine-mark { display: grid; place-items: center; width: calc(var(--spine-w) * 0.8); aspect-ratio: 1; border: 1px solid rgba(255, 255, 255, 0.7); border-radius: 2px; font-size: calc(var(--spine-w) * 0.3); }
-.spine-ps1 .spine-title { font-size: calc(var(--spine-w) * 0.6 * var(--fit, 1)); padding-top: calc(var(--spine-w) * 0.15); }
+/* Taille relevée sur photos : capitales ≈ 35 % de l'épaisseur de la tranche (PS1), ≈ 37 % (PS2) */
+.spine-ps1 .spine-title { font-size: calc(var(--spine-w) * 0.5 * var(--fit, 1)); padding-top: calc(var(--spine-w) * 0.15); }
 .spine-ps1 .spine-code { padding-bottom: calc(var(--spine-w) * 0.35); }
 /* PS2 (PAL) : blanche, bandeau noir en haut, titre noir de bas en haut */
 .spine-ps2 { background: linear-gradient(90deg, #e6e6e2, #fbfbf9 45%, #dfdfdb); color: #111; }
@@ -1221,7 +1227,9 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 }
 .spine-pal { padding: 1px 2px; background: #f2f2f2; color: #111; font: 700 calc(var(--spine-w) * 0.24) / 1 system-ui, sans-serif; letter-spacing: 0.02em; }
 .spine-console { flex: none; writing-mode: vertical-rl; white-space: nowrap; font: 600 calc(var(--spine-w) * 0.38) / 1 system-ui, sans-serif; letter-spacing: 0.01em; }
-.spine-ps2 .spine-title { font-size: calc(var(--spine-w) * 0.55 * var(--fit, 1)); }
+.spine-ps2 .spine-title { font-size: calc(var(--spine-w) * 0.52 * var(--fit, 1)); }
+/* PS2 : le titre en minuscules et majuscules, comme sur les tranches PAL */
+.spine-ps2 .spine-title { text-transform: none; letter-spacing: 0.01em; }
 /* Réédition (Platinum) : grise, jamais noire, titre foncé */
 .spine-face.is-reissue { background: linear-gradient(90deg, #a7abb4, #d8dbe1 45%, #9da1aa); color: #17181c; }
 .spine-ps1.is-reissue .spine-mark { border-color: rgba(0, 0, 0, 0.55); }

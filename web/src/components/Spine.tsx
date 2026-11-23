@@ -53,15 +53,19 @@ function fitTitle(el: HTMLElement, start: number, startTwoLines: boolean) {
   let fit = start;
   el.style.setProperty('--fit', fit.toFixed(3));
   // Le texte réellement dessiné (toutes ses lignes) doit tenir : en hauteur dans la place
-  // réservée au titre, en largeur dans la tranche entière (le cadre du titre lui-même n'a que
-  // la largeur d'une ligne, que les lettres dessinées dépassent toujours un peu)
+  // réservée au titre, marges comprises (rien dans la marge qui le sépare du code), en largeur
+  // dans la tranche entière (le cadre du titre lui-même n'a que la largeur d'une ligne, que les
+  // lettres dessinées dépassent toujours un peu)
+  const style = getComputedStyle(el);
   const overflows = () => {
     const frame = el.getBoundingClientRect();
+    const top = frame.top + parseFloat(style.paddingTop);
+    const bottom = frame.bottom - parseFloat(style.paddingBottom);
     const spine = (el.parentElement ?? el).getBoundingClientRect();
     const range = document.createRange();
     range.selectNodeContents(el);
     const text = range.getBoundingClientRect();
-    return text.left < spine.left - 0.5 || text.right > spine.right + 0.5 || text.top < frame.top - 0.5 || text.bottom > frame.bottom + 0.5;
+    return text.left < spine.left - 0.5 || text.right > spine.right + 0.5 || text.top < top - 0.5 || text.bottom > bottom + 0.5;
   };
   for (let i = 0; i < 60 && overflows() && fit > 0.16; i++) {
     fit *= 0.94;
@@ -99,7 +103,11 @@ export function SpineFace({ release }: { release: SpineRelease }) {
         {kind === 'ps2' && <><span className="spine-pal">PAL</span><span className="spine-console">PlayStation 2</span></>}
       </span>
       <span ref={titleRef} className={twoLines ? 'spine-title is-two-lines' : 'spine-title'} style={{ ['--fit' as string]: fit.toFixed(3) } as CSSProperties}>{release.local_title}</span>
-      {code && <span className="spine-code">{code[0]}<br />{code[1]}</span>}
+      {/* La place du code est toujours gardée en bas, même sans code (laissée vide) : le titre
+          ne descend jamais dessus */}
+      {code
+        ? <span className="spine-code">{code[0]}<br />{code[1]}</span>
+        : <span className="spine-code is-empty">SLES<br />00000</span>}
     </span>
   );
 }

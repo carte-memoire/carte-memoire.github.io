@@ -1,4 +1,6 @@
 import '@fontsource/press-start-2p/400.css';
+// Titres des tranches (Ma collection) : capitales grasses et larges, comme sur les jeux PAL
+import '@fontsource/montserrat/latin-800.css';
 import './styles.css';
 import { loadLanguage, tr } from './lib/i18n';
 import { startMotion } from './lib/motion';

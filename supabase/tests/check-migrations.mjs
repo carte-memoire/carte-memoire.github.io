@@ -632,12 +632,24 @@ await egal('FF7 Allemagne (SCES-00869) : version PAL créée, rattachée à l\'A
   [{ zone: 'PAL', media_count: 3, code: 'DE' }]);
 await egal('FF7 : France, Allemagne et Espagne créées une seule fois chacune', val(`select product_code, count(*)::int as n from public.release where product_code in ('SCES-00868', 'SCES-00869', 'SCES-00900') group by 1 order by 1`),
   [{ product_code: 'SCES-00868', n: 1 }, { product_code: 'SCES-00869', n: 1 }, { product_code: 'SCES-00900', n: 1 }]);
-// Codes en double dans un jeu : SCES-99868 et SLES-01234 sont les jeux de test (Platinum au même
-// code que la version normale, voulu) ; SLES-01433 : All Star Tennis '99, un seul disque européen pour
-// deux boîtes (« Yannick Noah »). Les codes recopiés par erreur sont corrigés (fix_copied_codes).
+// Codes en double dans un jeu. Les Platinum PS1 européennes gardent le code de leur Black Label
+// (voulu : migration 20261123130000, et le jeu de test SCES-99868) : elles ne comptent pas.
+// Restent deux cas connus : SLES-01234, le jeu de test « Mon Jeu Perdu » proposé aussi en NTSC-U
+// avec le même code ; SLES-01433, All Star Tennis '99, un seul disque européen pour deux boîtes
+// (« Yannick Noah »). Les codes recopiés par erreur sont corrigés (fix_copied_codes).
 await egal('codes en double dans un jeu : seulement les cas connus d\'avant l\'import Redump',
-  val(`select string_agg(distinct product_code, ',' order by product_code) as c from (select game_id, product_code from public.release where product_code is not null group by 1, 2 having count(*) > 1) x`),
-  [{ c: 'SCES-99868,SLES-01234,SLES-01433' }]);
+  val(`select string_agg(distinct product_code, ',' order by product_code) as c from (
+    select r.game_id, r.product_code from public.release r join public.platform p on p.id = r.platform_id
+    where r.product_code is not null and not (p.short_name = 'PS1' and r.zone = 'PAL' and r.edition_type = 'reissue')
+    group by 1, 2 having count(*) > 1) x`),
+  [{ c: 'SLES-01234,SLES-01433' }]);
+// …et ces Platinum ont le code d'une Black Label du même jeu, jamais un code américain ou
+// japonais. Seule exception : Duke Nukem: Time to Kill, ressorti en Europe sous deux codes à lui.
+await egal('…et chaque Platinum PS1 européenne a le code d\'une Black Label du même jeu',
+  val(`select string_agg(r.product_code, ',' order by r.product_code) as c from public.release r join public.platform p on p.id = r.platform_id
+    where p.short_name = 'PS1' and r.zone = 'PAL' and r.edition_type = 'reissue' and r.product_code is not null
+      and not exists (select 1 from public.release s where s.game_id = r.game_id and s.edition_type = 'standard' and s.product_code = r.product_code)`),
+  [{ c: 'SLES-03517,SLES-03518' }]);
 
 console.log('\nVersions sans jaquette');
 const sansJaquette = (args, uid = MEMBRE) => lignes(en(uid, `select id, stand_in_path, total_count from public.releases_without_cover('PS1', $1, null, $2, 1, 100)`, args));
