@@ -134,7 +134,14 @@ export function CaseViewer({ pulled, onClose, onEdit }: { pulled: Pulled; onClos
               <span className="cv-hinge">{format === 'ps1-pal' && <span className="cv-hinge-text">PlayStation</span>}</span>
               {/* PS1 Europe : le décroché du couvercle en acrylique, entre la charnière noire et la jaquette */}
               {format === 'ps1-pal' && <span className="cv-step" />}
-              <span className="cv-inlay">{pulled.src ? <img src={pulled.src} alt="" /> : <span className="cv-nocover">{title}</span>}</span>
+              <span className="cv-inlay">
+                {pulled.src ? <img src={pulled.src} alt="" /> : <span className="cv-nocover">{title}</span>}
+                {/* Jeux PAL seulement (pas les versions de zone inconnue) : l'étiquette hologramme
+                    collée en bas à gauche, toujours au même endroit, à la place qu'elle a sur une
+                    vraie jaquette PAL (un scan recadré peut avoir son texte dessous). Dessin à
+                    nous, sans le logo de la marque ; ses couleurs changent quand le boîtier tourne */}
+                {format === 'ps1-pal' && pulled.release.zone === 'PAL' && <span className="cv-holo" aria-hidden="true"><span className="cv-holo-text" /><span className="cv-holo-ghost" /><span className="cv-holo-window"><span className="cv-holo-emblem" /></span><span className="cv-holo-big" /></span>}
+              </span>
               <span className="cv-gloss" />
             </div>
             {/* Dos : le verso n'est pas dans la base ; on voit le dos de la jaquette, sombre */}

@@ -1410,6 +1410,77 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
    reflet qui glisse quand on tourne le boîtier (--film, réglé par CaseViewer) */
 @property --film { syntax: '<percentage>'; inherits: true; initial-value: 50%; }
 .cv-turn { transition: transform 0.5s var(--ease), --film 0.5s var(--ease); }
+
+/* L'étiquette hologramme des jeux PAL, collée en bas à gauche du boîtier, dans la bande noire
+   à gauche de « PlayStation » (même place sur tous les jeux ; mesurée sur les scans qui la
+   montrent, qu'elle recouvre). D'après photos de vraies étiquettes : argent traversé
+   d'arc-en-ciel, « OFFICIAL LICENCED PRODUCT » partout, en plusieurs couches superposées :
+   des rangées serrées de capitales grasses, leur double plus clair légèrement décalé, et de
+   grandes lettres translucides par-dessus ; chaque couche a l'arc-en-ciel à une autre phase, qui
+   glisse quand le boîtier tourne (--film, réglé par CaseViewer), si bien que les rangées
+   changent de couleur comme sur le vrai. Au milieu, la fenêtre mate et granuleuse, avec un
+   emblème en losange : pas de logo ni de nom de la marque. */
+.cv-holo {
+  --holo: linear-gradient(100deg, rgba(255, 110, 190, 0.42), rgba(255, 215, 110, 0.38) 14%, rgba(130, 255, 160, 0.38) 28%, rgba(100, 230, 255, 0.42) 43%, rgba(120, 150, 255, 0.42) 57%, rgba(205, 140, 255, 0.38) 71%, rgba(255, 110, 190, 0.42) 85%, rgba(255, 215, 110, 0.38));
+  --silver: linear-gradient(115deg, #c3c7d0, #eceef3 26%, #b4b9c5 50%, #e6e8ee 74%, #bfc3cd);
+  position: absolute; left: 1.2%; bottom: 2.2%; width: 17.5%; height: 13.5%; overflow: hidden;
+  border-radius: calc(var(--case-h) * 0.018); /* coins bien arrondis, comme sur les photos */
+  background:
+    linear-gradient(115deg, transparent calc(var(--film) - 30%), rgba(255, 255, 255, 0.45) var(--film), transparent calc(var(--film) + 30%)),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px 2px),
+    linear-gradient(rgba(34, 38, 50, calc(78% - var(--film))), rgba(34, 38, 50, calc(78% - var(--film)))),
+    var(--holo) calc(var(--film) * 2 - 50%) 0 / 260% 100%,
+    var(--silver);
+  /* Le liseré : un bord argenté clair, puis un filet plus sombre (photos et scans) */
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.78), inset 0 0 0 2.5px rgba(100, 108, 130, 0.5), 0 1px 1.5px rgba(0, 0, 0, 0.55);
+}
+.cv-holo span { position: absolute; display: block; }
+/* Les rangées, avec l'arc-en-ciel en sens contraire. Comme sur le vrai, elles s'inversent avec
+   l'angle : claires sur fond sombre d'un côté (l'aspect d'un scan à plat), gris-bleu foncé sur
+   l'argent de l'autre */
+.cv-holo-text {
+  inset: 0;
+  background:
+    var(--holo) calc(140% - var(--film) * 2) 0 / 200% 100%,
+    linear-gradient(rgba(68, 74, 94, calc(var(--film) * 1.5)), rgba(68, 74, 94, calc(var(--film) * 1.5))),
+    linear-gradient(rgba(246, 248, 252, 0.9), rgba(246, 248, 252, 0.9));
+  -webkit-mask: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 140' preserveAspectRatio='none'%3E%3Cg font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='15.5' letter-spacing='0.3' fill='black'%3E%3Ctext x='-6' y='15'%3EOFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT%3C/text%3E%3Ctext x='-71' y='32.6'%3EOFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT%3C/text%3E%3Ctext x='-30' y='50.2'%3EOFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT%3C/text%3E%3Ctext x='-95' y='67.80000000000001'%3EOFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT%3C/text%3E%3Ctext x='-50' y='85.4'%3EOFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT%3C/text%3E%3Ctext x='-14' y='103'%3EOFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT%3C/text%3E%3Ctext x='-83' y='120.60000000000001'%3EOFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT%3C/text%3E%3Ctext x='-38' y='138.20000000000002'%3EOFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT%3C/text%3E%3C/g%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 140' preserveAspectRatio='none'%3E%3Cg font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='15.5' letter-spacing='0.3' fill='black'%3E%3Ctext x='-6' y='15'%3EOFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT%3C/text%3E%3Ctext x='-71' y='32.6'%3EOFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT%3C/text%3E%3Ctext x='-30' y='50.2'%3EOFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT%3C/text%3E%3Ctext x='-95' y='67.80000000000001'%3EOFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT%3C/text%3E%3Ctext x='-50' y='85.4'%3EOFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT%3C/text%3E%3Ctext x='-14' y='103'%3EOFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT%3C/text%3E%3Ctext x='-83' y='120.60000000000001'%3EOFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT%3C/text%3E%3Ctext x='-38' y='138.20000000000002'%3EOFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT%3C/text%3E%3C/g%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+}
+/* Leur double, plus clair, décalé en biais : les lettres se superposent */
+.cv-holo-ghost {
+  inset: 0; opacity: 0.45;
+  background: var(--holo) calc(var(--film) * 3 - 80%) 0 / 180% 100%, linear-gradient(rgba(250, 251, 255, 0.75), rgba(250, 251, 255, 0.75));
+  -webkit-mask: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 140' preserveAspectRatio='none'%3E%3Cg font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='15.5' letter-spacing='0.3' fill='black'%3E%3Ctext x='-1.5' y='20.5'%3EOFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT%3C/text%3E%3Ctext x='-66.5' y='38.1'%3EOFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT%3C/text%3E%3Ctext x='-25.5' y='55.7'%3EOFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT%3C/text%3E%3Ctext x='-90.5' y='73.30000000000001'%3EOFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT%3C/text%3E%3Ctext x='-45.5' y='90.9'%3EOFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT%3C/text%3E%3Ctext x='-9.5' y='108.5'%3EOFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT%3C/text%3E%3Ctext x='-78.5' y='126.10000000000001'%3EOFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT%3C/text%3E%3Ctext x='-33.5' y='143.70000000000002'%3EOFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT%3C/text%3E%3C/g%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 140' preserveAspectRatio='none'%3E%3Cg font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='15.5' letter-spacing='0.3' fill='black'%3E%3Ctext x='-1.5' y='20.5'%3EOFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT%3C/text%3E%3Ctext x='-66.5' y='38.1'%3EOFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT%3C/text%3E%3Ctext x='-25.5' y='55.7'%3EOFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT%3C/text%3E%3Ctext x='-90.5' y='73.30000000000001'%3EOFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT%3C/text%3E%3Ctext x='-45.5' y='90.9'%3EOFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT%3C/text%3E%3Ctext x='-9.5' y='108.5'%3EOFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT%3C/text%3E%3Ctext x='-78.5' y='126.10000000000001'%3EOFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT%3C/text%3E%3Ctext x='-33.5' y='143.70000000000002'%3EOFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT OFFICIAL LICENCED PRODUCT%3C/text%3E%3C/g%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+}
+/* Les grandes lettres translucides, par-dessus tout */
+.cv-holo-big {
+  inset: 0; opacity: 0.3;
+  background: var(--holo) calc(60% + var(--film)) 0 / 150% 100%, linear-gradient(rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.6));
+  -webkit-mask: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 140' preserveAspectRatio='none'%3E%3Cg font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='34' letter-spacing='1' fill='black'%3E%3Ctext x='-8' y='38'%3EOFFICIAL LICENCED%3C/text%3E%3Ctext x='-40' y='84'%3ELICENCED PRODUCT%3C/text%3E%3Ctext x='-18' y='130'%3EPRODUCT OFFICIAL%3C/text%3E%3C/g%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 140' preserveAspectRatio='none'%3E%3Cg font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='34' letter-spacing='1' fill='black'%3E%3Ctext x='-8' y='38'%3EOFFICIAL LICENCED%3C/text%3E%3Ctext x='-40' y='84'%3ELICENCED PRODUCT%3C/text%3E%3Ctext x='-18' y='130'%3EPRODUCT OFFICIAL%3C/text%3E%3C/g%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+}
+/* La fenêtre centrale : un carré au milieu de l'étiquette (70 % de sa hauteur), d'un argent
+   plus sombre, mat et granuleux ; le texte se devine au travers sur ses bords */
+.cv-holo-window {
+  top: 15%; height: 70%; width: auto; aspect-ratio: 1; left: 50%; transform: translateX(-50%);
+  background:
+    linear-gradient(115deg, transparent calc(var(--film) - 22%), rgba(255, 255, 255, 0.32) calc(var(--film) + 4%), transparent calc(var(--film) + 30%)),
+    radial-gradient(circle, rgba(255, 255, 255, 0.22) 0 0.5px, transparent 0.7px) 0 0 / 2px 2px,
+    radial-gradient(closest-side, rgba(146, 152, 166, 0.82), rgba(146, 152, 166, 0.66) 70%, rgba(146, 152, 166, 0.4)),
+    var(--holo) calc(100% - var(--film)) 0 / 220% 100%;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4), inset 0 0 0 2px rgba(70, 76, 92, 0.22);
+}
+.cv-holo-emblem {
+  inset: 9% 13%;
+  background: var(--holo) calc(var(--film) * 3 - 100%) 0 / 300% 100%, linear-gradient(rgba(62, 68, 86, 0.82), rgba(62, 68, 86, 0.82));
+  -webkit-mask: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 4 L88 40 L50 76 L12 40 Z' fill='none' stroke='black' stroke-width='7' stroke-linejoin='round'/%3E%3Cpath d='M50 20 L70 40 L50 60 Z' fill='black'/%3E%3Cpath d='M50 20 L30 40 L50 60 Z' fill='black' fill-opacity='0.5'/%3E%3Ctext x='50' y='94' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='13' letter-spacing='0.8' fill='black'%3ELICENCED%3C/text%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 4 L88 40 L50 76 L12 40 Z' fill='none' stroke='black' stroke-width='7' stroke-linejoin='round'/%3E%3Cpath d='M50 20 L70 40 L50 60 Z' fill='black'/%3E%3Cpath d='M50 20 L30 40 L50 60 Z' fill='black' fill-opacity='0.5'/%3E%3Ctext x='50' y='94' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='13' letter-spacing='0.8' fill='black'%3ELICENCED%3C/text%3E%3C/svg%3E") center / contain no-repeat;
+}
+/* À la sortie du boîtier, ses couleurs passent une fois, comme quand on incline le jeu */
+@keyframes holo-sweep { from { --film: 0%; } }
+.motion .cv-ps1-pal .cv-turn { animation: holo-sweep 1.4s var(--ease); }
 .cv-ps2 .cv-front .cv-gloss {
   background:
     linear-gradient(90deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.07) 3%, transparent 7%),
