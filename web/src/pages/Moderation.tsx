@@ -11,7 +11,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useGameSearch } from '../components/GameSearch';
 import { Cover } from '../components/Cover';
 import { ProposedCover, publishProposedCover } from '../components/ProposedCover';
-import { PsSymbol } from '../components/PsSymbol';
+import { PsSymbol, SectionMark } from '../components/PsSymbol';
 import { useConfirm } from '../components/Confirm';
 import { CoverQueue } from '../components/CoverQueue';
 import { GenreQueue } from '../components/GenreQueue';
@@ -57,7 +57,7 @@ export function Moderation() {
   return (
     <section className="stack">
       <div className="page-head">
-        <h1>{tr('Modération')}</h1>
+        <h1><SectionMark shape="square" />{tr('Modération')}</h1>
         {consoles.length > 1 && (
           <div className="console-choice">
             <span className="muted small" title={tr('Pour les doublons, les jeux sans genre et les jaquettes manquantes')}>{tr('Console :')}</span>
@@ -301,10 +301,10 @@ function SubmissionCard({ submission: s, onDone }: { submission: Submission; onD
       <div className="actions">
         <button type="button" className="button button-primary" onClick={approve} disabled={busy || undecided}
           title={undecided ? tr("Décide d'abord du nouveau studio") : undefined}>
-          <PsSymbol shape="cross" /> {attachTo ? tr('Accepter (version du jeu choisi)') : tr('Accepter')}
+          {attachTo ? tr('Accepter (version du jeu choisi)') : tr('Accepter')}
         </button>
         <button type="button" className="button button-danger" onClick={reject} disabled={busy}>
-          <PsSymbol shape="circle" />{tr(' Refuser')}
+          {tr('Refuser')}
         </button>
       </div>
     </article>
@@ -359,10 +359,10 @@ function SummaryCard({ submission: s, onDone }: { submission: Submission; onDone
       {error && <p className="error" role="alert">{error}</p>}
       <div className="actions">
         <button type="button" className="button button-primary" onClick={() => review(true)} disabled={busy}>
-          <PsSymbol shape="cross" />{tr(' Accepter ce résumé')}
+          {tr('Accepter ce résumé')}
         </button>
         <button type="button" className="button button-danger" onClick={() => review(false)} disabled={busy}>
-          <PsSymbol shape="circle" />{tr(' Refuser')}
+          {tr('Refuser')}
         </button>
       </div>
     </article>
@@ -456,10 +456,10 @@ function CoverSubmissionCard({ submission: s, onDone }: { submission: Submission
       {error && <p className="error" role="alert">{error}</p>}
       <div className="actions">
         <button type="button" className="button button-primary" onClick={approve} disabled={busy || !release}>
-          <PsSymbol shape="cross" />{tr(' Accepter cette jaquette')}
+          {tr('Accepter cette jaquette')}
         </button>
         <button type="button" className="button button-danger" onClick={reject} disabled={busy}>
-          <PsSymbol shape="circle" />{tr(' Refuser')}
+          {tr('Refuser')}
         </button>
       </div>
     </article>
@@ -587,7 +587,7 @@ function DuplicateList({ onCount, platform }: { onCount: (n: number) => void; pl
           {groupError?.key === group.title_key && <p className="error" role="alert">{groupError.text}</p>}
           <div className="actions">
             <button type="button" className="button button-small" onClick={() => dismiss(group)} disabled={!!busyKey}>
-              <PsSymbol shape="circle" />{tr(' Ce ne sont pas des doublons')}
+              {tr('Ce ne sont pas des doublons')}
             </button>
             {busyKey === group.title_key && <span className="muted small">{tr('Fusion en cours…')}</span>}
           </div>
@@ -622,7 +622,7 @@ function DuplicateCard({ game, disabled, onKeep }: { game?: DuplicateGame; disab
             : tr('Sans fiche Wikidata')}
         </p>
         <button type="button" className="button button-small button-primary" onClick={onKeep} disabled={disabled}>
-          <PsSymbol shape="cross" />{tr(' Garder celle-ci')}
+          {tr('Garder celle-ci')}
         </button>
       </div>
     </div>

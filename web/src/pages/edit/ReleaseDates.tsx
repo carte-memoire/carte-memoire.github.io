@@ -5,7 +5,6 @@ import { errorMessage } from '../../lib/errors';
 import type { DatePrecision, Release } from '../../lib/types';
 import { useRegions } from '../../lib/useRegions';
 import { useConfirm } from '../../components/Confirm';
-import { PsSymbol } from '../../components/PsSymbol';
 import { tr } from '../../lib/i18n';
 
 // ---------------------------------------------------------------------
@@ -91,7 +90,7 @@ export function ReleaseDates({ release, onSaved }: { release: Release; onSaved: 
           ))}
         </select>
         <DateFields value={value} precision={precision} onValue={setValue} onPrecision={setPrecision} label={tr('nouvelle date')} />
-        <button type="submit" className="button button-small" disabled={!regionId}><PsSymbol shape="square" />{tr(' Ajouter')}</button>
+        <button type="submit" className="button button-small" disabled={!regionId}>{tr('Ajouter')}</button>
       </form>
       {error && <p className="error" role="alert">{error}</p>}
     </div>

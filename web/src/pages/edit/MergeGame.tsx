@@ -5,7 +5,6 @@ import { errorMessage } from '../../lib/errors';
 import type { Game, SearchResult, Zone } from '../../lib/types';
 import { Dialog } from '../../components/Dialog';
 import { GameSearch } from '../../components/GameSearch';
-import { PsSymbol } from '../../components/PsSymbol';
 import { tr } from '../../lib/i18n';
 
 interface MergeCandidate {
@@ -67,7 +66,7 @@ export function MergeGame({ game, onMerged }: { game: Game; onMerged: () => void
       </p>
       <div>
         <button type="button" className="button" onClick={() => { setOpen(true); setPair(null); setError(''); }}>
-          <PsSymbol shape="square" />{tr(' Fusionner avec…')}
+          {tr('Fusionner avec…')}
         </button>
       </div>
       <Dialog open={open} onClose={() => setOpen(false)} title={tr('Fusionner « {0} »', game.title)} wide>
@@ -107,7 +106,7 @@ export function MergeGame({ game, onMerged }: { game: Game; onMerged: () => void
             </p>
             {error && <p className="error" role="alert">{error}</p>}
             <div className="actions">
-              <button type="button" className="button" onClick={() => setPair(null)}><PsSymbol shape="circle" />{tr(' Autre jeu')}</button>
+              <button type="button" className="button" onClick={() => setPair(null)}>{tr('Autre jeu')}</button>
               <button type="submit" className="button button-danger" disabled={busy || Boolean(conflict && !force)}>
                 {busy ? tr('Fusion…') : tr('Fusionner')}
               </button>

@@ -9,7 +9,6 @@ import { useCompanies } from '../lib/useCompanies';
 import type { DatePrecision, Game, GenreInfo, Release, Zone } from '../lib/types';
 import { Combobox } from './Combobox';
 import { Dialog } from './Dialog';
-import { PsSymbol } from './PsSymbol';
 import { tr } from '../lib/i18n';
 
 // « Suggérer une correction » : la date, les genres et les studios du jeu, ou la zone,
@@ -40,7 +39,7 @@ export function SuggestCorrection({ game, initialReleaseId, onClose, onApplied }
             ? <p className="success">{tr('Merci ! Ta correction est déjà en ligne : tu es membre de confiance. Elle reste dans l’historique, où un modérateur peut la revoir.')}</p>
             : <p className="success">{tr('Merci ! Un modérateur va la vérifier. Tu suivras sa décision dans ')}<Link to="/mes-propositions" onClick={onClose}>{tr('Mes propositions')}</Link>.</p>}
           <div className="actions">
-            <button type="button" className="button button-primary" onClick={onClose}><PsSymbol shape="cross" />{tr(' Fermer')}</button>
+            <button type="button" className="button button-primary" onClick={onClose}>{tr('Fermer')}</button>
           </div>
         </div>
       ) : (
@@ -183,7 +182,7 @@ function GameForm({ game, onSent }: { game: Game; onSent: OnSent }) {
       <SourcesField value={sources} onChange={setSources} />
       {error && <p className="error" role="alert">{error}</p>}
       <div className="actions">
-        <button type="submit" className="button button-primary" disabled={busy}><PsSymbol shape="cross" />{tr(' Envoyer la correction')}</button>
+        <button type="submit" className="button button-primary" disabled={busy}>{tr('Envoyer la correction')}</button>
       </div>
     </form>
   );
@@ -240,7 +239,7 @@ function ReleaseForm({ release, onSent }: { release: Release; onSent: OnSent }) 
       <SourcesField value={sources} onChange={setSources} />
       {error && <p className="error" role="alert">{error}</p>}
       <div className="actions">
-        <button type="submit" className="button button-primary" disabled={busy}><PsSymbol shape="cross" />{tr(' Envoyer la correction')}</button>
+        <button type="submit" className="button button-primary" disabled={busy}>{tr('Envoyer la correction')}</button>
       </div>
     </form>
   );

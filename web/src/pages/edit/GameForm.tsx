@@ -2,7 +2,6 @@ import { useState, type FormEvent } from 'react';
 import { supabase } from '../../lib/supabase';
 import { errorMessage } from '../../lib/errors';
 import type { DatePrecision, Game } from '../../lib/types';
-import { PsSymbol } from '../../components/PsSymbol';
 import { tr } from '../../lib/i18n';
 
 // Titre, résumé et première sortie du jeu
@@ -69,7 +68,7 @@ export function GameForm({ game, onSaved }: { game: Game; onSaved: () => void })
       </div>
       {message && <p className="success">{message}</p>}
       {error && <p className="error" role="alert">{error}</p>}
-      <button type="submit" className="button button-primary"><PsSymbol shape="cross" />{tr(' Enregistrer le jeu')}</button>
+      <button type="submit" className="button button-primary">{tr('Enregistrer le jeu')}</button>
     </form>
   );
 }

@@ -5,7 +5,6 @@ import { errorMessage } from '../lib/errors';
 import { markRecovery } from '../lib/preferences';
 import { useAuth } from '../auth/AuthContext';
 import { EmailCodeForm } from '../components/EmailCodeForm';
-import { PsSymbol } from '../components/PsSymbol';
 import { tr } from '../lib/i18n';
 import { usePageTitle } from '../lib/title';
 import { useTurnstile } from '../lib/turnstile';
@@ -67,10 +66,10 @@ export function ForgotPassword() {
           </label>
           <TurnstileBox turnstile={turnstile} />
           {error && <p className="error" role="alert">{error}</p>}
-          <button type="submit" className="button button-primary button-block" disabled={busy}><PsSymbol shape="cross" /> {EMAIL_CODES ? tr('Recevoir un code') : tr('Recevoir un lien')}</button>
+          <button type="submit" className="button button-primary button-block" disabled={busy}>{EMAIL_CODES ? tr('Recevoir un code') : tr('Recevoir un lien')}</button>
         </form>
       )}
-      <p className="small center"><Link to="/connexion"><PsSymbol shape="circle" />{tr(' Retour à la connexion')}</Link></p>
+      <p className="small center"><Link to="/connexion"><span aria-hidden="true">← </span>{tr('Retour à la connexion')}</Link></p>
     </section>
   );
 }

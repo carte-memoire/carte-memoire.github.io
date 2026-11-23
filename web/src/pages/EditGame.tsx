@@ -7,7 +7,6 @@ import type { Game } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
 import { HistoryList } from '../components/HistoryList';
 import { StudioListEditor } from '../components/StudioListEditor';
-import { PsSymbol } from '../components/PsSymbol';
 import { tr } from '../lib/i18n';
 import { usePageTitle } from '../lib/title';
 import { DeleteGame } from './edit/DeleteGame';
@@ -41,7 +40,7 @@ export function EditGame() {
       <section className="panel stack">
         <h1>{tr('Jeu supprimé')}</h1>
         <p className="success">« {deleted}{tr(' » a été supprimé du catalogue. La suppression est notée dans le journal.')}</p>
-        <p><Link to="/" className="button"><PsSymbol shape="circle" />{tr(' Retour à la recherche')}</Link></p>
+        <p><Link to="/" className="button">{tr('Retour à la recherche')}</Link></p>
       </section>
     );
   }
@@ -54,7 +53,7 @@ export function EditGame() {
     <section className="stack">
       <div className="page-head">
         <h1>{tr('Modifier « ')}{game.title} »</h1>
-        <Link to={gamePath(game)} className="button"><PsSymbol shape="circle" />{tr(' Retour à la fiche')}</Link>
+        <Link to={gamePath(game)} className="button">{tr('Retour à la fiche')}</Link>
       </div>
       {aal.current !== 'aal2' && (
         <p className="warning">

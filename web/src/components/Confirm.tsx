@@ -1,6 +1,5 @@
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from 'react';
 import { Dialog } from './Dialog';
-import { PsSymbol } from './PsSymbol';
 import { tr } from '../lib/i18n';
 
 // Fenêtre de confirmation intégrée au site, à la place de window.confirm()
@@ -46,10 +45,10 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
             <div className="confirm-message">{options.message}</div>
             <div className="actions">
               <button type="button" className="button" onClick={() => close(false)}>
-                <PsSymbol shape="circle" /> {options.cancelLabel ?? tr('Annuler')}
+                {options.cancelLabel ?? tr('Annuler')}
               </button>
               <button type="button" className={`button ${options.danger ? 'button-danger' : 'button-primary'}`} onClick={() => close(true)} autoFocus>
-                <PsSymbol shape="cross" /> {options.confirmLabel ?? tr('Confirmer')}
+                {options.confirmLabel ?? tr('Confirmer')}
               </button>
             </div>
           </>

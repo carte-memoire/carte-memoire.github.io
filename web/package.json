@@ -13,6 +13,7 @@
     "check": "npm run lint && npm test && node ../scripts/check-translations.mjs"
   },
   "dependencies": {
+    "@fontsource/chakra-petch": "5.3.0",
     "@fontsource/press-start-2p": "5.3.0",
     "@supabase/supabase-js": "2.117.1",
     "@zxing/browser": "0.2.1",

@@ -1,10 +1,10 @@
+import { SectionMark } from '../components/PsSymbol';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { computeTrophies, type TrophyStats } from '../lib/trophies';
 import { TrophyBoard } from '../components/TrophyBoard';
-import { PsSymbol } from '../components/PsSymbol';
 import { tr } from '../lib/i18n';
 import { usePageTitle } from '../lib/title';
 
@@ -28,11 +28,11 @@ export function TrophiesPage() {
     <section className="stack">
       <div className="page-head">
         <div>
-          <h1>{tr('Mes trophées')}</h1>
+          <h1><SectionMark shape="circle" />{tr('Mes trophées')}</h1>
           <p className="muted">{tr("Des objectifs de collectionneur, propres à Carte Mémoire : ils se débloquent au fil de ta collection et de tes contributions.")}</p>
         </div>
         <div className="actions">
-          <Link to="/collection" className="button"><PsSymbol shape="triangle" />{tr(' Ma collection')}</Link>
+          <Link to="/collection" className="button">{tr('Ma collection')}</Link>
         </div>
       </div>
       {error && <p className="error">{error}</p>}

@@ -9,7 +9,6 @@ import type { EditionType, Zone } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
 import { Cover } from './Cover';
 import { PageSizeSelect, Pagination } from './Pagination';
-import { PsSymbol } from './PsSymbol';
 import { tr } from '../lib/i18n';
 
 // Files de modération : 100 au plus par page (plafond des fonctions)
@@ -295,10 +294,10 @@ function CoverCard({ row, platform, isTarget, busy, onTarget, onFile, onPaste, o
         </p>
         <div className="actions">
           <button type="button" className={isTarget ? 'button button-small button-primary' : 'button button-small'} disabled={busy} onClick={(e) => { e.stopPropagation(); onPaste(); }}>
-            <PsSymbol shape="cross" /> {busy ? tr('Envoi…') : tr("Coller l'image")}
+            {busy ? tr('Envoi…') : tr("Coller l'image")}
           </button>
           <label className="button button-small">
-            <PsSymbol shape="square" />{tr(' Fichier…')}
+            {tr('Fichier…')}
             <input type="file" accept={ACCEPT_ATTRIBUTE} className="sr-only" disabled={busy}
               onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ''; if (file) { onTarget(); onFile(file); } }} />
           </label>

@@ -1,6 +1,5 @@
 import { formatNumber } from '../lib/format';
 import { PAGE_SIZES, pageSizeFrom, pageSizeParam } from '../lib/preferences';
-import { PsSymbol } from './PsSymbol';
 import { tr } from '../lib/i18n';
 
 // Nombre de jeux par page : 10, 20, 50… ou tout (0)
@@ -32,7 +31,7 @@ export function Pagination({ page, pages, onChange, label }: {
     <nav className="pagination" aria-label={label}>
       <button type="button" className="button button-small" disabled={page <= 1} onClick={() => onChange(1)} aria-label={tr('Première page')} title={tr('Première page')}>«</button>
       <button type="button" className="button button-small" disabled={page <= 1} onClick={() => onChange(page - 1)} aria-label={tr('Page précédente')}>
-        <PsSymbol shape="circle" /> <span className="pagination-word">{tr('Précédente')}</span>
+        <span aria-hidden="true">‹</span> <span className="pagination-word">{tr('Précédente')}</span>
       </button>
       <label className="pagination-jump">
         <span>{tr('Page')}</span>
@@ -42,7 +41,7 @@ export function Pagination({ page, pages, onChange, label }: {
         <span>{tr('sur ')}{formatNumber(pages)}</span>
       </label>
       <button type="button" className="button button-small" disabled={page >= pages} onClick={() => onChange(page + 1)} aria-label={tr('Page suivante')}>
-        <span className="pagination-word">{tr('Suivante')}</span> <PsSymbol shape="cross" />
+        <span className="pagination-word">{tr('Suivante')}</span> <span aria-hidden="true">›</span>
       </button>
       <button type="button" className="button button-small" disabled={page >= pages} onClick={() => onChange(pages)} aria-label={tr('Dernière page')} title={tr('Dernière page')}>»</button>
     </nav>

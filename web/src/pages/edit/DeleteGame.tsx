@@ -3,7 +3,6 @@ import { supabase } from '../../lib/supabase';
 import { errorMessage } from '../../lib/errors';
 import type { Game } from '../../lib/types';
 import { Dialog } from '../../components/Dialog';
-import { PsSymbol } from '../../components/PsSymbol';
 import { tr } from '../../lib/i18n';
 import { removeCovers } from './covers';
 
@@ -51,7 +50,7 @@ export function DeleteGame({ game, onDeleted }: { game: Game; onDeleted: () => v
           </label>
           {error && <p className="error" role="alert">{error}</p>}
           <div className="actions">
-            <button type="button" className="button" onClick={() => setOpen(false)}><PsSymbol shape="circle" />{tr(' Annuler')}</button>
+            <button type="button" className="button" onClick={() => setOpen(false)}>{tr('Annuler')}</button>
             <button type="submit" className="button button-danger" disabled={busy || typed.trim() !== game.title.trim()}>
               {busy ? tr('Suppression…') : tr('Supprimer définitivement')}
             </button>

@@ -1,7 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { EMAIL_CODES, supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
-import { PsSymbol } from './PsSymbol';
 import { CodeInput } from './CodeInput';
 import { tr } from '../lib/i18n';
 
@@ -82,7 +81,7 @@ export function EmailCodeForm({ email, type, onVerified, onResend }: {
       {error && <p className="error" role="alert">{error}</p>}
       {resent && <p className="success">{tr('Nouvel e-mail envoyé.')}</p>}
       <button type="submit" className="button button-primary button-block" disabled={busy || code.length !== 6}>
-        <PsSymbol shape="cross" /> {busy ? tr('Vérification…') : tr('Valider le code')}
+        {busy ? tr('Vérification…') : tr('Valider le code')}
       </button>
       {resendLine}
     </form>

@@ -8,7 +8,6 @@ import { useAuth } from '../../auth/AuthContext';
 import { useRegions } from '../../lib/useRegions';
 import { Cover } from '../../components/Cover';
 import { useConfirm } from '../../components/Confirm';
-import { PsSymbol } from '../../components/PsSymbol';
 import { StudioListEditor } from '../../components/StudioListEditor';
 import { tr } from '../../lib/i18n';
 import { removeCovers } from './covers';
@@ -175,7 +174,7 @@ export function ReleaseEditor({ release, siblings, onSaved, canDelete, possibleD
             {IMAGE_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
           <label className="button button-small">
-            {busy ? tr('Envoi…') : <><PsSymbol shape="square" />{tr(' Ajouter une image')}</>}
+            {busy ? tr('Envoi…') : <>{tr('Ajouter une image')}</>}
             <input type="file" accept={ACCEPT_ATTRIBUTE} className="sr-only" disabled={busy}
               onChange={(e) => { uploadImage(e.target.files?.[0]); e.target.value = ''; }} />
           </label>
@@ -250,7 +249,7 @@ export function ReleaseEditor({ release, siblings, onSaved, canDelete, possibleD
         {message && <p className="success">{message}</p>}
         {error && <p className="error" role="alert">{error}</p>}
         <div className="actions">
-          <button type="submit" className="button button-primary"><PsSymbol shape="cross" />{tr(' Enregistrer cette version')}</button>
+          <button type="submit" className="button button-primary">{tr('Enregistrer cette version')}</button>
           <DeclineRelease release={release} siblings={siblings} onDone={onSaved} />
           {canDelete && <MoveRelease release={release} onMoved={onSaved} />}
           {canDelete && <button type="button" className="button button-small button-danger" onClick={removeRelease}>{tr('Supprimer cette version')}</button>}

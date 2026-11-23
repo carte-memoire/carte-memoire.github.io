@@ -11,12 +11,13 @@ import { ErrorBoundary } from './ErrorBoundary';
 import { tr, lang, setLanguage, offerEnglish, keepFrench } from '../lib/i18n';
 import { Avatar } from './Avatar';
 
-// Chaque rubrique prend la couleur d'un bouton de la manette quand on s'y trouve
+// Chaque rubrique a son symbole et sa couleur, les mêmes partout (titres des pages, cartes
+// de bienvenue) : △ explorer (recherche, catalogue), ○ collection, ✕ scanner, □ contribuer
 const LINKS: { to: string; label: string; short?: string; icon: NavIconName; accent: string }[] = [
-  { to: '/', label: tr('Rechercher'), icon: 'search', accent: 'cross' },
-  { to: '/catalogue', label: tr('Catalogue'), icon: 'catalog', accent: 'square' },
-  { to: '/collection', label: tr('Ma collection'), short: tr('Collection'), icon: 'collection', accent: 'triangle' },
-  { to: '/proposer', label: tr('Proposer un jeu'), short: tr('Proposer'), icon: 'propose', accent: 'circle' },
+  { to: '/', label: tr('Rechercher'), icon: 'search', accent: 'triangle' },
+  { to: '/catalogue', label: tr('Catalogue'), icon: 'catalog', accent: 'triangle' },
+  { to: '/collection', label: tr('Ma collection'), short: tr('Collection'), icon: 'collection', accent: 'circle' },
+  { to: '/proposer', label: tr('Proposer un jeu'), short: tr('Proposer'), icon: 'propose', accent: 'square' },
 ];
 
 // Libellé long sur grand écran, court quand la place manque

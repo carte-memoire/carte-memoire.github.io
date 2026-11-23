@@ -10,7 +10,6 @@ import type { GenreFamily, GenreInfo } from '../lib/types';
 import { Combobox } from './Combobox';
 import { Cover } from './Cover';
 import { PageSizeSelect, Pagination } from './Pagination';
-import { PsSymbol } from './PsSymbol';
 import { usePlatforms } from '../lib/usePlatforms';
 import { tr } from '../lib/i18n';
 
@@ -214,7 +213,7 @@ function QueueCard({ row, consoleName, genres, onDone }: { row: QueueRow; consol
         {error && <p className="error" role="alert">{error}</p>}
         <div className="actions">
           <button type="button" className="button button-small button-primary" disabled={chosen.length === 0 || busy} onClick={save}>
-            <PsSymbol shape="cross" />{tr(' Enregistrer')}{chosen.length ? ` (${chosen.map((g) => g.families.map(familyLabel)[0] ?? g.name).filter((v, i, a) => a.indexOf(v) === i).join(', ')})` : ''}
+            {tr('Enregistrer')}{chosen.length ? ` (${chosen.map((g) => g.families.map(familyLabel)[0] ?? g.name).filter((v, i, a) => a.indexOf(v) === i).join(', ')})` : ''}
           </button>
           <button type="button" className="button button-small" disabled={busy} onClick={() => onDone(false)}>{tr('Passer')}</button>
         </div>

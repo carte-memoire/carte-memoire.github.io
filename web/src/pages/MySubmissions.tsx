@@ -1,3 +1,4 @@
+import { SectionMark } from '../components/PsSymbol';
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -5,7 +6,6 @@ import { errorMessage } from '../lib/errors';
 import { formatDateTime, gamePath, reportKindLabel, zoneLabel } from '../lib/format';
 import type { Report, Submission } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
-import { PsSymbol } from '../components/PsSymbol';
 import { useConfirm } from '../components/Confirm';
 import { tr, locale } from '../lib/i18n';
 import { usePageTitle } from '../lib/title';
@@ -78,8 +78,8 @@ export function MySubmissions() {
   return (
     <section className="stack">
       <div className="page-head">
-        <h1>{tr('Mes propositions')}</h1>
-        <Link to="/proposer" className="button button-primary"><PsSymbol shape="cross" />{tr(' Proposer un jeu')}</Link>
+        <h1><SectionMark shape="square" />{tr('Mes propositions')}</h1>
+        <Link to="/proposer" className="button button-primary">{tr('Proposer un jeu')}</Link>
       </div>
       {error && <p className="error">{error}</p>}
       {loaded && items.length === 0 && <p className="panel empty">{tr('Aucune proposition pour le moment.')}</p>}

@@ -1,3 +1,4 @@
+import { SectionMark } from '../components/PsSymbol';
 import { Fragment, useEffect, useEffectEvent, useRef, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -19,7 +20,6 @@ import { Cover } from '../components/Cover';
 import { MemoryBar } from '../components/MemoryBar';
 import { PageSizeSelect, Pagination } from '../components/Pagination';
 import { PlatformSelect } from '../components/PlatformSelect';
-import { PsSymbol } from '../components/PsSymbol';
 import { CatalogSkeleton } from '../components/Skeleton';
 import { useToast } from '../components/Toast';
 import { notifyCollectionChanged } from '../lib/trophies';
@@ -289,7 +289,7 @@ export function Catalog() {
     <section className="stack">
       <div className="page-head">
         <div>
-          <h1>{tr('Catalogue')}</h1>
+          <h1><SectionMark shape="triangle" />{tr('Catalogue')}</h1>
           <p className="catalog-subtitle">
             {tr('Les jeux ')}<PlatformSelect value={platform} onChange={choosePlatform} />{tr(' sortis ')}<ZoneSelect value={zone} onChange={chooseZone} />
           </p>
@@ -442,7 +442,7 @@ export function Catalog() {
       {rows && rows.length === 0 && !loading && !error && (
         <div className="panel empty">
           <p>{page > 1 ? tr('Plus aucun jeu sur cette page.') : ownership === 'owned' ? tr('Aucun jeu coché pour le moment : à toi de jouer !') : tr('Aucun jeu ne correspond à ces filtres.')}</p>
-          {page > 1 && <button type="button" className="button" onClick={() => goToPage(1)}><PsSymbol shape="circle" />{tr(' Première page')}</button>}
+          {page > 1 && <button type="button" className="button" onClick={() => goToPage(1)}>{tr('Première page')}</button>}
           {page === 1 && query.trim() && ownership !== 'owned' && (
             <p className="small">
               {tr('Il manque à la base ? ')}<Link to={`/proposer?titre=${encodeURIComponent(query.trim())}`}>{tr('Propose-le')}</Link>.

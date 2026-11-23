@@ -1,5 +1,4 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
-import { PsSymbol } from './PsSymbol';
 import { tr } from '../lib/i18n';
 
 // Filet de sécurité : une erreur imprévue dans une page affiche un message et un bouton
@@ -22,7 +21,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, { failed: 
         <h1>{tr('Erreur de lecture')}</h1>
         <p>{tr("Cette page n'a pas pu s'afficher. Le site vient peut-être d'être mis à jour : recharge la page.")}</p>
         <button type="button" className="button button-primary" onClick={() => window.location.reload()}>
-          <PsSymbol shape="cross" />{tr(' Recharger la page')}
+          {tr('Recharger la page')}
         </button>
       </section>
     );

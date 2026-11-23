@@ -33,3 +33,10 @@ export function PsSymbol({ shape, colored = false, className = '' }: Props) {
     </svg>
   );
 }
+
+// Repère de rubrique, devant le titre d'une page : △ explorer, ○ collection, ✕ scanner,
+// □ contribuer (les mêmes que les cartes de bienvenue et que la barre de navigation).
+// Les symboles ne servent plus d'icônes de boutons : « ✕ Ajouter » se lisait « annuler ».
+export function SectionMark({ shape }: { shape: PsShape }) {
+  return <PsSymbol shape={shape} colored className="section-mark" />;
+}

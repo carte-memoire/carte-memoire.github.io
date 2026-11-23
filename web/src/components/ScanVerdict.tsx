@@ -8,7 +8,6 @@ import type { BarcodeMatch, ItemCondition, ItemStatus, Release } from '../lib/ty
 import { useAuth } from '../auth/AuthContext';
 import { Cover } from './Cover';
 import { ReleaseSummary } from './ReleaseSummary';
-import { PsSymbol } from './PsSymbol';
 import { tr } from '../lib/i18n';
 
 // Le verdict après un scan, sans quitter le scanner : la version reconnue, et en une
@@ -131,12 +130,12 @@ export function ScanVerdict({ match, onAdd, onOpen, onAgain }: {
       <div className="actions">
         {canAdd && release && (
           <button type="button" className="button button-primary" onClick={() => onAdd(release)}>
-            <PsSymbol shape="cross" />{' '}
+            
             {wanted && owned.length === 0 ? tr('Je l’ai trouvé : l’ajouter') : owned.length > 0 ? tr('Ajouter un autre exemplaire') : tr('Ajouter à ma collection')}
           </button>
         )}
         <button type="button" className="button" onClick={onOpen}>{tr('Voir la fiche')}</button>
-        <button type="button" className="button" onClick={onAgain}><PsSymbol shape="triangle" />{tr(' Scanner un autre jeu')}</button>
+        <button type="button" className="button" onClick={onAgain}>{tr('Scanner un autre jeu')}</button>
       </div>
     </div>
   );

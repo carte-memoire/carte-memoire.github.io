@@ -5,7 +5,6 @@ import { REPORT_KINDS, zoneLabel } from '../lib/format';
 import { errorMessage } from '../lib/errors';
 import type { Game, ReportKind } from '../lib/types';
 import { Dialog } from './Dialog';
-import { PsSymbol } from './PsSymbol';
 import { tr } from '../lib/i18n';
 
 // « Signaler une erreur » sur la fiche d'un jeu : un modérateur la corrigera
@@ -44,7 +43,7 @@ export function ReportDialog({ game, open, onClose }: { game: Game; open: boolea
           <p className="success">{tr('Merci ! Un modérateur va vérifier. Tu suivras la réponse dans « Mes propositions ».')}</p>
           <div className="actions">
             <Link to="/mes-propositions" className="button" onClick={close}>{tr('Mes propositions')}</Link>
-            <button type="button" className="button button-primary" onClick={close}><PsSymbol shape="cross" />{tr(' Fermer')}</button>
+            <button type="button" className="button button-primary" onClick={close}>{tr('Fermer')}</button>
           </div>
         </>
       ) : (
@@ -74,8 +73,8 @@ export function ReportDialog({ game, open, onClose }: { game: Game; open: boolea
           </label>
           {error && <p className="error" role="alert">{error}</p>}
           <div className="actions">
-            <button type="button" className="button" onClick={close}><PsSymbol shape="circle" />{tr(' Annuler')}</button>
-            <button type="submit" className="button button-primary" disabled={busy}><PsSymbol shape="cross" />{tr(' Envoyer')}</button>
+            <button type="button" className="button" onClick={close}>{tr('Annuler')}</button>
+            <button type="submit" className="button button-primary" disabled={busy}>{tr('Envoyer')}</button>
           </div>
         </form>
       )}

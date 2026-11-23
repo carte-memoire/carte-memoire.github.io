@@ -4,7 +4,6 @@ import { supabase } from '../lib/supabase';
 import { formatDateTime, gamePath, reportKindLabel } from '../lib/format';
 import { errorMessage } from '../lib/errors';
 import type { Report } from '../lib/types';
-import { PsSymbol } from './PsSymbol';
 import { tr } from '../lib/i18n';
 import { UserTag } from './UserTag';
 
@@ -66,8 +65,8 @@ function ReportCard({ report: r, onDone }: { report: Report; onDone: () => void 
       </label>
       {error && <p className="error" role="alert">{error}</p>}
       <div className="actions">
-        {r.game && <Link to={`/jeu/${r.game.id}/modifier`} className="button button-small"><PsSymbol shape="triangle" />{tr(' Corriger le jeu')}</Link>}
-        <button type="button" className="button button-small button-primary" onClick={() => review(true)}><PsSymbol shape="cross" />{tr(" C'est corrigé")}</button>
+        {r.game && <Link to={`/jeu/${r.game.id}/modifier`} className="button button-small">{tr('Corriger le jeu')}</Link>}
+        <button type="button" className="button button-small button-primary" onClick={() => review(true)}>{tr("C'est corrigé")}</button>
         <button type="button" className="button button-small button-danger" onClick={() => review(false)}>{tr('Rejeter')}</button>
       </div>
     </li>

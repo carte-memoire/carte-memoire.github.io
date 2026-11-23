@@ -5,7 +5,6 @@ import { errorMessage } from '../../lib/errors';
 import type { Release } from '../../lib/types';
 import { useRegions } from '../../lib/useRegions';
 import { Dialog } from '../../components/Dialog';
-import { PsSymbol } from '../../components/PsSymbol';
 import { tr } from '../../lib/i18n';
 
 // « Décliner par langue ou par pays » : crée en un clic les variantes d'une version
@@ -95,7 +94,7 @@ export function DeclineRelease({ release, siblings, onDone }: { release: Release
         {error && <p className="error" role="alert">{error}</p>}
         <div className="actions">
           <button type="button" className="button button-primary" onClick={create} disabled={busy || byLanguage.length + byCountry.length === 0}>
-            <PsSymbol shape="cross" />{tr(' Créer ')}{byLanguage.length + byCountry.length || ''}{tr(' variante{0?s}', byLanguage.length + byCountry.length > 1)}
+            {tr('Créer ')}{byLanguage.length + byCountry.length || ''}{tr(' variante{0?s}', byLanguage.length + byCountry.length > 1)}
           </button>
         </div>
       </Dialog>

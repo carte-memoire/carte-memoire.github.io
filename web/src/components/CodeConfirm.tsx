@@ -4,7 +4,6 @@ import { errorMessage } from '../lib/errors';
 import { useAuth } from '../auth/AuthContext';
 import { CodeInput } from './CodeInput';
 import { Dialog } from './Dialog';
-import { PsSymbol } from './PsSymbol';
 import { tr } from '../lib/i18n';
 
 // Réglages de sécurité (passkeys, double authentification, mot de passe) : le serveur
@@ -61,8 +60,8 @@ export function useCodeConfirm(): { dialog: ReactNode; ensureCode: (reason: stri
       <CodeInput label={tr("Code de l'application d'authentification")} value={code} onChange={setCode} onComplete={verify} disabled={busy} autoFocus />
       {error && <p className="error" role="alert">{error}</p>}
       <div className="actions">
-        <button type="button" className="button" onClick={() => finish(false)}><PsSymbol shape="circle" />{tr(' Annuler')}</button>
-        <button type="button" className="button button-primary" disabled={busy || code.length !== 6} onClick={() => verify(code)}><PsSymbol shape="cross" />{tr(' Valider')}</button>
+        <button type="button" className="button" onClick={() => finish(false)}>{tr('Annuler')}</button>
+        <button type="button" className="button button-primary" disabled={busy || code.length !== 6} onClick={() => verify(code)}>{tr('Valider')}</button>
       </div>
     </Dialog>
   );

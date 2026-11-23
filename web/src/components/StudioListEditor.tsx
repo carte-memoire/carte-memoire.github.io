@@ -4,7 +4,6 @@ import { errorMessage } from '../lib/errors';
 import { forgetCompanies } from '../lib/useCompanies';
 import { useConfirm } from './Confirm';
 import { EMPTY_STUDIO, StudioField, type StudioValue } from './StudioField';
-import { PsSymbol } from './PsSymbol';
 import { tr } from '../lib/i18n';
 
 // Modifier les développeurs d'un jeu ou les éditeurs d'une version (modérateurs) :
@@ -78,7 +77,7 @@ export function StudioListEditor({ title, studios, onAdd, onRemove, onSaved }: {
       ) : <p className="muted small">{tr('Aucun pour le moment.')}</p>}
       <div className="studio-editor-add">
         <StudioField label={tr('Ajouter ({0})', title.toLowerCase())} value={value} onChange={setValue} />
-        <button type="button" className="button button-small" onClick={add} disabled={busy || !value.name.trim()}><PsSymbol shape="cross" />{tr(' Ajouter')}</button>
+        <button type="button" className="button button-small" onClick={add} disabled={busy || !value.name.trim()}>{tr('Ajouter')}</button>
       </div>
       {error && <p className="error small" role="alert">{error}</p>}
     </div>

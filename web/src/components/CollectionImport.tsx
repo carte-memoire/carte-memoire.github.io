@@ -6,7 +6,6 @@ import { editionLabel, formatNumber } from '../lib/format';
 import { errorMessage } from '../lib/errors';
 import type { CatalogRelease, CollectionItem } from '../lib/types';
 import { Dialog } from './Dialog';
-import { PsSymbol } from './PsSymbol';
 import { tr } from '../lib/i18n';
 
 const MAX_SIZE = 2 * 1024 * 1024; // 2 Mo
@@ -161,11 +160,11 @@ export function CollectionImport({ open, onClose, onImported, existing }: {
           </p>
           <div className="actions">
             <label className="button button-primary">
-              <PsSymbol shape="cross" />{tr(' Choisir un fichier')}
+              {tr('Choisir un fichier')}
               <input type="file" accept=".csv,.txt,text/csv" className="sr-only" onChange={(e) => { readFile(e.target.files?.[0]); e.target.value = ''; }} />
             </label>
             <button type="button" className="button" onClick={() => downloadCsv('carte-memoire-modele.csv', toCsv(TEMPLATE_ROWS))}>
-              <PsSymbol shape="square" />{tr(' Télécharger un modèle')}
+              {tr('Télécharger un modèle')}
             </button>
           </div>
         </>
@@ -228,9 +227,9 @@ export function CollectionImport({ open, onClose, onImported, existing }: {
           )}
 
           <div className="actions">
-            <button type="button" className="button" onClick={() => setStep('file')}><PsSymbol shape="circle" />{tr(' Autre fichier')}</button>
+            <button type="button" className="button" onClick={() => setStep('file')}>{tr('Autre fichier')}</button>
             <button type="button" className="button button-primary" disabled={count === 0} onClick={runImport}>
-              <PsSymbol shape="cross" />{tr(' Importer ')}{formatNumber(count)}{tr(' ligne{0?s}', count > 1)}
+              {tr('Importer ')}{formatNumber(count)}{tr(' ligne{0?s}', count > 1)}
             </button>
           </div>
         </>
@@ -246,7 +245,7 @@ export function CollectionImport({ open, onClose, onImported, existing }: {
             </p>
           )}
           <div className="actions">
-            <button type="button" className="button button-primary" onClick={onClose}><PsSymbol shape="cross" />{tr(' Terminer')}</button>
+            <button type="button" className="button button-primary" onClick={onClose}>{tr('Terminer')}</button>
           </div>
         </>
       )}

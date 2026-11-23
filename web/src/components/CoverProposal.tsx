@@ -12,7 +12,6 @@ import type { Release } from '../lib/types';
 import { CoverCamera } from './CoverCamera';
 import { CoverEditor } from './CoverEditor';
 import { Dialog } from './Dialog';
-import { PsSymbol } from './PsSymbol';
 import { QrImage } from './Scanner';
 import { tr } from '../lib/i18n';
 
@@ -164,7 +163,7 @@ function ProposalBody({ release, gameTitle, hasCover, onClose }: {
           {sent && <img className="cover-sent" src={sent} alt={tr('Ta jaquette recadrée')} />}
           <h2>{tr('Merci, ta jaquette est envoyée !')}</h2>
           <p>{tr('Un modérateur va la vérifier. Tu suivras sa décision dans ')}<Link to="/mes-propositions" onClick={onClose}>{tr('Mes propositions')}</Link>.</p>
-          <button type="button" className="button button-primary" onClick={onClose}><PsSymbol shape="cross" />{tr(' Fermer')}</button>
+          <button type="button" className="button button-primary" onClick={onClose}>{tr('Fermer')}</button>
         </div>
       )}
 

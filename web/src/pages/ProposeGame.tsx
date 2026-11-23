@@ -11,7 +11,7 @@ import { groupByManufacturer, usePlatforms } from '../lib/usePlatforms';
 import { DEFAULT_PLATFORM, rememberedPlatform } from '../lib/preferences';
 import { useAuth } from '../auth/AuthContext';
 import { useGameSearch } from '../components/GameSearch';
-import { PsSymbol } from '../components/PsSymbol';
+import { PsSymbol, SectionMark } from '../components/PsSymbol';
 import { EMPTY_STUDIO, StudioField, type StudioValue } from '../components/StudioField';
 import { tr } from '../lib/i18n';
 import { usePageTitle } from '../lib/title';
@@ -168,7 +168,7 @@ export function ProposeGame() {
         <p>{tr("Ta proposition est enregistrée. Un modérateur va la vérifier avant de l'ajouter au catalogue.")}</p>
         <div className="actions">
           <Link to="/mes-propositions" className="button">{tr('Voir mes propositions')}</Link>
-          <button type="button" className="button button-primary" onClick={() => window.location.reload()}><PsSymbol shape="cross" />{tr(' Proposer autre chose')}</button>
+          <button type="button" className="button button-primary" onClick={() => window.location.reload()}>{tr('Proposer autre chose')}</button>
         </div>
       </section>
     );
@@ -178,7 +178,7 @@ export function ProposeGame() {
 
   return (
     <section className="stack">
-      <h1>{existingGame ? tr('Proposer une nouvelle version') : tr('Proposer un jeu')}</h1>
+      <h1><SectionMark shape="square" />{existingGame ? tr('Proposer une nouvelle version') : tr('Proposer un jeu')}</h1>
       <form onSubmit={submit} className="form panel" noValidate>
         {existingGame ? (
           <p>
@@ -343,7 +343,7 @@ export function ProposeGame() {
           <ul className="error" role="alert">{errors.map((m) => <li key={m}>{m}</li>)}</ul>
         )}
         <button type="submit" className="button button-primary" disabled={busy}>
-          <PsSymbol shape="cross" /> {busy ? tr('Sauvegarde en cours… Ne retirez pas la carte mémoire') : tr('Envoyer ma proposition')}
+          {busy ? tr('Sauvegarde en cours… Ne retirez pas la carte mémoire') : tr('Envoyer ma proposition')}
         </button>
       </form>
     </section>

@@ -8,7 +8,6 @@ import { PasswordField, passwordIsValid } from '../components/PasswordRules';
 import { useConfirm } from '../components/Confirm';
 import { CodeInput } from '../components/CodeInput';
 import { useCodeConfirm } from '../components/CodeConfirm';
-import { PsSymbol } from '../components/PsSymbol';
 import { Dialog } from '../components/Dialog';
 import { tr, locale } from '../lib/i18n';
 import { motionChoice, setMotionChoice, systemReducesMotion, type MotionChoice } from '../lib/motion';
@@ -108,11 +107,11 @@ function ProfileSection() {
             <label className={`button button-small file-button${photoBusy ? ' is-disabled' : ''}`}>
               <input type="file" accept={AVATAR_ACCEPT} className="sr-only" disabled={photoBusy}
                 onChange={(e) => { changePhoto(e.target.files?.[0]); e.target.value = ''; }} />
-              <PsSymbol shape="triangle" />{profile?.avatar ? tr(' Changer de photo') : tr(' Ajouter une photo')}
+              {profile?.avatar ? tr(' Changer de photo') : tr(' Ajouter une photo')}
             </label>
             {profile?.avatar && (
               <button type="button" className="button button-small" onClick={removePhoto} disabled={photoBusy}>
-                <PsSymbol shape="circle" />{tr(' Retirer')}
+                {tr('Retirer')}
               </button>
             )}
           </div>
@@ -124,7 +123,7 @@ function ProfileSection() {
           <span className="field-label">{tr('Pseudo')}</span>
           <input value={username} onChange={(e) => setUsername(e.target.value)} maxLength={30} />
         </label>
-        <button type="submit" className="button"><PsSymbol shape="cross" />{tr(' Enregistrer')}</button>
+        <button type="submit" className="button">{tr('Enregistrer')}</button>
       </form>
       <label className="switch">
         <input type="checkbox" checked={profile?.public_collection ?? false} onChange={(e) => togglePublic(e.target.checked)} />
@@ -192,7 +191,7 @@ function PasskeySection() {
           ))}
         </ul>
       )}
-      {supported && <button type="button" className="button button-primary" onClick={add} disabled={busy}><PsSymbol shape="triangle" />{tr(' Ajouter une passkey')}</button>}
+      {supported && <button type="button" className="button button-primary" onClick={add} disabled={busy}>{tr('Ajouter une passkey')}</button>}
       {error && <p className="error" role="alert">{error}</p>}
       {codeDialog}
     </div>
@@ -289,12 +288,12 @@ function TotpSection() {
             <CodeInput label={tr("Code affiché par l'application")} value={code} onChange={setCode} onComplete={verifyEnrollment} />
           </div>
           <div className="actions">
-            <button type="button" className="button" onClick={() => setEnrolling(null)}><PsSymbol shape="circle" />{tr(' Annuler')}</button>
-            <button type="submit" className="button button-primary" disabled={code.length !== 6}><PsSymbol shape="cross" />{tr(' Activer')}</button>
+            <button type="button" className="button" onClick={() => setEnrolling(null)}>{tr('Annuler')}</button>
+            <button type="submit" className="button button-primary" disabled={code.length !== 6}>{tr('Activer')}</button>
           </div>
         </form>
       ) : (
-        <button type="button" className="button button-primary" onClick={start}><PsSymbol shape="triangle" />{tr(' Activer la double authentification')}</button>
+        <button type="button" className="button button-primary" onClick={start}>{tr('Activer la double authentification')}</button>
       )}
       {error && <p className="error" role="alert">{error}</p>}
       {codeDialog}
@@ -344,8 +343,8 @@ function PasswordSection() {
           </div>
           <PasswordField label={tr('Nouveau mot de passe')} value={password} onChange={setPassword} />
           <div className="actions">
-            <button type="button" className="button" onClick={() => setStep('idle')}><PsSymbol shape="circle" />{tr(' Annuler')}</button>
-            <button type="submit" className="button button-primary"><PsSymbol shape="cross" />{tr(' Changer')}</button>
+            <button type="button" className="button" onClick={() => setStep('idle')}>{tr('Annuler')}</button>
+            <button type="submit" className="button button-primary">{tr('Changer')}</button>
           </div>
         </form>
       )}
@@ -533,7 +532,7 @@ function DeleteAccountSection() {
           </label>
           {error && <p className="error" role="alert">{error}</p>}
           <div className="actions">
-            <button type="button" className="button" onClick={() => setOpen(false)}><PsSymbol shape="circle" />{tr(' Annuler')}</button>
+            <button type="button" className="button" onClick={() => setOpen(false)}>{tr('Annuler')}</button>
             <button type="submit" className="button button-danger" disabled={busy || typed.trim() !== 'SUPPRIMER'}>
               {busy ? tr('Suppression…') : tr('Supprimer définitivement')}
             </button>

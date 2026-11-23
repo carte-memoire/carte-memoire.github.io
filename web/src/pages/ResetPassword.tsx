@@ -4,7 +4,6 @@ import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { useAuth } from '../auth/AuthContext';
 import { PasswordField, passwordIsValid } from '../components/PasswordRules';
-import { PsSymbol } from '../components/PsSymbol';
 import { inRecovery, markRecovery } from '../lib/preferences';
 import { tr } from '../lib/i18n';
 import { usePageTitle } from '../lib/title';
@@ -29,7 +28,7 @@ export function ResetPassword() {
           {tr('Le lien a peut-être déjà servi, ou expiré (il est valable 30 minutes). Par sécurité, il doit aussi être ouvert dans le navigateur où tu as fait la demande : sur un autre appareil ou dans un autre navigateur, il ne marche pas.')}
         </p>
         <p>{tr('Demande un nouvel e-mail, et ouvre son lien dans le navigateur de la demande.')}</p>
-        <Link to="/mot-de-passe-oublie" className="button"><PsSymbol shape="cross" />{tr(' Nouvel e-mail')}</Link>
+        <Link to="/mot-de-passe-oublie" className="button">{tr('Nouvel e-mail')}</Link>
       </section>
     );
   }
@@ -42,7 +41,7 @@ export function ResetPassword() {
       <section className="panel narrow">
         <h1>{tr('Changer de mot de passe')}</h1>
         <p>{tr('Tu es déjà connecté : change ton mot de passe dans « Mon compte », avec un code envoyé par e-mail.')}</p>
-        <Link to="/compte" className="button"><PsSymbol shape="cross" />{tr(' Mon compte')}</Link>
+        <Link to="/compte" className="button">{tr('Mon compte')}</Link>
       </section>
     );
   }
@@ -72,7 +71,7 @@ export function ResetPassword() {
       <form onSubmit={submit} className="form">
         <PasswordField label={tr('Nouveau mot de passe')} value={password} onChange={setPassword} />
         {error && <p className="error" role="alert">{error}</p>}
-        <button type="submit" className="button button-primary button-block" disabled={busy}><PsSymbol shape="cross" />{tr(' Enregistrer')}</button>
+        <button type="submit" className="button button-primary button-block" disabled={busy}>{tr('Enregistrer')}</button>
       </form>
     </section>
   );

@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { supabase } from '../../lib/supabase';
 import { countryName } from '../../lib/format';
 import { errorMessage } from '../../lib/errors';
-import { PsSymbol } from '../../components/PsSymbol';
 import { tr } from '../../lib/i18n';
 
 // Pays proposés pour l'origine : le Japon d'abord, puis les autres par ordre alphabétique
@@ -71,7 +70,7 @@ export function OriginEditor({ gameId, onSaved }: { gameId: number; onSaved: () 
       {error && <p className="error" role="alert">{error}</p>}
       {message && <p className="success">{message}</p>}
       <div className="actions">
-        <button type="submit" className="button button-primary" disabled={choice === (info.origin_country ?? '')}><PsSymbol shape="cross" />{tr(' Enregistrer')}</button>
+        <button type="submit" className="button button-primary" disabled={choice === (info.origin_country ?? '')}>{tr('Enregistrer')}</button>
       </div>
     </form>
   );

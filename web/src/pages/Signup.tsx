@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { EMAIL_CODES, supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { PasswordField, passwordIsValid } from '../components/PasswordRules';
-import { PsSymbol } from '../components/PsSymbol';
 import { EmailCodeForm } from '../components/EmailCodeForm';
 import { useAuth } from '../auth/AuthContext';
 import { TERMS_VERSION } from './Legal';
@@ -76,7 +75,7 @@ export function Signup() {
           onResend={async () => supabase.auth.resend({ type: 'signup', email: email.trim(), options: { emailRedirectTo, captchaToken: await turnstile.takeToken() } })}
         />
         <TurnstileBox turnstile={turnstile} />
-        <p className="small center"><Link to="/connexion"><PsSymbol shape="circle" />{tr(' Retour à la connexion')}</Link></p>
+        <p className="small center"><Link to="/connexion"><span aria-hidden="true">← </span>{tr('Retour à la connexion')}</Link></p>
       </section>
     );
   }
@@ -105,7 +104,7 @@ export function Signup() {
         <DiscChallenge onDone={() => { setInserted(true); setError(''); }} />
         <TurnstileBox turnstile={turnstile} />
         {error && <p className="error" role="alert">{error}</p>}
-        <button type="submit" className="button button-primary button-block" disabled={busy}><PsSymbol shape="cross" />{tr(' Créer mon compte')}</button>
+        <button type="submit" className="button button-primary button-block" disabled={busy}>{tr('Créer mon compte')}</button>
         <p className="muted small">{tr('Une fois connecté, tu pourras ajouter une passkey et la double authentification dans « Mon compte ».')}</p>
       </form>
     </section>

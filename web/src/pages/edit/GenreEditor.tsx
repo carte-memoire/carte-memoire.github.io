@@ -4,7 +4,6 @@ import { familyLabel, genreDetail, genreName } from '../../lib/format';
 import { errorMessage } from '../../lib/errors';
 import type { Game, GenreInfo } from '../../lib/types';
 import { Combobox } from '../../components/Combobox';
-import { PsSymbol } from '../../components/PsSymbol';
 import { tr } from '../../lib/i18n';
 
 // Genres du jeu. Enregistrer marque le jeu « revu » : les imports automatiques
@@ -83,7 +82,7 @@ export function GenreEditor({ game, onSaved }: { game: Game; onSaved: () => void
       {message && <p className="success">{message}</p>}
       {error && <p className="error" role="alert">{error}</p>}
       <button type="button" className="button button-primary" onClick={save} disabled={saving || (!changed && game.genres_reviewed)}>
-        <PsSymbol shape="cross" /> {changed ? tr('Enregistrer les genres') : tr('Confirmer : les genres sont justes')}
+        {changed ? tr('Enregistrer les genres') : tr('Confirmer : les genres sont justes')}
       </button>
     </section>
   );

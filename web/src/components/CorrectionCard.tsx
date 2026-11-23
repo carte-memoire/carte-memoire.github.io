@@ -5,7 +5,6 @@ import { errorMessage } from '../lib/errors';
 import { formatDate, gamePath, genreName, languagesLong, zoneLabel } from '../lib/format';
 import { CORRECTION_FIELDS, type CorrectionChanges } from '../lib/corrections';
 import type { DatePrecision, Submission, Zone } from '../lib/types';
-import { PsSymbol } from './PsSymbol';
 import { UserTag } from './UserTag';
 import { tr, locale } from '../lib/i18n';
 
@@ -113,10 +112,10 @@ export function CorrectionCard({ submission: s, onDone }: { submission: Submissi
       {error && <p className="error" role="alert">{error}</p>}
       <div className="actions">
         <button type="button" className="button button-primary" onClick={() => review(true)} disabled={busy || !current}>
-          <PsSymbol shape="cross" />{tr(' Appliquer la correction')}
+          {tr('Appliquer la correction')}
         </button>
         <button type="button" className="button button-danger" onClick={() => review(false)} disabled={busy}>
-          <PsSymbol shape="circle" />{tr(' Refuser')}
+          {tr('Refuser')}
         </button>
       </div>
     </article>

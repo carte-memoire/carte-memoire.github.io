@@ -11,7 +11,6 @@ import { Dialog } from './Dialog';
 import { GameSearch } from './GameSearch';
 import { Cover } from './Cover';
 import { ReleaseSummary } from './ReleaseSummary';
-import { PsSymbol } from './PsSymbol';
 import { useConfirm } from './Confirm';
 import { tr } from '../lib/i18n';
 import { priceCategory, priceCategoryLabel, priceText, useReleasePrices } from '../lib/prices';
@@ -126,7 +125,7 @@ export function AddToCollection({ open, onClose, onSaved, initialReleaseId, edit
             {tr("Ta version n'est pas dans la liste ?")}{' '}
             <Link to={`/proposer?jeu=${game.id}`} onClick={onClose}>{tr('Propose cette version')}</Link>.
           </p>
-          <button type="button" className="button" onClick={() => setStep('search')}><PsSymbol shape="circle" />{tr(' Retour')}</button>
+          <button type="button" className="button" onClick={() => setStep('search')}>{tr('Retour')}</button>
         </>
       )}
 
@@ -299,9 +298,9 @@ function ItemForm({ release, item, onBack, onSaved, onRemoved }: {
 
       {error && <p className="error">{error}</p>}
       <div className="actions">
-        {onBack && <button type="button" className="button" onClick={onBack}><PsSymbol shape="circle" />{tr(' Retour')}</button>}
+        {onBack && <button type="button" className="button" onClick={onBack}>{tr('Retour')}</button>}
         <button type="submit" className="button button-primary" disabled={saving}>
-          <PsSymbol shape="cross" /> {saving ? tr('Sauvegarde en cours… Ne retirez pas la carte mémoire') : item ? tr('Enregistrer') : tr('Ajouter à ma collection')}
+          {saving ? tr('Sauvegarde en cours… Ne retirez pas la carte mémoire') : item ? tr('Enregistrer') : tr('Ajouter à ma collection')}
         </button>
         {item && onRemoved && (
           <button type="button" className="link-button danger item-remove" onClick={() => remove(item)} disabled={saving}>

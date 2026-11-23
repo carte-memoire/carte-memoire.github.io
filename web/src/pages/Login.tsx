@@ -5,7 +5,6 @@ import { errorMessage } from '../lib/errors';
 import { safeNext } from '../auth/RequireAuth';
 import { useAuth } from '../auth/AuthContext';
 import { codeStillNeeded } from '../lib/trust';
-import { PsSymbol } from '../components/PsSymbol';
 import { tr } from '../lib/i18n';
 import { usePageTitle } from '../lib/title';
 import { useTurnstile } from '../lib/turnstile';
@@ -65,7 +64,7 @@ export function Login() {
       {passkeysSupported && (
         <>
           <button type="button" className="button button-primary button-block" onClick={signInWithPasskey} disabled={busy}>
-            <PsSymbol shape="triangle" />{tr(' Se connecter avec une passkey')}
+            {tr('Se connecter avec une passkey')}
           </button>
           <p className="muted small center">{tr('Empreinte, visage, Windows Hello ou clé de sécurité : la méthode la plus sûre.')}</p>
           <p className="separator"><span>ou</span></p>
@@ -83,7 +82,7 @@ export function Login() {
         </label>
         <TurnstileBox turnstile={turnstile} />
         {error && <p className="error" role="alert">{error}</p>}
-        <button type="submit" className="button button-block" disabled={busy}><PsSymbol shape="cross" />{tr(' Se connecter')}</button>
+        <button type="submit" className="button button-block" disabled={busy}>{tr('Se connecter')}</button>
       </form>
 
       <p className="small center">

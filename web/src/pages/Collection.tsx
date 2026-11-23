@@ -20,7 +20,7 @@ import { CollectionProgress } from '../components/CollectionProgress';
 import { ProgressStrip } from '../components/ProgressStrip';
 import { Cover } from '../components/Cover';
 import { PageSizeSelect, Pagination } from '../components/Pagination';
-import { PsSymbol } from '../components/PsSymbol';
+import { PsSymbol, SectionMark } from '../components/PsSymbol';
 import { CollectionSkeleton } from '../components/Skeleton';
 import { TrophyIcon } from '../components/TrophyIcon';
 import { formatEuros } from '../lib/prices';
@@ -289,7 +289,7 @@ export function Collection() {
     <section className="stack page-wide">
       <div className="page-head">
         <div>
-          <h1>{tr('Ma collection')}</h1>
+          <h1><SectionMark shape="circle" />{tr('Ma collection')}</h1>
           <p className="muted">
             {profile?.public_collection ? tr('Visible par tout le monde') : tr('Privée (visible par toi seul)')} ·{' '}
             <Link to="/compte">{tr('changer')}</Link>
@@ -300,15 +300,15 @@ export function Collection() {
         <div className="actions collection-actions">
           <Link to="/trophees" className="button" title={tr('Tes trophées de collectionneur')}><TrophyIcon tier="gold" className="button-icon" />{tr(' Trophées')}</Link>
           <Link to="/catalogue" className="button" title={tr('Cocher dans le catalogue')}>
-            <PsSymbol shape="square" /><span className="label-long">{tr(' Cocher dans le catalogue')}</span><span className="label-short">{tr(' Catalogue')}</span>
+            <span className="label-long">{tr('Cocher dans le catalogue')}</span><span className="label-short">{tr('Catalogue')}</span>
           </Link>
           <button type="button" className="button" onClick={() => setImporting(true)} title={tr('Ajouter des jeux depuis un fichier CSV (Excel, LibreOffice…)')}>
-            <PsSymbol shape="triangle" />{tr(' Importer')}
+            {tr('Importer')}
           </button>
           <button type="button" className="button" onClick={exportCsv} disabled={items.length === 0} title={tr('Télécharger toute ta collection en CSV (sauvegarde, tableur)')}>
-            <PsSymbol shape="circle" />{tr(' Exporter')}
+            {tr('Exporter')}
           </button>
-          <button type="button" className="button button-primary" onClick={() => setDialog({ open: true })}><PsSymbol shape="cross" />{tr(' Ajouter un jeu')}</button>
+          <button type="button" className="button button-primary" onClick={() => setDialog({ open: true })}>{tr('Ajouter un jeu')}</button>
         </div>
       </div>
 
@@ -435,7 +435,7 @@ export function Collection() {
           {loaded && total === 0 && (
             <div className="panel empty">
               <p>{tab === 'owned' ? tr('Aucun jeu pour le moment : ta carte mémoire est vide !') : tr('Aucun jeu dans ta liste de recherche.')}</p>
-              <button type="button" className="button button-primary" onClick={() => setDialog({ open: true })}><PsSymbol shape="cross" />{tr(' Ajouter un jeu')}</button>
+              <button type="button" className="button button-primary" onClick={() => setDialog({ open: true })}>{tr('Ajouter un jeu')}</button>
             </div>
           )}
           {loaded && total > 0 && shown.length === 0 && (
@@ -540,7 +540,7 @@ function ItemBlock({ item, value, fresh, showPlatform, standIn, onEdit, onPhoto 
         {item.notes && <p className="block-notes">{item.notes}</p>}
         <div className="block-actions">
           <button type="button" className="button button-small" onClick={onEdit} aria-label={tr('Modifier « {0} »', r.local_title)}>
-            <PsSymbol shape="triangle" />{tr(' Modifier')}
+            {tr('Modifier')}
           </button>
         </div>
       </div>

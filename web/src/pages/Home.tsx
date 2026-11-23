@@ -46,7 +46,7 @@ function Welcome() {
         ))}
       </ul>
       <p className="welcome-actions">
-        <Link to="/inscription" className="button button-primary"><PsSymbol shape="cross" />{tr(' Créer mon compte gratuit')}</Link>
+        <Link to="/inscription" className="button button-primary">{tr('Créer mon compte gratuit')}</Link>
         <span className="muted">{tr('Déjà inscrit ?')} <Link to="/connexion">{tr('Se connecter')}</Link></span>
       </p>
     </section>

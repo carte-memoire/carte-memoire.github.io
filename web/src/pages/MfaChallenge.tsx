@@ -4,7 +4,6 @@ import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { useAuth } from '../auth/AuthContext';
 import { safeNext } from '../auth/RequireAuth';
-import { PsSymbol } from '../components/PsSymbol';
 import { CodeInput } from '../components/CodeInput';
 import { browserLabel, rememberTrust } from '../lib/trust';
 import { tr } from '../lib/i18n';
@@ -75,7 +74,7 @@ export function MfaChallenge() {
         </label>
         <CodeInput label={tr("Code de l'application d'authentification")} value={code} onChange={setCode} onComplete={verify} disabled={busy} autoFocus />
         {error && <p className="error" role="alert">{error}</p>}
-        <button type="submit" className="button button-primary button-block" disabled={busy || code.length !== 6}><PsSymbol shape="cross" />{tr(' Valider')}</button>
+        <button type="submit" className="button button-primary button-block" disabled={busy || code.length !== 6}>{tr('Valider')}</button>
       </form>
       <p className="small center">
         <button type="button" className="link-button" onClick={() => signOut()}>{tr('Annuler et se déconnecter')}</button>

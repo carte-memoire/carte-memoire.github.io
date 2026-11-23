@@ -8,7 +8,6 @@ import { useAuth } from '../auth/AuthContext';
 import { useConfirm } from './Confirm';
 import { Dialog } from './Dialog';
 import { Pagination } from './Pagination';
-import { PsSymbol } from './PsSymbol';
 import { tr } from '../lib/i18n';
 import { Avatar } from './Avatar';
 import { removeAvatarFolder } from '../lib/avatar';
@@ -241,25 +240,25 @@ function MemberCard({ member: m, onChanged }: { member: AdminMember; onChanged: 
             <span>{tr('Membre de confiance')}</span>
           </label>
           <button type="button" className="button button-small" onClick={() => setDialog('rename')} disabled={busy}>
-            <PsSymbol shape="triangle" />{tr(' Renommer')}
+            {tr('Renommer')}
           </button>
           {m.banned_until ? (
             <button type="button" className="button button-small" onClick={unban} disabled={busy}>
-              <PsSymbol shape="circle" />{tr(' Lever la suspension')}
+              {tr('Lever la suspension')}
             </button>
           ) : m.role !== 'admin' && (
             <button type="button" className="button button-small" onClick={() => setDialog('ban')} disabled={busy}>
-              <PsSymbol shape="square" />{tr(' Suspendre')}
+              {tr('Suspendre')}
             </button>
           )}
           {m.avatar && (
             <button type="button" className="button button-small" onClick={removePhoto} disabled={busy}>
-              <PsSymbol shape="circle" />{tr(' Retirer la photo')}
+              {tr('Retirer la photo')}
             </button>
           )}
           {m.role !== 'admin' && (
             <button type="button" className="button button-small button-danger" onClick={() => setDialog('delete')} disabled={busy}>
-              <PsSymbol shape="cross" />{tr(' Supprimer')}
+              {tr('Supprimer')}
             </button>
           )}
         </div>
@@ -306,8 +305,8 @@ function RenameDialog({ member: m, onClose, onDone }: ActionProps) {
         </label>
         {error && <p className="error" role="alert">{error}</p>}
         <div className="actions">
-          <button type="button" className="button" onClick={onClose}><PsSymbol shape="circle" />{tr(' Annuler')}</button>
-          <button type="submit" className="button button-primary" disabled={busy || name.trim() === m.username}><PsSymbol shape="cross" />{tr(' Renommer')}</button>
+          <button type="button" className="button" onClick={onClose}>{tr('Annuler')}</button>
+          <button type="submit" className="button button-primary" disabled={busy || name.trim() === m.username}>{tr('Renommer')}</button>
         </div>
       </form>
     </Dialog>
@@ -339,8 +338,8 @@ function BanDialog({ member: m, onClose, onDone }: ActionProps) {
         </label>
         {error && <p className="error" role="alert">{error}</p>}
         <div className="actions">
-          <button type="button" className="button" onClick={onClose}><PsSymbol shape="circle" />{tr(' Annuler')}</button>
-          <button type="submit" className="button button-danger" disabled={busy}><PsSymbol shape="square" />{tr(' Suspendre')}</button>
+          <button type="button" className="button" onClick={onClose}>{tr('Annuler')}</button>
+          <button type="submit" className="button button-danger" disabled={busy}>{tr('Suspendre')}</button>
         </div>
       </form>
     </Dialog>
@@ -370,8 +369,8 @@ function DeleteDialog({ member: m, onClose, onDone }: ActionProps) {
         </label>
         {error && <p className="error" role="alert">{error}</p>}
         <div className="actions">
-          <button type="button" className="button" onClick={onClose}><PsSymbol shape="circle" />{tr(' Annuler')}</button>
-          <button type="submit" className="button button-danger" disabled={busy || typed.trim() !== m.username}><PsSymbol shape="cross" />{tr(' Supprimer définitivement')}</button>
+          <button type="button" className="button" onClick={onClose}>{tr('Annuler')}</button>
+          <button type="submit" className="button button-danger" disabled={busy || typed.trim() !== m.username}>{tr('Supprimer définitivement')}</button>
         </div>
       </form>
     </Dialog>

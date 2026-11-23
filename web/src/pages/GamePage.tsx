@@ -13,7 +13,6 @@ import type { Game, ItemStatus, Release } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
 import { AddToCollection, savedText } from '../components/AddToCollection';
 import { Cover } from '../components/Cover';
-import { PsSymbol } from '../components/PsSymbol';
 import { ReportDialog } from '../components/ReportDialog';
 import { GameSkeleton } from '../components/Skeleton';
 import { PriceSummary } from '../components/PriceSummary';
@@ -182,12 +181,12 @@ export function GamePage() {
         <h1>{tr('Fiche indisponible pour le moment')}</h1>
         <p>{tr('La base de données ne répond pas : vérifie ta connexion internet, puis réessaie.')}</p>
         <button type="button" className="button" onClick={() => { setState('loading'); setRetry((n) => n + 1); }}>
-          <PsSymbol shape="triangle" />{tr(' Réessayer')}
+          {tr('Réessayer')}
         </button>
       </section>
     );
   }
-  if (state === 'missing' || !game) return <section className="panel"><h1>{tr('Jeu introuvable')}</h1><Link to="/"><PsSymbol shape="circle" />{tr(' Retour à la recherche')}</Link></section>;
+  if (state === 'missing' || !game) return <section className="panel"><h1>{tr('Jeu introuvable')}</h1><Link to="/"><span aria-hidden="true">← </span>{tr('Retour à la recherche')}</Link></section>;
 
   // La zone du visiteur d'abord, puis Japon, Amérique, Europe ; dans chaque zone, la standard
   // d'abord, puis la langue choisie dans le catalogue
@@ -370,7 +369,7 @@ export function GamePage() {
           )}
           {isModerator && (
             <div className="actions">
-              <Link to={`/jeu/${game.id}/modifier`} className="button button-primary"><PsSymbol shape="triangle" />{tr(' Modifier ce jeu')}</Link>
+              <Link to={`/jeu/${game.id}/modifier`} className="button button-primary">{tr('Modifier ce jeu')}</Link>
             </div>
           )}
           <SummaryProposal open={proposeSummary} onClose={() => setProposeSummary(false)} game={game} />
@@ -399,7 +398,7 @@ export function GamePage() {
           <div className="actions">
             {copies(focused) > 0
               ? <span className={focused.id === justAdded ? 'badge badge-owned just-added' : 'badge badge-owned'}>{tr('✓ Déjà dans ta collection')}{copies(focused) > 1 ? tr(' (×{0})', copies(focused)) : ''}</span>
-              : <button type="button" className="button button-primary" onClick={() => addToCollection(focused)}><PsSymbol shape="cross" />{tr(' Ajouter à ma collection')}</button>}
+              : <button type="button" className="button button-primary" onClick={() => addToCollection(focused)}>{tr('Ajouter à ma collection')}</button>}
             <button type="button" className="link-button small" onClick={() => { setThanks(''); setParams({}, { replace: true }); }}>{tr('Voir toutes les versions')}</button>
           </div>
         </div>
@@ -476,11 +475,11 @@ export function GamePage() {
                   <div className="actions">
                     {scanned && !codesOf(r).includes(scanned) && (
                       <button type="button" className="button button-small button-primary" disabled={busy === r.id} onClick={() => associate(r)}>
-                        <PsSymbol shape="triangle" />{tr(" C'est ma version")}
+                        {tr("C'est ma version")}
                       </button>
                     )}
                     <button type="button" className={copies(r) > 0 || scanned ? 'button button-small' : 'button button-small button-primary'} onClick={() => addToCollection(r)}>
-                      <PsSymbol shape="cross" /> {copies(r) > 0 ? tr('Ajouter un autre exemplaire') : tr('Ajouter à ma collection')}
+                      {copies(r) > 0 ? tr('Ajouter un autre exemplaire') : tr('Ajouter à ma collection')}
                     </button>
                     {canTick && copies(r) === 0 && (
                       <button type="button" className={wantedItem(r) ? `wish-button active${r.id === justWanted ? ' just-wanted' : ''}` : 'wish-button'} aria-pressed={Boolean(wantedItem(r))}
@@ -491,7 +490,7 @@ export function GamePage() {
                     {copies(r) > 0 && <Link to="/collection" className="small">{tr('Voir ma collection')}</Link>}
                     {r.image.some((i) => i.type === 'front')
                       ? <button type="button" className="link-button small" onClick={() => proposeCover(r)}>{tr('Proposer une meilleure jaquette')}</button>
-                      : <button type="button" className="button button-small" onClick={() => proposeCover(r)}><PsSymbol shape="square" />{tr(' Proposer une jaquette')}</button>}
+                      : <button type="button" className="button button-small" onClick={() => proposeCover(r)}>{tr('Proposer une jaquette')}</button>}
                     <button type="button" className="link-button small" onClick={() => suggestCorrection(r.id)}>{tr('Corriger cette version')}</button>
                   </div>
                 </div>
@@ -507,14 +506,14 @@ export function GamePage() {
         <p className="muted small">{tr("La base est collaborative : chaque proposition est relue par un modérateur avant d'apparaître.")}</p>
         <div className="actions">
           <button type="button" className="button button-primary" onClick={() => suggestCorrection(null)}>
-            <PsSymbol shape="triangle" />{tr(' Suggérer une correction')}
+            {tr('Suggérer une correction')}
           </button>
-          <Link to={`/proposer?jeu=${game.id}`} className="button"><PsSymbol shape="square" />{tr(' Proposer une version manquante')}</Link>
+          <Link to={`/proposer?jeu=${game.id}`} className="button">{tr('Proposer une version manquante')}</Link>
           <button type="button" className="button" onClick={() => (session ? setProposeSummary(true) : navigate(`/connexion?next=${encodeURIComponent(location.pathname)}`))}>
-            <PsSymbol shape="circle" /> {game.summary ? tr('Proposer un meilleur résumé') : tr('Proposer un résumé')}
+            {game.summary ? tr('Proposer un meilleur résumé') : tr('Proposer un résumé')}
           </button>
           <button type="button" className="button" onClick={() => (session ? setReporting(true) : navigate(`/connexion?next=${encodeURIComponent(location.pathname)}`))}>
-            <PsSymbol shape="triangle" />{tr(' Signaler une erreur')}
+            {tr('Signaler une erreur')}
           </button>
         </div>
       </section>
@@ -591,7 +590,7 @@ function SummaryProposal({ open, onClose, game }: { open: boolean; onClose: () =
       {sent ? (
         <>
           <p className="success">{tr('Merci ! Ton résumé sera publié après validation par un modérateur.')}</p>
-          <div className="actions"><button type="button" className="button" onClick={close}><PsSymbol shape="circle" />{tr(' Fermer')}</button></div>
+          <div className="actions"><button type="button" className="button" onClick={close}>{tr('Fermer')}</button></div>
         </>
       ) : (
         <form onSubmit={submit} className="form">
@@ -609,8 +608,8 @@ function SummaryProposal({ open, onClose, game }: { open: boolean; onClose: () =
           </label>
           {error && <p className="error" role="alert">{error}</p>}
           <div className="actions">
-            <button type="button" className="button" onClick={close}><PsSymbol shape="circle" />{tr(' Annuler')}</button>
-            <button type="submit" className="button button-primary" disabled={busy || length < 20}><PsSymbol shape="cross" />{tr(' Envoyer')}</button>
+            <button type="button" className="button" onClick={close}>{tr('Annuler')}</button>
+            <button type="submit" className="button button-primary" disabled={busy || length < 20}>{tr('Envoyer')}</button>
           </div>
         </form>
       )}
