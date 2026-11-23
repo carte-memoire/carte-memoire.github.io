@@ -1,15 +1,30 @@
 import { prefersReducedMotion } from './motion';
 
-// Une version vient d'être ajoutée : sa jaquette s'envole en arc jusqu'à l'onglet « Ma
-// collection », qui la reçoit (il se soulève et s'éclaire, styles.css « is-receiving »).
-// Comme un jeu qu'on range sur son étagère : on voit où il est allé.
+// L'onglet « Ma collection » (barre du haut sur ordinateur, onglets du bas sur téléphone)
+// et son icône : là où arrivent les jeux ajoutés
+export function collectionTarget(): { link: HTMLElement; icon: Element } | null {
+  const link = document.querySelector<HTMLElement>('.nav-link[href="/collection"]');
+  const icon = link?.querySelector('.nav-icon') ?? link;
+  return link && icon ? { link, icon } : null;
+}
+
+// L'onglet reçoit un jeu : il se soulève et s'éclaire (styles.css « is-receiving »)
+export function receiveInCollection(link: HTMLElement) {
+  link.classList.remove('is-receiving');
+  void link.offsetWidth; // relance l'animation si deux ajouts se suivent
+  link.classList.add('is-receiving');
+  window.setTimeout(() => link.classList.remove('is-receiving'), 700);
+}
+
+// Une version vient d'être ajoutée (ou mise dans la liste de recherche) : sa jaquette
+// s'envole en arc jusqu'à l'onglet « Ma collection ». Quand la version a un disque, c'est
+// plutôt son boîtier qui s'ouvre (CaseOpening.tsx).
 export function flyToCollection(source: Element | null) {
   if (!source || prefersReducedMotion()) return;
-  const link = document.querySelector<HTMLElement>('.nav-link[href="/collection"]');
-  const target = link?.querySelector('.nav-icon') ?? link;
-  if (!link || !target) return;
+  const target = collectionTarget();
+  if (!target) return;
   const from = source.getBoundingClientRect();
-  const to = target.getBoundingClientRect();
+  const to = target.icon.getBoundingClientRect();
   if (!from.width || !to.width) return;
 
   const ghost = source.cloneNode(true) as HTMLElement;
@@ -35,9 +50,6 @@ export function flyToCollection(source: Element | null) {
 
   flight.finished.catch(() => undefined).finally(() => {
     ghost.remove();
-    link.classList.remove('is-receiving');
-    void link.offsetWidth; // relance l'animation si deux ajouts se suivent
-    link.classList.add('is-receiving');
-    window.setTimeout(() => link.classList.remove('is-receiving'), 700);
+    receiveInCollection(target.link);
   });
 }

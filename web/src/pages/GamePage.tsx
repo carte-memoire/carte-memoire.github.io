@@ -1,6 +1,6 @@
 import { Fragment, lazy, Suspense, useEffect, useEffectEvent, useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { coverUrl, supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { Dialog } from '../components/Dialog';
 import { GAME_FIELDS } from '../lib/queries';
@@ -13,7 +13,8 @@ import type { Game, ItemStatus, Release } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
 import { AddToCollection, savedText } from '../components/AddToCollection';
 import { Cover } from '../components/Cover';
-import { Disc, hasDisc } from '../components/Disc';
+import { Disc, hasDisc, type DiscLabel } from '../components/Disc';
+import { CaseOpening, hasCase, type Opening } from '../components/CaseOpening';
 import { ReportDialog } from '../components/ReportDialog';
 import { GameSkeleton } from '../components/Skeleton';
 import { PriceSummary } from '../components/PriceSummary';
@@ -29,7 +30,8 @@ import { lang, tr } from '../lib/i18n';
 import { loadOrReload } from '../lib/reload';
 import { usePageTitle } from '../lib/title';
 import { VOYAGE, type Voyage } from '../lib/voyage';
-import { flyToCollection } from '../lib/fly';
+import { collectionTarget, flyToCollection } from '../lib/fly';
+import { prefersReducedMotion } from '../lib/motion';
 
 // Page publiée de la fiche (scripts/prerender.mjs) : elle contient les données du jeu. La
 // fiche s'affiche aussitôt, sans attendre la base, et même si la base ne répond pas : c'est
@@ -75,6 +77,7 @@ export function GamePage() {
   const [adding, setAdding] = useState<number | null>(null);
   // Version dont on propose la jaquette (fenêtre ouverte)
   const [coverFor, setCoverFor] = useState<Release | null>(null);
+  const [opening, setOpening] = useState<Opening | null>(null);
   // « Suggérer une correction » : ouverte sur le jeu (null) ou sur une version
   const [correcting, setCorrecting] = useState<{ releaseId: number | null } | null>(null);
   const [busy, setBusy] = useState<number | null>(null);
@@ -220,12 +223,36 @@ export function GamePage() {
   const samePlatform = (r: Release) => releases.filter((x) => x.platform.id === r.platform.id);
   const heroPool = byPlatform[0]?.releases ?? releases;
   // Arrivée depuis le mur de l'accueil : la jaquette cliquée reste celle de la fiche
-  const heroImages = (voyage ? releases.find((r) => r.id === voyage.releaseId && r.image.length)?.image : undefined)
-    ?? heroPool.find((r) => r.zone === myZone && r.image.length)?.image ?? heroPool.find((r) => r.image.length)?.image
-    ?? releases.find((r) => r.image.length)?.image ?? [];
-  // Le disque sort de derrière la jaquette (seulement si le boîtier a sa jaquette)
-  const heroPlatform = byPlatform[0]?.platform.short_name;
+  const heroRelease = (voyage ? releases.find((r) => r.id === voyage.releaseId && r.image.length) : undefined)
+    ?? heroPool.find((r) => r.zone === myZone && r.image.length) ?? heroPool.find((r) => r.image.length)
+    ?? releases.find((r) => r.image.length);
+  const heroImages = heroRelease?.image ?? [];
+  // Le disque sort de derrière la jaquette (seulement si le boîtier a sa jaquette) ; son
+  // étiquette reprend la version affichée : titre, code produit, région, éditeur, année
+  const heroPlatform = heroRelease?.platform.short_name ?? byPlatform[0]?.platform.short_name;
   const heroHasDisc = hasDisc(heroPlatform) && heroImages.some((i) => i.type === 'front');
+  const discLabelOf = (r: Release): DiscLabel => ({
+    title: r.local_title,
+    code: r.product_code,
+    zone: r.zone,
+    publisher: r.release_company.find((c) => c.role === 'publisher')?.company.name ?? r.release_company[0]?.company.name ?? null,
+    year: (r.release_region.map((x) => x.release_date).filter(Boolean).sort()[0] ?? game.first_release_date ?? '').slice(0, 4) || null,
+    art: ((front) => (front ? coverUrl(front.path) : null))(r.image.find((i) => i.type === 'front')),
+  });
+  const discLabel = heroRelease ? discLabelOf(heroRelease) : null;
+
+  // Version ajoutée à la collection : son boîtier s'ouvre et le disque part vers « Ma
+  // collection » (CaseOpening) ; sans disque dessiné, ou mise en recherche, c'est la
+  // jaquette qui s'envole
+  function celebrate(releaseId: number, owned: boolean) {
+    const image = document.querySelector<HTMLImageElement>(`#version-${releaseId} .cover img`);
+    const release = releases.find((r) => r.id === releaseId);
+    if (owned && image && release && hasCase(release.platform.short_name) && !prefersReducedMotion() && collectionTarget()) {
+      setOpening({ from: image.getBoundingClientRect(), src: image.currentSrc || image.src, platform: release.platform.short_name, label: discLabelOf(release) });
+    } else {
+      flyToCollection(image);
+    }
+  }
   // Genres (avec leurs familles, cliquables vers le catalogue) et thèmes (sans famille)
   const genres = game.game_genre.map((g) => g.genre).filter((g) => g.families.length > 0);
   const themes = game.game_genre.map((g) => g.genre).filter((g) => g.families.length === 0);
@@ -294,7 +321,7 @@ export function GamePage() {
     <article className="game">
       <header className="game-head panel">
         <div className={`game-cover${voyage ? ' voyage-target' : ''}${heroHasDisc ? ' has-disc' : ''}`} style={voyage ? { viewTransitionName: VOYAGE } : undefined}>
-          {heroHasDisc && <Disc platform={heroPlatform} />}
+          {heroHasDisc && <Disc platform={heroPlatform} label={discLabel} />}
           <Cover images={heroImages} title={game.title} size="large" platform={heroPlatform} zoomable />
         </div>
         <div className="game-info">
@@ -391,7 +418,7 @@ export function GamePage() {
           <AddToCollection open={adding !== null} initialReleaseId={adding} onClose={() => setAdding(null)} onSaved={(saved) => {
             showToast({ text: savedText(saved), saved: true });
             // La fenêtre se ferme, puis la jaquette de la version part vers « Ma collection »
-            window.setTimeout(() => flyToCollection(document.querySelector(`#version-${saved.releaseId} .cover img`)), 120);
+            window.setTimeout(() => celebrate(saved.releaseId, saved.status === 'owned'), 120);
             if (saved.status === 'owned') setJustAdded(saved.releaseId);
             else setJustWanted(saved.releaseId);
             setMineVersion((v) => v + 1);
@@ -538,6 +565,7 @@ export function GamePage() {
           <SuggestCorrection game={game} initialReleaseId={correcting.releaseId} onClose={() => setCorrecting(null)} onApplied={() => setRetry((n) => n + 1)} />
         </Suspense>
       )}
+      {opening && <CaseOpening opening={opening} onDone={() => setOpening(null)} />}
       {coverFor && (
         <Suspense fallback={null}>
           <CoverProposal open release={coverFor} gameTitle={game.title} onClose={() => setCoverFor(null)} />
