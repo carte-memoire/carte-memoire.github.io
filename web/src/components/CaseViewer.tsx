@@ -97,6 +97,8 @@ export function CaseViewer({ pulled, onClose, onEdit }: { pulled: Pulled; onClos
     const y = event.clientY / window.innerHeight - 0.5;
     turn.current.style.setProperty('--turn-y', `${(x * 36).toFixed(1)}deg`);
     turn.current.style.setProperty('--turn-x', `${(-y * 16).toFixed(1)}deg`);
+    // Le reflet du film plastique glisse avec le boîtier
+    turn.current.style.setProperty('--film', `${Math.round((x + 0.5) * 100)}%`);
   }
 
   const face = (style: CSSProperties) => ({ ...style, position: 'absolute' } as CSSProperties);

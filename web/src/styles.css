@@ -1292,7 +1292,7 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .cv-ps1-pal .cv-spine .spine-face, .cv-ps1-pal .cv-side .spine-face { top: 1.1%; bottom: 1.1%; height: auto; }
 /* L'arête noire (la tranche qui rejoint la charnière de la face) légèrement arrondie : un
    reflet qui passe d'une face à l'autre, comme la lumière sur un angle arrondi */
-.cv-ps1-pal .cv-spine .spine-face::after {
+.cv-ps1-pal .cv-spine .spine-face::after, .cv-ps2 .cv-spine .spine-face::after {
   content: ''; position: absolute; top: 0; bottom: 0; right: 0; width: 16%; pointer-events: none;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1) 60%, rgba(255, 255, 255, 0.2));
 }
@@ -1319,11 +1319,41 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
    côté ouverture, le plastique bleu nervuré. */
 .cv-ps2 .cv-front, .cv-ps2 .cv-back { background: linear-gradient(160deg, #4b50d2, #2c2f9a); border-radius: 5px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35); }
 .cv-ps2 .cv-hinge { display: none; }
-.cv-ps2 .cv-front .cv-inlay, .cv-ps2 .cv-back-inlay { left: 2.5%; right: 2%; top: 1.6%; bottom: 1.6%; border-radius: 2px; }
+.cv-ps2 .cv-front .cv-inlay, .cv-ps2 .cv-back-inlay { left: 1.2%; right: 1%; top: 0.8%; bottom: 0.8%; border-radius: 2px; }
+/* Côté tranche, la pochette passe directement de la tranche à la jaquette : pas de rebord bleu */
+.cv-ps2 .cv-front .cv-inlay { left: 0; border-radius: 0 2px 2px 0; }
 .cv-ps2 .cv-back-inlay { background: linear-gradient(160deg, #1d1d23, #0e0e11); }
 .cv-ps2 .cv-edge { background: linear-gradient(180deg, #5358dc, #3337a8 50%, #262a86); }
 .cv-ps2 .cv-side { background: repeating-linear-gradient(180deg, #4348c6 0 3px, #33379f 3px 5px); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25); }
-.cv-ps2 .cv-spine { box-shadow: inset 0 0 0 1px #3a3fb6; }
+.cv-ps2 .cv-spine { box-shadow: none; }
+/* Comme sur le vrai boîtier : le plastique bleu fait tout le tour, en haut et en bas de la
+   tranche (de la même épaisseur que le cadre autour de la jaquette) ; le papier s'arrête avant. Le rebord bleu est arrondi : plus clair
+   sur l'arête, il fonce en allant vers la tranche */
+.cv-ps2 .cv-spine {
+  background:
+    linear-gradient(180deg, #7d82ee 0, #4a4fcc 0.4%, #3337a8 0.8%, transparent 0.8%, transparent 99.2%, #3337a8 99.2%, #4a4fcc 99.6%, #7d82ee 100%),
+    #3337a8;
+}
+.cv-ps2 .cv-spine .spine-face { top: 0.8%; bottom: 0.8%; height: auto; border-radius: 1px; }
+/* Le coin arrondi du boîtier (5 px, comme la face) se poursuit vers l'intérieur : sur la
+   tranche, ses coins côté face ; sur les bords du dessus et du dessous, leur coin côté face
+   et tranche. Les trois arrondis se rejoignent en un seul coin arrondi */
+.cv-ps2 .cv-spine { border-radius: 0 5px 5px 0; }
+.cv-ps2 .cv-top { border-radius: 0 0 0 5px; }
+.cv-ps2 .cv-bottom { border-radius: 5px 0 0 0; }
+/* L'arête verticale (tranche ↔ face) arrondie : le reflet continue sur le bord de la face */
+/* Le film plastique de la pochette : un voile brillant, un liseré clair sur ses bords, et un
+   reflet qui glisse quand on tourne le boîtier (--film, réglé par CaseViewer) */
+@property --film { syntax: '<percentage>'; inherits: true; initial-value: 50%; }
+.cv-turn { transition: transform 0.5s var(--ease), --film 0.5s var(--ease); }
+.cv-ps2 .cv-front .cv-gloss {
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.07) 3%, transparent 7%),
+    linear-gradient(112deg, transparent calc(var(--film) - 28%), rgba(255, 255, 255, 0.06) calc(var(--film) - 12%), rgba(255, 255, 255, 0.24) var(--film), rgba(255, 255, 255, 0.06) calc(var(--film) + 9%), transparent calc(var(--film) + 24%)),
+    radial-gradient(130% 55% at 15% 0%, rgba(255, 255, 255, 0.12), transparent 60%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.32);
+}
 .cv-info { position: absolute; left: 16px; right: 16px; bottom: max(24px, 5vh); display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
 .cv-info h2 { margin: 0; font-size: var(--fs-5); }
 .cv-info p { margin: 0 0 8px; }
