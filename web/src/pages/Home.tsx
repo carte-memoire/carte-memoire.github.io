@@ -1,14 +1,15 @@
-import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ConsoleShowcase } from '../components/ConsoleArt';
+import { ConsoleArt, hasConsoleArt } from '../components/ConsoleArt';
+import { ControllerButtons } from '../components/ControllerButtons';
 import { CountUp } from '../components/CountUp';
+import { CoverWall } from '../components/CoverWall';
 import { GameSearch } from '../components/GameSearch';
 import { HelpWanted } from '../components/HelpWanted';
+import { ProgressStrip } from '../components/ProgressStrip';
 import { useScanner } from '../components/Scanner';
 import { PsSymbol, type PsShape } from '../components/PsSymbol';
 import { useAuth } from '../auth/AuthContext';
-import { gamePath } from '../lib/format';
-import { DEFAULT_PLATFORM } from '../lib/preferences';
+import { formatNumber, gamePath, searchShortcut } from '../lib/format';
 import { usePlatforms } from '../lib/usePlatforms';
 import { tr } from '../lib/i18n';
 
@@ -22,9 +23,6 @@ function ScanIcon() {
 }
 
 // Ce que propose le site, pour qui arrive sans le connaître (visiteurs non connectés)
-// Durée d'affichage de chaque console au-dessus de la recherche
-const SHOWCASE_MS = 4000;
-
 const FEATURES: { shape: PsShape; title: string; text: string }[] = [
   { shape: 'triangle', title: tr('Explore'), text: tr('Chaque jeu, version par version : Black Label, Platinum, versions japonaises et américaines, codes produit, langues et jaquettes.') },
   { shape: 'circle', title: tr('Collectionne'), text: tr('Coche les versions que tu possèdes ou que tu cherches, note leur état et leur prix, suis ta progression et partage ta collection.') },
@@ -55,47 +53,39 @@ function Welcome() {
   );
 }
 
+// « PlayStation et PlayStation 2 », « A, B et C »
+function joinNames(names: string[]): string {
+  if (names.length < 2) return names[0] ?? '';
+  return `${names.slice(0, -1).join(', ')}${tr(' et ')}${names[names.length - 1]}`;
+}
+
+// L'accueil : la recherche d'abord, puis les jaquettes (ce que le site a de plus beau),
+// les consoles, et pour qui découvre le site, ce qu'on peut y faire
 export function Home() {
   const navigate = useNavigate();
   const { session, loading } = useAuth();
   const scanner = useScanner();
-  // Seulement les consoles qui ont des jeux : « Les jeux de la PlayStation 4 » s'affichait
-  // alors que la base n'en a encore aucun
+  // Seulement les consoles qui ont des jeux
   const platforms = usePlatforms().filter((p) => p.game_count > 0);
+  const total = platforms.reduce((sum, p) => sum + p.game_count, 0);
   const [params] = useSearchParams();
   // Arrivée après « Supprimer mon compte » (rechargement complet, voir Account.tsx)
   const accountDeleted = params.get('compte') === 'supprime';
-  // La recherche porte sur toutes les consoles ; au-dessus, les consoles défilent toutes
-  // seules (sans flèches, sans pause au survol), avec leur nombre de jeux
-  const [index, setIndex] = useState(0);
-  useEffect(() => {
-    if (platforms.length < 2) return;
-    const timer = setInterval(() => setIndex((i) => (i + 1) % platforms.length), SHOWCASE_MS);
-    return () => clearInterval(timer);
-  }, [platforms.length]);
-  // On commence par la PlayStation
-  const start = Math.max(0, platforms.findIndex((p) => p.short_name === DEFAULT_PLATFORM));
-  const current = platforms.length ? platforms[(start + index) % platforms.length] : undefined;
-  const selected = current?.short_name ?? DEFAULT_PLATFORM;
-  const gameCount = current?.game_count;
-  // « Les {0} jeux » : le nombre défile jusqu'à sa valeur, au milieu de la phrase traduite
-  const [countBefore, countAfter] = tr('Les {0} jeux', '{n}').split('{n}');
+  const jrpg = searchShortcut('jrpg');
 
   return (
     <section className="home">
       <div className="hero">
-        <h1 className="hero-title">{tr('Carte Mémoire')}</h1>
+        <h1 className="hero-title">{tr('Chaque jeu, version par version.')}</h1>
         <p className="hero-subtitle">
-          {gameCount ? <>{countBefore}<CountUp key={selected} value={gameCount} />{countAfter}</> : tr('Les jeux')}{tr(' de la')}{' '}
-          <strong>{current?.name ?? 'PlayStation'}</strong>{tr(', version par version. Et ta collection.')}
+          {total > 0 && <><strong className="hero-count"><CountUp value={total} /></strong>{tr(' jeux {0}', joinNames(platforms.map((p) => p.name)))} · </>}
+          {tr('Black Label, Platinum, versions japonaises et américaines… Et ta collection.')}
         </p>
-        {/* La console choisie, dessinée (ou les boutons de la manette), animée à chaque changement */}
-        <ConsoleShowcase platform={selected} />
       </div>
 
       {accountDeleted && <p className="success center">{tr("Ton compte a bien été supprimé. Merci d'être passé par Carte Mémoire !")}</p>}
 
-      <div className="panel">
+      <div className="panel home-search">
         <GameSearch
           onSelect={(g) => navigate(gamePath(g))}
           onSelectStudio={(s) => navigate(`/catalogue?studio=${s.id}`)}
@@ -106,14 +96,43 @@ export function Home() {
           )}
           autoFocus
           proposeMissing
+          placeholder={tr('Titre ou code produit')}
           label={tr('Rechercher un jeu{0} ou un studio (titre, titre japonais ou européen, code produit…)', '')}
         />
+        <p className="home-shortcuts small">
+          <span className="muted">{tr('Accès directs :')}</span>{' '}
+          <Link to="/catalogue">{tr('tout le catalogue')}</Link>
+          {jrpg && <> · <Link to={jrpg.to}>{tr('les JRPG')}</Link></>}
+          {session && <> · <Link to="/collection">{tr('ma collection')}</Link></>}
+        </p>
       </div>
 
+      {/* Membre : sa carte mémoire, d'un coup d'œil (seulement s'il a déjà des jeux) */}
+      {session && <ProgressStrip to="/collection" label={tr('Ta collection : ')} more={tr('Ouvrir')} hideEmpty />}
 
-      <p className="center">
-        <Link to="/catalogue" className="button"><PsSymbol shape="square" />{tr(' Parcourir le catalogue complet')}</Link>
-      </p>
+      <CoverWall />
+
+      {platforms.length > 0 && (
+        <section className="home-section" aria-labelledby="par-console">
+          <div className="section-head">
+            <h2 id="par-console">{tr('Par console')}</h2>
+            <Link to="/catalogue" className="small">{tr('Tout le catalogue')} <span aria-hidden="true">→</span></Link>
+          </div>
+          <ul className="platform-cards">
+            {platforms.map((p) => (
+              <li key={p.short_name}>
+                <Link to={`/catalogue?console=${encodeURIComponent(p.short_name)}`} className="platform-card">
+                  <span className="platform-card-art" aria-hidden="true">
+                    {hasConsoleArt(p.short_name) ? <ConsoleArt platform={p.short_name} /> : <span className="buttons-legend"><ControllerButtons platform={p.short_name} /></span>}
+                  </span>
+                  <span className="platform-card-name">{p.name}</span>
+                  <span className="platform-card-count">{tr('{0} jeux', formatNumber(p.game_count))}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* Pour qui découvre le site ; les membres connectés le connaissent déjà */}
       {!loading && !session && <Welcome />}

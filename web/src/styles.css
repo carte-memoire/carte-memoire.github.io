@@ -351,12 +351,61 @@ ul.error { padding-left: 28px; }
 
 /* ---------- Accueil ---------- */
 .home { display: flex; flex-direction: column; gap: 20px; }
-.hero { text-align: center; padding: 32px 0 8px; }
+/* Le titre dit ce qu'est le site (le nom est déjà dans le bandeau, en police pixel) ;
+   le chiffre garde la police pixel, comme les compteurs du reste du site */
+.hero { text-align: center; padding: 28px 0 0; }
 .hero-title {
-  font-family: var(--pixel); font-size: clamp(1.1rem, 4.5vw, 2rem); letter-spacing: 0.04em;
-  text-shadow: 3px 3px 0 #000, 0 0 24px rgba(123, 147, 255, 0.45);
+  margin: 0; font-size: clamp(1.7rem, 1.1rem + 2.6vw, 2.8rem); font-weight: 800; line-height: 1.15; letter-spacing: -0.01em;
+  text-shadow: 0 2px 0 #000, 0 0 28px rgba(123, 147, 255, 0.35);
 }
-.hero-subtitle { color: var(--muted); margin: 0.6em 0; }
+.hero-subtitle { color: var(--muted); margin: 0.7em auto 0; max-width: 60ch; }
+.hero-count { font-family: var(--pixel); font-size: 0.85em; color: var(--triangle); }
+.home-search { display: flex; flex-direction: column; gap: 10px; }
+.home-shortcuts { margin: 0; }
+
+/* Sections de l'accueil : un titre et, à droite, une action */
+.home-section { display: flex; flex-direction: column; gap: 12px; }
+.section-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.section-head h2 { margin: 0; font-size: 1.2rem; }
+
+/* Mur de jaquettes « À découvrir » : 3 rangées de 8 ; sur téléphone, 3 rangées de 4.
+   Comme l'étagère de Ma collection, les jaquettes d'une rangée sont posées sur la même
+   ligne (PS1 carrées, PS2 hautes) et les titres alignés dessous. */
+.cover-wall { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 14px 12px; }
+.cover-wall .cover { width: 100%; }
+.cover-wall-link { display: flex; flex-direction: column; gap: 6px; color: var(--text); text-decoration: none; }
+.cover-wall-link:hover, .cover-wall-link:focus-visible { color: var(--cross); }
+.cover-wall-link:hover .cover, .cover-wall-link:focus-visible .cover { border-color: var(--cross); }
+.cover-wall-title { font-size: 0.8rem; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.cover-wall-placeholder span { display: block; aspect-ratio: 1; border-radius: var(--radius); background: var(--bg-2); border: 1px solid var(--line); }
+@supports (grid-template-rows: subgrid) {
+  .cover-wall { row-gap: 0; }
+  .cover-wall > li { display: grid; grid-row: span 2; grid-template-rows: subgrid; row-gap: 6px; margin-bottom: 14px; }
+  .cover-wall-link { grid-row: span 2; display: grid; grid-template-rows: subgrid; row-gap: 6px; }
+  .cover-wall-link .cover { align-self: end; }
+}
+@media (max-width: 900px) {
+  .cover-wall { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .cover-wall { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 8px; }
+  .cover-wall > li:nth-child(n + 13) { display: none; }
+  .cover-wall-title { font-size: 0.72rem; }
+}
+
+/* Cartes « Par console » : le dessin de la console, son nom et son nombre de jeux */
+.platform-cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.platform-card {
+  display: grid; grid-template-columns: 96px 1fr; grid-template-rows: auto auto; column-gap: 14px; align-items: center;
+  padding: 12px 16px; color: var(--text); text-decoration: none;
+  background: linear-gradient(135deg, #20254a, #161a34);
+  border: 2px solid; border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light); border-radius: var(--radius);
+}
+.platform-card:hover, .platform-card:focus-visible { border-color: var(--cross); }
+.platform-card-art { grid-row: span 2; display: flex; align-items: center; justify-content: center; height: 64px; }
+.platform-card-art .console-art { height: 100%; }
+.platform-card-name { align-self: end; font-weight: 700; }
+.platform-card-count { align-self: start; color: var(--muted); font-size: 0.9rem; }
 
 /* ---------- Photo de profil ---------- */
 .avatar { flex: none; border-radius: 50%; object-fit: cover; display: inline-flex; align-items: center; justify-content: center; background: var(--bg-2); }
@@ -680,15 +729,7 @@ fieldset.notice { padding: 10px 12px; }
 /* ---------- Symboles de la manette (SVG, tous de la même taille) ---------- */
 .ps-symbol { width: 1em; height: 1em; flex: none; vertical-align: -0.15em; }
 .buttons-legend { font-size: 1.6rem; gap: 16px; }
-/* La console choisie, dessinée en 3D sous le titre de l'accueil. Cadre de taille fixe :
-   chaque console s'y inscrit (à plat ou debout), et la recherche en dessous ne bouge
-   pas quand on change de console */
-.console-stage { position: relative; width: clamp(170px, 34vw, 250px); aspect-ratio: 5 / 3; margin: 2px auto 0; }
-.console-slot { position: absolute; inset: 0; display: flex; justify-content: center; align-items: center; }
-/* Console qui s'en va (le temps de son animation) : superposée, puis retirée ; sans
-   animation (réglage d'accessibilité), elle disparaît aussitôt */
-.console-leave { display: none; pointer-events: none; }
-.console-stage .buttons-legend { margin: 0; }
+/* Les consoles dessinées en 3D (cartes « Par console » de l'accueil) */
 .console-art { display: block; width: 100%; height: 100%; overflow: visible; }
 .cover-empty .ps-symbol { stroke-width: 1.6; }
 
@@ -697,24 +738,6 @@ fieldset.notice { padding: 10px 12px; }
    d'animations dans leur système (réglage d'accessibilité). */
 @keyframes fade-up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-@keyframes boot-title {
-  0% { opacity: 0; letter-spacing: 0.4em; filter: blur(4px); }
-  60% { opacity: 1; filter: blur(0); }
-  100% { opacity: 1; letter-spacing: 0.04em; }
-}
-@keyframes boot-glow {
-  0%, 100% { text-shadow: 3px 3px 0 #000, 0 0 24px rgba(123, 147, 255, 0.45); }
-  50% { text-shadow: 3px 3px 0 #000, 0 0 40px rgba(123, 147, 255, 0.85); }
-}
-/* Changement de console : la précédente part vers la gauche, la nouvelle arrive de la droite */
-@keyframes console-switch-in {
-  0% { opacity: 0; transform: translateX(48px) scale(0.92); }
-  100% { opacity: 1; transform: none; }
-}
-@keyframes console-switch-out {
-  0% { opacity: 1; transform: none; }
-  100% { opacity: 0; transform: translateX(-48px) scale(0.92); }
-}
 /* La console arrive en se posant : de légèrement plus haut, en fondu */
 @keyframes console-in {
   0% { opacity: 0; transform: translateY(-14px) scale(0.94); }
@@ -733,15 +756,24 @@ fieldset.notice { padding: 10px 12px; }
 /* Changement de page */
 .motion .main > * { animation: fade-up 280ms ease-out both; }
 
-/* Démarrage façon PS1 : le titre se pose, puis les quatre symboles apparaissent */
-.motion .hero-title { animation: boot-title 900ms cubic-bezier(0.2, 0.7, 0.2, 1) both, boot-glow 1.6s ease-in-out 900ms 1; }
-.motion .hero-subtitle { animation: fade-in 500ms ease-out 500ms both; }
+/* Accueil : le titre, puis la phrase, puis les jaquettes en cascade ; les consoles se posent */
+.motion .hero-title { animation: fade-up 500ms ease-out both; }
+.motion .hero-subtitle { animation: fade-in 500ms ease-out 250ms both; }
 .motion .buttons-legend .ps-symbol { animation: pop 420ms cubic-bezier(0.3, 1.4, 0.5, 1) both; }
-.motion .console-art { animation: console-in 520ms cubic-bezier(0.2, 0.9, 0.3, 1.15) 600ms both; }
-.motion .console-leave { display: flex; }
-.motion .console-enter .console-art, .motion .console-enter .buttons-legend { animation: console-switch-in 440ms cubic-bezier(0.2, 0.9, 0.3, 1.12) both; }
-.motion .console-leave .console-art, .motion .console-leave .buttons-legend { animation: console-switch-out 320ms ease-in both; }
-.motion .console-enter .buttons-legend .ps-symbol, .motion .console-leave .buttons-legend .ps-symbol { animation: none; }
+.motion .console-art { animation: console-in 520ms cubic-bezier(0.2, 0.9, 0.3, 1.15) 300ms both; }
+.motion .cover-wall > li { animation: fade-up 320ms ease-out both; }
+.motion .cover-wall > li:nth-child(8n + 2) { animation-delay: 30ms; }
+.motion .cover-wall > li:nth-child(8n + 3) { animation-delay: 60ms; }
+.motion .cover-wall > li:nth-child(8n + 4) { animation-delay: 90ms; }
+.motion .cover-wall > li:nth-child(8n + 5) { animation-delay: 120ms; }
+.motion .cover-wall > li:nth-child(8n + 6) { animation-delay: 150ms; }
+.motion .cover-wall > li:nth-child(8n + 7) { animation-delay: 180ms; }
+.motion .cover-wall > li:nth-child(8n) { animation-delay: 210ms; }
+.motion .cover-wall-link .cover { transition: border-color 150ms ease, transform 150ms ease; }
+.motion .cover-wall-link:hover .cover, .motion .cover-wall-link:focus-visible .cover { transform: translateY(-4px) rotate(-1deg); }
+.motion .platform-card { transition: border-color 150ms ease, transform 150ms ease; }
+.motion .platform-card:hover { transform: translateY(-2px); }
+.motion .platform-card:hover .console-art { animation: hop 400ms ease-out; }
 .motion .buttons-legend .ps-symbol:nth-child(1) { animation-delay: 700ms; }
 .motion .buttons-legend .ps-symbol:nth-child(2) { animation-delay: 820ms; }
 .motion .buttons-legend .ps-symbol:nth-child(3) { animation-delay: 940ms; }
@@ -820,7 +852,7 @@ fieldset.notice { padding: 10px 12px; }
 /* Bandeau « carte mémoire » au-dessus des onglets de Ma collection */
 .progress-strip {
   display: flex; align-items: center; gap: 10px 16px; flex-wrap: wrap; width: 100%;
-  padding: 10px 14px; font: inherit; color: var(--text); text-align: left; cursor: pointer;
+  padding: 10px 14px; font: inherit; color: var(--text); text-align: left; text-decoration: none; cursor: pointer;
   background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius);
 }
 .progress-strip:hover, .progress-strip:focus-visible { border-color: var(--triangle); }

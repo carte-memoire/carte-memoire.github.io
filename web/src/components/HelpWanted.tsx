@@ -39,7 +39,7 @@ export function HelpWanted({ signedIn }: { signedIn: boolean }) {
       shape: 'square',
       title: tr('Genres'),
       count: gaps ? tr('{0} jeu{1?x} sans genre', formatNumber(gaps.games_without_genre), gaps.games_without_genre > 1) : null,
-      text: tr('Tu connais le genre ? « Signaler une erreur » sur la fiche du jeu, puis « Genre ».'),
+      text: tr('Tu connais le genre ? « Suggérer une correction » sur la fiche du jeu, puis « Genres ».'),
     },
     {
       shape: 'cross',

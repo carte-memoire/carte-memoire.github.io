@@ -4,20 +4,20 @@ import { supabase } from '../lib/supabase';
 import { COLLECTION_FIELDS } from '../lib/queries';
 import { standInFor, type CoverSource, type StandIn } from '../lib/images';
 import {
-  acquisitionLabel, CATALOG_ZONES, CONDITIONS, conditionLabel, editionClass, editionLabel, formatNumber, formatPercent, formatPrice, gamePath, languagesLong, languagesShort, searchKey, TRADE_STATUSES, tradeStatusLabel, zoneLabel, boxRegionName,
+  acquisitionLabel, CATALOG_ZONES, CONDITIONS, conditionLabel, editionClass, editionLabel, formatNumber, formatPrice, gamePath, languagesLong, languagesShort, searchKey, TRADE_STATUSES, tradeStatusLabel, zoneLabel, boxRegionName,
 } from '../lib/format';
 import { errorMessage } from '../lib/errors';
 import { downloadCsv, toCsv } from '../lib/csv';
 import { EXPORT_HEADERS, itemToRow } from '../lib/collectionCsv';
 import {
-  ALL_PLATFORMS, ALL_ZONES, pageSizeFrom, pageSizeParam, rememberCollectionView, rememberedPlatform, rememberedCollectionView, rememberedPageSize, rememberPageSize, type CollectionView,
+  pageSizeFrom, pageSizeParam, rememberCollectionView, rememberedCollectionView, rememberedPageSize, rememberPageSize, type CollectionView,
 } from '../lib/preferences';
-import type { CollectionItem, ItemStatus, ProgressRow, Zone } from '../lib/types';
+import type { CollectionItem, ItemStatus } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
 import { AddToCollection, savedText, type SavedItem } from '../components/AddToCollection';
 import { CollectionImport } from '../components/CollectionImport';
-import { CollectionProgress, initialZone } from '../components/CollectionProgress';
-import { MemoryBar } from '../components/MemoryBar';
+import { CollectionProgress } from '../components/CollectionProgress';
+import { ProgressStrip } from '../components/ProgressStrip';
 import { Cover } from '../components/Cover';
 import { PageSizeSelect, Pagination } from '../components/Pagination';
 import { PsSymbol } from '../components/PsSymbol';
@@ -26,7 +26,7 @@ import { TrophyIcon } from '../components/TrophyIcon';
 import { formatEuros } from '../lib/prices';
 import { useToast } from '../components/Toast';
 import { notifyCollectionChanged } from '../lib/trophies';
-import { useKnownPlatform, usePlatforms } from '../lib/usePlatforms';
+import { usePlatforms } from '../lib/usePlatforms';
 import { tr } from '../lib/i18n';
 import { loadOrReload } from '../lib/reload';
 
@@ -314,7 +314,7 @@ export function Collection() {
 
       {/* La carte mémoire en une ligne : le détail est dans l'onglet Statistiques */}
       {loaded && !showStats && owned.length > 0 && (
-        <ProgressStrip items={items} onOpen={() => update({ onglet: 'statistiques', tri: null })} />
+        <ProgressStrip refresh={items} more={tr('Statistiques')} onOpen={() => update({ onglet: 'statistiques', tri: null })} />
       )}
 
       <div className="tabs" role="tablist">
@@ -479,37 +479,6 @@ export function Collection() {
       )}
       {toast}
     </section>
-  );
-}
-
-// Bandeau de progression au-dessus des onglets : la carte mémoire (console et zone retenues
-// dans les statistiques) et le compte, un clic mène au détail
-function ProgressStrip({ items, onOpen }: { items: CollectionItem[]; onOpen: () => void }) {
-  const platform = useKnownPlatform(rememberedPlatform());
-  const platformCode = platform === ALL_PLATFORMS ? null : platform;
-  const zone = initialZone();
-  const zoneCode = zone === ALL_ZONES ? null : (zone as Zone);
-  const [main, setMain] = useState<ProgressRow | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    supabase.rpc('collection_progress', { platform_code: platformCode, zone_code: zoneCode }).then(({ data }) => {
-      if (active) setMain(((data as ProgressRow[] | null) ?? []).find((r) => r.scope === 'zone' && r.code === (zoneCode ?? 'all')) ?? null);
-    });
-    return () => { active = false; };
-  }, [platformCode, zoneCode, items]);
-
-  if (!main || main.total === 0) return null;
-  const scope = [platformCode, CATALOG_ZONES.find((z) => z.value === zoneCode)?.short].filter(Boolean).join(' ');
-  return (
-    <button type="button" className="progress-strip" onClick={onOpen}>
-      <MemoryBar size="small" owned={main.owned} total={main.total} label={tr('Jeux possédés')} />
-      <span className="progress-strip-text">
-        <strong>{formatNumber(main.owned)}</strong> / {formatNumber(main.total)}{tr(' jeux')}{scope && ` ${scope}`}
-        <span className="muted"> · {formatPercent(main.owned, main.total)}</span>
-      </span>
-      <span className="progress-strip-more">{tr('Statistiques')} <span aria-hidden="true">→</span></span>
-    </button>
   );
 }
 
