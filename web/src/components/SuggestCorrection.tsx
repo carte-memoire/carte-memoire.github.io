@@ -1,7 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { editionLabel, familyLabel, genreName, LANGUAGES, ZONES, zoneLabel } from '../lib/format';
+import { editionLabel, genreDetail, genreName, LANGUAGES, ZONES, zoneLabel, zoneOrderFrom } from '../lib/format';
+import { preferredZone } from '../lib/preferences';
 import { errorMessage } from '../lib/errors';
 import { gameChanges, PRODUCT_CODE, releaseChanges, type CorrectionChanges } from '../lib/corrections';
 import { useCompanies } from '../lib/useCompanies';
@@ -24,6 +25,10 @@ export function SuggestCorrection({ game, initialReleaseId, onClose, onApplied }
   const [sent, setSent] = useState<'pending' | 'approved' | null>(null);
   const release = target === 'game' ? null : game.release.find((r) => r.id === Number(target)) ?? null;
   const multiPlatform = new Set(game.release.map((r) => r.platform.id)).size > 1;
+  // Dans l'ordre de la fiche : la zone du visiteur d'abord, l'édition standard avant les rééditions
+  const zoneRank = zoneOrderFrom(preferredZone());
+  const releases = [...game.release].sort((a, b) => a.platform.id - b.platform.id || zoneRank(a.zone) - zoneRank(b.zone)
+    || Number(b.edition_type === 'standard') - Number(a.edition_type === 'standard') || a.id - b.id);
   const releaseLabel = (r: Release) => [multiPlatform ? r.platform.short_name : null, r.local_title, zoneLabel(r.zone), editionLabel(r), r.product_code]
     .filter(Boolean).join(' · ');
 
@@ -45,7 +50,7 @@ export function SuggestCorrection({ game, initialReleaseId, onClose, onApplied }
             <span className="field-label">{tr('Que veux-tu corriger ?')}</span>
             <select value={target} onChange={(e) => setTarget(e.target.value)}>
               <option value="game">{tr('Le jeu : date de sortie, genres, studios')}</option>
-              {game.release.map((r) => <option key={r.id} value={r.id}>{tr('Une version : {0}', releaseLabel(r))}</option>)}
+              {releases.map((r) => <option key={r.id} value={r.id}>{tr('Une version : {0}', releaseLabel(r))}</option>)}
             </select>
           </label>
           {/* Changer de cible repart des valeurs actuelles de la nouvelle cible */}
@@ -140,7 +145,7 @@ function GameForm({ game, onSent }: { game: Game; onSent: OnSent }) {
           {genres.map((g) => (
             <li key={g.id} className={g.families.length ? 'genre-chip' : 'genre-chip is-theme'}>
               {genreName(g.name)}
-              <span className="muted small">{g.families.length ? g.families.map(familyLabel).join(' + ') : tr('thème')}</span>
+              <span className="muted small">{genreDetail(g)}</span>
               <button type="button" className="icon-button" aria-label={tr('Retirer {0}', genreName(g.name))} onClick={() => setGenres(genres.filter((x) => x.id !== g.id))}>✕</button>
             </li>
           ))}
@@ -149,7 +154,7 @@ function GameForm({ game, onSent }: { game: Game; onSent: OnSent }) {
         <Combobox
           label={tr('Ajouter un genre')}
           placeholder={tr('Tape pour chercher : plates-formes, stratégie, RPG…')}
-          options={allGenres.filter((g) => !chosenGenres.has(g.id)).map((g) => ({ value: g.id, label: genreName(g.name), detail: g.families.length ? g.families.map(familyLabel).join(' + ') : tr('thème') }))}
+          options={allGenres.filter((g) => !chosenGenres.has(g.id)).map((g) => ({ value: g.id, label: genreName(g.name), detail: genreDetail(g) }))}
           emptyText={tr('Aucun genre ne correspond')}
           onSelect={(o) => { const g = allGenres.find((x) => x.id === o.value); if (g && genres.length < 12) setGenres([...genres, g]); }}
         />

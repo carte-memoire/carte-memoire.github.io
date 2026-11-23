@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { familyLabel, genreName } from '../../lib/format';
+import { familyLabel, genreDetail, genreName } from '../../lib/format';
 import { errorMessage } from '../../lib/errors';
 import type { Game, GenreInfo } from '../../lib/types';
 import { Combobox } from '../../components/Combobox';
@@ -27,7 +27,7 @@ export function GenreEditor({ game, onSaved }: { game: Game; onSaved: () => void
   // Genres proposés à l'ajout, avec leurs familles (cherchées elles aussi : « stratégie » trouve Tactical RPG)
   const options = all
     .filter((g) => !chosen.has(g.id))
-    .map((g) => ({ value: g.id, label: genreName(g.name), detail: g.families.length ? g.families.map(familyLabel).join(' + ') : tr('thème') }));
+    .map((g) => ({ value: g.id, label: genreName(g.name), detail: genreDetail(g) }));
 
   async function save() {
     setSaving(true);
@@ -67,7 +67,7 @@ export function GenreEditor({ game, onSaved }: { game: Game; onSaved: () => void
         {selected.map((g) => (
           <li key={g.id} className={g.families.length ? 'genre-chip' : 'genre-chip is-theme'}>
             {genreName(g.name)}
-            <span className="muted small">{g.families.length ? g.families.map(familyLabel).join(' + ') : tr('thème')}</span>
+            <span className="muted small">{genreDetail(g)}</span>
             <button type="button" className="icon-button" aria-label={tr('Retirer {0}', g.name)} onClick={() => setSelected(selected.filter((x) => x.id !== g.id))}>✕</button>
           </li>
         ))}

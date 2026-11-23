@@ -141,6 +141,13 @@ export function genreName(name: string): string {
   return tr(short.charAt(0).toUpperCase() + short.slice(1));
 }
 
+// Familles d'un genre, en petit à côté de son nom (« Tactical RPG » : RPG + Stratégie), ou
+// « thème » ; rien quand elles répètent le nom (« RPG », famille RPG)
+export function genreDetail(g: { name: string; families: string[] }): string {
+  const detail = g.families.length ? g.families.map(familyLabel).join(' + ') : tr('thème');
+  return searchKey(detail) === searchKey(genreName(g.name)) ? '' : detail;
+}
+
 // Les genres précis d'un jeu à afficher à côté de ses familles, sans répéter une famille
 // déjà affichée (« Jeu de sport » est la famille Sport, « Jeu de combat » la famille Combat)
 export function genresBesideFamilies(genres: { name: string; families: string[] }[]): string[] {
@@ -301,4 +308,13 @@ export function pickSummary(
   const fr = game.summary ? { text: game.summary, source: game.summary_source, lang: 'fr' as const } : null;
   const en = game.summary_en ? { text: game.summary_en, source: game.summary_en_source ?? null, lang: 'en' as const } : null;
   return (siteLang === 'en' ? en ?? fr : fr ?? en) ?? null;
+}
+
+// Mots qui désignent une catégorie plutôt qu'un titre : « jrpg » mène aux JRPG du catalogue
+// (famille RPG, studios japonais), que les collectionneurs cherchent tels quels
+export function searchShortcut(query: string): { label: string; to: string } | null {
+  if (/^\s*(j-?rpgs?|rpgs? japonais|japanese rpgs?)\s*$/i.test(query)) {
+    return { label: tr('Tous les JRPG du catalogue (RPG de studios japonais) →'), to: '/catalogue?genre=rpg&origine=japon' };
+  }
+  return null;
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  editionClass, editionLabel, formatDate, formatPercent, gamePath, languagesLong, languagesShort, genreName, genresBesideFamilies, pickSummary, readableSpaces, searchKey, slugify, speaksLanguage, yearOf, zoneOrder, zoneOrderFrom,
+  editionClass, editionLabel, formatDate, formatPercent, gamePath, languagesLong, languagesShort, genreName, genresBesideFamilies, pickSummary, readableSpaces, searchKey, searchShortcut, slugify, speaksLanguage, yearOf, zoneOrder, zoneOrderFrom,
 } from './format';
 
 describe('slugify et gamePath', () => {
@@ -145,5 +145,17 @@ describe('genreName et genresBesideFamilies (français)', () => {
       { name: 'Jeu de football', families: ['sports'] },
       { name: "Jeu d'action-aventure", families: ['adventure', 'action'] },
     ])).toEqual(['Football', 'Action-aventure']);
+  });
+});
+
+describe('searchShortcut', () => {
+  it('« jrpg » et ses variantes mènent aux JRPG du catalogue', () => {
+    for (const q of ['jrpg', 'JRPG', ' j-rpg ', 'jrpgs', 'rpg japonais', 'Japanese RPG']) {
+      expect(searchShortcut(q)?.to).toBe('/catalogue?genre=rpg&origine=japon');
+    }
+  });
+  it('un titre reste un titre', () => {
+    expect(searchShortcut('Final Fantasy')).toBeNull();
+    expect(searchShortcut('jrpg maker')).toBeNull();
   });
 });

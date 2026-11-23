@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import {
-  CATALOG_ZONES, FAMILIES, familyLabel, formatNumber, gamePath, yearOf, genreName,
+  CATALOG_ZONES, FAMILIES, familyLabel, formatNumber, gamePath, yearOf, genreDetail, genreName,
 } from '../lib/format';
 import { errorMessage } from '../lib/errors';
 import { ALL_PLATFORMS, rememberedPageSize, rememberPageSize } from '../lib/preferences';
@@ -196,7 +196,7 @@ function QueueCard({ row, consoleName, genres, onDone }: { row: QueueRow; consol
           <Combobox
             label={tr('Ou un genre précis')}
             placeholder={tr('Mahjong, plates-formes 3D, tactical RPG…')}
-            options={genres.filter((g) => !has(g)).map((g) => ({ value: g.id, label: genreName(g.name), detail: g.families.length ? g.families.map(familyLabel).join(' + ') : tr('thème') }))}
+            options={genres.filter((g) => !has(g)).map((g) => ({ value: g.id, label: genreName(g.name), detail: genreDetail(g) }))}
             emptyText={tr('Aucun genre ne correspond')}
             onSelect={(o) => toggle(genres.find((g) => g.id === o.value))}
           />

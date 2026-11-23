@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useRef, useState } from 'react';
+import { Fragment, useEffect, useEffectEvent, useRef, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { COLLECTION_FIELDS } from '../lib/queries';
@@ -344,9 +344,22 @@ export function Catalog() {
           <div className="row">
             <label className="field">
               <span className="field-label">{tr('Genre')}</span>
-              <select value={family ?? ''} onChange={(e) => update({ genre: e.target.value || null })}>
+              {/* « JRPG » : un choix à part entière (famille RPG + studios japonais), que les
+                  collectionneurs cherchent tel quel */}
+              <select value={family === 'rpg' && origin === 'japan' ? 'jrpg' : family ?? ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  const wasJrpg = family === 'rpg' && origin === 'japan';
+                  if (value === 'jrpg') update({ genre: 'rpg', origine: originParam('japan') });
+                  else update({ genre: value || null, ...(wasJrpg ? { origine: null } : {}) });
+                }}>
                 <option value="">{tr('Tous les genres')}</option>
-                {FAMILIES.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
+                {FAMILIES.map((f) => (
+                  <Fragment key={f.value}>
+                    <option value={f.value}>{f.label}</option>
+                    {f.value === 'rpg' && <option value="jrpg" title={tr('JRPG (RPG de studios japonais)')}>{tr('JRPG')}</option>}
+                  </Fragment>
+                ))}
               </select>
             </label>
             <label className="field">

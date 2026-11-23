@@ -1652,6 +1652,8 @@ export const EN: Record<string, string> = {
   "Correction appliquée": "Correction applied",
   "Correction refusée": "Correction rejected",
   "correction": "correction",
+  "Tous les JRPG du catalogue (RPG de studios japonais) →": "Every JRPG in the catalogue (RPGs from Japanese studios) →",
+  "JRPG (RPG de studios japonais)": "JRPG (RPGs from Japanese studios)",
   "Jeu de simulation": "Simulation game",
   "Jeu de simulation de vie": "Life simulation game",
   "Jeu de simulation sociale": "Social simulation game",

@@ -1,7 +1,7 @@
 import { useEffect, useId, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { countryName, formatNumber, yearOf } from '../lib/format';
+import { countryName, formatNumber, searchShortcut, yearOf } from '../lib/format';
 import type { CompanyResult, SearchResult } from '../lib/types';
 import { Cover } from './Cover';
 import { tr } from '../lib/i18n';
@@ -28,6 +28,7 @@ export function GameSearch({ onSelect, placeholder = tr('Final Fantasy VII, Cras
   const { results, loading, error } = useGameSearch(query, 20, platform);
   const studios = useStudioSearch(onSelectStudio ? query : '', platform);
   const inputId = useId();
+  const shortcut = searchShortcut(query);
 
   return (
     <div className="game-search">
@@ -49,7 +50,10 @@ export function GameSearch({ onSelect, placeholder = tr('Final Fantasy VII, Cras
         </span>
       </div>
       {error && <p className="error">{error}</p>}
-      {query.trim().length >= 2 && !loading && results.length === 0 && studios.length === 0 && !error && (
+      {shortcut && (
+        <p className="search-shortcut"><Link to={shortcut.to}>{shortcut.label}</Link></p>
+      )}
+      {query.trim().length >= 2 && !loading && results.length === 0 && studios.length === 0 && !error && !shortcut && (
         <p className="muted">
           {tr('Aucun jeu trouvé.')}
           {proposeMissing && (
