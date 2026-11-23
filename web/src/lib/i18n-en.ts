@@ -943,6 +943,7 @@ export const EN: Record<string, string> = {
   "Affichage": "Display",
   "▤ Liste": "▤ List",
   "Étagère": "Shelf",
+  "Voir le boîtier": "See the case",
   "Sortir « {0} » de l’étagère": "Take “{0}” off the shelf",
   "Recherché": "Wanted",
   "▦ Jaquettes": "▦ Covers",

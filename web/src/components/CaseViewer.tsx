@@ -24,11 +24,14 @@ export interface Pulled {
   release: { local_title: string; product_code: string | null; edition_type: string; zone?: string | null; platform: { short_name: string } };
   src: string | null;
   meta: string;
-  gameHref: string;
+  // Lien vers la fiche (absent quand on y est déjà)
+  gameHref?: string;
+  // Sorti d'une jaquette (fiche d'un jeu) plutôt que d'une tranche : il part de face
+  fromCover?: boolean;
 }
 
 
-export function CaseViewer({ pulled, onClose, onEdit }: { pulled: Pulled; onClose: () => void; onEdit: () => void }) {
+export function CaseViewer({ pulled, onClose, onEdit }: { pulled: Pulled; onClose: () => void; onEdit?: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const box = useRef<HTMLDivElement>(null);
   const turn = useRef<HTMLDivElement>(null);
@@ -47,7 +50,9 @@ export function CaseViewer({ pulled, onClose, onEdit }: { pulled: Pulled; onClos
     const { from } = pulled;
     const dx = from.left + from.width / 2 - window.innerWidth / 2;
     const dy = from.top + from.height / 2 - window.innerHeight * 0.4;
-    const s = from.height / h;
+    const s = pulled.fromCover ? from.width / w : from.height / h;
+    const start = pulled.fromCover ? 0 : 90;
+    const reach = pulled.fromCover ? 0.15 : 0.4;
     // Un seul mouvement continu, calculé image par image (pas d'étapes qui marquent un
     // temps d'arrêt) : le jeu glisse hors de l'étagère vers soi, tranche en avant, et
     // dans la foulée vient au centre en grandissant et pivote jusqu'à montrer sa jaquette
@@ -58,9 +63,9 @@ export function CaseViewer({ pulled, onClose, onEdit }: { pulled: Pulled; onClos
       const t = i / steps;
       const pull = smooth(0, 0.4, t);
       const travel = smooth(0.12, 1, t);
-      const scale = s * (1 + 0.4 * pull) * (1 - travel) + travel;
+      const scale = s * (1 + reach * pull) * (1 - travel) + travel;
       const lift = Math.sin(Math.PI * travel) * 28;
-      const angle = 90 - 66 * smooth(0.2, 1, t);
+      const angle = start + (24 - start) * smooth(0.2, 1, t);
       frames.push({ transform: `translate(${(dx * (1 - travel)).toFixed(1)}px, ${(dy * (1 - travel) - lift).toFixed(1)}px) scale(${scale.toFixed(4)}) rotateY(${angle.toFixed(2)}deg)`, offset: t });
     }
     return frames;
@@ -140,8 +145,8 @@ export function CaseViewer({ pulled, onClose, onEdit }: { pulled: Pulled; onClos
         <h2>{title}</h2>
         <p className="muted small">{pulled.meta}</p>
         <div className="actions">
-          <Link to={pulled.gameHref} className="button button-primary">{tr('Voir la fiche')}</Link>
-          <button type="button" className="button" onClick={() => { closing.current = true; dialog.current?.close(); onClose(); onEdit(); }}>{tr('Modifier')}</button>
+          {pulled.gameHref && <Link to={pulled.gameHref} className="button button-primary">{tr('Voir la fiche')}</Link>}
+          {onEdit && <button type="button" className="button" onClick={() => { closing.current = true; dialog.current?.close(); onClose(); onEdit(); }}>{tr('Modifier')}</button>}
           <button type="button" className="button" onClick={close}>{tr('Fermer')}</button>
         </div>
       </div>

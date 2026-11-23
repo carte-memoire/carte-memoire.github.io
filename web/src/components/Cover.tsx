@@ -9,12 +9,14 @@ import { PsSymbol } from './PsSymbol';
 import { tr } from '../lib/i18n';
 
 // Forme du cadre, sans jamais de bandes autour de la jaquette :
-// - celle du boîtier de la console (PS1 carré, PS2 haut : lib/cases.ts) dès l'affichage,
-//   et l'image le remplit entièrement quand elle s'en approche (rognée de quelques
-//   pixels au plus) : les jaquettes d'une même console s'alignent ;
+// - celle du livret de la console (PS1 carré, PS2 haut : lib/cases.ts) dès l'affichage,
+//   et l'image le remplit entièrement quand elle s'en approche (à 20 % près) : elle est
+//   remise à ce format sans rien couper, ce qui rend ses vraies proportions à un scan
+//   aplati (Final Fantasy VII PAL : 480 × 410 pour un livret carré). Toutes les jaquettes
+//   d'une console ont ainsi le même format, sur la fiche comme dans le boîtier 3D ;
 // - celle de l'image elle-même quand elle s'en écarte nettement (collector, boîte en
 //   carton, jaquette avec son bandeau…) ou que la console n'est pas connue.
-const CLOSE_TO_CASE = 0.12;
+const CLOSE_TO_CASE = 0.2;
 function frameOf(platform: string | null | undefined, natural: number | null): { ratio: number; fill: boolean } {
   const box = platformCase(platform);
   const base = box ? CASE_RATIO[box] : null;
@@ -54,7 +56,7 @@ function withTransition(change: () => void): Promise<void> {
 
 // Jaquette (recto) d'une sortie, ou boîtier vide « pas encore de jaquette ».
 // `zoomable` (fiche d'un jeu) : la boîte penche au survol et s'agrandit au clic.
-export function Cover({ images, title, size = 'medium', standIn, platform, zoomable = false }: {
+export function Cover({ images, title, size = 'medium', standIn, platform, zoomable = false, onOpen }: {
   images: ReleaseImage[];
   title: string;
   size?: 'small' | 'medium' | 'large';
@@ -62,6 +64,8 @@ export function Cover({ images, title, size = 'medium', standIn, platform, zooma
   // Console de la version (PS1, PS2…), si on la connaît
   platform?: string | null;
   zoomable?: boolean;
+  // Au clic, à la place de l'agrandissement : la fiche y montre le boîtier en 3D (CaseViewer)
+  onOpen?: (cover: HTMLElement) => void;
 }) {
   // Largeur / hauteur de l'image, une fois chargée
   const [natural, setNatural] = useState<number | null>(null);
@@ -117,8 +121,9 @@ export function Cover({ images, title, size = 'medium', standIn, platform, zooma
 
   return (
     <>
-      <button ref={button} type="button" className={`${className} cover-zoomable${zoomed ? ' is-zoomed' : ''}`} style={style} onClick={open} onPointerMove={tilt} onPointerLeave={untilt}
-        title={tr('Agrandir la jaquette')}>
+      <button ref={button} type="button" className={`${className} cover-zoomable${zoomed ? ' is-zoomed' : ''}`} style={style}
+        onClick={(event) => (onOpen ? onOpen(event.currentTarget) : open())} onPointerMove={tilt} onPointerLeave={untilt}
+        title={onOpen ? tr('Voir le boîtier') : tr('Agrandir la jaquette')}>
         {image}
       </button>
       {zoomed && (

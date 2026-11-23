@@ -15,6 +15,8 @@ import { AddToCollection, savedText } from '../components/AddToCollection';
 import { Cover } from '../components/Cover';
 import { Disc, hasDisc, type DiscLabel } from '../components/Disc';
 import { CaseOpening, hasCase, type Opening } from '../components/CaseOpening';
+import { CaseViewer, type Pulled } from '../components/CaseViewer';
+import { spineKind } from '../components/Spine';
 import { ReportDialog } from '../components/ReportDialog';
 import { GameSkeleton } from '../components/Skeleton';
 import { PriceSummary } from '../components/PriceSummary';
@@ -78,6 +80,8 @@ export function GamePage() {
   // Version dont on propose la jaquette (fenêtre ouverte)
   const [coverFor, setCoverFor] = useState<Release | null>(null);
   const [opening, setOpening] = useState<Opening | null>(null);
+  // Boîtier montré en 3D, fermé, au clic sur une jaquette
+  const [viewing, setViewing] = useState<Pulled | null>(null);
   // « Suggérer une correction » : ouverte sur le jeu (null) ou sur une version
   const [correcting, setCorrecting] = useState<{ releaseId: number | null } | null>(null);
   const [busy, setBusy] = useState<number | null>(null);
@@ -241,6 +245,17 @@ export function GamePage() {
   });
   const discLabel = heroRelease ? discLabelOf(heroRelease) : null;
 
+  // Clic sur la jaquette d'une version : son boîtier, fermé, en 3D (consoles dont le boîtier
+  // est dessiné ; sinon la jaquette s'agrandit comme avant)
+  const caseOf = (r: Release): ((cover: HTMLElement) => void) | undefined => {
+    const front = r.image.find((i) => i.type === 'front');
+    if (!front || !spineKind(r.platform.short_name)) return undefined;
+    return (cover) => setViewing({
+      from: cover.getBoundingClientRect(), fromCover: true, release: r, src: coverUrl(front.path),
+      meta: [r.platform.name ?? r.platform.short_name, zoneLabel(r.zone), editionLabel(r)].filter(Boolean).join(' · '),
+    });
+  };
+
   // Version ajoutée à la collection : son boîtier s'ouvre et le disque part vers « Ma
   // collection » (CaseOpening) ; sans disque dessiné, ou mise en recherche, c'est la
   // jaquette qui s'envole
@@ -322,7 +337,7 @@ export function GamePage() {
       <header className="game-head panel">
         <div className={`game-cover${voyage ? ' voyage-target' : ''}${heroHasDisc ? ' has-disc' : ''}`} style={voyage ? { viewTransitionName: VOYAGE } : undefined}>
           {heroHasDisc && <Disc platform={heroPlatform} label={discLabel} />}
-          <Cover images={heroImages} title={game.title} size="large" platform={heroPlatform} zoomable />
+          <Cover images={heroImages} title={game.title} size="large" platform={heroPlatform} zoomable onOpen={heroRelease ? caseOf(heroRelease) : undefined} />
         </div>
         <div className="game-info">
           <h1>{game.title}</h1>
@@ -456,7 +471,7 @@ export function GamePage() {
           <ul className="release-list">
             {list.map((r) => (
               <li key={r.id} id={`version-${r.id}`} className={r.id === focusId ? 'release-card panel is-focused' : 'release-card panel'}>
-                <Cover images={r.image} title={r.local_title} size="medium" platform={r.platform.short_name} standIn={standInFor(r, samePlatform(r))} zoomable />
+                <Cover images={r.image} title={r.local_title} size="medium" platform={r.platform.short_name} standIn={standInFor(r, samePlatform(r))} zoomable onOpen={caseOf(r)} />
                 <div className="release-body">
                   <h3>{r.local_title}</h3>
                   <p className="release-badges">
@@ -566,6 +581,7 @@ export function GamePage() {
         </Suspense>
       )}
       {opening && <CaseOpening opening={opening} onDone={() => setOpening(null)} />}
+      {viewing && <CaseViewer pulled={viewing} onClose={() => setViewing(null)} />}
       {coverFor && (
         <Suspense fallback={null}>
           <CoverProposal open release={coverFor} gameTitle={game.title} onClose={() => setCoverFor(null)} />
