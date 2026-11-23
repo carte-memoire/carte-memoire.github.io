@@ -93,7 +93,7 @@ npx supabase db query --linked -f .covers-import/link-covers.sql   # APRÈS l'en
 
 | Couche | Mesure |
 |---|---|
-| Comptes | Supabase Auth : mots de passe hachés (bcrypt), confirmation de l'e-mail, 12 caractères minimum avec minuscules, majuscules, chiffres et symboles |
+| Comptes | Supabase Auth : mots de passe hachés (bcrypt), confirmation de l'e-mail, 12 caractères minimum sans règle de composition, mots de passe divulgués refusés (Have I Been Pwned) |
 | Connexion | Passkeys (sans mot de passe, résistantes au phishing), double authentification par application (TOTP), flux PKCE pour les liens reçus par e-mail |
 | Sessions | Jetons courts renouvelés automatiquement, déconnexion des autres appareils après un changement de mot de passe, déconnexion globale possible |
 | Base | Row Level Security sur toutes les tables, droits accordés colonne par colonne (impossible de se donner le rôle admin), fonctions internes hors de l'API |

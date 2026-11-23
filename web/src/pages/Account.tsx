@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { useAuth } from '../auth/AuthContext';
 import { DEFAULT_IDLE_MINUTES, IDLE_CHOICES, MODERATOR_MAX_IDLE_MINUTES, idleMinutes, rememberIdleMinutes } from '../lib/preferences';
-import { PasswordRules, passwordIsValid } from '../components/PasswordRules';
+import { PasswordField, passwordIsValid } from '../components/PasswordRules';
 import { useConfirm } from '../components/Confirm';
 import { CodeInput } from '../components/CodeInput';
 import { useCodeConfirm } from '../components/CodeConfirm';
@@ -307,7 +307,6 @@ function PasswordSection() {
   const [step, setStep] = useState<'idle' | 'code'>('idle');
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
@@ -321,15 +320,14 @@ function PasswordSection() {
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    if (!passwordIsValid(password)) return setError(tr('Le mot de passe ne respecte pas toutes les règles.'));
-    if (password !== confirm) return setError(tr('Les deux mots de passe ne sont pas identiques.'));
+    if (!passwordIsValid(password)) return setError(tr('Le mot de passe doit faire au moins 12 caractères.'));
     if (await passwordLeaked(password)) return setError(LEAKED_PASSWORD_MESSAGE);
     if (!(await ensureCode(tr('Pour changer de mot de passe, confirme aussi avec ton application d’authentification.')))) return;
     const { error } = await supabase.auth.updateUser({ password, nonce: code.trim() });
     if (error) return setError(errorMessage(error));
     await supabase.auth.signOut({ scope: 'others' });
     setStep('idle');
-    setCode(''); setPassword(''); setConfirm(''); setError('');
+    setCode(''); setPassword(''); setError('');
     setMessage(tr('Mot de passe changé. Les autres appareils ont été déconnectés.'));
   }
 
@@ -344,15 +342,7 @@ function PasswordSection() {
             <span className="field-label">{tr('Code à 6 chiffres reçu par e-mail')}</span>
             <CodeInput label={tr('Code à 6 chiffres reçu par e-mail')} value={code} onChange={setCode} />
           </div>
-          <label className="field">
-            <span className="field-label">{tr('Nouveau mot de passe')}</span>
-            <input type="password" autoComplete="new-password" required value={password} onChange={(e) => setPassword(e.target.value)} maxLength={128} />
-          </label>
-          <PasswordRules password={password} />
-          <label className="field">
-            <span className="field-label">{tr('Confirmer')}</span>
-            <input type="password" autoComplete="new-password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} maxLength={128} />
-          </label>
+          <PasswordField label={tr('Nouveau mot de passe')} value={password} onChange={setPassword} />
           <div className="actions">
             <button type="button" className="button" onClick={() => setStep('idle')}><PsSymbol shape="circle" />{tr(' Annuler')}</button>
             <button type="submit" className="button button-primary"><PsSymbol shape="cross" />{tr(' Changer')}</button>

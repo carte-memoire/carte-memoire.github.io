@@ -6,7 +6,7 @@ import { tr } from './i18n';
 const AUTH_MESSAGES: Record<string, string> = {
   invalid_credentials: tr('E-mail ou mot de passe incorrect.'),
   email_not_confirmed: tr("Ton adresse e-mail n'est pas encore confirmée : clique sur le lien reçu par e-mail."),
-  weak_password: tr('Mot de passe trop faible : 12 caractères minimum, avec minuscules, majuscules, chiffres et symboles.'),
+  weak_password: tr('Mot de passe trop faible : 12 caractères au minimum.'),
   same_password: tr("Le nouveau mot de passe doit être différent de l'ancien."),
   over_email_send_rate_limit: tr("Trop d'e-mails envoyés : réessaie dans quelques minutes."),
   over_request_rate_limit: tr('Trop de tentatives : réessaie dans quelques minutes.'),

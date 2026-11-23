@@ -3,7 +3,7 @@ import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { useAuth } from '../auth/AuthContext';
-import { PasswordRules, passwordIsValid } from '../components/PasswordRules';
+import { PasswordField, passwordIsValid } from '../components/PasswordRules';
 import { PsSymbol } from '../components/PsSymbol';
 import { inRecovery, markRecovery } from '../lib/preferences';
 import { tr } from '../lib/i18n';
@@ -17,7 +17,6 @@ export function ResetPassword() {
   const navigate = useNavigate();
   const { session, loading, needsMfa } = useAuth();
   const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -50,8 +49,7 @@ export function ResetPassword() {
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    if (!passwordIsValid(password)) return setError(tr('Le mot de passe ne respecte pas toutes les règles.'));
-    if (password !== confirm) return setError(tr('Les deux mots de passe ne sont pas identiques.'));
+    if (!passwordIsValid(password)) return setError(tr('Le mot de passe doit faire au moins 12 caractères.'));
     setBusy(true);
     if (await passwordLeaked(password)) {
       setBusy(false);
@@ -72,15 +70,7 @@ export function ResetPassword() {
     <section className="panel narrow">
       <h1>{tr('Nouveau mot de passe')}</h1>
       <form onSubmit={submit} className="form">
-        <label className="field">
-          <span className="field-label">{tr('Nouveau mot de passe')}</span>
-          <input type="password" autoComplete="new-password" required value={password} onChange={(e) => setPassword(e.target.value)} maxLength={128} />
-        </label>
-        <PasswordRules password={password} />
-        <label className="field">
-          <span className="field-label">{tr('Confirmer')}</span>
-          <input type="password" autoComplete="new-password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} maxLength={128} />
-        </label>
+        <PasswordField label={tr('Nouveau mot de passe')} value={password} onChange={setPassword} />
         {error && <p className="error" role="alert">{error}</p>}
         <button type="submit" className="button button-primary button-block" disabled={busy}><PsSymbol shape="cross" />{tr(' Enregistrer')}</button>
       </form>

@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { EMAIL_CODES, supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
-import { PasswordRules, passwordIsValid } from '../components/PasswordRules';
+import { PasswordField, passwordIsValid } from '../components/PasswordRules';
 import { PsSymbol } from '../components/PsSymbol';
 import { EmailCodeForm } from '../components/EmailCodeForm';
 import { useAuth } from '../auth/AuthContext';
@@ -23,7 +23,6 @@ export function Signup() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
   const [accepted, setAccepted] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -35,8 +34,7 @@ export function Signup() {
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (!USERNAME.test(username)) return setError(tr('Pseudo : 3 à 30 caractères, lettres, chiffres, « _ » ou « - ».'));
-    if (!passwordIsValid(password)) return setError(tr('Le mot de passe ne respecte pas toutes les règles.'));
-    if (password !== confirm) return setError(tr('Les deux mots de passe ne sont pas identiques.'));
+    if (!passwordIsValid(password)) return setError(tr('Le mot de passe doit faire au moins 12 caractères.'));
     if (!accepted) return setError(tr("Pour créer un compte, accepte les conditions d'utilisation."));
     if (!inserted) return setError(tr("Insère d'abord le disque dans la console, juste au-dessus."));
     setBusy(true);
@@ -97,15 +95,7 @@ export function Signup() {
           <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} maxLength={254} />
           <span className="hint">{tr('Jamais affichée : elle sert uniquement à te connecter.')}</span>
         </label>
-        <label className="field">
-          <span className="field-label">{tr('Mot de passe')}</span>
-          <input type="password" autoComplete="new-password" required value={password} onChange={(e) => setPassword(e.target.value)} maxLength={128} />
-        </label>
-        <PasswordRules password={password} />
-        <label className="field">
-          <span className="field-label">{tr('Confirmer le mot de passe')}</span>
-          <input type="password" autoComplete="new-password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} maxLength={128} />
-        </label>
+        <PasswordField label={tr('Mot de passe')} value={password} onChange={setPassword} />
         <label className="consent">
           <input type="checkbox" required checked={accepted} onChange={(e) => setAccepted(e.target.checked)} />
           <span>
