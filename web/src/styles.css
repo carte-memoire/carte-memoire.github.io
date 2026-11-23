@@ -1192,7 +1192,7 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .spine-title {
   flex: 1 1 auto; min-height: 0; padding: 7px 0; writing-mode: vertical-rl;
   font-weight: 700; font-size: calc(var(--spine-w) * 0.58); line-height: 1; letter-spacing: 0.02em; text-transform: uppercase;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; overflow: hidden; text-overflow: clip; /* jamais de « … » : le titre rétrécit */
 }
 /* Titre très long : deux lignes côte à côte, plus petites (Spine.tsx, titleFit). Le code
    produit (SLES…) garde toujours sa place en bas : seul le titre rétrécit. */
@@ -1209,10 +1209,19 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 /* PS2 (PAL) : blanche, bandeau noir en haut, titre noir de bas en haut */
 .spine-ps2 { background: linear-gradient(90deg, #e6e6e2, #fbfbf9 45%, #dfdfdb); color: #111; }
 /* PS2 (PAL) : bandeau noir ≈ 15 % de la hauteur, titre ≈ 55 % de la largeur, écrit à partir du bas */
-.spine-ps2 .spine-band { height: 15%; background: #0d0d10; color: #fff; }
+/* D'après une vraie tranche PAL : le bandeau noir porte, de haut en bas, la marque,
+   l'étiquette PAL et « PlayStation 2 » à la verticale, et s'arrête juste après ce mot */
+.spine-ps2 .spine-band {
+  height: auto; flex-direction: column; justify-content: flex-start; gap: calc(var(--spine-w) * 0.2);
+  padding: calc(var(--spine-w) * 0.22) 0 calc(var(--spine-w) * 0.3); background: #0d0d10; color: #fff;
+}
+.spine-ps2 .spine-mark {
+  display: grid; place-items: center; width: calc(var(--spine-w) * 0.72); aspect-ratio: 1;
+  border: 1px solid rgba(255, 255, 255, 0.7); border-radius: 2px; font-size: calc(var(--spine-w) * 0.26);
+}
+.spine-pal { padding: 1px 2px; background: #f2f2f2; color: #111; font: 700 calc(var(--spine-w) * 0.24) / 1 system-ui, sans-serif; letter-spacing: 0.02em; }
+.spine-console { flex: none; writing-mode: vertical-rl; white-space: nowrap; font: 600 calc(var(--spine-w) * 0.38) / 1 system-ui, sans-serif; letter-spacing: 0.01em; }
 .spine-ps2 .spine-title { font-size: calc(var(--spine-w) * 0.55 * var(--fit, 1)); }
-.spine-ps2 .spine-mark { writing-mode: vertical-rl; transform: rotate(180deg); }
-.spine-ps2 .spine-title { transform: rotate(180deg); }
 /* Réédition (Platinum) : grise, jamais noire, titre foncé */
 .spine-face.is-reissue { background: linear-gradient(90deg, #a7abb4, #d8dbe1 45%, #9da1aa); color: #17181c; }
 .spine-ps1.is-reissue .spine-mark { border-color: rgba(0, 0, 0, 0.55); }

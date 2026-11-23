@@ -2,8 +2,9 @@
 // (PAL) quelle que soit la région de la version, d'après les tranches officielles :
 //   PS1 : tranche noire ; marque en haut, titre en capitales étroites blanches écrit de
 //         haut en bas, code produit en bas (« SLES » au-dessus du numéro) ;
-//   PS2 : tranche blanche ; bandeau noir en haut avec la marque, titre noir écrit de bas
-//         en haut, code produit en bas ;
+//   PS2 : tranche blanche ; en haut, un grand bandeau noir (≈ 40 % de la hauteur, d'après une
+//         vraie tranche) avec la marque, l'étiquette PAL et « PlayStation 2 » à la verticale ;
+//         titre noir écrit de haut en bas, code produit en bas ;
 //   réédition (Platinum) : tranche grise (jamais noire), titre foncé.
 // Sans les logos de Sony (des marques) : la marque du haut est le nom court de la console.
 // Les dimensions suivent les boîtiers PAL (styles.css) : PS1 17 × 130 mm, PS2 14 × 190 mm.
@@ -42,20 +43,45 @@ function titleFit(kind: string, title: string): { fit: number; twoLines: boolean
   return { fit: Math.min(0.7, (capacity * 2) / title.length), twoLines: true };
 }
 
-// Le titre doit tenir en entier : on le mesure une fois affiché, et on le rétrécit (puis on
-// le passe sur deux lignes) tant qu'il dépasse
-function useFittedTitle(title: string) {
+// Le titre doit tenir en entier, sans points de suspension : on le mesure dans la tranche et
+// on le rétrécit (puis on le passe sur deux lignes) tant qu'il dépasse, en hauteur comme en
+// largeur. On recommence quand la tranche prend sa taille réelle (boîtier 3D : la fenêtre
+// s'ouvre après le premier rendu) et quand les polices ont fini de charger.
+function fitTitle(el: HTMLElement, start: number, startTwoLines: boolean) {
+  if (!el.clientHeight || !el.clientWidth) return;
+  el.classList.toggle('is-two-lines', startTwoLines);
+  let fit = start;
+  el.style.setProperty('--fit', fit.toFixed(3));
+  // Le texte réellement dessiné (toutes ses lignes) doit tenir : en hauteur dans la place
+  // réservée au titre, en largeur dans la tranche entière (le cadre du titre lui-même n'a que
+  // la largeur d'une ligne, que les lettres dessinées dépassent toujours un peu)
+  const overflows = () => {
+    const frame = el.getBoundingClientRect();
+    const spine = (el.parentElement ?? el).getBoundingClientRect();
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const text = range.getBoundingClientRect();
+    return text.left < spine.left - 0.5 || text.right > spine.right + 0.5 || text.top < frame.top - 0.5 || text.bottom > frame.bottom + 0.5;
+  };
+  for (let i = 0; i < 60 && overflows() && fit > 0.16; i++) {
+    fit *= 0.94;
+    if (fit < 0.62 && !el.classList.contains('is-two-lines')) { el.classList.add('is-two-lines'); fit = Math.min(0.7, fit * 2); }
+    el.style.setProperty('--fit', fit.toFixed(3));
+  }
+}
+
+function useFittedTitle(title: string, start: number, startTwoLines: boolean) {
   const ref = useRef<HTMLSpanElement>(null);
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
-    let fit = Number(el.style.getPropertyValue('--fit')) || 1;
-    for (let i = 0; i < 24 && el.scrollHeight > el.clientHeight + 1 && fit > 0.3; i++) {
-      fit *= 0.93;
-      if (fit < 0.62 && !el.classList.contains('is-two-lines')) { el.classList.add('is-two-lines'); fit = Math.min(0.7, fit * 2); }
-      el.style.setProperty('--fit', fit.toFixed(3));
-    }
-  }, [title]);
+    const run = () => fitTitle(el, start, startTwoLines);
+    run();
+    const observer = new ResizeObserver(run);
+    observer.observe(el.parentElement ?? el);
+    document.fonts?.ready.then(run, () => undefined);
+    return () => observer.disconnect();
+  }, [title, start, startTwoLines]);
   return ref;
 }
 
@@ -64,10 +90,14 @@ export function SpineFace({ release }: { release: SpineRelease }) {
   const code = splitCode(release.product_code);
   const reissue = release.edition_type === 'reissue';
   const { fit, twoLines } = titleFit(kind, release.local_title);
-  const titleRef = useFittedTitle(release.local_title);
+  const titleRef = useFittedTitle(release.local_title, fit, twoLines);
   return (
     <span className={`spine-face spine-${kind}${reissue ? ' is-reissue' : ''}`} aria-hidden="true">
-      <span className="spine-band"><span className="spine-mark">{release.platform.short_name}</span></span>
+      <span className="spine-band">
+        <span className="spine-mark">{release.platform.short_name}</span>
+        {/* PS2 (PAL) : sous la marque, l'étiquette PAL puis le nom de la console à la verticale */}
+        {kind === 'ps2' && <><span className="spine-pal">PAL</span><span className="spine-console">PlayStation 2</span></>}
+      </span>
       <span ref={titleRef} className={twoLines ? 'spine-title is-two-lines' : 'spine-title'} style={{ ['--fit' as string]: fit.toFixed(3) } as CSSProperties}>{release.local_title}</span>
       {code && <span className="spine-code">{code[0]}<br />{code[1]}</span>}
     </span>
