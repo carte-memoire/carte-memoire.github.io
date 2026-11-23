@@ -346,7 +346,7 @@ console.log('\nRésumés');
 await ok('un résumé Wikipédia avec son lien', en(ADMIN, `update public.game set summary = 'Un RPG culte.', summary_source = 'https://fr.wikipedia.org/wiki/Final_Fantasy_VII' where id = $1`, [jeu]));
 await ko('une source qui n\'est pas Wikipédia en français : refusée', en(ADMIN, `update public.game set summary_source = 'https://exemple.com/' where id = $1`, [jeu]), 'game_summary_source_check');
 await ko('une source sans résumé : refusée', en(ADMIN, `update public.game set summary = null where id = $1`, [jeu]), 'game_summary_source_needs_summary');
-await ko('un résumé proposé trop court : refusé', en(MEMBRE, `insert into public.submission (action, target, target_id, data) values ('update', 'game', $1, '{"summary": "Trop court"}')`, [jeu]), 'submission_summary_text');
+await ko('un résumé proposé trop court : refusé', en(MEMBRE, `insert into public.submission (action, target, target_id, data) values ('update', 'game', $1, '{"summary": "Trop court"}')`, [jeu]), 'submission_update_content');
 const texte = 'Cloud Strife, ancien membre du SOLDAT, rejoint le groupe AVALANCHE pour sauver la planète.';
 const pr = (await ok('un membre propose un résumé', en(MEMBRE, `insert into public.submission (action, target, target_id, data, sources) values ('update', 'game', $1, $2::jsonb, 'j''ai fini le jeu') returning id`, [jeu, JSON.stringify({ summary: texte })]))).rows[0].id;
 await ko('un membre ne peut pas l\'accepter lui-même', en(MEMBRE, `select public.review_submission($1, true)`, [pr]), 'Seuls les modérateurs');
@@ -1315,6 +1315,44 @@ await ko('un résumé anglais vient de Wikipédia en anglais', db.query(`update 
 await egal('un membre ne change pas le résumé anglais (aucune ligne modifiée, ou refus)', en(MEMBRE, `update public.game set summary_en = 'x' where id = (select min(id) from public.game) returning id`).then((r) => r.rows.length, () => 0), 0);
 await egal('un visiteur lit ce qui manque au catalogue', val(`select (releases_without_cover >= 0 and games_without_summary >= 0 and games_without_genre >= 0) as ok from public.catalog_gaps()`), [{ ok: true }]);
 await ok('…par l\'API, sans compte', en(null, `select * from public.catalog_gaps()`));
+
+console.log('\nCorrections champ par champ et membres de confiance');
+const corriger = (uid, target, id, changes, sources = 'vu sur ma boîte') => en(uid,
+  `insert into public.submission (action, target, target_id, data, sources) values ('update', $1, $2, $3::jsonb, $4) returning id, status`,
+  [target, id, JSON.stringify({ changes }), sources]);
+const deuxGenres = (await val(`select array_agg(id order by id) as ids from (select id from public.genre order by id limit 2) g`))[0].ids.map(Number);
+const unStudio = Number((await val(`select min(id) as id from public.company`))[0].id);
+const corrJeu = (await ok('un membre propose la date, les genres et le studio d\'un jeu', corriger(MEMBRE, 'game', jeu,
+  { first_release_date: '1997-01-31', first_release_precision: 'day', genre_ids: deuxGenres, developer_ids: [unStudio] })))?.rows[0];
+await egal('…en attente d\'un modérateur', Promise.resolve(corrJeu?.status), 'pending');
+await ko('un champ hors liste : refusé', corriger(MEMBRE, 'game', autreJeu, { title: 'Autre titre' }), 'ne se corrige pas ici');
+await ko('un genre inconnu : refusé', corriger(MEMBRE, 'game', autreJeu, { genre_ids: [999999999] }), 'Genres invalides');
+await ko('une date dans le futur : refusée', corriger(MEMBRE, 'game', autreJeu, { first_release_date: '2999-01-01' }), 'Date de première sortie invalide');
+await ko('une correction vide : refusée', corriger(MEMBRE, 'game', autreJeu, {}), 'Aucune correction');
+await ko('une deuxième correction en attente sur le même jeu : refusée', corriger(MEMBRE, 'game', jeu, { first_release_date: '1997-02-01' }), 'déjà une correction en attente');
+await ko('une zone inconnue : refusée', corriger(MEMBRE, 'release', ff7fr, { zone: 'EUROPE' }), 'Zone invalide');
+await ko('un code produit en minuscules : refusé', corriger(MEMBRE, 'release', ff7fr, { product_code: 'sces-00868' }), 'Code produit invalide');
+await ko('des langues mal écrites : refusées', corriger(MEMBRE, 'release', ff7fr, { languages: ['Français'] }), 'Langues invalides');
+await ko('un membre ne se rend pas lui-même « de confiance »', en(MEMBRE, `update public.profile set trusted = true where id = $1`, [MEMBRE]), 'permission denied');
+await ko('…ni par la fonction de l\'admin', en(MEMBRE, `select public.admin_set_trusted($1, true)`, [MEMBRE]), 'admin');
+await ok('le modérateur accepte la correction du jeu', en(ADMIN, `select public.review_submission($1, true)`, [corrJeu?.id]));
+await egal('…la date, les genres et le studio sont ceux proposés', val(`
+  select g.first_release_date::text as date,
+    (select array_agg(gg.genre_id order by gg.genre_id) from public.game_genre gg where gg.game_id = g.id)::bigint[] = $2::bigint[] as genres,
+    (select array_agg(gd.company_id) from public.game_developer gd where gd.game_id = g.id)::bigint[] = $3::bigint[] as studios,
+    g.genres_reviewed
+  from public.game g where g.id = $1`, [jeu, deuxGenres, [unStudio]]), [{ date: '1997-01-31', genres: true, studios: true, genres_reviewed: true }]);
+await egal('…et la modification entre dans l\'historique, au nom du modérateur', val(`
+  select (count(*) > 0) as ok from public.catalog_change where game_id = $1 and changed_by = $2`, [jeu, ADMIN]), [{ ok: true }]);
+await ok('l\'admin fait du membre un membre de confiance', en(ADMIN, `select public.admin_set_trusted($1, true)`, [MEMBRE]));
+const corrVersion = (await ok('le membre de confiance corrige le code d\'une version', corriger(MEMBRE, 'release', ff7fr, { product_code: 'SCES-00868', languages: ['fr'] })))?.rows[0];
+await egal('…appliquée tout de suite, acceptée d\'office', val(`
+  select s.status, s.review_note, r.product_code, r.languages from public.submission s join public.release r on r.id = s.target_id where s.id = $1`, [corrVersion?.id]),
+  [{ status: 'approved', review_note: 'Appliquée directement : membre de confiance', product_code: 'SCES-00868', languages: ['fr'] }]);
+await egal('…une jaquette ou un résumé, eux, attendent toujours un modérateur', en(MEMBRE, `insert into public.submission (action, target, target_id, data) values ('update', 'game', $1, $2::jsonb) returning status`,
+  [autreJeu, JSON.stringify({ summary: 'Un résumé assez long pour être accepté par la base de données.' })]).then((r) => r.rows[0].status), 'pending');
+await egal('la liste des membres de l\'admin dit qui est de confiance', lignes(en(ADMIN, `select trusted from public.admin_members() where id = $1`, [MEMBRE])), [{ trusted: true }]);
+await ok('l\'admin lui retire la confiance', en(ADMIN, `select public.admin_set_trusted($1, false)`, [MEMBRE]));
 
 console.log(echecs ? `\n${echecs} test(s) en échec` : '\nTous les tests passent');
 process.exit(echecs ? 1 : 0);

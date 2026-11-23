@@ -19,6 +19,7 @@ import { GameSkeleton } from '../components/Skeleton';
 import { PriceSummary } from '../components/PriceSummary';
 // Caméra, recadrage, liaison avec le téléphone : chargés seulement à l'ouverture de la fenêtre
 const CoverProposal = lazy(() => loadOrReload(() => import('../components/CoverProposal')).then((m) => ({ default: m.CoverProposal })));
+const SuggestCorrection = lazy(() => loadOrReload(() => import('../components/SuggestCorrection')).then((m) => ({ default: m.SuggestCorrection })));
 import { useReleasePrices } from '../lib/prices';
 import { useToast } from '../components/Toast';
 import { notifyCollectionChanged } from '../lib/trophies';
@@ -70,6 +71,8 @@ export function GamePage() {
   const [adding, setAdding] = useState<number | null>(null);
   // Version dont on propose la jaquette (fenêtre ouverte)
   const [coverFor, setCoverFor] = useState<Release | null>(null);
+  // « Suggérer une correction » : ouverte sur le jeu (null) ou sur une version
+  const [correcting, setCorrecting] = useState<{ releaseId: number | null } | null>(null);
   const [busy, setBusy] = useState<number | null>(null);
   const [actionError, setActionError] = useState('');
   const { toast, show: showToast } = useToast();
@@ -228,6 +231,12 @@ export function GamePage() {
   }
 
   // Proposer une jaquette : réservé aux membres connectés
+  function suggestCorrection(releaseId: number | null) {
+    if (!session) return navigate(`/connexion?next=${encodeURIComponent(here)}`);
+    if (needsMfa) return navigate(`/connexion/verification?next=${encodeURIComponent(here)}`);
+    setCorrecting({ releaseId });
+  }
+
   function proposeCover(release: Release) {
     if (!session) return navigate(`/connexion?next=${encodeURIComponent(here)}`);
     if (needsMfa) return navigate(`/connexion/verification?next=${encodeURIComponent(here)}`);
@@ -483,6 +492,7 @@ export function GamePage() {
                     {r.image.some((i) => i.type === 'front')
                       ? <button type="button" className="link-button small" onClick={() => proposeCover(r)}>{tr('Proposer une meilleure jaquette')}</button>
                       : <button type="button" className="button button-small" onClick={() => proposeCover(r)}><PsSymbol shape="square" />{tr(' Proposer une jaquette')}</button>}
+                    <button type="button" className="link-button small" onClick={() => suggestCorrection(r.id)}>{tr('Corriger cette version')}</button>
                   </div>
                 </div>
               </li>
@@ -496,6 +506,9 @@ export function GamePage() {
         <h2>{tr('Une info manque ou est fausse ?')}</h2>
         <p className="muted small">{tr("La base est collaborative : chaque proposition est relue par un modérateur avant d'apparaître.")}</p>
         <div className="actions">
+          <button type="button" className="button button-primary" onClick={() => suggestCorrection(null)}>
+            <PsSymbol shape="triangle" />{tr(' Suggérer une correction')}
+          </button>
           <Link to={`/proposer?jeu=${game.id}`} className="button"><PsSymbol shape="square" />{tr(' Proposer une version manquante')}</Link>
           <button type="button" className="button" onClick={() => (session ? setProposeSummary(true) : navigate(`/connexion?next=${encodeURIComponent(location.pathname)}`))}>
             <PsSymbol shape="circle" /> {game.summary ? tr('Proposer un meilleur résumé') : tr('Proposer un résumé')}
@@ -505,6 +518,11 @@ export function GamePage() {
           </button>
         </div>
       </section>
+      {correcting && (
+        <Suspense fallback={null}>
+          <SuggestCorrection game={game} initialReleaseId={correcting.releaseId} onClose={() => setCorrecting(null)} onApplied={() => setRetry((n) => n + 1)} />
+        </Suspense>
+      )}
       {coverFor && (
         <Suspense fallback={null}>
           <CoverProposal open release={coverFor} gameTitle={game.title} onClose={() => setCoverFor(null)} />

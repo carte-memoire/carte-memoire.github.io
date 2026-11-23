@@ -24,6 +24,7 @@ import { forgetCompanies, useCompanies } from '../lib/useCompanies';
 import { tr, locale } from '../lib/i18n';
 import { usePageTitle } from '../lib/title';
 import { UserTag } from '../components/UserTag';
+import { CorrectionCard } from '../components/CorrectionCard';
 
 type Tab = 'submissions' | 'reports' | 'duplicates' | 'studios' | 'genres' | 'covers' | 'history' | 'members';
 
@@ -134,7 +135,9 @@ function SubmissionQueue({ onCount }: { onCount: (n: number) => void }) {
 
   function finished(s: Submission, result: { approved: boolean; gameId?: number }) {
     const name = s.data.game?.title ?? s.data.release?.local_title ?? (s.data.summary ? tr('Résumé') : tr('Proposition'));
-    const text = s.target === 'image'
+    const text = s.data.changes
+      ? (result.approved ? tr('Correction appliquée') : tr('Correction refusée'))
+      : s.target === 'image'
       ? (result.approved ? tr('Jaquette acceptée : elle est en ligne') : tr('Jaquette refusée'))
       : `${name} : ${result.approved ? tr('ajouté au catalogue') : tr('refusé')}`;
     setDone((d) => [{ text, gameId: result.gameId }, ...d].slice(0, 5));
@@ -150,7 +153,9 @@ function SubmissionQueue({ onCount }: { onCount: (n: number) => void }) {
       ))}
       {error && <p className="error">{error}</p>}
       {loaded && items.length === 0 && <p className="panel empty">{tr('Aucune proposition en attente. ')}<PsSymbol shape="triangle" /></p>}
-      {items.map((s) => s.action === 'update' && s.target === 'game'
+      {items.map((s) => s.data.changes
+        ? <CorrectionCard key={s.id} submission={s} onDone={(r) => finished(s, r)} />
+        : s.action === 'update' && s.target === 'game'
         ? <SummaryCard key={s.id} submission={s} onDone={(r) => finished(s, r)} />
         : s.target === 'image'
           ? <CoverSubmissionCard key={s.id} submission={s} onDone={(r) => finished(s, r)} />

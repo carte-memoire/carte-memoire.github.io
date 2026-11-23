@@ -182,6 +182,8 @@ export interface Submission {
     cover_path?: string;
     no_cover?: boolean;
     summary?: string;
+    // Correction champ par champ (lib/corrections.ts)
+    changes?: Record<string, unknown>;
   };
   target_id?: number | null;
   sources: string | null;

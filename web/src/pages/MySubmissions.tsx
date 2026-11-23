@@ -47,13 +47,15 @@ export function MySubmissions() {
     if (error) setError(errorMessage(error));
     const list = (data as Submission[]) ?? [];
     // Titres des jeux concernés par une proposition de résumé ou une nouvelle version
-    const ids = [...new Set(list.filter((s) => s.target !== 'image').map((s) => s.target_id ?? s.data.game_id)
+    // (une jaquette ou la correction d'une version vise une version, pas un jeu)
+    const onRelease = (s: Submission) => s.target === 'image' || (Boolean(s.data.changes) && s.target === 'release');
+    const ids = [...new Set(list.filter((s) => !onRelease(s)).map((s) => s.target_id ?? s.data.game_id)
       .filter((id): id is number => typeof id === 'number'))];
     if (ids.length) {
       const { data: games } = await supabase.from('game').select('id, title').in('id', ids);
       setTitles(new Map((games ?? []).map((g) => [g.id as number, g.title as string])));
     }
-    const releaseIds = [...new Set(list.filter((s) => s.target === 'image').map((s) => s.target_id).filter((id): id is number => typeof id === 'number'))];
+    const releaseIds = [...new Set(list.filter(onRelease).map((s) => s.target_id).filter((id): id is number => typeof id === 'number'))];
     if (releaseIds.length) {
       const { data: releases } = await supabase.from('release').select('id, local_title, game(id, title, slug)').in('id', releaseIds);
       setVersions(new Map(((releases ?? []) as unknown as { id: number; local_title: string; game: { id: number; title: string; slug: string | null } | null }[])
@@ -83,17 +85,19 @@ export function MySubmissions() {
       {loaded && items.length === 0 && <p className="panel empty">{tr('Aucune proposition pour le moment.')}</p>}
       <ul className="plain-list">
         {items.map((s) => {
-          const isSummary = s.action === 'update' && s.target === 'game';
+          const isCorrection = Boolean(s.data.changes);
+          const isSummary = s.action === 'update' && s.target === 'game' && !isCorrection;
           const isCover = s.target === 'image';
-          const version = isCover ? versions.get(s.target_id as number) : undefined;
-          const gameTitle = isCover ? version?.game : titles.get((s.target_id ?? s.data.game_id) as number);
+          const onVersion = isCover || (isCorrection && s.target === 'release');
+          const version = onVersion ? versions.get(s.target_id as number) : undefined;
+          const gameTitle = onVersion ? version?.game : titles.get((s.target_id ?? s.data.game_id) as number);
           const name = s.data.game?.title ?? gameTitle ?? s.data.release?.local_title ?? tr('Proposition');
           return (
             <li key={s.id} className="panel list-row">
               <span>
                 <strong>{name}</strong>{' '}
                 <span className="muted small">
-                  {isSummary ? tr('résumé') : isCover ? tr('jaquette') : s.target === 'release' ? tr('nouvelle version') : tr('nouveau jeu')}
+                  {isCorrection ? tr('correction') : isSummary ? tr('résumé') : isCover ? tr('jaquette') : s.target === 'release' ? tr('nouvelle version') : tr('nouveau jeu')}
                   {version && version.title !== version.game && ` (${version.title})`}
                   {s.data.release?.zone !== undefined && ` · ${zoneLabel(s.data.release.zone)}`}
                   {' · '}{new Date(s.created_at).toLocaleDateString(locale)}

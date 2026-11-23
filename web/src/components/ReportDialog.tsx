@@ -49,6 +49,7 @@ export function ReportDialog({ game, open, onClose }: { game: Game; open: boolea
         </>
       ) : (
         <form onSubmit={submit} className="form">
+          <p className="hint">{tr("Une date, une zone, un code produit, un genre ou un studio faux ? « Suggérer une correction » (sous les versions) te laisse proposer directement la bonne valeur.")}</p>
           <label className="field">
             <span className="field-label">{tr("Qu'est-ce qui est faux ?")}</span>
             <select value={kind} onChange={(e) => setKind(e.target.value as ReportKind)}>

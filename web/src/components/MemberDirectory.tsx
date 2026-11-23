@@ -38,6 +38,10 @@ interface AdminMember {
   owned_count: number;
   wanted_count: number;
   submission_count: number;
+  accepted_count: number;
+  rejected_count: number;
+  // Membre de confiance : ses corrections sont appliquées sans attendre un modérateur
+  trusted: boolean;
   total_count: number;
 }
 
@@ -192,6 +196,7 @@ function MemberCard({ member: m, onChanged }: { member: AdminMember; onChanged: 
         <Avatar username={m.username} path={m.avatar} size="medium" />
         <Link to={`/membre/${encodeURIComponent(m.username)}`} className="block-title">{m.username}</Link>
         <span className={`badge badge-role-${m.role}`}>{roleLabel(m.role)}</span>
+        {m.trusted && <span className="badge badge-trusted">{tr('de confiance')}</span>}
         {m.banned_until && <span className="badge badge-banned">{banText(m.banned_until)}</span>}
         {self && <span className="badge">{tr('toi')}</span>}
       </div>
@@ -207,7 +212,12 @@ function MemberCard({ member: m, onChanged }: { member: AdminMember; onChanged: 
         <dt>{tr('Collection')}</dt>
         <dd>{tr('{0} possédé{1?s} · {2} recherché{3?s}', formatNumber(m.owned_count), m.owned_count > 1, formatNumber(m.wanted_count), m.wanted_count > 1)}</dd>
         <dt>{tr('Propositions')}</dt>
-        <dd>{formatNumber(m.submission_count)}</dd>
+        <dd>
+          {tr('{0} · {1} acceptée{2?s}, {3} refusée{4?s}', formatNumber(m.submission_count), formatNumber(m.accepted_count), m.accepted_count > 1, formatNumber(m.rejected_count), m.rejected_count > 1)}
+          {!m.trusted && m.accepted_count >= 10 && m.rejected_count * 10 <= m.accepted_count && (
+            <span className="muted small">{tr(' · contributions fiables : il pourrait devenir membre de confiance')}</span>
+          )}
+        </dd>
         {m.banned_until && m.ban_reason && (
           <>
             <dt>{tr('Raison de la suspension')}</dt>
@@ -225,6 +235,10 @@ function MemberCard({ member: m, onChanged }: { member: AdminMember; onChanged: 
             <select value={m.role} onChange={(e) => changeRole(e.target.value as UserRole)} disabled={busy}>
               {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
             </select>
+          </label>
+          <label className="check-row member-trusted" title={tr('Ses corrections (dates, genres, studios, zones, codes, langues) sont appliquées tout de suite, et restent dans l’historique.')}>
+            <input type="checkbox" checked={m.trusted} disabled={busy} onChange={() => run(supabase.rpc('admin_set_trusted', { target: m.id, trusted: !m.trusted }))} />
+            <span>{tr('Membre de confiance')}</span>
           </label>
           <button type="button" className="button button-small" onClick={() => setDialog('rename')} disabled={busy}>
             <PsSymbol shape="triangle" />{tr(' Renommer')}
