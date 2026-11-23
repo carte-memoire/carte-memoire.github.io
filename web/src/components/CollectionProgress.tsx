@@ -12,7 +12,7 @@ import { MIN_PRICE_MEMBERS, formatEuros } from '../lib/prices';
 import { useKnownPlatform, usePlatforms } from '../lib/usePlatforms';
 import { tr } from '../lib/i18n';
 
-function initialZone(): string {
+export function initialZone(): string {
   const zone = rememberedZone();
   return zone === ALL_ZONES || CATALOG_ZONES.some((z) => z.value === zone) ? zone : ALL_ZONES;
 }

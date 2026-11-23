@@ -1,23 +1,23 @@
-import { lazy, Suspense, useCallback, useEffect, useEffectEvent, useMemo, useState } from 'react';
+import { Fragment, lazy, Suspense, useCallback, useEffect, useEffectEvent, useMemo, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { COLLECTION_FIELDS } from '../lib/queries';
 import { standInFor, type CoverSource, type StandIn } from '../lib/images';
 import {
-  acquisitionLabel, CATALOG_ZONES, CONDITIONS, conditionLabel, editionClass, editionLabel, formatNumber, formatPrice, gamePath, languagesLong, languagesShort, searchKey, TRADE_STATUSES, tradeStatusLabel, zoneLabel, boxRegionName,
+  acquisitionLabel, CATALOG_ZONES, CONDITIONS, conditionLabel, editionClass, editionLabel, formatNumber, formatPercent, formatPrice, gamePath, languagesLong, languagesShort, searchKey, TRADE_STATUSES, tradeStatusLabel, zoneLabel, boxRegionName,
 } from '../lib/format';
 import { errorMessage } from '../lib/errors';
 import { downloadCsv, toCsv } from '../lib/csv';
 import { EXPORT_HEADERS, itemToRow } from '../lib/collectionCsv';
 import {
-  pageSizeFrom, pageSizeParam, rememberCollectionView, rememberedCollectionView, rememberedPageSize, rememberPageSize, type CollectionView,
+  ALL_PLATFORMS, ALL_ZONES, pageSizeFrom, pageSizeParam, rememberCollectionView, rememberedPlatform, rememberedCollectionView, rememberedPageSize, rememberPageSize, type CollectionView,
 } from '../lib/preferences';
-import type { CollectionItem, ItemStatus } from '../lib/types';
+import type { CollectionItem, ItemStatus, ProgressRow, Zone } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
 import { AddToCollection, savedText, type SavedItem } from '../components/AddToCollection';
 import { CollectionImport } from '../components/CollectionImport';
-import { CollectionProgress } from '../components/CollectionProgress';
-import { useConfirm } from '../components/Confirm';
+import { CollectionProgress, initialZone } from '../components/CollectionProgress';
+import { MemoryBar } from '../components/MemoryBar';
 import { Cover } from '../components/Cover';
 import { PageSizeSelect, Pagination } from '../components/Pagination';
 import { PsSymbol } from '../components/PsSymbol';
@@ -26,7 +26,7 @@ import { TrophyIcon } from '../components/TrophyIcon';
 import { formatEuros } from '../lib/prices';
 import { useToast } from '../components/Toast';
 import { notifyCollectionChanged } from '../lib/trophies';
-import { usePlatforms } from '../lib/usePlatforms';
+import { useKnownPlatform, usePlatforms } from '../lib/usePlatforms';
 import { tr } from '../lib/i18n';
 import { loadOrReload } from '../lib/reload';
 
@@ -38,6 +38,10 @@ import { usePageTitle } from '../lib/title';
 
 // L'API renvoie au plus 1 000 lignes par requête : on lit la collection par paquets
 const BATCH = 1000;
+// Jusqu'à ce nombre d'exemplaires, filtres et tri restent repliés derrière un bouton
+const FEW_ITEMS = 30;
+// Page par défaut : au-delà, le choix du nombre par page apparaît
+const FULL_PAGE = 100;
 
 type Sort = 'recent' | 'title' | 'release' | 'condition' | 'price' | 'purchase';
 const SORTS: { value: Sort; label: string; ownedOnly?: boolean }[] = [
@@ -87,7 +91,6 @@ function hasContent(item: CollectionItem, content: Content): boolean {
 export function Collection() {
   usePageTitle(tr('Ma collection'));
   const { session, profile } = useAuth();
-  const confirm = useConfirm();
   const [params, setParams] = useSearchParams();
   const [items, setItems] = useState<CollectionItem[]>([]);
   // Versions des jeux dont l'exemplaire n'a pas de jaquette (id du jeu → versions avec recto)
@@ -109,8 +112,10 @@ export function Collection() {
   const [text, setText] = useState(() => params.get('q') ?? '');
 
   // Onglet, recherche, filtres et tri : dans l'adresse, pour les retrouver
-  // en revenant d'une fiche de jeu
-  const tab: ItemStatus = params.get('onglet') === 'recherches' ? 'wanted' : 'owned';
+  // en revenant d'une fiche de jeu. Les jeux d'abord ; les chiffres dans leur propre onglet.
+  const tabParam = params.get('onglet');
+  const showStats = tabParam === 'statistiques';
+  const tab: ItemStatus = tabParam === 'recherches' ? 'wanted' : 'owned';
   const zone = params.get('zone') ?? '';
   // Console (PS1, PS2…) : le filtre n'apparaît que si la collection en mélange plusieurs
   const platform = params.get('console') ?? '';
@@ -121,8 +126,11 @@ export function Collection() {
   const noCover = tab === 'owned' && params.get('jaquette') === 'manquante';
   const sortParam = params.get('tri') as Sort | null;
   const sort: Sort = SORTS.some((s) => s.value === sortParam && (tab === 'owned' || !s.ownedOnly)) ? sortParam! : 'recent';
+  // Filtres et tri : repliés derrière un bouton, sauf s'ils servent déjà
+  const activeFilters = [platform, zone, ...(tab === 'owned' ? [condition, content, offer] : [])].filter(Boolean).length;
+  const [filtersOpen, setFiltersOpen] = useState(() => activeFilters > 0 || sort !== 'recent');
   // Nombre d'exemplaires par page (0 = tout) et page affichée
-  const pageSize = pageSizeFrom(params.get('par')) ?? rememberedPageSize('collection', 100);
+  const pageSize = pageSizeFrom(params.get('par')) ?? rememberedPageSize('collection', FULL_PAGE);
   const page = pageSize === 0 ? 1 : Math.max(1, Number.parseInt(params.get('page') ?? '1', 10) || 1);
 
   // Tout changement de filtre ramène à la première page
@@ -226,12 +234,10 @@ export function Collection() {
     load();
   }
 
-  async function remove(item: CollectionItem) {
-    if (!(await confirm({ title: tr('Retirer de ma collection'), message: tr('Retirer « {0} » de ta collection ?', item.release.local_title), confirmLabel: tr('Retirer'), danger: true }))) return;
-    const { error } = await supabase.from('collection_item').delete().eq('id', item.id);
-    if (error) return setError(errorMessage(error));
-    notifyCollectionChanged();
-    await load();
+  // Retiré depuis la fenêtre « Modifier » (qui a déjà demandé confirmation)
+  function removed(item: CollectionItem) {
+    showToast({ text: item.status === 'owned' ? tr('« {0} » est retiré de ta collection.', item.release.local_title) : tr('« {0} » est retiré de ta liste de recherche.', item.release.local_title) });
+    load();
   }
 
   // Toute la collection (sans tenir compte des filtres) : possédés puis recherchés, par titre
@@ -275,8 +281,12 @@ export function Collection() {
   const current = Math.min(page, pages);
   const visible = pageSize === 0 ? shown : shown.slice((current - 1) * pageSize, current * pageSize);
 
+  // Petite collection : filtres et tri repliés à toutes les largeurs (sur téléphone, toujours)
+  const fewItems = total <= FEW_ITEMS;
+  const filtersId = 'collection-more-filters';
+
   return (
-    <section className="stack">
+    <section className="stack page-wide">
       <div className="page-head">
         <div>
           <h1>{tr('Ma collection')}</h1>
@@ -302,132 +312,155 @@ export function Collection() {
         </div>
       </div>
 
-      {loaded && <CollectionProgress items={items} values={values} />}
+      {/* La carte mémoire en une ligne : le détail est dans l'onglet Statistiques */}
+      {loaded && !showStats && owned.length > 0 && (
+        <ProgressStrip items={items} onOpen={() => update({ onglet: 'statistiques', tri: null })} />
+      )}
 
       <div className="tabs" role="tablist">
-        <button type="button" role="tab" aria-selected={tab === 'owned'} className={tab === 'owned' ? 'tab active' : 'tab'}
+        <button type="button" role="tab" aria-selected={!showStats && tab === 'owned'} className={!showStats && tab === 'owned' ? 'tab active' : 'tab'}
           onClick={() => update({ onglet: null, tri: null })}>
-          {tr('Mes jeux (')}{formatNumber(owned.length)})
+          {tr('Mes jeux')}<span className="tab-count">{formatNumber(owned.length)}</span>
         </button>
-        <button type="button" role="tab" aria-selected={tab === 'wanted'} className={tab === 'wanted' ? 'tab active' : 'tab'}
+        <button type="button" role="tab" aria-selected={!showStats && tab === 'wanted'} className={!showStats && tab === 'wanted' ? 'tab active' : 'tab'}
           onClick={() => update({ onglet: 'recherches', tri: null })}>
-          {tr('Recherchés (')}{formatNumber(wanted.length)})
+          {tr('Recherchés')}<span className="tab-count">{formatNumber(wanted.length)}</span>
+        </button>
+        <button type="button" role="tab" aria-selected={showStats} className={showStats ? 'tab active' : 'tab'}
+          onClick={() => update({ onglet: 'statistiques', tri: null })}>
+          {tr('Statistiques')}
         </button>
       </div>
 
-      {tab === 'owned' && missingCovers > 0 && (
-        <p className="notice help-covers">
-          <PsSymbol shape="circle" colored />{' '}
-          {tr('{0} version{1?s} de ta collection n’{2?ont:a} pas encore de jaquette. Prends-la en photo avec ton téléphone : toute la communauté en profite.', formatNumber(missingCovers), missingCovers > 1, missingCovers > 1)}{' '}
-          <button type="button" className="link-button" onClick={() => update({ jaquette: noCover ? null : 'manquante' })}>
-            {noCover ? tr('Voir tous mes jeux') : tr('Voir lesquelles')}
-          </button>
-        </p>
-      )}
+      {error && <p className="error">{error}</p>}
 
-      {total > 0 && (
-        <div className="panel catalog-filters">
-          <div className="row">
-            <label className="field catalog-search">
-              <span className="field-label">{tr('Rechercher')}</span>
-              <input type="search" value={text} onChange={(e) => { setText(e.target.value); update({ q: e.target.value }); }} placeholder={tr('Titre ou code produit')} maxLength={120} autoComplete="off" />
-            </label>
-            {(multiPlatform || platform) && (
-              <label className="field">
-                <span className="field-label">{tr('Console')}</span>
-                <select value={platform} onChange={(e) => update({ console: e.target.value })}>
-                  <option value="">{tr('Toutes')}</option>
-                  {consoles.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
-                </select>
-              </label>
-            )}
-            <label className="field">
-              <span className="field-label">{tr('Zone')}</span>
-              <select value={zone} onChange={(e) => update({ zone: e.target.value })}>
-                <option value="">{tr('Toutes')}</option>
-                {CATALOG_ZONES.map((z) => <option key={z.value} value={z.value}>{z.label}</option>)}
-              </select>
-            </label>
-            {tab === 'owned' && (
-              <>
-                <label className="field">
-                  <span className="field-label">{tr('État')}</span>
-                  <select value={condition} onChange={(e) => update({ etat: e.target.value })}>
-                    <option value="">{tr('Tous')}</option>
-                    {CONDITIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-                    <option value={UNKNOWN_CONDITION}>{tr('État non précisé')}</option>
-                  </select>
-                </label>
-                <label className="field">
-                  <span className="field-label">{tr('Contenu')}</span>
-                  <select value={content} onChange={(e) => update({ contenu: e.target.value })}>
-                    <option value="">{tr('Tous')}</option>
-                    {CONTENTS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-                  </select>
-                </label>
-                <label className="field">
-                  <span className="field-label">{tr('Échange')}</span>
-                  <select value={offer} onChange={(e) => update({ echange: e.target.value })}>
-                    <option value="">{tr('Tous')}</option>
-                    {TRADE_STATUSES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-                  </select>
-                </label>
-              </>
-            )}
-            <label className="field">
-              <span className="field-label">{tr('Tri')}</span>
-              <select value={sort} onChange={(e) => update({ tri: e.target.value === 'recent' ? null : e.target.value })}>
-                {SORTS.filter((s) => tab === 'owned' || !s.ownedOnly).map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-              </select>
-            </label>
-          </div>
-          <div className="list-row">
-            <p className="muted small" aria-live="polite">
-              {filtered ? tr('{0} sur {1}', formatNumber(shown.length), formatNumber(total)) : formatNumber(total)} {noun(tab, total)}
-              {pages > 1 && tr(' · page {0} sur {1}', current, pages)}
-              {filtered && (
-                <> · <button type="button" className="link-button" onClick={() => { setText(''); update({ q: null, console: null, zone: null, etat: null, contenu: null, echange: null }); }}>{tr('effacer les filtres')}</button></>
-              )}
+      {showStats ? (
+        loaded ? <CollectionProgress items={items} values={values} /> : !error && <CollectionSkeleton />
+      ) : (
+        <>
+          {tab === 'owned' && missingCovers > 0 && (
+            <p className="notice help-covers">
+              <PsSymbol shape="circle" colored />{' '}
+              {tr('{0} version{1?s} de ta collection n’{2?ont:a} pas encore de jaquette. Prends-la en photo avec ton téléphone : toute la communauté en profite.', formatNumber(missingCovers), missingCovers > 1, missingCovers > 1)}{' '}
+              <button type="button" className="link-button" onClick={() => update({ jaquette: noCover ? null : 'manquante' })}>
+                {noCover ? tr('Voir tous mes jeux') : tr('Voir lesquelles')}
+              </button>
             </p>
-            <div className="list-tools">
-              <PageSizeSelect value={pageSize} onChange={choosePageSize} />
-              <div className="view-switch" role="group" aria-label={tr('Affichage')}>
-                <button type="button" className={view === 'list' ? 'zone-option active' : 'zone-option'} aria-pressed={view === 'list'} onClick={() => chooseView('list')}>{tr('▤ Liste')}</button>
-                <button type="button" className={view === 'grid' ? 'zone-option active' : 'zone-option'} aria-pressed={view === 'grid'} onClick={() => chooseView('grid')}>{tr('▦ Jaquettes')}</button>
+          )}
+
+          {total > 0 && (
+            <div className={fewItems ? 'panel catalog-filters filters-compact' : 'panel catalog-filters'}>
+              <div className="row catalog-search-row">
+                <label className="field catalog-search">
+                  <span className="field-label">{tr('Rechercher')}</span>
+                  <input type="search" value={text} onChange={(e) => { setText(e.target.value); update({ q: e.target.value }); }} placeholder={tr('Titre ou code produit')} maxLength={120} autoComplete="off" />
+                </label>
+                <button type="button" className="button filters-toggle" aria-expanded={filtersOpen} aria-controls={filtersId}
+                  onClick={() => setFiltersOpen((v) => !v)}>
+                  {tr('Filtres et tri')}{activeFilters > 0 && <span className="count-badge">{activeFilters}</span>} <span aria-hidden="true">{filtersOpen ? '▴' : '▾'}</span>
+                </button>
+              </div>
+              <div id={filtersId} className={filtersOpen ? 'more-filters is-open' : 'more-filters'}>
+                <div className="row">
+                  {(multiPlatform || platform) && (
+                    <label className="field">
+                      <span className="field-label">{tr('Console')}</span>
+                      <select value={platform} onChange={(e) => update({ console: e.target.value })}>
+                        <option value="">{tr('Toutes')}</option>
+                        {consoles.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
+                      </select>
+                    </label>
+                  )}
+                  <label className="field">
+                    <span className="field-label">{tr('Zone')}</span>
+                    <select value={zone} onChange={(e) => update({ zone: e.target.value })}>
+                      <option value="">{tr('Toutes')}</option>
+                      {CATALOG_ZONES.map((z) => <option key={z.value} value={z.value}>{z.label}</option>)}
+                    </select>
+                  </label>
+                  {tab === 'owned' && (
+                    <>
+                      <label className="field">
+                        <span className="field-label">{tr('État')}</span>
+                        <select value={condition} onChange={(e) => update({ etat: e.target.value })}>
+                          <option value="">{tr('Tous')}</option>
+                          {CONDITIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                          <option value={UNKNOWN_CONDITION}>{tr('État non précisé')}</option>
+                        </select>
+                      </label>
+                      <label className="field">
+                        <span className="field-label">{tr('Contenu')}</span>
+                        <select value={content} onChange={(e) => update({ contenu: e.target.value })}>
+                          <option value="">{tr('Tous')}</option>
+                          {CONTENTS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                        </select>
+                      </label>
+                      <label className="field">
+                        <span className="field-label">{tr('Échange')}</span>
+                        <select value={offer} onChange={(e) => update({ echange: e.target.value })}>
+                          <option value="">{tr('Tous')}</option>
+                          {TRADE_STATUSES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                        </select>
+                      </label>
+                    </>
+                  )}
+                  <label className="field">
+                    <span className="field-label">{tr('Tri')}</span>
+                    <select value={sort} onChange={(e) => update({ tri: e.target.value === 'recent' ? null : e.target.value })}>
+                      {SORTS.filter((s) => tab === 'owned' || !s.ownedOnly).map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+                    </select>
+                  </label>
+                </div>
+              </div>
+              <div className="list-row">
+                <p className="muted small" aria-live="polite">
+                  {filtered ? tr('{0} sur {1}', formatNumber(shown.length), formatNumber(total)) : formatNumber(total)} {noun(tab, total)}
+                  {pages > 1 && tr(' · page {0} sur {1}', current, pages)}
+                  {filtered && (
+                    <> · <button type="button" className="link-button" onClick={() => { setText(''); update({ q: null, console: null, zone: null, etat: null, contenu: null, echange: null, jaquette: null }); }}>{tr('effacer les filtres')}</button></>
+                  )}
+                </p>
+                <div className="list-tools">
+                  {/* Le nombre par page ne sert que lorsque tout ne tient pas sur une page de 100 */}
+                  {(pages > 1 || total > FULL_PAGE) && <PageSizeSelect value={pageSize} onChange={choosePageSize} />}
+                  <div className="view-switch" role="group" aria-label={tr('Affichage')}>
+                    <button type="button" className={view === 'list' ? 'zone-option active' : 'zone-option'} aria-pressed={view === 'list'} onClick={() => chooseView('list')}>{tr('▤ Liste')}</button>
+                    <button type="button" className={view === 'grid' ? 'zone-option active' : 'zone-option'} aria-pressed={view === 'grid'} onClick={() => chooseView('grid')}>{tr('▦ Jaquettes')}</button>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          )}
 
-      {error && <p className="error">{error}</p>}
-      {loaded && total === 0 && (
-        <div className="panel empty">
-          <p>{tab === 'owned' ? tr('Aucun jeu pour le moment : ta carte mémoire est vide !') : tr('Aucun jeu dans ta liste de recherche.')}</p>
-          <button type="button" className="button button-primary" onClick={() => setDialog({ open: true })}><PsSymbol shape="cross" />{tr(' Ajouter un jeu')}</button>
-        </div>
-      )}
-      {loaded && total > 0 && shown.length === 0 && (
-        <p className="panel empty">{tr('Aucun exemplaire ne correspond à ces filtres.')}</p>
-      )}
+          {loaded && total === 0 && (
+            <div className="panel empty">
+              <p>{tab === 'owned' ? tr('Aucun jeu pour le moment : ta carte mémoire est vide !') : tr('Aucun jeu dans ta liste de recherche.')}</p>
+              <button type="button" className="button button-primary" onClick={() => setDialog({ open: true })}><PsSymbol shape="cross" />{tr(' Ajouter un jeu')}</button>
+            </div>
+          )}
+          {loaded && total > 0 && shown.length === 0 && (
+            <p className="panel empty">{tr('Aucun exemplaire ne correspond à ces filtres.')}</p>
+          )}
 
-      {!loaded && !error && <CollectionSkeleton />}
+          {!loaded && !error && <CollectionSkeleton />}
 
-      {view === 'list' ? (
-        <ul className="memory-card">
-          {visible.map((item) => (
-            <ItemBlock key={item.id} item={item} value={values.get(item.id) ?? null} fresh={item.release.id === justSaved} showPlatform={multiPlatform} standIn={standInOf(item)} onEdit={() => setDialog({ open: true, item })} onRemove={() => remove(item)} onPhoto={item.status === 'owned' && !hasOwnCover(item) ? () => setCoverFor(item) : undefined} />
-          ))}
-        </ul>
-      ) : (
-        <ul className="cover-grid">
-          {visible.map((item) => (
-            <ItemTile key={item.id} item={item} fresh={item.release.id === justSaved} showPlatform={multiPlatform} standIn={standInOf(item)} onEdit={() => setDialog({ open: true, item })} onPhoto={item.status === 'owned' && !hasOwnCover(item) ? () => setCoverFor(item) : undefined} />
-          ))}
-        </ul>
+          {view === 'list' ? (
+            <ul className="memory-card">
+              {visible.map((item) => (
+                <ItemBlock key={item.id} item={item} value={values.get(item.id) ?? null} fresh={item.release.id === justSaved} showPlatform={multiPlatform} standIn={standInOf(item)} onEdit={() => setDialog({ open: true, item })} onPhoto={item.status === 'owned' && !hasOwnCover(item) ? () => setCoverFor(item) : undefined} />
+              ))}
+            </ul>
+          ) : (
+            <ul className="cover-grid">
+              {visible.map((item) => (
+                <ItemTile key={item.id} item={item} fresh={item.release.id === justSaved} showPlatform={multiPlatform} standIn={standInOf(item)} onEdit={() => setDialog({ open: true, item })} onPhoto={item.status === 'owned' && !hasOwnCover(item) ? () => setCoverFor(item) : undefined} />
+              ))}
+            </ul>
+          )}
+
+          <Pagination page={current} pages={pages} onChange={goToPage} label={tr('Pages de la collection')} />
+        </>
       )}
-
-      <Pagination page={current} pages={pages} onChange={goToPage} label={tr('Pages de la collection')} />
 
       <CollectionImport open={importing} onClose={() => setImporting(false)} onImported={() => { notifyCollectionChanged(); load(); }} existing={items} />
 
@@ -437,6 +470,7 @@ export function Collection() {
         editItem={dialog.item}
         onClose={() => setDialog({ open: false })}
         onSaved={saved}
+        onRemoved={removed}
       />
       {coverFor && (
         <Suspense fallback={null}>
@@ -448,12 +482,70 @@ export function Collection() {
   );
 }
 
-// Vue en liste : tous les détails de l'exemplaire
-function ItemBlock({ item, value, fresh, showPlatform, standIn, onEdit, onRemove, onPhoto }: {
-  item: CollectionItem; value: number | null; fresh: boolean; showPlatform: boolean; standIn: StandIn | null; onEdit: () => void; onRemove: () => void; onPhoto?: () => void;
+// Bandeau de progression au-dessus des onglets : la carte mémoire (console et zone retenues
+// dans les statistiques) et le compte, un clic mène au détail
+function ProgressStrip({ items, onOpen }: { items: CollectionItem[]; onOpen: () => void }) {
+  const platform = useKnownPlatform(rememberedPlatform());
+  const platformCode = platform === ALL_PLATFORMS ? null : platform;
+  const zone = initialZone();
+  const zoneCode = zone === ALL_ZONES ? null : (zone as Zone);
+  const [main, setMain] = useState<ProgressRow | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    supabase.rpc('collection_progress', { platform_code: platformCode, zone_code: zoneCode }).then(({ data }) => {
+      if (active) setMain(((data as ProgressRow[] | null) ?? []).find((r) => r.scope === 'zone' && r.code === (zoneCode ?? 'all')) ?? null);
+    });
+    return () => { active = false; };
+  }, [platformCode, zoneCode, items]);
+
+  if (!main || main.total === 0) return null;
+  const scope = [platformCode, CATALOG_ZONES.find((z) => z.value === zoneCode)?.short].filter(Boolean).join(' ');
+  return (
+    <button type="button" className="progress-strip" onClick={onOpen}>
+      <MemoryBar size="small" owned={main.owned} total={main.total} label={tr('Jeux possédés')} />
+      <span className="progress-strip-text">
+        <strong>{formatNumber(main.owned)}</strong> / {formatNumber(main.total)}{tr(' jeux')}{scope && ` ${scope}`}
+        <span className="muted"> · {formatPercent(main.owned, main.total)}</span>
+      </span>
+      <span className="progress-strip-more">{tr('Statistiques')} <span aria-hidden="true">→</span></span>
+    </button>
+  );
+}
+
+// L'édition n'est dite que lorsqu'elle sort de l'ordinaire (Platinum, collector…) :
+// « Black Label » ou « Standard » sur presque toutes les cartes n'apprend rien
+const notableEdition = (r: CollectionItem['release']) => r.edition_type !== 'standard' || Boolean(r.edition_name);
+
+// « Complet », « Boîte + Disque »… ; rien quand le contenu n'est pas précisé
+function contentText(item: CollectionItem): string {
+  if (item.has_box && item.has_manual && item.has_media) return tr('Complet');
+  return [item.has_box && tr('Boîte'), item.has_manual && tr('Notice'), item.has_media && tr('Disque')].filter(Boolean).join(' + ');
+}
+
+// Console, zone et langues en une ligne discrète, séparées par « · »
+function ReleaseLine({ release: r, showPlatform }: { release: CollectionItem['release']; showPlatform: boolean }) {
+  const parts: ReactNode[] = [];
+  if (showPlatform) parts.push(r.platform.short_name);
+  parts.push(<span key="zone" title={zoneLabel(r.zone)}>{r.zone ?? '?'}</span>);
+  if (r.box_region) parts.push(<span key="box" title={tr('Boîte : {0}', boxRegionName(r.box_region.code))}>{tr('Boîte ')}{r.box_region.code === 'europe' ? 'EU' : r.box_region.code}</span>);
+  else if (r.languages.length > 0) parts.push(<span key="lang" title={languagesLong(r.languages)}>{languagesShort(r.languages)}</span>);
+  return <>{parts.map((p, i) => <Fragment key={i}>{i > 0 && ' · '}{p}</Fragment>)}</>;
+}
+
+// Vue en liste : la jaquette, le titre, puis seulement ce qui distingue cet exemplaire
+function ItemBlock({ item, value, fresh, showPlatform, standIn, onEdit, onPhoto }: {
+  item: CollectionItem; value: number | null; fresh: boolean; showPlatform: boolean; standIn: StandIn | null; onEdit: () => void; onPhoto?: () => void;
 }) {
   const r = item.release;
-  const complete = item.has_box && item.has_manual && item.has_media;
+  const owned = item.status === 'owned';
+  const contents = owned ? contentText(item) : '';
+  const purchase = owned
+    ? [contents && `${contents}${item.has_spine_card ? tr(' + spine card') : ''}`,
+      item.acquisition && `${acquisitionLabel(item.acquisition)}${item.purchase_place ? ` (${item.purchase_place})` : ''}`,
+      item.purchase_price !== null && formatPrice(item.purchase_price)].filter(Boolean).join(' · ')
+    : '';
+  const badges = notableEdition(r) || item.condition || item.trade_status;
   return (
     <li className={fresh ? 'block just-saved' : 'block'}>
       <div className="photo-cover">
@@ -462,25 +554,15 @@ function ItemBlock({ item, value, fresh, showPlatform, standIn, onEdit, onRemove
       </div>
       <div className="block-body">
         <Link to={gamePath(r.game)} className="block-title">{r.local_title}</Link>
-        <p className="block-badges">
-          {showPlatform && <span className="badge badge-console">{r.platform.short_name}</span>}
-          <span className={`badge badge-zone badge-${(r.zone ?? 'unknown').toLowerCase()}`}>{zoneLabel(r.zone)}</span>
-          <span className={`badge ${editionClass(r)}`}>{editionLabel(r)}</span>
-          {r.box_region
-            ? <span className="badge badge-language" title={tr('Boîte : {0}', boxRegionName(r.box_region.code))}>{tr('Boîte ')}{r.box_region.code === 'europe' ? 'EU' : r.box_region.code}</span>
-            : r.languages.length > 0 && <span className="badge badge-language" title={languagesLong(r.languages)}>{languagesShort(r.languages)}</span>}
-          {item.condition && <span className={`badge badge-condition badge-${item.condition}`}>{conditionLabel(item.condition)}</span>}
-          {item.trade_status && <span className="badge badge-trade">{tradeStatusLabel(item.trade_status)}</span>}
-        </p>
-        {item.status === 'owned' && (
-          <p className="block-meta">
-            {complete ? tr('Complet') : [item.has_box && tr('Boîte'), item.has_manual && tr('Notice'), item.has_media && tr('Disque')].filter(Boolean).join(' + ') || tr('Contenu non précisé')}
-            {item.has_spine_card && tr(' + spine card')}
-            {item.acquisition && ` · ${acquisitionLabel(item.acquisition)}`}
-            {item.purchase_place && ` (${item.purchase_place})`}
-            {item.purchase_price !== null && ` · ${formatPrice(item.purchase_price)}`}
+        <p className="block-meta"><ReleaseLine release={r} showPlatform={showPlatform} /></p>
+        {badges && (
+          <p className="block-badges">
+            {notableEdition(r) && <span className={`badge ${editionClass(r)}`}>{editionLabel(r)}</span>}
+            {item.condition && <span className={`badge badge-condition badge-${item.condition}`}>{conditionLabel(item.condition)}</span>}
+            {item.trade_status && <span className="badge badge-trade">{tradeStatusLabel(item.trade_status)}</span>}
           </p>
         )}
+        {purchase && <p className="block-meta">{purchase}</p>}
         {value !== null && (
           <p className="block-meta" title={tr('Prix médian payé par les membres pour cette version, dans cet état')}>
             {tr('Valeur estimée : ')}<strong className="block-value">{formatEuros(value)}</strong>
@@ -488,8 +570,9 @@ function ItemBlock({ item, value, fresh, showPlatform, standIn, onEdit, onRemove
         )}
         {item.notes && <p className="block-notes">{item.notes}</p>}
         <div className="block-actions">
-          <button type="button" className="button button-small" onClick={onEdit}><PsSymbol shape="triangle" />{tr(' Modifier')}</button>
-          <button type="button" className="button button-small button-danger" onClick={onRemove}>{tr('Retirer')}</button>
+          <button type="button" className="button button-small" onClick={onEdit} aria-label={tr('Modifier « {0} »', r.local_title)}>
+            <PsSymbol shape="triangle" />{tr(' Modifier')}
+          </button>
         </div>
       </div>
     </li>
@@ -507,7 +590,8 @@ function ItemTile({ item, fresh, showPlatform, standIn, onEdit, onPhoto }: { ite
         <span className="cover-tile-title">{r.local_title}</span>
       </Link>
       <span className="cover-tile-meta">
-        {showPlatform && `${r.platform.short_name} · `}{r.zone ?? '?'} · {editionLabel(r)}{r.languages.length > 0 && <span title={languagesLong(r.languages)}> · {languagesShort(r.languages)}</span>}
+        <ReleaseLine release={r} showPlatform={showPlatform} />
+        {notableEdition(r) && ` · ${editionLabel(r)}`}
         {item.status === 'owned' && complete && <span className="cover-tile-complete" title={tr('Complet (boîte, notice, disque)')}>{tr(' · Complet')}</span>}
       </span>
       {(item.condition || item.trade_status) && (
@@ -516,7 +600,7 @@ function ItemTile({ item, fresh, showPlatform, standIn, onEdit, onPhoto }: { ite
           {item.trade_status && <span className="badge badge-trade">{tradeStatusLabel(item.trade_status)}</span>}
         </span>
       )}
-      <button type="button" className="link-button small" onClick={onEdit}>{tr('Modifier')}</button>
+      <button type="button" className="link-button small" onClick={onEdit} aria-label={tr('Modifier « {0} »', r.local_title)}>{tr('Modifier')}</button>
       {onPhoto && <PhotoButton onClick={onPhoto} />}
     </li>
   );

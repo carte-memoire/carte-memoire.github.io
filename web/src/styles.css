@@ -804,6 +804,38 @@ fieldset.notice { padding: 10px 12px; }
   .filters-toggle .count-badge { margin-left: 0; }
   .more-filters:not(.is-open) { display: none; }
 }
+/* Ma collection, petite (30 exemplaires au plus) : la recherche seule, filtres et tri repliés
+   derrière un bouton à toutes les largeurs — six listes pour quinze jeux, c'était trop */
+.filters-compact .catalog-search-row { flex-wrap: nowrap; align-items: flex-end; }
+.filters-compact .row > .catalog-search { flex: 1 1 auto; min-width: 0; max-width: 520px; }
+.filters-compact .filters-toggle { display: inline-flex; flex: none; gap: 6px; }
+.filters-compact .filters-toggle .count-badge { margin-left: 0; }
+.filters-compact .more-filters:not(.is-open) { display: none; }
+
+/* ---------- Pages larges (Ma collection, page d'un membre) ---------- */
+/* Grilles de cartes et de jaquettes : elles profitent des grands écrans (4 cartes, 9 jaquettes
+   par ligne à 1 440 px) ; les autres pages gardent une largeur de lecture */
+.main:has(.page-wide) { max-width: 1440px; }
+
+/* Bandeau « carte mémoire » au-dessus des onglets de Ma collection */
+.progress-strip {
+  display: flex; align-items: center; gap: 10px 16px; flex-wrap: wrap; width: 100%;
+  padding: 10px 14px; font: inherit; color: var(--text); text-align: left; cursor: pointer;
+  background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius);
+}
+.progress-strip:hover, .progress-strip:focus-visible { border-color: var(--triangle); }
+.progress-strip .memory-bar { flex: 0 1 240px; min-width: 150px; }
+.progress-strip-text { flex: 1 1 auto; }
+.progress-strip-text strong { font-family: var(--pixel); font-size: 0.85rem; color: var(--triangle); }
+.progress-strip-more { color: var(--cross); font-size: 0.9rem; white-space: nowrap; }
+.motion .progress-strip-more span { display: inline-block; transition: transform 150ms ease; }
+.motion .progress-strip:hover .progress-strip-more span { transform: translateX(3px); }
+@media (max-width: 480px) {
+  .progress-strip .memory-bar { flex-basis: 100%; }
+}
+
+/* Fenêtre « Modifier cet exemplaire » : « Retirer » à l'écart du bouton d'enregistrement */
+.actions .item-remove { margin-left: auto; padding: 8px 0; }
 .letters { display: flex; flex-wrap: wrap; gap: 4px; }
 .letter {
   font: inherit; font-family: var(--pixel); font-size: 0.6rem; min-width: 30px; min-height: 30px; padding: 0 6px;

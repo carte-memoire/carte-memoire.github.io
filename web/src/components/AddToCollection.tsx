@@ -12,6 +12,7 @@ import { GameSearch } from './GameSearch';
 import { Cover } from './Cover';
 import { ReleaseSummary } from './ReleaseSummary';
 import { PsSymbol } from './PsSymbol';
+import { useConfirm } from './Confirm';
 import { tr } from '../lib/i18n';
 import { priceCategory, priceCategoryLabel, priceText, useReleasePrices } from '../lib/prices';
 import { notifyCollectionChanged } from '../lib/trophies';
@@ -40,11 +41,13 @@ interface Props {
   initialReleaseId?: number | null;
   // …ou modifier un exemplaire existant
   editItem?: CollectionItem | null;
+  // Exemplaire retiré depuis la fenêtre « Modifier » (le bouton n'apparaît que si elle est fournie)
+  onRemoved?: (item: CollectionItem) => void;
 }
 
 type Step = 'search' | 'release' | 'details';
 
-export function AddToCollection({ open, onClose, onSaved, initialReleaseId, editItem }: Props) {
+export function AddToCollection({ open, onClose, onSaved, initialReleaseId, editItem, onRemoved }: Props) {
   const [step, setStep] = useState<Step>('search');
   const [game, setGame] = useState<SearchResult | null>(null);
   const [releases, setReleases] = useState<Release[]>([]);
@@ -129,13 +132,17 @@ export function AddToCollection({ open, onClose, onSaved, initialReleaseId, edit
 
       {step === 'details' && release && (
         <ItemForm release={release} item={editItem ?? null} onBack={editItem || initialReleaseId ? null : () => setStep(releases.length > 1 ? 'release' : 'search')}
-          onSaved={(saved) => { onSaved(saved); onClose(); }} />
+          onSaved={(saved) => { onSaved(saved); onClose(); }}
+          onRemoved={onRemoved && ((item) => { onRemoved(item); onClose(); })} />
       )}
     </Dialog>
   );
 }
 
-function ItemForm({ release, item, onBack, onSaved }: { release: Release; item: CollectionItem | null; onBack: (() => void) | null; onSaved: (saved: SavedItem) => void }) {
+function ItemForm({ release, item, onBack, onSaved, onRemoved }: {
+  release: Release; item: CollectionItem | null; onBack: (() => void) | null; onSaved: (saved: SavedItem) => void; onRemoved?: (item: CollectionItem) => void;
+}) {
+  const confirm = useConfirm();
   const [status, setStatus] = useState<ItemStatus>(item?.status ?? 'owned');
   const [condition, setCondition] = useState<ItemCondition | ''>(item?.condition ?? '');
   const [hasBox, setHasBox] = useState(item?.has_box ?? true);
@@ -199,6 +206,24 @@ function ItemForm({ release, item, onBack, onSaved }: { release: Release; item: 
     if (error) return setError(errorMessage(error));
     notifyCollectionChanged();
     onSaved({ releaseId: release.id, title: release.local_title, status, edited: Boolean(item) });
+  }
+
+  // « Retirer » vit ici plutôt que sur chaque carte : une action destructrice, pas exposée
+  // à côté de « Modifier » où un clic de travers suffisait
+  async function remove(current: CollectionItem) {
+    const owned = current.status === 'owned';
+    if (!(await confirm({
+      title: owned ? tr('Retirer de ma collection') : tr('Retirer de ma liste de recherche'),
+      message: owned ? tr('Retirer « {0} » de ta collection ?', release.local_title) : tr('Retirer « {0} » de ta liste de recherche ?', release.local_title),
+      confirmLabel: tr('Retirer'), danger: true,
+    }))) return;
+    setSaving(true);
+    setError('');
+    const { error } = await supabase.from('collection_item').delete().eq('id', current.id);
+    setSaving(false);
+    if (error) return setError(errorMessage(error));
+    notifyCollectionChanged();
+    onRemoved?.(current);
   }
 
   return (
@@ -278,6 +303,11 @@ function ItemForm({ release, item, onBack, onSaved }: { release: Release; item: 
         <button type="submit" className="button button-primary" disabled={saving}>
           <PsSymbol shape="cross" /> {saving ? tr('Sauvegarde en cours… Ne retirez pas la carte mémoire') : item ? tr('Enregistrer') : tr('Ajouter à ma collection')}
         </button>
+        {item && onRemoved && (
+          <button type="button" className="link-button danger item-remove" onClick={() => remove(item)} disabled={saving}>
+            {item.status === 'owned' ? tr('Retirer de ma collection') : tr('Retirer de ma liste de recherche')}
+          </button>
+        )}
       </div>
     </form>
   );

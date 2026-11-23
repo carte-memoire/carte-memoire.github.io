@@ -175,7 +175,7 @@ export function MemberPage() {
   }
 
   return (
-    <section className="stack">
+    <section className="stack page-wide">
       <div className="page-head">
         <div className="member-title">
           <Avatar username={profile.username} path={profile.avatar} size="large" />
