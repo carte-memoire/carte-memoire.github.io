@@ -1127,7 +1127,10 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
    morceau sous chaque boîtier, qui déborde de la moitié de l'espacement). Au survol, le
    boîtier se soulève et penche vers la souris avec un reflet, les autres s'effacent ; à
    l'arrivée, les boîtiers se retournent en vague (la tablette, elle, reste en place). */
-.cover-grid { gap: 30px 18px; }
+.cover-grid {
+  gap: 30px 18px;
+  --board-h: 9px; --board-bg: linear-gradient(#2a2a31, #121215); --board-light: rgba(255, 255, 255, 0.18); --board-shade: rgba(0, 0, 0, 0.6);
+}
 .cover-grid .cover { position: relative; z-index: 1; border: 0; border-radius: 3px; box-shadow: 0 14px 18px -8px rgba(0, 0, 0, 0.85); }
 .cover-grid .cover::after {
   content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; opacity: 0;
@@ -1141,18 +1144,26 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .cover-tile-link:hover { color: #fff; }
 .cover-tile-link:hover .cover { border-color: transparent; }
 @supports (grid-template-rows: subgrid) {
-  .cover-grid .cover-tile-link { row-gap: 18px; }
+  .cover-grid .cover-tile-link { row-gap: calc(9px + var(--board-h)); }
   .cover-grid .cover-tile-link .cover { grid-row: 1; grid-column: 1; }
   .cover-grid .cover-tile-title { grid-row: 2; }
   .cover-grid .cover-tile-link::before {
-    content: ''; grid-row: 1; grid-column: 1; align-self: end; height: 9px; margin: 0 -9px -9px;
-    background: linear-gradient(#2a2a31, #121215); border-radius: 2px;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 12px 18px rgba(0, 0, 0, 0.6);
+    content: ''; grid-row: 1; grid-column: 1; align-self: end; height: var(--board-h); margin: 0 -9px calc(-1 * var(--board-h));
+    background: var(--board-bg); border-radius: 2px;
+    box-shadow: inset 0 1px 0 var(--board-light), inset 0 -1px 0 rgba(0, 0, 0, 0.25);
+  }
+  /* L'ombre de la tablette, en bande verticale (raccords sans couture), juste sous elle et
+     derrière les titres (l'étagère isole ses calques) */
+  .cover-grid { isolation: isolate; }
+  .cover-grid .cover-tile-link::after {
+    content: ''; grid-row: 1; grid-column: 1; align-self: end; z-index: -1; height: 18px; margin: 0 -9px calc(-1 * var(--board-h) - 18px);
+    pointer-events: none; background: linear-gradient(var(--board-shade), transparent);
   }
 }
 @media (max-width: 640px) {
   .cover-grid { gap: 26px 10px; }
   .cover-grid .cover-tile-link::before { margin-inline: -5px; }
+  .cover-grid .cover-tile-link::after { margin-inline: -5px; }
 }
 .motion .cover-grid > li { animation: none; }
 .motion .cover-grid .cover {
@@ -1170,20 +1181,19 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 }
 
 /* ---------- Ma collection : l'étagère de tranches (Spine.tsx) ----------
-   Une étagère par console ; les tranches serrées les unes contre les autres sur une
-   tablette (un morceau sous chaque tranche). Proportions réelles, au format européen :
+   Une étagère par console, dans son meuble (« Le meuble de la collection », plus bas) ; les
+   tranches serrées les unes contre les autres. Proportions réelles, au format européen :
    1,8 px par mm (PS1 PAL : 17 × 130 mm ; PS2 : 14 × 190 mm). */
-.shelves { display: flex; flex-direction: column; gap: 36px; }
-.shelf-name { margin: 0 0 14px; font-size: var(--fs-1); font-weight: 650; text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted); }
+.shelves { display: flex; flex-direction: column; gap: 48px; }
+.shelf-group { display: flex; flex-direction: column; gap: 14px; }
+.shelf-name { margin: 0; font-size: var(--fs-1); font-weight: 650; text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted); }
 .shelf-count { margin-left: 10px; letter-spacing: 0; color: var(--text); }
-.shelf { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: flex-end; row-gap: 40px; }
+.shelf { list-style: none; margin: 0; padding: 0; position: relative; display: flex; flex-wrap: wrap; align-items: flex-end; row-gap: 40px; }
 .shelf > li { position: relative; display: flex; padding-right: 6px; }
-.shelf > li::after {
-  content: ''; position: absolute; left: 0; right: 0; bottom: -9px; height: 9px;
-  background: linear-gradient(#2a2a31, #121215);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 12px 18px rgba(0, 0, 0, 0.6);
+.shelf-spine {
+  display: block; padding: 0; border: 0; background: none; cursor: pointer; color: inherit; font: inherit;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
 }
-.shelf-spine { display: block; padding: 0; border: 0; background: none; cursor: pointer; color: inherit; font: inherit; }
 .shelf-spine:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 .shelf .spine-ps1 { --spine-w: 31px; height: 234px; }
 .shelf .spine-ps2 { --spine-w: 25px; height: 342px; }
@@ -1262,6 +1272,456 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 @keyframes spine-in { from { opacity: 0; transform: translateY(-26px); } }
 .motion .shelf-spine { animation: spine-in 0.5s var(--ease) backwards; animation-delay: calc(var(--i, 0) * 14ms); transition: transform 0.35s var(--ease), filter 0.35s; }
 .motion .shelf-spine:hover, .motion .shelf-spine:focus-visible { transform: translateY(-12px); filter: brightness(1.12); }
+
+/* ---------- Le meuble de la collection (ShelfFurniture.tsx, ShelfStyle.tsx) ----------
+   Chaque étagère de Ma collection dans son meuble, réglé étagère par étagère : tablettes
+   murales, bibliothèque (montants, fond en lames, haut avec la plaque de la console, socle) ou
+   vitrine (porte vitrée, étagères en verre). Bois et métal brossé : textures rendues avec
+   Blender (scripts/etagere : textures.py puis encode.mjs), fil horizontal pour les tablettes,
+   le haut et le socle, vertical pour les montants et le fond ; lumière, reflets et ombres sont
+   ajoutés ici. Seules les images de la finition choisie se chargent.
+   Une finition règle : --tex-h, --tex-v (textures ; none pour les laques), --wood-1 à --wood-3
+   (du plus clair au plus foncé), --wood-top (dessus des tablettes), --wood-edge (arête éclairée),
+   --back-base, --back-shade, --grooves (le fond), --plaque-* (laiton ou acier). */
+.furniture, .board-sample {
+  --thick: 9px;
+  --tex-h: none; --tex-v: none;
+  --wood-1: #3a3a42; --wood-2: #1f1f25; --wood-3: #0e0e11; --wood-top: #2e2e35; --wood-edge: rgba(255, 255, 255, 0.3);
+  --back-base: #121216; --back-shade: transparent; --grooves: none;
+  --plaque-1: #f6e2a6; --plaque-2: #cfa955; --plaque-3: #8f6b27; --plaque-ink: #3b2a08;
+  --back-layers: linear-gradient(var(--back-shade), var(--back-shade)), var(--grooves), var(--tex-v) 0 0 / 640px auto repeat, var(--back-base);
+}
+.furniture {
+  --board-h: var(--thick);
+  --board-depth: 7px;
+  --board-total: calc(var(--board-depth) + var(--board-h));
+  --headroom: 26px;
+  --frame: calc(7px + var(--thick));
+  --crown: 46px;
+  --plinth: 20px;
+  --led: hsl(36 100% 68%);
+  /* Marge intérieure du meuble ; place d'une tranche ; hauteur d'un étage (PS1, ou PS2 si le meuble en porte) */
+  --inset: 14px;
+  --slot: 37px;
+  --level-h: 234px;
+  position: relative;
+}
+.furniture.is-narrow { --slot: 31px; }
+.furniture.is-tall { --level-h: 342px; }
+.board-fine { --thick: 4px; }
+.board-normale { --thick: 9px; }
+.board-epaisse { --thick: 15px; }
+.board-massive { --thick: 24px; }
+
+/* Bois (textures Blender) : le fond en lames, assombri */
+.board-noyer, .board-chene, .board-erable, .board-ebene {
+  --grooves: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.55) 0 1px, rgba(255, 255, 255, 0.07) 1px 2px, transparent 2px 160px);
+}
+.board-noyer {
+  --tex-h: url('./assets/etagere/noyer-fil.webp'); --tex-v: url('./assets/etagere/noyer-panneau.webp');
+  --wood-1: #86593a; --wood-2: #5a3720; --wood-3: #3a2214; --wood-top: #77502f; --wood-edge: rgba(255, 210, 160, 0.4);
+  --back-base: #3a2214; --back-shade: rgba(16, 7, 2, 0.5);
+}
+.board-chene {
+  --tex-h: url('./assets/etagere/chene-fil.webp'); --tex-v: url('./assets/etagere/chene-panneau.webp');
+  --wood-1: #ddb57f; --wood-2: #b08250; --wood-3: #8a5e31; --wood-top: #cfa56c; --wood-edge: rgba(255, 240, 210, 0.6);
+  --back-base: #8a5e31; --back-shade: rgba(30, 14, 3, 0.55);
+}
+.board-erable {
+  --tex-h: url('./assets/etagere/erable-fil.webp'); --tex-v: url('./assets/etagere/erable-panneau.webp');
+  --wood-1: #f1ddba; --wood-2: #d6b887; --wood-3: #b8945f; --wood-top: #e8d0a6; --wood-edge: rgba(255, 252, 240, 0.75);
+  --back-base: #b8945f; --back-shade: rgba(40, 22, 6, 0.5);
+}
+.board-ebene {
+  --tex-h: url('./assets/etagere/ebene-fil.webp'); --tex-v: url('./assets/etagere/ebene-panneau.webp');
+  --wood-1: #57402e; --wood-2: #2a1c13; --wood-3: #120c08; --wood-top: #3d2c20; --wood-edge: rgba(255, 220, 180, 0.28);
+  --back-base: #120c08; --back-shade: rgba(0, 0, 0, 0.4);
+  --plaque-1: #f5f7f9; --plaque-2: #c3c8ce; --plaque-3: #8b9097; --plaque-ink: #23262a;
+}
+/* Laques : unies et brillantes, fond de la même couleur en plus sombre */
+.board-noir { --back-base: radial-gradient(ellipse 80% 90% at 50% 35%, #1b1b20, #0b0b0d); }
+.board-blanc {
+  --wood-1: #ffffff; --wood-2: #e8e8e3; --wood-3: #c4c4bd; --wood-top: #f6f6f2; --wood-edge: #fff;
+  --back-base: radial-gradient(ellipse 80% 90% at 50% 35%, #f1f1ed, #d3d3cd);
+  --plaque-1: #f5f7f9; --plaque-2: #c3c8ce; --plaque-3: #8b9097; --plaque-ink: #23262a;
+}
+.board-rouge {
+  --wood-1: #dc4650; --wood-2: #a51f29; --wood-3: #6c0f17; --wood-top: #c2323b; --wood-edge: rgba(255, 195, 195, 0.6);
+  --back-base: radial-gradient(ellipse 80% 90% at 50% 35%, #4a0e14, #22060a);
+}
+.board-bleu {
+  --wood-1: #4c61de; --wood-2: #2a3ca6; --wood-3: #18216d; --wood-top: #3c50c4; --wood-edge: rgba(205, 215, 255, 0.6);
+  --back-base: radial-gradient(ellipse 80% 90% at 50% 35%, #141b50, #090c26);
+  --plaque-1: #f5f7f9; --plaque-2: #c3c8ce; --plaque-3: #8b9097; --plaque-ink: #23262a;
+}
+.board-vert {
+  --wood-1: #347557; --wood-2: #1d4a35; --wood-3: #0f2c1f; --wood-top: #2a6047; --wood-edge: rgba(195, 240, 215, 0.45);
+  --back-base: radial-gradient(ellipse 80% 90% at 50% 35%, #12301f, #07150e);
+}
+/* Métal brossé (texture Blender), fond en tôle perforée */
+.board-metal {
+  --tex-h: url('./assets/etagere/metal-fil.webp'); --tex-v: url('./assets/etagere/metal-panneau.webp');
+  --wood-1: #e6e9ec; --wood-2: #b3b8be; --wood-3: #7d838b; --wood-top: #d3d7dc; --wood-edge: rgba(255, 255, 255, 0.9);
+  --back-base: #6d7279; --back-shade: rgba(10, 12, 15, 0.7);
+  --grooves: radial-gradient(circle, rgba(0, 0, 0, 0.75) 0 1.7px, rgba(255, 255, 255, 0.12) 2.1px, transparent 2.7px) 0 0 / 20px 20px;
+  --plaque-1: #f5f7f9; --plaque-2: #c3c8ce; --plaque-3: #8b9097; --plaque-ink: #23262a;
+}
+/* Verre fumé : cadre d'acier noir, tablettes et fond en verre teinté */
+.board-verre {
+  --wood-1: #4b5157; --wood-2: #2a2e33; --wood-3: #141619; --wood-top: rgba(170, 215, 205, 0.25); --wood-edge: rgba(235, 255, 250, 0.7);
+  --back-base: linear-gradient(115deg, #0d1214, #141c1e 45%, #0b0f10);
+  --plaque-1: #f5f7f9; --plaque-2: #c3c8ce; --plaque-3: #8b9097; --plaque-ink: #23262a;
+}
+
+/* Le meuble fermé (bibliothèque, vitrine) : les montants, le fond, le haut, le socle */
+.furniture:not(.furniture-tablettes) {
+  padding: 0 var(--frame); border-radius: 5px;
+  background: var(--tex-v) 37% 0 / 640px auto repeat, linear-gradient(90deg, var(--wood-2), var(--wood-1), var(--wood-2));
+  box-shadow: 0 38px 46px -28px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(0, 0, 0, 0.45);
+}
+/* Les montants : arête éclairée à gauche, ombre à droite */
+.furniture:not(.furniture-tablettes)::before, .furniture:not(.furniture-tablettes)::after {
+  content: ''; position: absolute; z-index: 1; top: 0; bottom: 0; width: var(--frame); pointer-events: none;
+}
+.furniture:not(.furniture-tablettes)::before {
+  left: 0; border-radius: 5px 0 0 5px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.18), transparent 35%, rgba(0, 0, 0, 0.32));
+  box-shadow: inset 1px 0 0 var(--wood-edge);
+}
+.furniture:not(.furniture-tablettes)::after {
+  right: 0; border-radius: 0 5px 5px 0;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.3), rgba(255, 255, 255, 0.06) 45%, rgba(0, 0, 0, 0.4));
+}
+.furniture-crown, .furniture-plinth { position: relative; z-index: 2; margin-inline: calc(-1 * var(--frame)); }
+/* Le haut : une planche épaisse avec sa moulure, et la plaque au nom de la console */
+.furniture-crown {
+  height: var(--crown); border-radius: 5px 5px 0 0;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.16), transparent 20%, transparent 68%, rgba(0, 0, 0, 0.45)),
+    var(--tex-h) -310px -64px / auto 192px repeat-x,
+    linear-gradient(var(--wood-1), var(--wood-2) 60%, var(--wood-3));
+  box-shadow: inset 0 1px 0 var(--wood-edge), 0 3px 5px rgba(0, 0, 0, 0.5);
+}
+.furniture-crown::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 8px; height: 2px; pointer-events: none;
+  background: linear-gradient(var(--wood-edge), rgba(0, 0, 0, 0.4)); opacity: 0.55;
+}
+.furniture-plinth {
+  height: var(--plinth); border-radius: 0 0 5px 5px;
+  background:
+    linear-gradient(rgba(0, 0, 0, 0.3), transparent 30%, rgba(0, 0, 0, 0.5)),
+    var(--tex-h) -930px -120px / auto 192px repeat-x,
+    linear-gradient(var(--wood-2), var(--wood-3));
+  box-shadow: inset 0 1px 0 var(--wood-edge);
+}
+/* Le fond : lames de bois (ou tôle perforée, laque), dans l'ombre des montants et du haut */
+.furniture:not(.furniture-tablettes) .furniture-body {
+  padding: var(--headroom) var(--inset) var(--board-total);
+  background: var(--back-layers);
+  box-shadow: inset 0 14px 18px -8px rgba(0, 0, 0, 0.8), inset 16px 0 18px -14px rgba(0, 0, 0, 0.75), inset -16px 0 18px -14px rgba(0, 0, 0, 0.75);
+}
+.furniture-tablettes .furniture-body { padding-bottom: var(--board-total); }
+.furniture-body { position: relative; isolation: isolate; }
+.furniture-body > ul { position: relative; }
+
+/* L'en-tête : nom de l'étagère et bouton « Personnaliser » ; dans un meuble, sur le haut */
+.furniture-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.furniture-tablettes > .furniture-head { margin-bottom: 16px; }
+.furniture-crown .furniture-head { position: absolute; inset: 0 10px; justify-content: center; }
+.furniture-crown .furniture-tune { position: absolute; right: 0; }
+.furniture-crown .shelf-name {
+  position: relative; padding: 5px 22px 4px; border-radius: 3px; font-size: 11px; font-weight: 750; letter-spacing: 0.2em; color: var(--plaque-ink);
+  background: linear-gradient(172deg, var(--plaque-1), var(--plaque-2) 46%, var(--plaque-3) 54%, var(--plaque-2));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -1px 0 rgba(0, 0, 0, 0.3), 0 1px 0 rgba(255, 255, 255, 0.12), 0 2px 5px rgba(0, 0, 0, 0.6);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+/* Les deux vis de la plaque */
+.furniture-crown .shelf-name::before, .furniture-crown .shelf-name::after {
+  content: ''; position: absolute; top: 50%; width: 5px; height: 5px; margin-top: -2.5px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.9), var(--plaque-3) 65%); box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.45);
+}
+.furniture-crown .shelf-name::before { left: 7px; }
+.furniture-crown .shelf-name::after { right: 7px; }
+.furniture-crown .shelf-count { margin-left: 8px; color: inherit; opacity: 0.7; }
+.furniture-tune {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 4px 11px; cursor: pointer;
+  font: inherit; font-size: var(--fs-1); color: #fff; border-radius: 999px;
+  background: rgba(0, 0, 0, 0.38); border: 1px solid rgba(255, 255, 255, 0.2); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+}
+.furniture-tune svg { width: 15px; height: 15px; flex: none; }
+.furniture-tune:hover, .furniture-tune.is-open { background: rgba(0, 0, 0, 0.62); border-color: rgba(255, 255, 255, 0.5); }
+.furniture-tune:focus-visible { outline: 2px solid var(--triangle); outline-offset: 2px; }
+.furniture-tablettes .furniture-tune { color: var(--muted); background: transparent; border-color: var(--line); }
+/* Meuble étroit : le bouton se réduit à son pictogramme, à côté de la plaque */
+.furniture.is-fixed .furniture-tune-label { display: none; }
+.furniture.is-fixed .furniture-tune { padding-inline: 8px; }
+.furniture-tablettes .furniture-tune:hover, .furniture-tablettes .furniture-tune.is-open { color: var(--text); border-color: var(--cross); }
+
+/* Les tablettes, pleine largeur : le dessus vu un peu d'en haut (plus étroit au fond, dans
+   l'ombre des jeux), puis la face avant dans le fil du bois, chacune un autre morceau de planche */
+.furniture-board {
+  position: absolute; left: 0; right: 0; height: var(--board-h); margin-top: var(--board-depth); pointer-events: none;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.16), transparent 32%, transparent 60%, rgba(0, 0, 0, 0.42)),
+    var(--tex-h) 0 var(--tex-y, 0) / auto 192px repeat-x,
+    linear-gradient(var(--wood-1), var(--wood-2) 55%, var(--wood-3));
+  box-shadow: inset 0 1px 0 var(--wood-edge), 0 2px 3px rgba(0, 0, 0, 0.5);
+}
+.furniture-board::before {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 100%; height: var(--board-depth);
+  background:
+    linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.15) 60%, rgba(255, 255, 255, 0.1)),
+    var(--tex-h) -200px calc(var(--tex-y, 0px) - 40px) / auto 192px repeat-x,
+    var(--wood-top);
+  clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 100%, 0 100%);
+}
+.furniture-tablettes .furniture-board { border-radius: 2px; }
+/* Selon la hauteur de l'étage (ShelfCabinet.tsx : --board-view, de -1 à 1) : le dessus de la
+   tablette se voit d'autant plus qu'elle est basse ; au-dessus de l'œil, c'est son dessous */
+.furniture-level > .furniture-board::before { height: calc(var(--board-depth) * max(var(--board-view, 1), 0)); }
+.furniture-level > .furniture-board::after {
+  content: ''; position: absolute; left: 0; right: 0; top: 100%; pointer-events: none;
+  height: calc(var(--board-depth) * max(-1 * var(--board-view, 0), 0));
+  background: linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.7)), var(--wood-3);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 10px) 100%, 10px 100%);
+}
+/* Les cases : l'ombre de la tablette du dessus sur le fond (ou sur le mur) */
+.furniture-cell { position: absolute; left: 0; right: 0; pointer-events: none; background: linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.15) 22px, transparent 50px); }
+.furniture-tablettes .furniture-cell { background: linear-gradient(rgba(0, 0, 0, 0.6), transparent 22px); }
+
+/* L'éclairage : une réglette sous le bord avant de chaque tablette (ou sous le haut du meuble),
+   des taches de lumière sur le fond, et le haut des jeux éclairé (calque en « screen ») */
+.light-chaud { --led: hsl(36 100% 68%); }
+.light-froid { --led: hsl(205 100% 84%); }
+@property --led-hue { syntax: '<number>'; inherits: true; initial-value: 300; }
+@keyframes led-cycle { to { --led-hue: 660; } }
+.light-rgb .furniture-cell, .light-rgb .furniture-glow, .light-rgb .furniture-board { --led: hsl(var(--led-hue) 95% 62%); }
+.motion .light-rgb .furniture-cell, .motion .light-rgb .furniture-glow, .motion .light-rgb .furniture-board { animation: led-cycle 18s linear infinite; }
+.furniture.is-lit .furniture-cell {
+  background:
+    radial-gradient(ellipse 120px 85% at 50% 0, color-mix(in srgb, var(--led) 42%, transparent), transparent 72%) 0 0 / 230px 100% repeat-x,
+    linear-gradient(color-mix(in srgb, var(--led) 20%, transparent), transparent 55%),
+    linear-gradient(rgba(0, 0, 0, 0.3), transparent 16px);
+}
+.furniture.is-lit .furniture-cell::before {
+  content: ''; position: absolute; left: 10px; right: 10px; top: 0; height: 2px; border-radius: 2px;
+  background: color-mix(in srgb, var(--led) 50%, #fff);
+  box-shadow: 0 0 6px 1px var(--led), 0 0 24px 7px color-mix(in srgb, var(--led) 45%, transparent);
+}
+.furniture-glow {
+  position: absolute; left: 0; right: 0; pointer-events: none; mix-blend-mode: screen;
+  background:
+    radial-gradient(ellipse 120px 70% at 50% 0, color-mix(in srgb, var(--led) 32%, transparent), transparent 70%) 0 0 / 230px 100% repeat-x,
+    linear-gradient(color-mix(in srgb, var(--led) 14%, transparent), transparent 40%);
+}
+
+/* La vitrine : porte vitrée (reflets, poignée, cadre), étagères en verre éclairées par la tranche */
+.furniture.furniture-vitrine { --board-h: 5px; --board-depth: 9px; margin-bottom: 9px; }
+.furniture-vitrine .furniture-body { background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)), var(--back-layers); }
+.furniture-vitrine .furniture-board {
+  background: linear-gradient(rgba(235, 255, 250, 0.8), rgba(170, 215, 205, 0.3) 45%, rgba(120, 180, 170, 0.6));
+  box-shadow: 0 4px 7px -3px rgba(0, 0, 0, 0.4);
+}
+.furniture-vitrine .furniture-board::before { background: linear-gradient(rgba(255, 255, 255, 0.02), rgba(210, 240, 235, 0.18)); }
+.furniture-vitrine.is-lit .furniture-board {
+  background: linear-gradient(color-mix(in srgb, var(--led) 55%, #fff), rgba(170, 215, 205, 0.3) 45%, rgba(120, 180, 170, 0.6));
+  box-shadow: 0 0 12px color-mix(in srgb, var(--led) 50%, transparent), 0 4px 7px -3px rgba(0, 0, 0, 0.4);
+}
+.furniture-glass {
+  position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+  background:
+    linear-gradient(104deg, transparent 0 14%, rgba(255, 255, 255, 0.06) 14% 21%, transparent 21% 24%, rgba(255, 255, 255, 0.035) 24% 25.5%, transparent 25.5% 66%, rgba(255, 255, 255, 0.045) 66% 73%, transparent 73%),
+    linear-gradient(rgba(210, 230, 255, 0.05), rgba(210, 230, 255, 0.02));
+  box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--wood-3) 75%, #000), inset 0 0 0 4px rgba(255, 255, 255, 0.16), inset 0 0 40px rgba(190, 215, 255, 0.07);
+}
+/* La porte s'ouvre sur ses charnières (à gauche, le bouton est à droite) quand on prend un jeu,
+   et se referme quand il retourne à sa place (Collection.tsx : VITRINE_OPENING) */
+.furniture-glass { transform-origin: left center; z-index: 2; }
+.motion .furniture-glass { transition: transform 0.7s cubic-bezier(0.3, 0.6, 0.2, 1); }
+/* Vue de face, depuis le milieu du meuble : grande ouverte, la porte passe sur le côté */
+.furniture-vitrine .furniture-body { perspective: 1500px; perspective-origin: 50% 45%; }
+.furniture-vitrine.is-open .furniture-glass { transform: rotateY(-112deg); }
+/* Un reflet qui glisse sur la vitre quand on s'approche */
+.furniture-glass::before {
+  content: ''; position: absolute; inset: -10% -60%;
+  background: linear-gradient(104deg, transparent 42%, rgba(255, 255, 255, 0.11) 48%, rgba(255, 255, 255, 0.03) 52%, transparent 56%);
+  transform: translateX(-45%); opacity: 0; transition: transform 1.6s var(--ease), opacity 0.8s;
+}
+.motion .furniture-vitrine:hover .furniture-glass::before { transform: translateX(45%); opacity: 1; }
+/* Le bouton de la porte : une petite boule de métal */
+.furniture-glass::after {
+  content: ''; position: absolute; right: 4px; top: 50%; width: 9px; height: 9px; margin-top: -4.5px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffffff, #c9ced4 35%, #6d737a 75%, #3a3e43);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+/* Les pieds de la vitrine */
+.furniture-vitrine .furniture-plinth::before, .furniture-vitrine .furniture-plinth::after {
+  content: ''; position: absolute; bottom: -9px; width: 30px; height: 9px; border-radius: 0 0 3px 3px;
+  background: linear-gradient(#5b6067, #1b1d20); box-shadow: 0 4px 6px rgba(0, 0, 0, 0.6);
+}
+.furniture-vitrine .furniture-plinth::before { left: 16px; }
+.furniture-vitrine .furniture-plinth::after { right: 16px; }
+
+/* Les jaquettes de l'exposition dans le meuble : ses tablettes remplacent celles de la grille ;
+   sur un fond clair (laque blanche), textes foncés */
+.furniture .cover-grid .cover-tile-link::before, .furniture .cover-grid .cover-tile-link::after { display: none; }
+@supports (grid-template-rows: subgrid) {
+  .furniture .cover-grid .cover-tile-link { row-gap: calc(8px + var(--board-total)); }
+}
+.furniture.board-blanc:not(.furniture-tablettes) .furniture-body { --text: #1c1c20; --muted: #5a5a61; --bg-2: #f6f6f2; --line: #cdcdc6; }
+.furniture.board-blanc:not(.furniture-tablettes) .cover-tile-link:hover { color: #000; }
+
+/* Le réglage (bouton « Personnaliser » d'un meuble, Mon compte › Affichage) */
+.shelf-style-panel { display: flex; flex-direction: column; gap: 16px; }
+.shelf-style-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.shelf-style-head h3 { margin: 0; font-size: var(--fs-3); }
+.shelf-style { display: flex; flex-direction: column; gap: 16px; }
+.shelf-style-row { display: flex; flex-wrap: wrap; gap: 16px 36px; }
+.shelf-style .view-option svg { width: 18px; height: 18px; }
+.board-choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.board-choice {
+  display: inline-flex; flex-direction: column; align-items: center; gap: 5px; min-width: 76px; padding: 8px 8px 6px; cursor: pointer;
+  font-size: var(--fs-1); color: var(--muted); background: var(--bg-2); border: 1px solid var(--line); border-radius: 8px;
+}
+.board-choice:hover { color: var(--text); border-color: var(--cross); }
+.board-choice.active { color: var(--text); border-color: var(--text); box-shadow: inset 0 0 0 1px var(--text); }
+.board-choice:has(input:focus-visible) { outline: 2px solid var(--triangle); outline-offset: 2px; }
+/* Un petit meuble : montants, fond, quatre tranches debout sur une tablette */
+.board-sample {
+  position: relative; display: block; width: 58px; height: 42px; border-radius: 3px; overflow: hidden;
+  background: var(--tex-v) 0 0 / 200px auto, linear-gradient(90deg, var(--wood-2), var(--wood-1), var(--wood-2));
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
+}
+.board-sample::before {
+  content: ''; position: absolute; inset: 4px 4px 9px;
+  background:
+    linear-gradient(90deg, #17171b 0 6px, transparent 6px 7px, #ececea 7px 12px, transparent 12px 13px, #1d1d22 13px 19px, transparent 19px 20px, #a9adb5 20px 25px, transparent 25px) 6px 100% / 30px 22px no-repeat,
+    var(--back-layers);
+  box-shadow: inset 0 4px 5px -2px rgba(0, 0, 0, 0.7);
+}
+.board-sample::after {
+  content: ''; position: absolute; left: 4px; right: 4px; bottom: 4px; height: 5px;
+  background: linear-gradient(rgba(255, 255, 255, 0.2), transparent 40%, rgba(0, 0, 0, 0.35)), var(--tex-h) 0 -40px / auto 96px, linear-gradient(var(--wood-1), var(--wood-3));
+  box-shadow: inset 0 1px 0 var(--wood-edge);
+}
+.board-edge { display: inline-block; width: 22px; height: max(2px, calc(var(--thick) * 0.6)); margin-right: 8px; border-radius: 1px; background: currentColor; }
+.light-dot { display: inline-block; width: 10px; height: 10px; margin-right: 8px; border-radius: 50%; background: #3a3a40; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25); }
+.light-dot.light-chaud { background: hsl(36 100% 68%); box-shadow: 0 0 6px hsl(36 100% 68%); }
+.light-dot.light-froid { background: hsl(205 100% 84%); box-shadow: 0 0 6px hsl(205 100% 84%); }
+.light-dot.light-rgb { background: conic-gradient(#f33, #fd3, #3f6, #3df, #36f, #e3f, #f33); }
+
+/* Téléphone : un meuble plus fin, pour garder la place aux jeux */
+@media (max-width: 640px) {
+  .furniture { --headroom: 18px; --crown: 40px; --plinth: 14px; --frame: calc(4px + var(--thick) * 0.6); --board-depth: 5px; --inset: 8px; --slot: 29px; --level-h: 190px; }
+  .furniture.is-narrow { --slot: 24px; }
+  .furniture.is-tall { --level-h: 272px; }
+  .furniture-glass::after { right: 1px; width: 7px; height: 7px; margin-top: -3.5px; }
+  .furniture-tune-label { display: none; }
+  .furniture-crown .shelf-name { padding-inline: 18px; letter-spacing: 0.14em; }
+}
+
+/* ---------- La pièce du collectionneur (Collection.tsx, ShelfCabinet.tsx, lib/room.ts) ----------
+   Les meubles posés côte à côte et alignés sur le sol, dans l'ordre choisi. Un meuble « auto »
+   prend toute la largeur ; un meuble à nombre de jeux fixe a sa largeur à lui (réduit d'un bloc
+   s'il ne tient pas à l'écran). Chaque étage : la place des jeux, puis sa tablette ; la case
+   (ombre, lumière) couvre l'étage. Les jeux sans place attendent dans un carton. */
+.room { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 48px 28px; }
+.room > .furniture.is-auto, .room > .shelf-style-panel, .room > .room-box { flex: 1 1 100%; min-width: 0; }
+.room > .furniture.is-fixed { flex: 0 0 auto; }
+.furniture.is-editing { outline: 2px solid var(--triangle); outline-offset: 6px; }
+.furniture-levels { display: flex; flex-direction: column; }
+.furniture:not(.furniture-tablettes) .furniture-body.furniture-levels { padding: 0 var(--inset); }
+.furniture-tablettes .furniture-body.furniture-levels { padding: 0; }
+.furniture-level { position: relative; padding-top: var(--headroom); }
+.furniture-tablettes .furniture-level:first-child { padding-top: 0; }
+.furniture-level > .shelf { flex-wrap: nowrap; min-height: var(--level-h); }
+.furniture.is-fixed .furniture-level > .shelf { width: calc(var(--places) * var(--slot)); }
+.furniture-level > .furniture-board { position: relative; display: block; top: auto; left: auto; right: auto; }
+.furniture-level > .furniture-cell, .furniture-level > .furniture-glow { top: 0; bottom: var(--board-total); }
+.furniture:not(.furniture-tablettes) .furniture-level > .furniture-board { margin-inline: calc(-1 * var(--inset)); }
+.furniture:not(.furniture-tablettes) .furniture-level > .furniture-cell,
+.furniture:not(.furniture-tablettes) .furniture-level > .furniture-glow { left: calc(-1 * var(--inset)); right: calc(-1 * var(--inset)); }
+
+/* La profondeur des boîtiers : au-dessus de chaque tranche, le dessus du boîtier qui part vers
+   le fond du meuble (vu d'un peu au-dessus, plus étroit au fond, dans l'ombre) : acrylique
+   transparent d'un jeu PS1, plastique bleu d'un jeu PS2 */
+.furniture .shelf-spine { position: relative; --case-depth: calc(11px * var(--top-view, 0.6)); }
+.furniture .shelf-spine::before {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 100%; height: var(--case-depth); pointer-events: none;
+  background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.12) 70%, rgba(255, 255, 255, 0.2)), rgba(214, 220, 232, 0.55);
+  clip-path: polygon(calc(9% + var(--skew, 0px)) 0, calc(91% + var(--skew, 0px)) 0, 100% 100%, 0 100%);
+}
+/* Les faces du boîtier, à peine : la face avant (jaquette sous l'acrylique) des jeux à gauche
+   du milieu, le dos de ceux à droite (ShelfCabinet.tsx : data-side, --side-w) */
+.furniture .shelf > li > .shelf-spine::after {
+  content: ''; position: absolute; top: 2px; bottom: 2px; width: var(--side-w, 0px); pointer-events: none;
+}
+.furniture .shelf > li[data-side='front'] > .shelf-spine::after {
+  left: 100%;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.22), transparent 45%), linear-gradient(#3a3a44, #1b1b21 55%, #2b2b33);
+  clip-path: polygon(0 0, 100% 2%, 100% 98%, 0 100%);
+}
+.furniture .shelf > li[data-side='back'] > .shelf-spine::after {
+  right: 100%;
+  background: linear-gradient(90deg, transparent 55%, rgba(255, 255, 255, 0.16)), linear-gradient(#25252b, #111114 55%, #1e1e24);
+  clip-path: polygon(0 2%, 100% 0, 100% 100%, 0 98%);
+}
+.furniture .shelf-spine:has(.spine-ps2)::before {
+  background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.12) 70%, rgba(255, 255, 255, 0.22)), #3d43c4;
+}
+.furniture .shelf-spine.is-wanted::before { opacity: 0.5; }
+@media (max-width: 640px) { .furniture .shelf-spine { --case-depth: calc(8px * var(--top-view, 0.6)); } }
+
+/* « Ajouter un meuble » : un emplacement libre, en pointillés */
+.room-add {
+  flex: 0 0 auto; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  min-width: 190px; min-height: 130px; padding: 18px; cursor: pointer; font: inherit; color: var(--muted);
+  background: transparent; border: 2px dashed var(--line); border-radius: 8px;
+}
+.room-add span { font-size: 34px; line-height: 1; font-weight: 300; }
+.room-add:hover { color: var(--text); border-color: var(--cross); }
+.room-add:focus-visible { outline: 2px solid var(--triangle); outline-offset: 2px; }
+
+/* Le carton : ouvert, le haut des tranches dépasse ; sa face avant (avec son scotch) cache le bas */
+.room-box { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px 28px; }
+.room-box-crate {
+  position: relative; max-width: 100%; min-width: 150px; padding: 16px 14px 0; border-radius: 3px 3px 5px 5px;
+  background: linear-gradient(#3c2814, #5d4024 60%, #6e4d2b);
+  box-shadow: 0 22px 28px -18px rgba(0, 0, 0, 0.95);
+}
+.room-box-crate > .shelf { flex-wrap: wrap; row-gap: 10px; }
+.room-box-crate .shelf .spine-face { max-height: 150px; }
+.room-box-crate::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 58%; pointer-events: none; border-radius: 2px 2px 5px 5px;
+  background:
+    linear-gradient(90deg, transparent calc(50% - 18px), rgba(236, 214, 160, 0.5) calc(50% - 18px) calc(50% + 18px), transparent calc(50% + 18px)),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.04) 0 2px, transparent 2px 7px),
+    linear-gradient(#cfa36a, #b88a52 60%, #9c713f);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.35), inset 0 -10px 16px rgba(0, 0, 0, 0.2), 0 -2px 4px rgba(0, 0, 0, 0.35);
+}
+/* Le rabat du fond, un peu ouvert */
+.room-box-flap {
+  position: absolute; left: 4px; right: 4px; top: -12px; height: 14px; pointer-events: none;
+  background: linear-gradient(#d9b27b, #b88a52); clip-path: polygon(0 100%, 5% 0, 95% 0, 100% 100%);
+}
+.room-box-label { flex: 1 1 240px; }
+.room-box-label p { margin: 0 0 10px; color: var(--muted); }
+
+/* Ranger l'étagère à la main (useShelfDrag.ts) : en mode « Ranger », le doigt attrape les
+   tranches au lieu de faire défiler ; la place du jeu en main se creuse, sa copie suit le
+   pointeur, penchée, au-dessus de tout */
+.shelves.is-arranging .shelf-spine { cursor: grab; touch-action: none; }
+.room.is-arranging .furniture-body { outline: 2px dashed rgba(255, 255, 255, 0.35); outline-offset: -5px; }
+.shelf > li.is-placeholder .spine-face { opacity: 0.14; }
+.shelf > li.is-placeholder .shelf-spine { outline: 2px dashed rgba(255, 255, 255, 0.6); outline-offset: -2px; border-radius: 2px; }
+.motion .room.is-dragging .shelf-spine:hover { transform: none; filter: none; }
+.shelf-ghost { position: fixed; z-index: 1000; display: block; margin: 0; pointer-events: none; will-change: transform; }
+.shelf-ghost .spine-face {
+  transform: rotate(-3deg) scale(1.06);
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.14), inset -1px 0 0 rgba(0, 0, 0, 0.55), 0 24px 30px -8px rgba(0, 0, 0, 0.8);
+}
+body.is-shelf-dragging { -webkit-user-select: none; user-select: none; }
+body.is-shelf-dragging, body.is-shelf-dragging * { cursor: grabbing !important; }
 
 /* ---------- Jeu sorti de l'étagère (CaseViewer.tsx) ---------- */
 .case-viewer { position: fixed; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: transparent; color: var(--text); overflow: hidden; }

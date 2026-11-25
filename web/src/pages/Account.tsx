@@ -3,7 +3,10 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { useAuth } from '../auth/AuthContext';
-import { DEFAULT_IDLE_MINUTES, IDLE_CHOICES, MODERATOR_MAX_IDLE_MINUTES, idleMinutes, rememberCollectionView, rememberIdleMinutes, rememberedCollectionView, type CollectionView } from '../lib/preferences';
+import {
+  DEFAULT_IDLE_MINUTES, IDLE_CHOICES, MODERATOR_MAX_IDLE_MINUTES, idleMinutes, rememberCollectionView, rememberIdleMinutes, rememberedCollectionView,
+  type CollectionView,
+} from '../lib/preferences';
 import { COLLECTION_VIEWS } from '../components/CollectionViews';
 import { PasswordField, passwordIsValid } from '../components/PasswordRules';
 import { useConfirm } from '../components/Confirm';
@@ -424,6 +427,12 @@ function DisplaySection() {
         </div>
         <span className="hint">{COLLECTION_VIEWS.find((v) => v.value === view)?.hint}{tr(' (sur cet appareil ; se change aussi depuis Ma collection)')}</span>
       </fieldset>
+      {/* L'étagère de Ma collection : finition et épaisseur des tablettes */}
+      {/* Les meubles de Ma collection se règlent sur place, meuble par meuble */}
+      <p className="hint">
+        {tr('Tes meubles (bibliothèques, vitrines, tablettes : nombre, étages, bois, éclairage) se règlent dans Ma collection, avec le bouton « Personnaliser » de chacun.')}{' '}
+        <Link to="/collection">{tr('Ouvrir Ma collection')}</Link>
+      </p>
     </div>
   );
 }

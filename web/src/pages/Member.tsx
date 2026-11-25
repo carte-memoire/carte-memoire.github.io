@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
@@ -18,6 +18,12 @@ import { TrophyStrip } from '../components/TrophyBoard';
 import { computeTrophies, type TrophyStats } from '../lib/trophies';
 import { usePageTitle } from '../lib/title';
 import { Avatar } from '../components/Avatar';
+import { SpineFace } from '../components/Spine';
+import { CaseViewer, type Pulled } from '../components/CaseViewer';
+import { RoomBox, ShelfCabinet } from '../components/ShelfCabinet';
+import { ShelfFurniture } from '../components/ShelfFurniture';
+import { cleanRoom, compareShelfTitles, distribute, startingRoom, type Meuble, type Room } from '../lib/room';
+import { coverUrl } from '../lib/supabase';
 
 interface PublicProfile {
   username: string;
@@ -53,9 +59,15 @@ interface PublicItem {
   has_media: boolean | null;
   has_spine_card: boolean | null;
   trade_status: TradeStatus | null;
+  item_id?: number;
+  product_code?: string | null;
+  shelf_position?: number | null;
 }
 
 type Tab = 'owned' | 'wanted' | 'offered';
+// Ses meubles (les tranches, rangées à sa façon) ou ses jaquettes (l'exposition)
+type Look = 'meubles' | 'jaquettes';
+const UNPLACED = Number.MAX_SAFE_INTEGER;
 const monthYear = new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' });
 
 // La page publique d'une collection, à partager : chiffres, progression par région,
@@ -78,6 +90,13 @@ export function MemberPage() {
   const [pageSize, setPageSize] = useState(100);
   const [page, setPage] = useState(1);
   const [shared, setShared] = useState('');
+  // Sa pièce (ses meubles et leur aspect), le jeu sorti d'un meuble, et la présentation choisie
+  const [savedRoom, setSavedRoom] = useState<Room | null>(null);
+  const [pulled, setPulled] = useState<Pulled | null>(null);
+  const [openVitrine, setOpenVitrine] = useState<string | null>(null);
+  const [look, setLook] = useState<Look>('meubles');
+  const [perRows, setPerRows] = useState<Record<string, number>>({});
+  const onPerRow = useCallback((id: string, n: number) => setPerRows((p) => (p[id] === n ? p : { ...p, [id]: n })), []);
   // Ses trophées (vides si la collection est privée)
   const [trophyStats, setTrophyStats] = useState<TrophyStats | null>(null);
 
@@ -97,9 +116,15 @@ export function MemberPage() {
     ]).then(async ([p, c]) => {
       if (!active) return;
       setError(p.error ? errorMessage(p.error) : c.error ? errorMessage(c.error) : '');
-      setProfile(((p.data as PublicProfile[] | null) ?? [])[0] ?? null);
+      const found = ((p.data as PublicProfile[] | null) ?? [])[0] ?? null;
+      setProfile(found);
       const list = (c.data as PublicItem[] | null) ?? [];
       setItems(list);
+      // Sa pièce : ses meubles, tels qu'il les a réglés (sinon une bibliothèque par console)
+      if (found) {
+        const { data } = await supabase.from('profile').select('shelf_style').eq('username', found.username).maybeSingle();
+        if (active) setSavedRoom(cleanRoom(data?.shelf_style));
+      }
       // Une progression par console possédée (la PlayStation si la collection est vide)
       const codes = [...new Set(list.filter((i) => i.status === 'owned').map((i) => i.platform))].sort();
       const progress = await Promise.all((codes.length ? codes : [DEFAULT_PLATFORM]).map((code) =>
@@ -128,6 +153,20 @@ export function MemberPage() {
     }
     return [...map.values()];
   }, [items, tab, platform, zone, query]);
+
+  // Les exemplaires un à un, dans l'ordre de son étagère (sa place, sinon le titre)
+  const shelved = useMemo(() => {
+    const key = searchKey(query);
+    return items.filter((i) => (tab === 'wanted' ? i.status === 'wanted' : i.status === 'owned' && (tab === 'owned' || i.trade_status)))
+      .filter((i) => (!platform || i.platform === platform) && (!zone || i.zone === zone)
+        && (!key || [i.local_title, i.game_title].some((t) => searchKey(t).includes(key))))
+      .sort((a, b) => a.platform.localeCompare(b.platform) || (a.shelf_position ?? UNPLACED) - (b.shelf_position ?? UNPLACED)
+        || compareShelfTitles(a.local_title, b.local_title) || Number(a.edition_type !== 'standard') - Number(b.edition_type !== 'standard'));
+  }, [items, tab, platform, zone, query]);
+  const roomConsoles = useMemo(() => [...new Set(items.map((i) => i.platform))].sort()
+    .map((code) => ({ code, name: platforms.find((p) => p.short_name === code)?.name ?? code })), [items, platforms]);
+  const room = savedRoom ?? startingRoom(roomConsoles);
+  const furnished = useMemo(() => distribute(shelved, (i) => i.platform, room.meubles, (m) => perRows[m.id] ?? 20), [shelved, room.meubles, perRows]);
 
   if (profile === undefined) return <MemberSkeleton />;
   if (profile === null) {
@@ -165,6 +204,34 @@ export function MemberPage() {
     } catch {
       setShared(tr('Copie ce lien : {0}', url));
     }
+  }
+
+  // Une tranche de sa pièce : un clic sort le boîtier (d'une vitrine : la porte s'ouvre d'abord)
+  function renderSpine(i: PublicItem, meuble?: Meuble) {
+    const name = platformName(i.platform);
+    const release = { local_title: i.local_title, product_code: i.product_code ?? null, edition_type: i.edition_type, zone: i.zone, platform: { short_name: i.platform } };
+    return (
+      <li key={i.item_id ?? `${i.release_id}-${i.local_title}`}>
+        <button type="button" className={i.status === 'wanted' ? 'shelf-spine is-wanted' : 'shelf-spine'} title={i.local_title}
+          aria-label={tr('Sortir « {0} » de l’étagère', i.local_title)}
+          onClick={(event) => {
+            const from = event.currentTarget.getBoundingClientRect();
+            const complete = i.has_box && i.has_manual && i.has_media;
+            const pull = () => setPulled({
+              from, release, src: i.cover_path ? coverUrl(i.cover_path) : null,
+              meta: [name, i.zone ?? '?', i.edition_type !== 'standard' || i.edition_name ? editionLabel({ ...i, platform: { short_name: i.platform } }) : null,
+                i.status === 'wanted' ? tr('Recherché') : complete ? tr('Complet') : null].filter(Boolean).join(' · '),
+              gameHref: `${gamePath({ id: i.game_id, title: i.game_title, slug: i.game_slug })}?version=${i.release_id}`,
+            });
+            if (meuble?.style.furniture !== 'vitrine') return pull();
+            setOpenVitrine(meuble.id);
+            if (document.documentElement.classList.contains('motion')) setTimeout(pull, 700);
+            else pull();
+          }}>
+          <SpineFace release={release} />
+        </button>
+      </li>
+    );
   }
 
   async function makePublic() {
@@ -273,9 +340,45 @@ export function MemberPage() {
             </div>
           </div>
 
+          {groups.length > 0 && (
+            <div className="view-switch member-look" role="group" aria-label={tr('Présentation de la collection')}>
+              {([['meubles', tr('Ses meubles')], ['jaquettes', tr('Ses jaquettes')]] as [Look, string][]).map(([value, label]) => (
+                <button key={value} type="button" className={look === value ? 'zone-option view-option active' : 'zone-option view-option'} aria-pressed={look === value}
+                  onClick={() => setLook(value)}>{label}</button>
+              ))}
+            </div>
+          )}
+
           {groups.length === 0 ? (
             <p className="panel empty">{tab === 'offered' ? tr('Rien à échanger pour le moment.') : tr('Aucun jeu ici pour le moment.')}</p>
+          ) : look === 'meubles' ? (
+            // Sa pièce : ses meubles, rangés et décorés à sa façon
+            <div className="room">
+              {furnished.placed.filter(({ levels }) => levels.some((l) => l.length > 0)).map(({ meuble, levels }) => {
+                const inside = levels.flat();
+                const count = inside.length;
+                return (
+                  <Fragment key={meuble.id}>
+                    <ShelfCabinet meuble={meuble} levels={levels} renderItem={renderSpine} onPerRow={onPerRow} open={openVitrine === meuble.id}
+                      tall={meuble.content === 'PS2' || inside.some((i) => i.platform === 'PS2')}
+                      narrow={meuble.content === 'PS2' || inside.every((i) => i.platform === 'PS2')}
+                      title={<h2 className="shelf-name">{meuble.name || platformName(meuble.content)}<span className="shelf-count">{formatNumber(count)}</span></h2>} />
+                    {furnished.boxes.filter((b) => b.after === meuble.id).map((b) => (
+                      <RoomBox key={`carton-${b.console}`} label={tr('{0} jeu{1?x} {2} pas encore rangé{3?s}.', formatNumber(b.items.length), b.items.length > 1, platformName(b.console), b.items.length > 1)}>
+                        {b.items.map((i) => renderSpine(i))}
+                      </RoomBox>
+                    ))}
+                  </Fragment>
+                );
+              })}
+              {furnished.boxes.filter((b) => b.after === null).map((b) => (
+                <RoomBox key={`carton-${b.console}`} label={tr('{0} jeu{1?x} {2} pas encore rangé{3?s}.', formatNumber(b.items.length), b.items.length > 1, platformName(b.console), b.items.length > 1)}>
+                  {b.items.map((i) => renderSpine(i))}
+                </RoomBox>
+              ))}
+            </div>
           ) : (
+            <ShelfFurniture style={room.exposition} lines=".cover-tile .cover" refresh={shown.length} title={<h2 className="shelf-name">{tr('Collection de ')}{profile.username}</h2>}>
             <ul className="cover-grid">
               {shown.map(({ item: i, count }) => (
                 <li key={`${i.release_id}|${i.condition}|${i.trade_status}`} className="cover-tile">
@@ -297,8 +400,10 @@ export function MemberPage() {
                 </li>
               ))}
             </ul>
+            </ShelfFurniture>
           )}
-          <Pagination page={current} pages={pages} onChange={(n) => { setPage(n); window.scrollTo({ top: 0, behavior: 'smooth' }); }} label={tr('Pages de la collection')} />
+          {look === 'jaquettes' && <Pagination page={current} pages={pages} onChange={(n) => { setPage(n); window.scrollTo({ top: 0, behavior: 'smooth' }); }} label={tr('Pages de la collection')} />}
+          {pulled && <CaseViewer pulled={pulled} onClose={() => { setPulled(null); setOpenVitrine(null); }} />}
         </>
       )}
     </section>

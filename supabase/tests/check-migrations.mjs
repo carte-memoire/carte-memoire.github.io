@@ -155,12 +155,30 @@ console.log('\nCollections');
 await ok('membre ajoute FF7 à sa collection', en(MEMBRE, `insert into public.collection_item (release_id, condition, has_box, has_manual, has_media, purchase_price) values ($1, 'good', true, true, true, 15)`, [ff7fr]));
 await ok('membre ajoute un double', en(MEMBRE, `insert into public.collection_item (release_id) values ($1)`, [ff7fr]));
 await ko('membre ne peut pas remplir la collection d\'un autre', en(MEMBRE, `insert into public.collection_item (profile_id, release_id) values ($1, $2)`, [AUTRE, ff7fr]), 'row-level security');
+const mesExemplaires = (await val(`select id from public.collection_item where profile_id = $1 order by id`, [MEMBRE])).map((r) => r.id);
+const ordreEtagere = () => val(`select array_agg(id order by shelf_position) = $2::bigint[] as ordre, count(*) filter (where shelf_position is null)::int as sans_place
+  from public.collection_item where profile_id = $1`, [MEMBRE, [mesExemplaires[1], mesExemplaires[0]]]);
+await egal('étagère : pas encore rangée, aucune place', val(`select count(*) filter (where shelf_position is not null)::int as n from public.collection_item where profile_id = $1`, [MEMBRE]), [{ n: 0 }]);
+await ok('étagère : le membre range ses jeux à sa façon', en(MEMBRE, `select public.set_shelf_order($1::bigint[])`, [[mesExemplaires[1], mesExemplaires[0]]]));
+await egal('…chaque exemplaire garde la place donnée', ordreEtagere(), [{ ordre: true, sans_place: 0 }]);
+await ok('étagère : un autre membre appelle la fonction avec ces exemplaires…', en(AUTRE, `select public.set_shelf_order($1::bigint[])`, [[mesExemplaires[0], mesExemplaires[1]]]));
+await egal('…sans rien changer chez le membre', ordreEtagere(), [{ ordre: true, sans_place: 0 }]);
+await ko('étagère : un visiteur ne peut pas ranger', en(null, `select public.set_shelf_order($1::bigint[])`, [[mesExemplaires[0]]]), 'permission denied');
+await ko('étagère : plus de 5 000 jeux d\'un coup, refusé', en(MEMBRE, `select public.set_shelf_order(array(select generate_series(1, 5001))::bigint[])`), 'Trop de jeux');
+const styleEtageres = JSON.stringify({ default: { furniture: 'vitrine', finish: 'noyer', thickness: 'normale', light: 'chaud' }, PS2: { furniture: 'tablettes', finish: 'blanc' } });
+await ok('étagères : le membre choisit l\'aspect de chacune', en(MEMBRE, `update public.profile set shelf_style = $2::jsonb where id = $1`, [MEMBRE, styleEtageres]));
+await egal('…et le retrouve', val(`select shelf_style->'PS2'->>'finish' as finition from public.profile where id = $1`, [MEMBRE]), [{ finition: 'blanc' }]);
+await egal('…mais ne change pas celui d\'un autre', lignes(en(MEMBRE, `update public.profile set shelf_style = '{}'::jsonb where id = $1 returning id`, [AUTRE])), []);
+await ko('étagères : autre chose qu\'un objet, refusé', en(MEMBRE, `update public.profile set shelf_style = '[1, 2]'::jsonb where id = $1`, [MEMBRE]), 'profile_shelf_style_check');
+await ko('étagères : un réglage démesuré, refusé', en(MEMBRE, `update public.profile set shelf_style = jsonb_build_object('x', repeat('a', 9000)) where id = $1`, [MEMBRE]), 'profile_shelf_style_check');
 await egal('collection privée : invisible pour les autres membres', lignes(en(AUTRE, `select count(*)::int as n from public.collection_item`)), [{ n: 0 }]);
 await egal('collection privée : invisible pour les visiteurs', lignes(en(null, `select count(*)::int as n from public.collection_item`)), [{ n: 0 }]);
 await ok('membre rend sa collection publique', en(MEMBRE, `update public.profile set public_collection = true where id = $1`, [MEMBRE]));
 await egal('collection publique : la table ne montre rien aux visiteurs (prix, notes…)', lignes(en(null, `select count(*)::int as n from public.collection_item`)), [{ n: 0 }]);
 await egal('…et aux autres membres', lignes(en(AUTRE, `select count(*)::int as n from public.collection_item`)), [{ n: 0 }]);
 await egal('…la page publique montre ses 2 exemplaires', lignes(en(null, `select count(*)::int as n from public.public_collection((select username from public.profile where id = $1))`, [MEMBRE])), [{ n: 2 }]);
+await egal('…rangés comme sur son étagère (les visiteurs voient sa pièce)', lignes(en(null, `select item_id = $2 as premier, shelf_position from public.public_collection((select username from public.profile where id = $1)) order by shelf_position`, [MEMBRE, mesExemplaires[1]])),
+  [{ premier: true, shelf_position: 1 }, { premier: false, shelf_position: 2 }]);
 await ko('une sortie possédée ne peut pas être supprimée', en(ADMIN, `delete from public.release where id = $1`, [ff7fr]), 'foreign key');
 
 console.log('\nPropositions');

@@ -129,6 +129,8 @@ export interface CollectionItem {
   purchase_place: string | null;
   has_spine_card: boolean | null;
   trade_status: TradeStatus | null;
+  // Place sur l'étagère, choisie par le collectionneur (null : pas encore placé)
+  shelf_position: number | null;
   release: {
     id: number;
     zone: Zone | null;

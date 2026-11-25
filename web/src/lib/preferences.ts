@@ -98,3 +98,28 @@ export const rememberIdleMinutes = (minutes: number) => write(IDLE_KEY, String(m
 
 export const lastActivity = () => Number(read(ACTIVITY_KEY, '0')) || 0;
 export const touchActivity = (at: number) => write(ACTIVITY_KEY, String(at));
+
+// L'aspect d'un meuble de Ma collection (components/ShelfStyle.tsx, lib/room.ts) : le meuble
+// (tablettes murales, bibliothèque, vitrine), la finition, l'épaisseur du bois et l'éclairage
+export const SHELF_FURNITURE_VALUES = ['tablettes', 'bibliotheque', 'vitrine'] as const;
+export const SHELF_FINISH_VALUES = ['noyer', 'chene', 'erable', 'ebene', 'noir', 'blanc', 'metal', 'verre', 'rouge', 'bleu', 'vert'] as const;
+export const SHELF_THICKNESS_VALUES = ['fine', 'normale', 'epaisse', 'massive'] as const;
+export const SHELF_LIGHT_VALUES = ['eteint', 'chaud', 'froid', 'rgb'] as const;
+export type ShelfFurniture = (typeof SHELF_FURNITURE_VALUES)[number];
+export type ShelfFinish = (typeof SHELF_FINISH_VALUES)[number];
+export type ShelfThickness = (typeof SHELF_THICKNESS_VALUES)[number];
+export type ShelfLight = (typeof SHELF_LIGHT_VALUES)[number];
+export interface ShelfStyle { furniture: ShelfFurniture; finish: ShelfFinish; thickness: ShelfThickness; light: ShelfLight }
+// Par défaut : une bibliothèque en noyer, éclairée d'une lumière chaude
+export const DEFAULT_SHELF_STYLE: ShelfStyle = { furniture: 'bibliotheque', finish: 'noyer', thickness: 'normale', light: 'chaud' };
+
+const oneOf = <T extends string>(values: readonly T[], value: unknown, fallback: T): T => ((values as readonly unknown[]).includes(value) ? value as T : fallback);
+export function cleanShelfStyle(value: unknown, fallback: ShelfStyle = DEFAULT_SHELF_STYLE): ShelfStyle {
+  const v = (value && typeof value === 'object' ? value : {}) as Record<string, unknown>;
+  return {
+    furniture: oneOf(SHELF_FURNITURE_VALUES, v.furniture, fallback.furniture),
+    finish: oneOf(SHELF_FINISH_VALUES, v.finish, fallback.finish),
+    thickness: oneOf(SHELF_THICKNESS_VALUES, v.thickness, fallback.thickness),
+    light: oneOf(SHELF_LIGHT_VALUES, v.light, fallback.light),
+  };
+}
