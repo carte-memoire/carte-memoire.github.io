@@ -103,18 +103,22 @@ function useFittedTitle(title: string, start: number, startTwoLines: boolean) {
   return ref;
 }
 
-export function SpineFace({ release }: { release: SpineRelease }) {
+// region : tranche d'un boîtier américain (us) ou japonais (jp), dans le boîtier 3D d'une
+// version de ces régions ; sans elle, la tranche européenne (l'étagère est toujours au format
+// européen). Une réédition américaine (Greatest Hits) a son bandeau rouge.
+export function SpineFace({ release, region }: { release: SpineRelease; region?: 'us' | 'jp' }) {
   const kind = spineKind(release.platform.short_name) ?? 'ps1';
   const code = splitCode(release.product_code);
   const reissue = release.edition_type === 'reissue';
   const { fit, twoLines } = titleFit(kind, release.local_title);
   const titleRef = useFittedTitle(release.local_title, fit, twoLines);
   return (
-    <span className={`spine-face spine-${kind}${reissue ? ' is-reissue' : ''}`} aria-hidden="true">
+    <span className={`spine-face spine-${kind}${reissue ? ' is-reissue' : ''}${region ? ` spine-region-${region}` : ''}`} aria-hidden="true">
       <span className="spine-band">
         <span className="spine-mark">{release.platform.short_name}</span>
-        {/* PS2 (PAL) : sous la marque, l'étiquette PAL puis le nom de la console à la verticale */}
-        {kind === 'ps2' && <><span className="spine-pal">PAL</span><span className="spine-console">PlayStation 2</span></>}
+        {/* PS2 : sous la marque, l'étiquette PAL (en Europe seulement) puis le nom de la
+            console à la verticale, en texte simple (pas de logo) */}
+        {kind === 'ps2' && <>{!region && <span className="spine-pal">PAL</span>}<span className="spine-console">PlayStation 2</span></>}
       </span>
       <span ref={titleRef} className={twoLines ? 'spine-title is-two-lines' : 'spine-title'} style={{ ['--fit' as string]: fit.toFixed(3) } as CSSProperties}>{release.local_title}</span>
       {/* La place du code est toujours gardée en bas, même sans code (laissée vide) : le titre

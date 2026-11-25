@@ -14,8 +14,17 @@ const CASE_MM: Record<string, { w: number; h: number; d: number }> = {
   // Mesures relevées sur un boîtier PAL : 143 × 130 × 17 mm
   'ps1-pal': { w: 143, h: 130, d: 17 },
   'ps1-flat': { w: 142, h: 125, d: 10.4 },
+  // PS2 : boîtier DVD (135 × 190 × 14 mm) dans toutes les régions ; seuls la matière et la
+  // tranche changent : bleu translucide en Europe, noir en Amérique du Nord et au Japon
   ps2: { w: 135, h: 190, d: 14 },
+  'ps2-us': { w: 135, h: 190, d: 14 },
+  'ps2-jp': { w: 135, h: 190, d: 14 },
 };
+
+// Format du boîtier PS2 selon la zone de la version (zone inconnue : européen)
+function ps2Format(zone: string | null | undefined): string {
+  return zone === 'NTSC-U' ? 'ps2-us' : zone === 'NTSC-J' ? 'ps2-jp' : 'ps2';
+}
 
 // Coins arrondis (vus de face) du boîtier PS1 européen : chaque coin est un quart de cylindre
 // en deux facettes, sur toute l'épaisseur. Pour chacune : le centre de l'arrondi et l'angle de
@@ -42,12 +51,17 @@ export interface Pulled {
 export function CaseViewer({ pulled, onClose, onEdit }: { pulled: Pulled; onClose: () => void; onEdit?: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const box = useRef<HTMLDivElement>(null);
+  // L'ombre du boîtier sur le « sol », sous lui une fois arrivé au centre
+  const shadow = useRef<HTMLDivElement>(null);
   const turn = useRef<HTMLDivElement>(null);
   const closing = useRef(false);
   // La tranche sur l'étagère (sa place reste vide tant que le jeu est sorti)
   const spot = useRef(pulled.source);
   const kind = spineKind(pulled.release.platform.short_name) ?? 'ps1';
-  const format = kind === 'ps1' ? (!pulled.release.zone || pulled.release.zone === 'PAL' ? 'ps1-pal' : 'ps1-flat') : kind;
+  const format = kind === 'ps1' ? (!pulled.release.zone || pulled.release.zone === 'PAL' ? 'ps1-pal' : 'ps1-flat')
+    : kind === 'ps2' ? ps2Format(pulled.release.zone) : kind;
+  // Tranche dessinée selon la région du boîtier (sur l'étagère, toujours au format européen)
+  const region = format === 'ps2-us' ? 'us' : format === 'ps2-jp' ? 'jp' : undefined;
   const mm = CASE_MM[format];
   // La moitié de l'écran en hauteur (400 px au plus), et jamais plus large que l'écran moins une
   // marge : sur téléphone, le boîtier PS1 européen (plus large que haut) débordait
@@ -57,7 +71,11 @@ export function CaseViewer({ pulled, onClose, onEdit }: { pulled: Pulled; onClos
   // PS1 Europe, d'après photos : coins arrondis (≈ 2 mm). Les tranches et les bords du dessus et
   // du dessous s'arrêtent avant le coin, que des facettes arrondissent : l'acrylique du dessus
   // s'enroule jusqu'à la tranche, sans angle vif ni trou au sommet
-  const round = format === 'ps1-pal' ? h * 0.016 : 0;
+  // PS2 aussi : sinon chaque face arrondissait ses propres coins, et au sommet les trois
+  // arrondis laissaient une marche entre la tranche et les bords. Son arrondi a l'épaisseur
+  // du cadre bleu autour de la jaquette (0,8 %) : au bout de la tranche, le bleu des coins
+  // en est le prolongement exact, pas plus épais
+  const round = format === 'ps1-pal' ? h * 0.016 : kind === 'ps2' ? h * 0.008 : 0;
   const facet = 2 * round * Math.sin(Math.PI / 8) * 1.06;
 
   // Trajet entre la tranche sur l'étagère et le centre de la scène
@@ -90,7 +108,11 @@ export function CaseViewer({ pulled, onClose, onEdit }: { pulled: Pulled; onClos
     dialog.current?.showModal();
     // Sa place reste vide sur l'étagère pendant qu'il est sorti
     if (spot.current) spot.current.style.visibility = 'hidden';
-    if (!prefersReducedMotion()) box.current?.animate(keyframes(), { duration: 1150, fill: 'both' });
+    if (!prefersReducedMotion()) {
+      box.current?.animate(keyframes(), { duration: 1150, fill: 'both' });
+      // L'ombre apparaît quand le boîtier approche de sa place, pas pendant le trajet
+      shadow.current?.animate([{ opacity: 0 }, { opacity: 0, offset: 0.55 }, { opacity: 1 }], { duration: 1150, fill: 'both' });
+    }
   });
   const restore = () => { if (spot.current) spot.current.style.visibility = ''; };
   useLayoutEffect(() => {
@@ -107,6 +129,7 @@ export function CaseViewer({ pulled, onClose, onEdit }: { pulled: Pulled; onClos
     if (prefersReducedMotion() || !box.current) return done();
     // Le même mouvement à l'envers, d'une traite
     const back = keyframes().reverse().map((f, i, all) => ({ transform: f.transform, offset: i / (all.length - 1) }));
+    shadow.current?.animate([{ opacity: 1 }, { opacity: 0, offset: 0.35 }, { opacity: 0 }], { duration: 950, fill: 'both' });
     box.current.animate(back, { duration: 950, fill: 'both' }).finished.then(done, done);
   }
 
@@ -128,6 +151,8 @@ export function CaseViewer({ pulled, onClose, onEdit }: { pulled: Pulled; onClos
       onCancel={(event) => { event.preventDefault(); close(); }}
       onClick={(event) => { if (event.target === event.currentTarget) close(); }}>
       <div className="cv-stage" onPointerMove={follow} onClick={(event) => { if (event.target === event.currentTarget) close(); }}>
+        <div ref={shadow} className="cv-shadow" aria-hidden="true"
+          style={{ width: w * 1.15, height: Math.max(16, h * 0.09), marginLeft: -w * 0.575, marginTop: h / 2 + h * 0.03 }} />
         <div ref={box} className="cv-box" style={{ width: w, height: h, marginLeft: -w / 2, marginTop: -h / 2, ['--case-h' as string]: `${h}px`, ['--round' as string]: `${round}px` } as CSSProperties}>
           <div ref={turn} className="cv-turn">
             {/* Face : la jaquette sous le plastique (couvercle transparent du boîtier CD,
@@ -152,7 +177,7 @@ export function CaseViewer({ pulled, onClose, onEdit }: { pulled: Pulled; onClos
               <span className="cv-gloss" />
             </div>
             <div className="cv-face cv-spine" style={face({ width: d, height: h - 2 * round, top: round, left: (w - d) / 2, transform: `rotateY(-90deg) translateZ(${w / 2}px)`, ['--spine-w' as string]: `${d}px` })}>
-              <SpineFace release={pulled.release} />
+              <SpineFace release={pulled.release} region={region} />
               <span className="cv-gloss" />
             </div>
             {/* Côté ouverture : la seconde tranche du verso (boîtier CD), le plastique nervuré (DVD) */}

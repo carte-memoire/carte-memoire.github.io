@@ -127,6 +127,8 @@ export function CaseOpening({ opening, onDone }: { opening: Opening; onDone: () 
 
   const kind = CASE[opening.platform];
   const pal = isPal(opening);
+  // PS2 d'Amérique du Nord ou du Japon : boîtier noir, sans porte-carte mémoire
+  const blackDvd = kind === 'dvd' && (opening.zone === 'NTSC-U' || opening.zone === 'NTSC-J');
   const media = discMedia(opening.platform)!;
   const { from } = opening;
   const depth = boxDepth(opening.platform, from.width);
@@ -135,9 +137,9 @@ export function CaseOpening({ opening, onDone }: { opening: Opening; onDone: () 
   const origin = `${from.left + from.width / 2}px ${from.top + from.height / 2}px`;
   return createPortal(
     <div ref={root} className="case-fly" aria-hidden="true" style={{ perspectiveOrigin: origin }}>
-      <div className={`case-box case-${kind}${pal ? ' case-jewel-pal' : ''}`} style={{ left: from.left, top: from.top, width: from.width, height: from.height, ['--depth' as string]: `${depth}px`, ['--case-w' as string]: `${from.width}px` }}>
+      <div className={`case-box case-${kind}${pal ? ' case-jewel-pal' : ''}${blackDvd ? ' case-dvd-black' : ''}`} style={{ left: from.left, top: from.top, width: from.width, height: from.height, ['--depth' as string]: `${depth}px`, ['--case-w' as string]: `${from.width}px` }}>
         <div className="case-base">
-          {kind === 'dvd' && <span className="case-memory"><span className="case-memory-slot" /><span>MEMORY CARD<br />HOLDER</span></span>}
+          {kind === 'dvd' && !blackDvd && <span className="case-memory"><span className="case-memory-slot" /><span>MEMORY CARD<br />HOLDER</span></span>}
           <span className="case-well"><span className="case-hub" /></span>
           {/* Les parois : la base a une épaisseur, le couvercle repose dessus */}
           <span className="case-wall case-wall-top" />

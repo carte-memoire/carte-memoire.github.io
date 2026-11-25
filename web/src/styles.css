@@ -1245,6 +1245,11 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .spine-ps2 .spine-title { text-transform: none; letter-spacing: 0.01em; }
 /* Réédition (Platinum) : grise, jamais noire, titre foncé */
 .spine-face.is-reissue { background: linear-gradient(90deg, #a7abb4, #d8dbe1 45%, #9da1aa); color: #17181c; }
+/* Boîtier 3D d'une version américaine : tranche noire, titre blanc, sans étiquette de
+   région ; réédition (Greatest Hits) : son bandeau rouge en haut. Version japonaise : la
+   tranche claire, sans étiquette de région (Spine.tsx, region). */
+.spine-ps2.spine-region-us, .spine-ps2.spine-region-us.is-reissue { background: linear-gradient(90deg, #18181b, #0b0b0d 45%, #141417); color: #f2f2f2; }
+.spine-ps2.spine-region-us.is-reissue .spine-band { background: #c4122f; }
 .spine-ps1.is-reissue .spine-mark { border-color: rgba(0, 0, 0, 0.55); }
 
 /* Les tranches tombent sur la tablette à l'arrivée ; au survol, on tire un peu le jeu */
@@ -1260,6 +1265,12 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .cv-turn { position: absolute; inset: 0; transform-style: preserve-3d; transform: rotateX(var(--turn-x, 0deg)) rotateY(var(--turn-y, 0deg)); transition: transform 0.5s var(--ease); }
 /* Faces du boîtier, d'après des photos de boîtiers PAL sous plusieurs angles */
 .cv-face { backface-visibility: hidden; overflow: hidden; }
+/* L'ombre du boîtier sur le « sol », sous lui (CaseViewer.tsx) : une tache sombre et floue,
+   à part de la scène 3D (un filtre sur la scène l'aplatirait) */
+.cv-shadow {
+  position: absolute; left: 50%; top: 40%; pointer-events: none; border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.3) 55%, transparent);
+}
 .cv-face > * { position: absolute; }
 .cv-inlay { overflow: hidden; }
 /* La jaquette remplit tout le livret, au format de la console, sans rien couper : un scan
@@ -1388,33 +1399,32 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 /* Le coin arrondi prend la lumière, comme les arêtes */
 .cv-ps1-pal .cv-round::after { content: ''; position: absolute; inset: 0; background: rgba(255, 255, 255, 0.08); }
 
-/* PS2 : boîtier DVD européen bleu (135 × 190 × 14 mm), coins arrondis. La jaquette sous la
-   pochette transparente, avec un fin liseré bleu autour ; la tranche blanche du verso ;
-   côté ouverture, le plastique bleu nervuré. */
-.cv-ps2 .cv-front, .cv-ps2 .cv-back { background: linear-gradient(160deg, #4b50d2, #2c2f9a); border-radius: 5px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35); }
+/* PS2 : boîtier DVD (135 × 190 × 14 mm), coins arrondis. La jaquette sous la pochette
+   transparente, avec un fin liseré de plastique autour ; la tranche du verso ; côté
+   ouverture, le plastique nervuré. La matière dépend de la région de la version :
+   Europe (PAL, et zone inconnue) : bleu translucide ; Amérique du Nord et Japon : noir. */
+.cv-ps2 { --plastic-hi: #7d82ee; --plastic-0: #5358dc; --plastic-1: #4b50d2; --plastic-2: #4348c6; --plastic-3: #3337a8; --plastic-4: #2c2f9a; --plastic-5: #262a86; }
+.cv-ps2-us, .cv-ps2-jp { --plastic-hi: #6b6e79; --plastic-0: #3b3d45; --plastic-1: #2d2f36; --plastic-2: #26282e; --plastic-3: #1c1d22; --plastic-4: #151619; --plastic-5: #0f1013; }
+.cv-ps2 .cv-front, .cv-ps2 .cv-back { background: linear-gradient(160deg, var(--plastic-1), var(--plastic-4)); border-radius: var(--round); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35); }
 .cv-ps2 .cv-hinge { display: none; }
 .cv-ps2 .cv-front .cv-inlay, .cv-ps2 .cv-back-inlay { left: 1.2%; right: 1%; top: 0.8%; bottom: 0.8%; border-radius: 2px; }
 /* Côté tranche, la pochette passe directement de la tranche à la jaquette : pas de rebord bleu */
 .cv-ps2 .cv-front .cv-inlay { left: 0; border-radius: 0 2px 2px 0; }
 .cv-ps2 .cv-back-inlay { background: linear-gradient(160deg, #1d1d23, #0e0e11); }
-.cv-ps2 .cv-edge { background: linear-gradient(180deg, #5358dc, #3337a8 50%, #262a86); }
-.cv-ps2 .cv-side { background: repeating-linear-gradient(180deg, #4348c6 0 3px, #33379f 3px 5px); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25); }
+.cv-ps2 .cv-edge { background: linear-gradient(180deg, var(--plastic-0), var(--plastic-3) 50%, var(--plastic-5)); }
+.cv-ps2 .cv-side { background: repeating-linear-gradient(180deg, var(--plastic-2) 0 3px, var(--plastic-3) 3px 5px); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25); }
 .cv-ps2 .cv-spine { box-shadow: none; }
-/* Comme sur le vrai boîtier : le plastique bleu fait tout le tour, en haut et en bas de la
-   tranche (de la même épaisseur que le cadre autour de la jaquette) ; le papier s'arrête avant. Le rebord bleu est arrondi : plus clair
-   sur l'arête, il fonce en allant vers la tranche */
-.cv-ps2 .cv-spine {
-  background:
-    linear-gradient(180deg, #7d82ee 0, #4a4fcc 0.4%, #3337a8 0.8%, transparent 0.8%, transparent 99.2%, #3337a8 99.2%, #4a4fcc 99.6%, #7d82ee 100%),
-    #3337a8;
-}
-.cv-ps2 .cv-spine .spine-face { top: 0.8%; bottom: 0.8%; height: auto; border-radius: 1px; }
-/* Le coin arrondi du boîtier (5 px, comme la face) se poursuit vers l'intérieur : sur la
-   tranche, ses coins côté face ; sur les bords du dessus et du dessous, leur coin côté face
-   et tranche. Les trois arrondis se rejoignent en un seul coin arrondi */
-.cv-ps2 .cv-spine { border-radius: 0 5px 5px 0; }
-.cv-ps2 .cv-top { border-radius: 0 0 0 5px; }
-.cv-ps2 .cv-bottom { border-radius: 5px 0 0 0; }
+/* Comme sur le vrai boîtier : le plastique fait tout le tour, en haut et en bas de la tranche,
+   de la même épaisseur que le cadre autour de la jaquette. Ce sont les coins arrondis (leurs
+   facettes) qui le dessinent ; la tranche elle-même est couverte par son papier, d'un bout à
+   l'autre (un rebord peint en plus doublait l'épaisseur du bleu) */
+.cv-ps2 .cv-spine { background: var(--plastic-3); }
+.cv-ps2 .cv-spine .spine-face { top: 0; bottom: 0; height: auto; }
+/* Coins arrondis, comme le boîtier PS1 européen : la face et le dos ont leurs coins arrondis
+   (--round), la tranche et les bords du dessus et du dessous s'arrêtent avant le coin, et
+   des facettes (CaseViewer.tsx, cornerFacets) en font le tour sur toute l'épaisseur, dans le
+   même plastique que les bords : un seul volume, sans marche ni trou au sommet */
+.cv-ps2 .cv-round { background: linear-gradient(180deg, var(--plastic-0), var(--plastic-3) 50%, var(--plastic-5)); }
 /* L'arête verticale (tranche ↔ face) arrondie : le reflet continue sur le bord de la face */
 /* Le film plastique de la pochette : un voile brillant, un liseré clair sur ses bords, et un
    reflet qui glisse quand on tourne le boîtier (--film, réglé par CaseViewer) */
@@ -2303,6 +2313,23 @@ button.proposed-cover-image { padding: 0; font: inherit; color: inherit; cursor:
 .case-dvd .case-clip-top { top: 5%; }
 
 .case-dvd .case-clip-bottom { bottom: 5%; }
+/* Amérique du Nord et Japon : le boîtier PS2 est noir, sans porte-carte mémoire */
+.case-dvd-black { --wall: linear-gradient(90deg, #2d2f36, #151619); --wall-edge: #26282e; }
+.case-dvd-black .case-base, .case-dvd-black .case-lid-back {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.1), transparent 35%, rgba(255, 255, 255, 0.05) 70%, transparent), linear-gradient(160deg, #2d2f36, #121316);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25), inset 0 0 0 5px rgba(0, 0, 0, 0.35), inset 0 0 0 6px rgba(255, 255, 255, 0.08), 0 28px 50px rgba(0, 0, 0, 0.55);
+}
+.case-dvd-black .case-base::before { background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.14) 0 1px, rgba(0, 0, 0, 0.5) 1px 3px); }
+.case-dvd-black .case-well {
+  background: radial-gradient(circle, #1f2025 0 60%, #16171b 100%);
+  box-shadow: 0 0 0 2px #3b3d45, 0 0 0 3px rgba(255, 255, 255, 0.15), inset 0 3px 10px rgba(0, 0, 0, 0.6);
+}
+.case-dvd-black .case-hub {
+  background:
+    radial-gradient(circle, #222328 0 18%, rgba(255, 255, 255, 0.45) 19% 22%, transparent 23%),
+    repeating-conic-gradient(from -18deg, rgba(205, 205, 215, 0.75) 0 36deg, transparent 36deg 120deg);
+}
+.case-dvd-black .case-clip { border-color: rgba(220, 220, 230, 0.45); }
 
 /* ---------- Bandeau collant (ordinateur) ----------
    Il reste en haut pendant le défilement, sur un fond légèrement transparent et flouté.
