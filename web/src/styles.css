@@ -1401,7 +1401,7 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 
 /* PS2 : boîtier DVD (135 × 190 × 14 mm), coins arrondis. La jaquette sous la pochette
    transparente, avec un fin liseré de plastique autour ; la tranche du verso ; côté
-   ouverture, le plastique nervuré. La matière dépend de la région de la version :
+   ouverture, le plastique lisse et sa rainure. La matière dépend de la région de la version :
    Europe (PAL, et zone inconnue) : bleu translucide ; Amérique du Nord et Japon : noir. */
 .cv-ps2 { --plastic-hi: #7d82ee; --plastic-0: #5358dc; --plastic-1: #4b50d2; --plastic-2: #4348c6; --plastic-3: #3337a8; --plastic-4: #2c2f9a; --plastic-5: #262a86; }
 .cv-ps2-us, .cv-ps2-jp { --plastic-hi: #6b6e79; --plastic-0: #3b3d45; --plastic-1: #2d2f36; --plastic-2: #26282e; --plastic-3: #1c1d22; --plastic-4: #151619; --plastic-5: #0f1013; }
@@ -1412,7 +1412,27 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .cv-ps2 .cv-front .cv-inlay { left: 0; border-radius: 0 2px 2px 0; }
 .cv-ps2 .cv-back-inlay { background: linear-gradient(160deg, #1d1d23, #0e0e11); }
 .cv-ps2 .cv-edge { background: linear-gradient(180deg, var(--plastic-0), var(--plastic-3) 50%, var(--plastic-5)); }
-.cv-ps2 .cv-side { background: repeating-linear-gradient(180deg, var(--plastic-2) 0 3px, var(--plastic-3) 3px 5px); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25); }
+.cv-ps2 .cv-side {
+  background:
+    /* La jonction du couvercle (à l'avant, côté jaquette) et de la base */
+    linear-gradient(90deg, transparent calc(50% - 0.5px), rgba(0, 0, 0, 0.35) 50%, rgba(255, 255, 255, 0.12) calc(50% + 1px), transparent calc(50% + 1.5px)),
+    /* Plastique lisse (photos) : un dégradé uni, plus clair côté avant */
+    linear-gradient(90deg, var(--plastic-1), var(--plastic-2) 30%, var(--plastic-3) 70%, var(--plastic-4));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+/* La rainure d'ouverture (photos d'un vrai boîtier, 135 × 191 × 14 mm) : un long creux au milieu
+   du côté d'ouverture, long d'un peu plus de la moitié de la hauteur, centré ; au milieu de
+   l'épaisseur, à cheval sur la jonction du couvercle et de la base, pour y glisser les doigts
+   et soulever le couvercle. */
+.cv-notch {
+  left: 16%; width: 68%; top: 22%; height: 56%;
+  /* Bouts à peine arrondis (pas en demi-cercle) */
+  border-radius: calc(var(--spine-w) * 0.2);
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.3) 35%, rgba(0, 0, 0, 0.22) 65%, rgba(0, 0, 0, 0.4)),
+    var(--plastic-4, #2c2f9a);
+  box-shadow: inset 0 3px 4px rgba(0, 0, 0, 0.5), inset 0 -2px 3px rgba(0, 0, 0, 0.35), inset -1px 0 0 rgba(255, 255, 255, 0.22), inset 1px 0 0 rgba(255, 255, 255, 0.12);
+}
 .cv-ps2 .cv-spine { box-shadow: none; }
 /* Comme sur le vrai boîtier : le plastique fait tout le tour, en haut et en bas de la tranche,
    de la même épaisseur que le cadre autour de la jaquette. Ce sont les coins arrondis (leurs

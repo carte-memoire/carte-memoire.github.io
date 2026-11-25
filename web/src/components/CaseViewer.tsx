@@ -180,9 +180,11 @@ export function CaseViewer({ pulled, onClose, onEdit }: { pulled: Pulled; onClos
               <SpineFace release={pulled.release} region={region} />
               <span className="cv-gloss" />
             </div>
-            {/* Côté ouverture : la seconde tranche du verso (boîtier CD), le plastique nervuré (DVD) */}
+            {/* Côté ouverture : la seconde tranche du verso (boîtier CD), le plastique lisse et sa rainure (DVD) */}
             <div className="cv-face cv-side" style={face({ width: d, height: h - 2 * round, top: round, left: (w - d) / 2, transform: `rotateY(90deg) translateZ(${w / 2}px)`, ['--spine-w' as string]: `${d}px` })}>
               {kind === 'ps1' && <SpineFace release={pulled.release} />}
+              {/* PS2 : la rainure où l'on glisse les doigts pour ouvrir le boîtier */}
+              {kind === 'ps2' && <span className="cv-notch" />}
               <span className="cv-gloss" />
             </div>
             <div className="cv-face cv-edge cv-top" style={face({ width: w - 2 * round, left: round, height: d, top: (h - d) / 2, transform: `rotateX(90deg) translateZ(${h / 2}px)` })} />
