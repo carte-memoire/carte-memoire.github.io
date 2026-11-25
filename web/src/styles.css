@@ -1187,6 +1187,12 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .shelf-spine:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 .shelf .spine-ps1 { --spine-w: 31px; height: 234px; }
 .shelf .spine-ps2 { --spine-w: 25px; height: 342px; }
+/* Sur l'étagère, les bouts du boîtier en haut et en bas de chaque tranche, comme sur le
+   boîtier 3D : l'acrylique transparent d'un jeu PS1, le plastique bleu d'un jeu PS2
+   (européen : l'étagère est toujours au format européen) */
+.shelf .spine-face { border-radius: 2px; }
+.shelf .spine-ps1 { border-block: calc(var(--spine-w) * 0.13) solid rgba(226, 231, 243, 0.42); }
+.shelf .spine-ps2 { border-block: calc(var(--spine-w) * 0.12) solid #3f44c2; }
 @media (max-width: 640px) {
   .shelf > li { padding-right: 4px; }
   .shelf .spine-ps1 { --spine-w: 25px; height: 190px; }
