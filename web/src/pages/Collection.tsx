@@ -65,9 +65,17 @@ const CONTENTS: { value: Content; label: string }[] = [
 ];
 
 const UNKNOWN_CONDITION = 'inconnu';
-const collator = new Intl.Collator('fr', { sensitivity: 'base', numeric: true });
+// Ponctuation ignorée (« Crash Bandicoot 2: … » avant « Crash Bandicoot: Warped »), numéros
+// dans l'ordre (2 avant 10)
+const collator = new Intl.Collator('fr', { sensitivity: 'base', numeric: true, ignorePunctuation: true });
+// Titre pour le tri, comme sur une étagère : sans article en tête (« The Getaway » à G)
+// (une espace après The, Le, La, Les : « Legacy of Kain » reste à L)
+const sortTitle = (title: string) => title.replace(/^(?:(?:the|le|la|les)\s+|l['’])(?=\S)/i, '');
+// Même titre : la version standard (Black Label) avant la réédition (Platinum)
+const editionRank = (item: CollectionItem) => (item.release.edition_type === 'standard' ? 0 : 1);
 const conditionRank = (item: CollectionItem) => (item.condition ? CONDITIONS.findIndex((c) => c.value === item.condition) : CONDITIONS.length);
-const byTitle = (a: CollectionItem, b: CollectionItem) => collator.compare(a.release.local_title, b.release.local_title);
+const byTitle = (a: CollectionItem, b: CollectionItem) => collator.compare(sortTitle(a.release.local_title), sortTitle(b.release.local_title))
+  || editionRank(a) - editionRank(b);
 
 const COMPARE: Record<Sort, ((a: CollectionItem, b: CollectionItem) => number) | null> = {
   recent: null, // ordre de lecture : du plus récent au plus ancien
@@ -130,7 +138,9 @@ export function Collection() {
   // « Mes jeux sans jaquette » : les versions possédées qui n'ont pas encore leur propre recto
   const noCover = tab === 'owned' && params.get('jaquette') === 'manquante';
   const sortParam = params.get('tri') as Sort | null;
-  const sort: Sort = SORTS.some((s) => s.value === sortParam && (tab === 'owned' || !s.ownedOnly)) ? sortParam! : 'recent';
+  // Tri par défaut : par titre sur l'étagère (comme une vraie étagère), les plus récents ailleurs
+  const defaultSort: Sort = view === 'shelf' ? 'title' : 'recent';
+  const sort: Sort = SORTS.some((s) => s.value === sortParam && (tab === 'owned' || !s.ownedOnly)) ? sortParam! : defaultSort;
   // Filtres et tri : repliés derrière un bouton, sauf s'ils servent déjà
   const activeFilters = [platform, zone, ...(tab === 'owned' ? [condition, content, offer] : [])].filter(Boolean).length;
   const [filtersOpen, setFiltersOpen] = useState(() => activeFilters > 0 || sort !== 'recent');
@@ -410,7 +420,7 @@ export function Collection() {
                   )}
                   <label className="field">
                     <span className="field-label">{tr('Tri')}</span>
-                    <select value={sort} onChange={(e) => update({ tri: e.target.value === 'recent' ? null : e.target.value })}>
+                    <select value={sort} onChange={(e) => update({ tri: e.target.value === defaultSort ? null : e.target.value })}>
                       {SORTS.filter((s) => tab === 'owned' || !s.ownedOnly).map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
                     </select>
                   </label>
