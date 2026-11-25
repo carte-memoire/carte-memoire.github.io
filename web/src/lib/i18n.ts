@@ -7,9 +7,13 @@
 //   entre deux formes. tr('{0} jeu{1?x}', n, n > 1) → « {0} game{1?s} » en anglais.
 // - Les espaces au début et à la fin du texte sont gardés tels quels.
 //
-// La langue est fixée au chargement de la page : celle choisie (bouton FR/EN), sinon le
-// français, langue d'origine du site ; en changer recharge la page. Ainsi les listes de
+// La langue vient de l'adresse : /en/… en anglais, tout le reste en français. Chaque page a
+// ainsi une adresse par langue, que les moteurs de recherche indexent séparément (balises
+// hreflang écrites par scripts/prerender.mjs). Elle est fixée au chargement de la page ; le
+// bouton FR/EN ouvre la même page dans l'autre langue (rechargement). Ainsi les listes de
 // libellés calculées une fois (zones, états…) sont toujours dans la bonne langue.
+// Qui a choisi l'anglais et ouvre une adresse française (lien partagé, favori) est renvoyé à
+// la même page en anglais (redirectToChosenLanguage).
 // Pas de choix d'après la langue du navigateur : le robot de Google navigue en anglais,
 // et enregistrait l'interface anglaise d'un site français. Un visiteur dont le
 // navigateur n'est pas en français se voit proposer l'anglais (offerEnglish).
@@ -27,10 +31,31 @@ function savedLanguage(): Lang | null {
 }
 
 const saved = typeof window === 'undefined' ? null : savedLanguage();
-export const lang: Lang = saved ?? 'fr';
-// Aucun choix encore, navigateur réglé dans une autre langue que le français
-export const offerEnglish = typeof window !== 'undefined' && saved === null
+// Langue de l'adresse : /en, /en/… → anglais ; sinon aucune (français)
+const pathLang: Lang | null = typeof window !== 'undefined' && /^\/en(\/|$)/.test(window.location.pathname) ? 'en' : null;
+export const lang: Lang = pathLang ?? 'fr';
+// Début des adresses dans cette langue : le routeur l'ajoute à tous les liens du site
+export const basePath = lang === 'en' ? '/en' : '';
+// Adresse complète d'une page dans la langue affichée (liens partagés, QR codes)
+export const siteUrl = (path: string) => `${window.location.origin}${basePath}${path}`;
+// Aucun choix encore, page française, navigateur réglé dans une autre langue
+export const offerEnglish = typeof window !== 'undefined' && saved === null && pathLang === null
   && !(navigator.languages?.[0] ?? navigator.language ?? 'fr').toLowerCase().startsWith('fr');
+
+// Même adresse, dans l'autre langue : /jeu/x ↔ /en/jeu/x ; l'accueil est /en/
+function addressIn(next: Lang): string {
+  const { pathname, search, hash } = window.location;
+  const plain = pathname.replace(/^\/en(?=\/|$)/, '') || '/';
+  return `${next === 'en' ? `/en${plain}` : plain}${search}${hash}`;
+}
+
+// Anglais choisi, page ouverte à son adresse française : la même page en anglais. Renvoie
+// true si la page change (le site ne doit alors pas se lancer).
+export function redirectToChosenLanguage(): boolean {
+  if (pathLang !== null || saved !== 'en') return false;
+  window.location.replace(addressIn('en'));
+  return true;
+}
 
 // « Rester en français » : la proposition ne revient plus
 export function keepFrench() {
@@ -48,8 +73,8 @@ export async function loadLanguage(): Promise<void> {
 }
 
 export function setLanguage(next: Lang) {
-  try { localStorage.setItem(KEY, next); } catch { /* sans stockage : le choix ne tient que jusqu'au rechargement */ }
-  window.location.reload();
+  try { localStorage.setItem(KEY, next); } catch { /* sans stockage : l'adresse suffit à garder la langue */ }
+  window.location.assign(addressIn(next));
 }
 
 const PLACEHOLDER = /\{(\d+)(?:\?([^:}]*)(?::([^}]*))?)?\}/g;

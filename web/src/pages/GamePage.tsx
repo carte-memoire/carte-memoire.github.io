@@ -5,9 +5,9 @@ import { errorMessage } from '../lib/errors';
 import { Dialog } from '../components/Dialog';
 import { GAME_FIELDS } from '../lib/queries';
 import {
-  boxRegionName, countryName, editionClass, editionLabel, familyLabel, formatDate, languagesLong, languagesShort, pickSummary, speaksLanguage, zoneLabel, zoneOrderFrom, genreName, genresBesideFamilies, regionName,
+  boxRegionName, countryName, editionClass, editionLabel, familyLabel, formatDate, languagesLong, languagesShort, pickSummary, languageRank, zoneLabel, zoneOrderFrom, genreName, genresBesideFamilies, regionName,
 } from '../lib/format';
-import { preferredZone, rememberedLanguage, rememberedPlatform } from '../lib/preferences';
+import { ALL_LANGUAGES, preferredZone, rememberedLanguage, rememberedPlatform } from '../lib/preferences';
 import { describeSpecs } from '../lib/specs';
 import type { Game, ItemStatus, Release } from '../lib/types';
 import { useAuth } from '../auth/AuthContext';
@@ -205,9 +205,10 @@ export function GamePage() {
   const language = rememberedLanguage();
   const myZone = preferredZone();
   const zoneRank = zoneOrderFrom(myZone);
+  const byLanguage = (r: Release) => (language === ALL_LANGUAGES ? 0 : languageRank({ ...r, box_country: r.box_region?.code }, language));
   const releases = [...game.release].sort((a, b) => zoneRank(a.zone) - zoneRank(b.zone)
     || Number(b.edition_type === 'standard') - Number(a.edition_type === 'standard')
-    || Number(speaksLanguage({ ...b, box_country: b.box_region?.code }, language)) - Number(speaksLanguage({ ...a, box_country: a.box_region?.code }, language)) || a.id - b.id);
+    || byLanguage(b) - byLanguage(a) || a.id - b.id);
   const copies = (r: Release) => mine.filter((m) => m.release_id === r.id && m.status === 'owned').length;
   const wantedItem = (r: Release) => mine.find((m) => m.release_id === r.id && m.status === 'wanted');
   const focused = releases.find((r) => r.id === focusId) ?? null;
@@ -546,10 +547,23 @@ export function GamePage() {
                       </button>
                     )}
                     {copies(r) > 0 && <Link to="/collection" className="small">{tr('Voir ma collection')}</Link>}
-                    {r.image.some((i) => i.type === 'front')
-                      ? <button type="button" className="link-button small" onClick={() => proposeCover(r)}>{tr('Proposer une meilleure jaquette')}</button>
-                      : <button type="button" className="button button-small" onClick={() => proposeCover(r)}>{tr('Proposer une jaquette')}</button>}
-                    <button type="button" className="link-button small" onClick={() => suggestCorrection(r.id)}>{tr('Corriger cette version')}</button>
+                    {/* Contribuer : une jaquette manquante reste un appel bien visible ; sinon,
+                        les deux propositions sont rangées sous « Contribuer », pour alléger chaque
+                        version (une fiche en compte parfois dix) */}
+                    {r.image.some((i) => i.type === 'front') ? (
+                      <details className="version-more">
+                        <summary className="link-button small">{tr('Contribuer')}</summary>
+                        <span className="version-more-actions">
+                          <button type="button" className="link-button small" onClick={() => proposeCover(r)}>{tr('Proposer une meilleure jaquette')}</button>
+                          <button type="button" className="link-button small" onClick={() => suggestCorrection(r.id)}>{tr('Corriger cette version')}</button>
+                        </span>
+                      </details>
+                    ) : (
+                      <>
+                        <button type="button" className="button button-small" onClick={() => proposeCover(r)}>{tr('Proposer une jaquette')}</button>
+                        <button type="button" className="link-button small" onClick={() => suggestCorrection(r.id)}>{tr('Corriger cette version')}</button>
+                      </>
+                    )}
                   </div>
                 </div>
               </li>
@@ -570,10 +584,13 @@ export function GamePage() {
           <button type="button" className="button" onClick={() => (session ? setProposeSummary(true) : navigate(`/connexion?next=${encodeURIComponent(location.pathname)}`))}>
             {game.summary ? tr('Proposer un meilleur résumé') : tr('Proposer un résumé')}
           </button>
-          <button type="button" className="button" onClick={() => (session ? setReporting(true) : navigate(`/connexion?next=${encodeURIComponent(location.pathname)}`))}>
-            {tr('Signaler une erreur')}
-          </button>
         </div>
+        {/* Un problème qui ne se corrige pas par un champ (doublon, jeu qui n'existe pas…) */}
+        <p className="small">
+          <button type="button" className="link-button" onClick={() => (session ? setReporting(true) : navigate(`/connexion?next=${encodeURIComponent(location.pathname)}`))}>
+            {tr('Signaler un autre problème')}
+          </button>
+        </p>
       </section>
       {correcting && (
         <Suspense fallback={null}>

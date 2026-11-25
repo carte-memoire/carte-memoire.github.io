@@ -2,7 +2,7 @@ import '@fontsource/press-start-2p/400.css';
 // Titres des tranches (Ma collection) : capitales grasses et larges, comme sur les jeux PAL
 import '@fontsource/montserrat/latin-800.css';
 import './styles.css';
-import { loadLanguage, tr } from './lib/i18n';
+import { loadLanguage, redirectToChosenLanguage, tr } from './lib/i18n';
 import { startMotion } from './lib/motion';
 import { reloadForNewVersion } from './lib/reload';
 import { watchInstallPrompt } from './lib/install';
@@ -32,9 +32,10 @@ if (import.meta.env.PROD && window.top !== window.self) {
   link.rel = 'noopener';
   link.textContent = tr('Ouvrir Carte Mémoire dans son propre onglet');
   root.append(link);
-} else {
+} else if (!redirectToChosenLanguage()) {
   // La langue d'abord (dictionnaire anglais si besoin), puis le site : ses libellés
-  // calculés au chargement sont ainsi déjà dans la bonne langue
+  // calculés au chargement sont ainsi déjà dans la bonne langue. (Anglais choisi et adresse
+  // française : la page part vers l'adresse anglaise, le site ne se lance pas ici.)
   await loadLanguage();
   const { start } = await import('./start');
   start(root);

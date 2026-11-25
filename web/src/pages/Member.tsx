@@ -12,7 +12,7 @@ import { MemoryBar } from '../components/MemoryBar';
 import { PageSizeSelect, Pagination } from '../components/Pagination';
 import { DEFAULT_PLATFORM } from '../lib/preferences';
 import { usePlatforms } from '../lib/usePlatforms';
-import { tr, locale } from '../lib/i18n';
+import { siteUrl, tr, locale } from '../lib/i18n';
 import { MemberSkeleton } from '../components/Skeleton';
 import { TrophyStrip } from '../components/TrophyBoard';
 import { computeTrophies, type TrophyStats } from '../lib/trophies';
@@ -141,7 +141,7 @@ export function MemberPage() {
   }
 
   const visible = profile.is_public || profile.is_me;
-  const url = `${window.location.origin}/membre/${encodeURIComponent(profile.username)}`;
+  const url = siteUrl(`/membre/${encodeURIComponent(profile.username)}`);
   const pages = pageSize === 0 ? 1 : Math.max(1, Math.ceil(groups.length / pageSize));
   const current = Math.min(page, pages);
   const shown = pageSize === 0 ? groups : groups.slice((current - 1) * pageSize, current * pageSize);

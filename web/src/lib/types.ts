@@ -24,6 +24,8 @@ export interface SearchResult {
   matched_code: string | null;
   // Consoles du jeu (PS1, PS2…), de la plus ancienne à la plus récente
   platforms?: string[] | null;
+  // Aucun titre ne contenait tous les mots : titre proche (faute de frappe), proposé à défaut
+  approximate?: boolean;
 }
 
 export interface Region {

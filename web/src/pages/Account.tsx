@@ -10,7 +10,7 @@ import { useConfirm } from '../components/Confirm';
 import { CodeInput } from '../components/CodeInput';
 import { useCodeConfirm } from '../components/CodeConfirm';
 import { Dialog } from '../components/Dialog';
-import { tr, locale } from '../lib/i18n';
+import { basePath, tr, locale } from '../lib/i18n';
 import { motionChoice, setMotionChoice, systemReducesMotion, type MotionChoice } from '../lib/motion';
 import { forgetTrust } from '../lib/trust';
 import { usePageTitle } from '../lib/title';
@@ -529,7 +529,7 @@ function DeleteAccountSection() {
     // Rechargement complet vers l'accueil : une simple navigation pouvait être devancée par
     // la redirection des pages réservées (session fermée → « Connexion »), et le message perdu
     await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined);
-    window.location.replace('/?compte=supprime');
+    window.location.replace(`${basePath}/?compte=supprime`);
   }
 
   return (

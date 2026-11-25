@@ -247,6 +247,15 @@ h3 { font-size: var(--fs-3); font-weight: 650; letter-spacing: -0.01em; }
   background: none; border: 0; padding: 0; font: inherit; color: var(--cross); cursor: pointer; text-decoration: underline;
 }
 .link-button.danger { color: var(--circle); }
+/* « Contribuer » sur une version de la fiche : ouvre ses deux propositions sur la même ligne */
+.version-more { display: inline-block; }
+.version-more[open] > summary { margin-right: 12px; }
+.version-more > summary, .version-more-actions { display: inline-flex; }
+.version-more-actions { gap: 12px; flex-wrap: wrap; }
+.version-more > summary { list-style: none; cursor: pointer; }
+.version-more > summary::-webkit-details-marker { display: none; }
+.version-more > summary::after { content: ' ▾'; }
+.version-more[open] > summary::after { content: ' ▴'; }
 .icon-button {
   background: none; border: 0; color: var(--circle); font-size: 1.3rem; cursor: pointer; line-height: 1; padding: 4px 8px;
 }
@@ -981,7 +990,7 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .chip-more:hover { color: var(--text); border-color: var(--cross); }
 .release-chip.owned .chip-box { border-color: var(--triangle); background: var(--triangle); color: var(--bg); }
 .chip-zone { font-size: 0.7rem; font-weight: 700; color: var(--muted); }
-.chip-language { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.03em; color: #c9d3ff; }
+.chip-language { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.03em; color: #c9d3ff; max-width: 16ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chip-copies { font-weight: 700; color: var(--triangle); }
 
 .wish-button {
@@ -1049,9 +1058,10 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 
 @media (max-width: 640px) {
   .catalog-row { align-items: flex-start; flex-wrap: wrap; }
-  /* Le titre et les versions prennent toute la largeur à côté de la jaquette (72 px + 12) ;
+  /* Le titre et les versions prennent la largeur à côté de la jaquette (72 px + l'écart, avec de
+     la marge : à 84 px tout juste, ils passaient sous la jaquette) ;
      « Je le cherche » passe en dessous, aligné sous le titre, au lieu de les écraser */
-  .catalog-row .catalog-main { flex: 1 1 calc(100% - 84px); }
+  .catalog-row .catalog-main { flex: 1 1 calc(100% - 100px); }
   .catalog-row .wish-button { margin-left: 84px; }
   .catalog-progress { min-width: 0; width: 100%; }
 }

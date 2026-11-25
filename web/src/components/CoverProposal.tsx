@@ -13,7 +13,7 @@ import { CoverCamera } from './CoverCamera';
 import { CoverEditor } from './CoverEditor';
 import { Dialog } from './Dialog';
 import { QrImage } from './Scanner';
-import { tr } from '../lib/i18n';
+import { siteUrl, tr } from '../lib/i18n';
 
 type Step = 'choose' | 'camera' | 'phone' | 'edit' | 'done';
 
@@ -137,7 +137,7 @@ function ProposalBody({ release, gameTitle, hasCover, onClose }: {
 
       {step === 'phone' && link && (
         <>
-          <QrImage url={`${window.location.origin}/scanner?photo=${link}&format=${format}`} alt={tr('QR code à viser avec le téléphone pour prendre la photo')} />
+          <QrImage url={siteUrl(`/scanner?photo=${link}&format=${format}`)} alt={tr('QR code à viser avec le téléphone pour prendre la photo')} />
           <p className={receiver.phoneReady ? 'success' : 'notice'} aria-live="polite">
             {receiver.progress
               ? tr('Réception de la photo… ({0} / {1})', receiver.progress.done, receiver.progress.total)

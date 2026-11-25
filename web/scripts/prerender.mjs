@@ -8,6 +8,9 @@
 // pour chaque jeu (servi à l'adresse sans « .html ») : titre, description, versions,
 // jaquette pour les aperçus de liens (Discord, réseaux sociaux…) et données
 // structurées pour Google. Le site s'affiche ensuite par-dessus, comme d'habitude.
+// Chaque page existe aussi en anglais, à son adresse /en/… (dist/en/jeu/…) : les deux
+// versions se désignent l'une l'autre (balises hreflang), pour que Google montre la
+// bonne langue à chacun.
 // Les anciennes adresses (/jeu/36-final-fantasy-vii, titre corrigé depuis) ont une
 // petite page qui renvoie vers la nouvelle : liens partagés et moteurs suivent.
 //
@@ -51,6 +54,13 @@ const ZONE_ORDER = { 'NTSC-J': 0, 'NTSC-U': 1, PAL: 2, region_free: 3 };
 const EDITIONS = { standard: 'Standard', reissue: 'Réédition', collector: 'Édition collector', demo: 'Démo', promo: 'Promotionnel', bundle: 'Pack' };
 const languageNames = new Intl.DisplayNames(['fr'], { type: 'language' });
 const languageName = (code) => { try { return languageNames.of(code) ?? code; } catch { return code; } };
+// Les mêmes libellés en anglais (comme src/lib/i18n-en.ts)
+const ZONES_EN = { 'NTSC-J': 'Japan (NTSC-J)', 'NTSC-U': 'North America (NTSC-U)', PAL: 'Europe (PAL)', region_free: 'Region free' };
+const EDITIONS_EN = { standard: 'Standard', reissue: 'Reissue', collector: "Collector's edition", demo: 'Demo', promo: 'Promotional', bundle: 'Bundle' };
+const languageNamesEn = new Intl.DisplayNames(['en'], { type: 'language' });
+const languageNameEn = (code) => { try { return languageNamesEn.of(code) ?? code; } catch { return code; } };
+// Adresse d'une page dans une langue : /jeu/x en français, /en/jeu/x en anglais (accueil : /en/)
+const inLang = (lang, path) => (lang === 'en' ? `/en${path}` : path);
 const coverUrl = (path) => `${SUPABASE_URL}/storage/v1/object/public/covers/${path.split('/').map(encodeURIComponent).join('/')}`;
 
 const escape = (text) => String(text ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -97,15 +107,23 @@ async function readAll(table, select, key, size = 250) {
 // --- Une page par jeu ---------------------------------------------------
 const template = readFileSync(join(dist, 'index.html'), 'utf8');
 
-function page({ title, description, path, image, jsonLd, body, data, noindex = false }) {
+// path : adresse de la page dans sa langue ; frPath : la même page en français (pour les
+// balises hreflang, qui désignent les deux versions l'une l'autre)
+function page({ title, description, path, frPath = path, lang = 'fr', image, jsonLd, body, data, noindex = false }) {
   const url = `${SITE}${path}`;
+  const alternates = noindex ? [] : [
+    `<link rel="alternate" hreflang="fr" href="${escape(`${SITE}${frPath}`)}" />`,
+    `<link rel="alternate" hreflang="en" href="${escape(`${SITE}${inLang('en', frPath)}`)}" />`,
+    `<link rel="alternate" hreflang="x-default" href="${escape(`${SITE}${frPath}`)}" />`,
+  ];
   const head = [
     `<title>${escape(title)}</title>`,
     `<link rel="canonical" href="${escape(url)}" />`,
+    ...alternates,
     noindex ? '<meta name="robots" content="noindex" />' : '',
     `<meta property="og:site_name" content="Carte Mémoire" />`,
     `<meta property="og:type" content="website" />`,
-    `<meta property="og:locale" content="fr_FR" />`,
+    `<meta property="og:locale" content="${lang === 'en' ? 'en_GB' : 'fr_FR'}" />`,
     `<meta property="og:title" content="${escape(title)}" />`,
     `<meta property="og:description" content="${escape(description)}" />`,
     `<meta property="og:url" content="${escape(url)}" />`,
@@ -118,6 +136,7 @@ function page({ title, description, path, image, jsonLd, body, data, noindex = f
   ].filter(Boolean).join('\n    ');
   // Remplacements par fonction : un « $ » dans un résumé ($&, $'…) resterait tel quel
   let html = template
+    .replace('<html lang="fr">', () => `<html lang="${lang}">`)
     .replace(/<title>[\s\S]*?<\/title>/, () => head)
     .replace(/<meta name="description" content="[^"]*" \/>/, () => `<meta name="description" content="${escape(description)}" />`);
   if (body) html = html.replace('<div id="root"></div>', () => `<div id="root">${body}</div>`);
@@ -125,7 +144,11 @@ function page({ title, description, path, image, jsonLd, body, data, noindex = f
   return html;
 }
 
-function gamePage(game) {
+function gamePage(game, lang = 'fr') {
+  const en = lang === 'en';
+  const zoneNames = en ? ZONES_EN : ZONES;
+  const editionNames = en ? EDITIONS_EN : EDITIONS;
+  const nameOf = en ? languageNameEn : languageName;
   const releases = [...game.release].sort((a, b) => (a.platform?.short_name ?? '').localeCompare(b.platform?.short_name ?? '', 'en', { numeric: true })
     || (ZONE_ORDER[a.zone] ?? 9) - (ZONE_ORDER[b.zone] ?? 9) || Number(b.edition_type === 'standard') - Number(a.edition_type === 'standard') || a.id - b.id);
   const platforms = [...new Map(releases.map((r) => [r.platform?.short_name, r.platform?.name ?? r.platform?.short_name])).values()].filter(Boolean);
@@ -139,26 +162,35 @@ function gamePage(game) {
   const zones = [...new Set(releases.map((r) => r.zone).filter(Boolean))];
 
   const platformText = platforms.join(', ') || 'PlayStation';
-  const title = `${game.title} (${platformText}) : versions et collection · Carte Mémoire`;
-  const description = game.summary
-    ? shorten(game.summary)
-    : shorten(`${game.title}${year ? ` (${year})` : ''} sur ${platformText} : ${releases.length} version${releases.length > 1 ? 's' : ''}`
-      + `${zones.length ? ` (${zones.map((z) => ZONES[z]?.split(' (')[0] ?? z).join(', ')})` : ''}, codes produit, éditions, langues et jaquettes. Coche celles de ta collection.`);
-  const path = gamePath(game);
+  // Le résumé de la langue de la page ; sinon celui de l'autre langue (balisé comme tel)
+  const summary = en ? game.summary_en : game.summary;
+  const otherSummary = en ? game.summary : game.summary_en;
+  const title = en
+    ? `${game.title} (${platformText}): versions and collection · Carte Mémoire`
+    : `${game.title} (${platformText}) : versions et collection · Carte Mémoire`;
+  const zoneList = zones.length ? ` (${zones.map((z) => zoneNames[z]?.split(' (')[0] ?? z).join(', ')})` : '';
+  const description = summary
+    ? shorten(summary)
+    : en
+      ? shorten(`${game.title}${year ? ` (${year})` : ''} on ${platformText}: ${releases.length} version${releases.length > 1 ? 's' : ''}${zoneList}, product codes, editions, languages and covers. Tick the ones in your collection.`)
+      : shorten(`${game.title}${year ? ` (${year})` : ''} sur ${platformText} : ${releases.length} version${releases.length > 1 ? 's' : ''}${zoneList}, codes produit, éditions, langues et jaquettes. Coche celles de ta collection.`);
+  const frPath = gamePath(game);
+  const path = inLang(lang, frPath);
 
   const facts = [platformText, year, developers.slice(0, 3).join(', '), genres.slice(0, 3).join(', ')].filter(Boolean).join(' · ');
   const versions = releases.map((r) => {
-    const parts = [ZONES[r.zone] ?? r.zone, r.edition_name || EDITIONS[r.edition_type] || r.edition_type, r.product_code,
-      (r.languages ?? []).map(languageName).join(', '), platforms.length > 1 ? r.platform?.short_name : null].filter(Boolean);
+    const parts = [zoneNames[r.zone] ?? r.zone, r.edition_name || editionNames[r.edition_type] || r.edition_type, r.product_code,
+      (r.languages ?? []).map(nameOf).join(', '), platforms.length > 1 ? r.platform?.short_name : null].filter(Boolean);
     return `<li><strong>${escape(r.local_title)}</strong> · ${escape(parts.join(' · '))}</li>`;
   }).join('');
   const body = '<div class="prerender">'
-    + '<p class="prerender-site"><a href="/">Carte Mémoire</a> · <a href="/catalogue">Catalogue</a></p>'
+    + `<p class="prerender-site"><a href="${en ? '/en/' : '/'}">Carte Mémoire</a> · <a href="${inLang(lang, '/catalogue')}">${en ? 'Catalogue' : 'Catalogue'}</a></p>`
     + `<article class="panel"><h1>${escape(game.title)}</h1>`
     + (facts ? `<p class="muted">${escape(facts)}</p>` : '')
-    + (series.length ? `<p>Série : ${escape(series.join(', '))}</p>` : '')
-    // Sans résumé français, le résumé anglais (balisé comme tel pour les moteurs de recherche)
-    + (game.summary ? `<p>${escape(game.summary)}</p>` : game.summary_en ? `<p lang="en">${escape(game.summary_en)}</p>` : '')
+    + (series.length ? `<p>${en ? 'Series: ' : 'Série : '}${escape(series.join(', '))}</p>` : '')
+    // Sans résumé dans la langue de la page, celui de l'autre langue (balisé comme tel pour
+    // les moteurs de recherche)
+    + (summary ? `<p>${escape(summary)}</p>` : otherSummary ? `<p lang="${en ? 'fr' : 'en'}">${escape(otherSummary)}</p>` : '')
     + `<h2>Versions (${releases.length})</h2><ul>${versions}</ul></article></div>`;
 
   const jsonLd = {
@@ -166,14 +198,15 @@ function gamePage(game) {
     '@type': 'VideoGame',
     name: game.title,
     url: `${SITE}${path}`,
+    inLanguage: lang,
     ...(image ? { image } : {}),
-    ...(game.summary || game.summary_en ? { description: shorten(game.summary || game.summary_en, 500) } : {}),
+    ...(summary || otherSummary ? { description: shorten(summary || otherSummary, 500) } : {}),
     gamePlatform: platforms,
     ...(genres.length ? { genre: genres } : {}),
     ...(developers.length ? { author: developers.map((name) => ({ '@type': 'Organization', name })) } : {}),
     ...(game.first_release_date ? { datePublished: game.first_release_date } : {}),
   };
-  return { path, html: page({ title, description, path, image, jsonLd, body, data: game }) };
+  return { path, html: page({ title, description, path, frPath, lang, image, jsonLd, body, data: game }) };
 }
 
 // Ancienne adresse → la fiche : renvoi immédiat (garde ?version=… et #…), adresse
@@ -201,10 +234,11 @@ function redirectPage(path, game) {
 // Pages du site sans contenu propre : adresse directe sans « introuvable » ; les pages
 // personnelles ne sont pas proposées aux moteurs de recherche
 const ROUTES = [
-  { path: '/catalogue', title: 'Catalogue des jeux PlayStation et PlayStation 2 · Carte Mémoire', description: 'Tous les jeux PlayStation et PlayStation 2, version par version (Black Label, Platinum, versions nationales), à cocher pour suivre ta collection.' },
-  { path: '/mentions-legales', title: 'Mentions légales · Carte Mémoire' },
-  { path: '/conditions', title: "Conditions d'utilisation · Carte Mémoire" },
-  { path: '/confidentialite', title: 'Données personnelles et confidentialité · Carte Mémoire' },
+  { path: '/catalogue', title: 'Catalogue des jeux PlayStation et PlayStation 2 · Carte Mémoire', description: 'Tous les jeux PlayStation et PlayStation 2, version par version (Black Label, Platinum, versions nationales), à cocher pour suivre ta collection.',
+    en: { title: 'PlayStation and PlayStation 2 games catalogue · Carte Mémoire', description: 'Every PlayStation and PlayStation 2 game, version by version (Black Label, Platinum, national versions), to tick off as you build your collection.' } },
+  { path: '/mentions-legales', title: 'Mentions légales · Carte Mémoire', en: { title: 'Legal notice · Carte Mémoire' } },
+  { path: '/conditions', title: "Conditions d'utilisation · Carte Mémoire", en: { title: 'Terms of use · Carte Mémoire' } },
+  { path: '/confidentialite', title: 'Données personnelles et confidentialité · Carte Mémoire', en: { title: 'Personal data and privacy · Carte Mémoire' } },
   ...['collection', 'compte', 'proposer', 'mes-propositions', 'moderation', 'scanner', 'trophees', 'connexion', 'connexion/verification', 'inscription', 'mot-de-passe-oublie', 'reinitialiser']
     .map((p) => ({ path: `/${p}`, title: 'Carte Mémoire', noindex: true })),
 ];
@@ -212,7 +246,7 @@ const ROUTES = [
 // --- Tout est lu : on écrit ---------------------------------------------
 const started = Date.now();
 const games = (await readAll('game', SELECT, 'id')).filter((g) => g.release?.length);
-const pages = games.map(gamePage);
+const pages = games.flatMap((g) => [gamePage(g, 'fr'), gamePage(g, 'en')]);
 const seen = new Set();
 for (const p of pages) {
   if (seen.has(p.path)) throw new Error(`Deux jeux à la même adresse : ${p.path}`);
@@ -235,7 +269,11 @@ const write = (relative, content) => {
 for (const p of pages) write(`${p.path.slice(1)}.html`, p.html);
 for (const [path, game] of redirects) write(`${path.slice(1)}.html`, redirectPage(gamePath(game), game));
 const defaultDescription = 'La base de données collaborative des jeux PlayStation, et ta collection.';
-for (const r of ROUTES) write(`${r.path.slice(1)}.html`, page({ title: r.title, description: r.description ?? defaultDescription, path: r.path, noindex: r.noindex }));
+const defaultDescriptionEn = 'The collaborative database of PlayStation games, and your collection.';
+for (const r of ROUTES) {
+  write(`${r.path.slice(1)}.html`, page({ title: r.title, description: r.description ?? defaultDescription, path: r.path, noindex: r.noindex }));
+  write(`en${r.path}.html`, page({ title: r.en?.title ?? r.title, description: r.en?.description ?? defaultDescriptionEn, path: inLang('en', r.path), frPath: r.path, lang: 'en', noindex: r.noindex }));
+}
 
 // L'accueil : titre et aperçu de lien plus parlants (le modèle a déjà été lu plus haut)
 write('index.html', page({
@@ -243,10 +281,20 @@ write('index.html', page({
   description: 'La base collaborative des jeux PlayStation et PlayStation 2 : toutes les versions (Black Label, Platinum, versions nationales), codes produit et jaquettes. Coche ta collection et suis ta progression.',
   path: '/',
 }));
+// L'accueil anglais : /en/ (un dossier, servi avec sa barre finale par GitHub Pages)
+write('en/index.html', page({
+  title: 'Carte Mémoire · PlayStation games, version by version, and your collection',
+  description: 'The collaborative database of PlayStation and PlayStation 2 games: every version (Black Label, Platinum, national versions), product codes and covers. Tick off your collection and track your progress.',
+  path: '/en/',
+  frPath: '/',
+  lang: 'en',
+}));
 
-const indexed = ['/', ...ROUTES.filter((r) => !r.noindex).map((r) => r.path), ...pages.map((p) => p.path)];
+const publicRoutes = ROUTES.filter((r) => !r.noindex).map((r) => r.path);
+const indexed = ['/', '/en/', ...publicRoutes, ...publicRoutes.map((p) => inLang('en', p)), ...pages.map((p) => p.path)];
 write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${indexed.map((p) => `  <url><loc>${escape(`${SITE}${p}`)}</loc></url>`).join('\n')}\n</urlset>\n`);
-write('robots.txt', ['User-agent: *', ...ROUTES.filter((r) => r.noindex).map((r) => `Disallow: ${r.path}`), 'Disallow: /membre/', '', `Sitemap: ${SITE}/sitemap.xml`, ''].join('\n'));
+const hidden = ROUTES.filter((r) => r.noindex).map((r) => r.path);
+write('robots.txt', ['User-agent: *', ...hidden.map((p) => `Disallow: ${p}`), ...hidden.map((p) => `Disallow: /en${p}`), 'Disallow: /membre/', 'Disallow: /en/membre/', '', `Sitemap: ${SITE}/sitemap.xml`, ''].join('\n'));
 
 const size = pages.reduce((n, p) => n + Buffer.byteLength(p.html), 0);
-console.log(`Référencement : ${pages.length} fiches de jeux (${(size / 1e6).toFixed(1)} Mo), ${redirects.size} anciennes adresses renvoyées, ${ROUTES.length} pages, sitemap.xml (${indexed.length} adresses), robots.txt — ${((Date.now() - started) / 1000).toFixed(1)} s`);
+console.log(`Référencement : ${pages.length} fiches de jeux (français et anglais) (${(size / 1e6).toFixed(1)} Mo), ${redirects.size} anciennes adresses renvoyées, ${ROUTES.length} pages, sitemap.xml (${indexed.length} adresses), robots.txt — ${((Date.now() - started) / 1000).toFixed(1)} s`);

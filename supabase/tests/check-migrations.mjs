@@ -1129,6 +1129,20 @@ await egal('…un jeu sorti sur PS1 et PS2 les montre dans l\'ordre de sortie de
 await ok('la recherche reste ouverte aux visiteurs (droits redonnés après la recréation)', en(null, `select * from public.search_games('crash')`));
 await egal('le titre exact reste en tête', chercheMots('final fantasy vii').then((r) => r[0]?.title), 'Final Fantasy VII');
 await egal('« the getaway » : trouvé', chercheMots('the getaway').then((r) => r.some((x) => x.title === 'The Getaway')), true);
+
+console.log('\nRecherche : chiffres romains, abréviations, titres proches');
+const premier = (q) => chercheMots(q).then((r) => r[0]?.title);
+await egal('« final fantasy 7 » : Final Fantasy VII en tête', premier('final fantasy 7'), 'Final Fantasy VII');
+await egal('« ff7 » : pareil', premier('ff7'), 'Final Fantasy VII');
+await egal('« FF VII » : pareil', premier('FF VII'), 'Final Fantasy VII');
+await egal('« metal gear solid 2 » : trouve le II ou le 2', chercheMots('metal gear solid 2').then((r) => r.some((x) => /metal gear solid 2/i.test(x.title))), true);
+await egal('« mgs » : des Metal Gear Solid', chercheMots('mgs').then((r) => r.some((x) => /^Metal Gear Solid/.test(x.title))), true);
+await egal('« re 2 » : Resident Evil 2 parmi les premiers', chercheMots('re 2').then((r) => r.slice(0, 5).some((x) => /^Resident Evil 2/.test(x.title))), true);
+await egal('« crash bandicoot 3 » : Warped (« 3 » dans le titre régional)', chercheMots('crash bandicoot 3').then((r) => r.length > 0), true);
+await egal('un code produit (lettres et chiffres) reste un code : « SCES-00869 »', parCode('SCES-00869').then((r) => r[0]?.matched_code), 'SCES-00869');
+await egal('faute de frappe : « final fantazy » propose quand même des Final Fantasy', lignes(en(null, `select title, approximate from public.search_games('final fantazy', 10)`)).then((r) => r.length > 0 && r.every((x) => x.approximate) && r.some((x) => x.title.startsWith('Final Fantasy'))), true);
+await egal('…mais un mot trouvé tel quel n\'est jamais marqué approximatif', lignes(en(null, `select bool_or(approximate) as a from public.search_games('final fantasy', 10)`)), [{ a: false }]);
+await egal('un texte sans rapport ne ramène rien', chercheMots('zzqxw kkvvj').then((r) => r.length), 0);
 await ko('les anciennes adresses ne s\'écrivent pas par l\'API', en(MEMBRE, `insert into public.game_slug_history (slug, game_id) values ('ps1/piege', $1)`, [jA]), '');
 await ko('…pas même par un modérateur', en(ADMIN, `delete from public.game_slug_history`).then((r) => { if (r.affectedRows === 0) throw new Error('refusé (aucune ligne)'); }), '');
 await ok('nettoyage (adresses)', (async () => {

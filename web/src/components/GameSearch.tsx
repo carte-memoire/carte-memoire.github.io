@@ -29,6 +29,7 @@ export function GameSearch({ onSelect, placeholder = tr('Final Fantasy VII, Cras
   const studios = useStudioSearch(onSelectStudio ? query : '', platform);
   const inputId = useId();
   const shortcut = searchShortcut(query);
+  const approximate = results.length > 0 && results.every((r) => r.approximate);
 
   return (
     <div className="game-search">
@@ -78,6 +79,8 @@ export function GameSearch({ onSelect, placeholder = tr('Final Fantasy VII, Cras
           ))}
         </ul>
       )}
+      {/* Rien d'exact : les titres les plus proches (faute de frappe), annoncés comme tels */}
+      {approximate && <p className="muted small">{tr('Pas de titre exact pour « {0} » : voici les plus proches.', query.trim())}</p>}
       {results.length > 0 && (
         <ul className="result-list">
           {results.map((r) => (
@@ -98,6 +101,11 @@ export function GameSearch({ onSelect, placeholder = tr('Final Fantasy VII, Cras
             </li>
           ))}
         </ul>
+      )}
+      {approximate && proposeMissing && (
+        <p className="muted small">
+          {tr('Ce n’est aucun de ceux-là ? ')}<Link to={`/proposer?titre=${encodeURIComponent(query.trim())}`}>{tr('Propose-le')}</Link>.
+        </p>
       )}
     </div>
   );

@@ -390,7 +390,7 @@ export function Catalog() {
               </label>
             )}
             <label className="field">
-              <span className="field-label">{tr('Langue des versions')}</span>
+              <span className="field-label">{tr('Langue préférée')}</span>
               <select value={language} onChange={(e) => update({ langue: e.target.value === DEFAULT_LANGUAGE ? null : e.target.value }, { keepPage: true })}
                 title={tr("Quand un jeu existe en plusieurs versions nationales (anglaise, française, allemande…), celle-ci s'affiche d'abord ; les autres restent à un clic")}>
                 {LANGUAGES.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
@@ -641,7 +641,7 @@ function CatalogLine({ row, showZone, showPlatform, language, canTick, busyRelea
         <ul className="catalog-releases" aria-label={tr('Versions')}>
           {shown.map((r) => (
             <li key={r.id}>
-              <ReleaseChip release={r} showZone={showZone} showPlatform={showPlatform} showLanguage={(counts.get(lookalike(r)) ?? 0) > 1} interactive={canTick} busy={busy}
+              <ReleaseChip release={r} baseTitle={row.display_title} showZone={showZone} showPlatform={showPlatform} showLanguage={(counts.get(lookalike(r)) ?? 0) > 1} interactive={canTick} busy={busy}
                 fresh={r.id === justAdded && r.owned}
                 onClick={() => (r.owned && r.owned_item ? onOpen(r.owned_item) : onAdd(r))} />
             </li>
@@ -666,14 +666,17 @@ function CatalogLine({ row, showZone, showPlatform, language, canTick, busyRelea
   );
 }
 
-function ReleaseChip({ release, showZone, showPlatform, showLanguage, interactive, busy, fresh, onClick }: {
-  release: CatalogRelease; showZone: boolean; showPlatform: boolean; showLanguage: boolean; interactive: boolean; busy: boolean;
+function ReleaseChip({ release, baseTitle, showZone, showPlatform, showLanguage, interactive, busy, fresh, onClick }: {
+  release: CatalogRelease; baseTitle: string; showZone: boolean; showPlatform: boolean; showLanguage: boolean; interactive: boolean; busy: boolean;
   // Tout juste cochée : la case se tamponne
   fresh: boolean; onClick: () => void;
 }) {
   const edition = editionLabel(release);
-  // Boîte d'un pays : son code (FR, DE…) ; sinon les langues du disque
-  const language = !showLanguage ? '' : release.box_country ? boxTag(release.box_country) : languagesShort(release.languages);
+  // Boîte d'un pays : son code (FR, DE…) ; sinon les langues du disque ; sans l'un ni l'autre,
+  // le code produit, puis le titre de la version s'il diffère (« Autobahn Raser », la version
+  // allemande d'A2 Racer III) : deux versions semblables ne s'affichent jamais à l'identique
+  const ownTitle = release.local_title !== baseTitle ? release.local_title : '';
+  const language = !showLanguage ? '' : (release.box_country ? boxTag(release.box_country) : languagesShort(release.languages)) || release.product_code || ownTitle;
   const className = `release-chip${release.owned ? ' owned' : ''}${fresh ? ' just-owned' : ''}${release.edition_type === 'reissue' ? ' reissue' : ''}`;
   const content = (
     <>
@@ -686,7 +689,7 @@ function ReleaseChip({ release, showZone, showPlatform, showLanguage, interactiv
     </>
   );
   // Au survol : la langue en toutes lettres et le code produit
-  const details = [release.box_country && tr('boîte : {0}', boxRegionName(release.box_country)), languagesLong(release.languages), release.product_code].filter(Boolean).join(' · ');
+  const details = [ownTitle, release.box_country && tr('boîte : {0}', boxRegionName(release.box_country)), languagesLong(release.languages), release.product_code].filter(Boolean).join(' · ');
   if (!interactive) return <span className={className} title={details || undefined}>{content}</span>;
   const description = [edition, languagesLong(release.languages)].filter(Boolean).join(', ');
   return (

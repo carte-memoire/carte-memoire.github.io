@@ -49,7 +49,9 @@ export function CaseViewer({ pulled, onClose, onEdit }: { pulled: Pulled; onClos
   const kind = spineKind(pulled.release.platform.short_name) ?? 'ps1';
   const format = kind === 'ps1' ? (!pulled.release.zone || pulled.release.zone === 'PAL' ? 'ps1-pal' : 'ps1-flat') : kind;
   const mm = CASE_MM[format];
-  const height = Math.min(window.innerHeight * 0.5, 400);
+  // La moitié de l'écran en hauteur (400 px au plus), et jamais plus large que l'écran moins une
+  // marge : sur téléphone, le boîtier PS1 européen (plus large que haut) débordait
+  const height = Math.min(window.innerHeight * 0.5, 400, (window.innerWidth - 56) * mm.h / mm.w);
   const k = height / mm.h;
   const [w, h, d] = [mm.w * k, height, mm.d * k];
   // PS1 Europe, d'après photos : coins arrondis (≈ 2 mm). Les tranches et les bords du dessus et

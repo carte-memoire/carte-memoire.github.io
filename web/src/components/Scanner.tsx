@@ -12,7 +12,7 @@ import { ScanVerdict } from './ScanVerdict';
 import { useToast } from './Toast';
 import { GameSearch } from './GameSearch';
 import { ScanCamera } from './ScanCamera';
-import { tr } from '../lib/i18n';
+import { siteUrl, tr } from '../lib/i18n';
 
 // Scan du code-barres d'une boîte de jeu : le verdict s'affiche aussitôt (ScanVerdict :
 // tu l'as déjà, tu le cherches, prix payés par les membres), avec l'ajout à la collection
@@ -243,7 +243,7 @@ function ScannerView({ view, link, phoneReady, onCode, onView, onPick, onOpen, o
 
 // Le QR code qui ouvre le scanner sur le téléphone, relié à cet ordinateur
 function PhoneQr({ link }: { link: string }) {
-  return <QrImage url={`${window.location.origin}/scanner?lien=${link}`} alt={tr('QR code à viser avec le téléphone pour ouvrir le scanner')} />;
+  return <QrImage url={siteUrl(`/scanner?lien=${link}`)} alt={tr('QR code à viser avec le téléphone pour ouvrir le scanner')} />;
 }
 
 // Un QR code (générateur chargé seulement quand il faut en afficher un)

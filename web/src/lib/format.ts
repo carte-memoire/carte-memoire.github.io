@@ -123,6 +123,16 @@ export function speaksLanguage(r: { languages?: string[] | null; box_country?: s
   return !r.languages?.length || r.languages.includes(language);
 }
 
+// Pour classer les versions d'un jeu selon la langue du visiteur : 2 = dans sa langue (par
+// ses langues, ou une boîte d'un pays de cette langue) ; 1 = langues inconnues ; 0 = une
+// autre langue. Une boîte « Europe » ne compte que par ses langues : le Final Fantasy VII
+// européen en anglais passe après la version française pour un francophone.
+export function languageRank(r: { languages?: string[] | null; box_country?: string | null }, language: string): number {
+  if (r.languages?.includes(language)) return 2;
+  if (r.box_country && r.box_country !== 'europe' && (COUNTRY_LANGUAGES[r.box_country] ?? []).includes(language)) return 2;
+  return r.languages?.length ? 0 : 1;
+}
+
 // Nom d'une région de la base : un pays par son code (nom dans la langue du site), une zone traduite
 export function regionName(region: { code: string; name: string }): string {
   return /^[A-Z]{2}$/.test(region.code) ? countryName(region.code) : tr(region.name);

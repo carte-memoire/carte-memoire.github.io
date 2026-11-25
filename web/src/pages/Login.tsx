@@ -60,6 +60,13 @@ export function Login() {
       {params.get('raison') === 'inactivite' && (
         <p className="notice">{tr('Tu as été déconnecté après une période sans activité, pour protéger ton compte. Reconnecte-toi pour reprendre où tu en étais.')}</p>
       )}
+      {/* Arrivé ici en voulant proposer ou ranger sa collection : on dit pourquoi */}
+      {next.startsWith('/proposer') && (
+        <p className="notice">{tr('Pour proposer un jeu, une version ou une jaquette, connecte-toi : chaque proposition est signée par son auteur et relue par un modérateur. Pas encore de compte ?')} <Link to="/inscription">{tr('Crée-le gratuitement')}</Link>.</p>
+      )}
+      {next.startsWith('/collection') && (
+        <p className="notice">{tr('Connecte-toi pour ranger ta collection : les versions que tu possèdes, celles que tu cherches, leur état et leur prix. Pas encore de compte ?')} <Link to="/inscription">{tr('Crée-le gratuitement')}</Link>.</p>
+      )}
 
       {passkeysSupported && (
         <>

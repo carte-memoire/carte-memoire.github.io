@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  editionClass, editionLabel, formatDate, formatPercent, gamePath, languagesLong, languagesShort, genreName, genresBesideFamilies, pickSummary, readableSpaces, searchKey, searchShortcut, slugify, speaksLanguage, yearOf, zoneOrder, zoneOrderFrom,
+  editionClass, editionLabel, formatDate, formatPercent, gamePath, languagesLong, languagesShort, genreName, genresBesideFamilies, languageRank, pickSummary, readableSpaces, searchKey, searchShortcut, slugify, speaksLanguage, yearOf, zoneOrder, zoneOrderFrom,
 } from './format';
 
 describe('slugify et gamePath', () => {
@@ -157,5 +157,20 @@ describe('searchShortcut', () => {
   it('un titre reste un titre', () => {
     expect(searchShortcut('Final Fantasy')).toBeNull();
     expect(searchShortcut('jrpg maker')).toBeNull();
+  });
+});
+
+describe('languageRank (ordre des versions sur la fiche)', () => {
+  it('la version dans la langue du visiteur passe en premier', () => {
+    expect(languageRank({ languages: ['fr'] }, 'fr')).toBe(2);
+    expect(languageRank({ languages: [], box_country: 'FR' }, 'fr')).toBe(2);
+  });
+  it('une boîte « Europe » ne compte que par ses langues', () => {
+    expect(languageRank({ languages: ['en'], box_country: 'europe' }, 'fr')).toBe(0);
+    expect(languageRank({ languages: ['en', 'fr'], box_country: 'europe' }, 'fr')).toBe(2);
+  });
+  it('langues inconnues : entre les deux', () => {
+    expect(languageRank({ languages: [] }, 'fr')).toBe(1);
+    expect(languageRank({ languages: ['de'] }, 'fr')).toBe(0);
   });
 });
