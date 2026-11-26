@@ -71,12 +71,13 @@ const api = publicApi(readEnv());
 const { releases, keysOfGame } = await loadReleases(api, 'game_ref:game(id)', CONSOLE.code);
 const genres = await api('genre?select=id,families&limit=1000');
 const withFamily = new Set(genres.filter((g) => g.families?.length).map((g) => g.id));
-const [platform] = await api(`platform?select=id&short_name=eq.${CONSOLE.code}`);
+// Les jeux de la console, par paquets de numéros (une jointure sur toutes les versions dépasse
+// parfois le délai de la base en ligne)
 const games = new Map();
-for (let offset = 0; ; offset += 1000) {
-  const page = await api(`game?select=id,title,genres_reviewed,game_genre(genre_id),release!inner(platform_id)&release.platform_id=eq.${platform.id}&order=id&limit=1000&offset=${offset}`);
+const gameIds = [...new Set(releases.map((r) => r.game_id))];
+for (let i = 0; i < gameIds.length; i += 150) {
+  const page = await api(`game?select=id,title,genres_reviewed,game_genre(genre_id)&id=in.(${gameIds.slice(i, i + 150).join(',')})`);
   for (const g of page) games.set(g.id, g);
-  if (page.length < 1000) break;
 }
 const withoutGenre = [...games.values()].filter((g) => !g.genres_reviewed && !g.game_genre.some((gg) => withFamily.has(gg.genre_id)));
 console.log(`${games.size} jeux ${CONSOLE.code}, dont ${withoutGenre.length} sans genre (et non revus par un modérateur)`);

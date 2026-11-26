@@ -167,6 +167,7 @@ export const CONSOLES = {
     redump: 'Nintendo - Game Boy Color',
     datFolder: 'no-intro',
     thumbnails: 'libretro-thumbnails/Nintendo_-_Game_Boy_Color',
+    jaWikipediaList: 'ゲームボーイカラーのゲームタイトル一覧',
     confirmWikidata: true,
     // Wikidata range aussi sous la Game Boy Color des jeux amateurs récents, une réédition de
     // 2024 (Toki Tori: Ultimate Edition) et un jeu Game Boy (V-Rally: Championship Edition)

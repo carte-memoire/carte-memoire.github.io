@@ -86,6 +86,8 @@ const BY_TITLE = {
   'Mahjong': 'Q9318902', 'Mahjong video game': 'Q9318902', 'Mahjong solitaire': 'Q7802107', 'Slot machine': 'Q3742351',
   'Cycling': 'Q63644993', 'Shooter game': 'Q4282636', 'Shooter': 'Q4282636', 'Snowboarding': 'Q7548531', 'Surfing': 'Q61793874',
   'Fishing': 'Q16935625', 'Survival game': 'Q21030988', 'Dance video game': 'Q2187138', 'Monster-taming game': 'Q117474613',
+  // Relevés sur les jeux Game Boy Color
+  'Pinball': 'Q3177954', 'Boxing': 'Q3177953', 'Party': 'Q7888616', 'History of Eastern role-playing video games': 'Q5923834',
 };
 
 // Genres hybrides : mêmes familles que dans la migration genre_families (pour un
@@ -106,6 +108,7 @@ const BY_TEXT = {
   'romance': 'Q14411698', 'racing': 'Q860750', 'puzzle': 'Q54767', 'platform': 'Q828322',
   'fighting': 'Q846224', 'shooter': 'Q4282636', 'rpg': 'Q744038', 'role-playing': 'Q744038',
   'educational': 'Q1224999', 'edutainment': 'Q1224999', 'action game': 'Q270948', 'mahjong': 'Q9318902',
+  'first-person shooter': 'Q185029', 'pinball': 'Q3177954',
 };
 
 
