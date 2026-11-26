@@ -232,6 +232,11 @@ export function GamePage() {
     ?? heroPool.find((r) => r.zone === myZone && r.image.length) ?? heroPool.find((r) => r.image.length)
     ?? releases.find((r) => r.image.length);
   const heroImages = heroRelease?.image ?? [];
+  // Aucune version n'a sa jaquette : la seule version, on la propose tout de suite ; s'il y en
+  // a plusieurs, on descend vers la liste, où chacune a son emplacement « Proposer ma photo »
+  const heroPropose = heroRelease || releases.length === 0 ? undefined
+    : releases.length === 1 ? () => proposeCover(releases[0])
+      : () => document.getElementById(`console-${byPlatform[0].platform.short_name}`)?.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' });
   // Le disque sort de derrière la jaquette (seulement si le boîtier a sa jaquette) ; son
   // étiquette reprend la version affichée : titre, code produit, région, éditeur, année
   const heroPlatform = heroRelease?.platform.short_name ?? byPlatform[0]?.platform.short_name;
@@ -338,7 +343,7 @@ export function GamePage() {
       <header className="game-head panel">
         <div className={`game-cover${voyage ? ' voyage-target' : ''}${heroHasDisc ? ' has-disc' : ''}`} style={voyage ? { viewTransitionName: VOYAGE } : undefined}>
           {heroHasDisc && <Disc platform={heroPlatform} label={discLabel} />}
-          <Cover images={heroImages} title={game.title} size="large" platform={heroPlatform} zoomable onOpen={heroRelease ? caseOf(heroRelease) : undefined} />
+          <Cover images={heroImages} title={game.title} size="large" platform={heroPlatform} zone={heroRelease?.zone} zoomable onOpen={heroRelease ? caseOf(heroRelease) : undefined} onPropose={heroPropose} />
         </div>
         <div className="game-info">
           <h1>{game.title}</h1>
@@ -472,7 +477,7 @@ export function GamePage() {
           <ul className="release-list">
             {list.map((r) => (
               <li key={r.id} id={`version-${r.id}`} className={r.id === focusId ? 'release-card panel is-focused' : 'release-card panel'}>
-                <Cover images={r.image} title={r.local_title} size="medium" platform={r.platform.short_name} standIn={standInFor(r, samePlatform(r))} zoomable onOpen={caseOf(r)} />
+                <Cover images={r.image} title={r.local_title} size="medium" platform={r.platform.short_name} zone={r.zone} standIn={standInFor(r, samePlatform(r))} zoomable onOpen={caseOf(r)} onPropose={() => proposeCover(r)} />
                 <div className="release-body">
                   <h3>{r.local_title}</h3>
                   <p className="release-badges">

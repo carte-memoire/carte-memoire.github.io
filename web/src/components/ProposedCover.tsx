@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { caseFormatFor, type CaseFormat, type Quad } from '../lib/coverPhoto';
-import { platformCase } from '../lib/cases';
+import { CASE_RATIO, platformCase } from '../lib/cases';
 import { extensionOf, loadPhoto, prepareCover } from '../lib/images';
 import { CoverEditor } from './CoverEditor';
 import { Dialog } from './Dialog';
@@ -32,10 +32,11 @@ export async function publishProposedCover(source: string, edited: Blob | null, 
 // Le modérateur peut l'agrandir pour l'examiner, et la recadrer s'il le faut : sa
 // version recadrée (`edited`) est alors celle publiée à l'acceptation. L'image
 // du membre, elle, n'est jamais modifiée.
-export function ProposedCover({ path, platform, editionType, edited, onEdited, size = 'large' }: {
+export function ProposedCover({ path, platform, editionType, zone, edited, onEdited, size = 'large' }: {
   path: string;
   platform?: string | null;
   editionType?: string | null;
+  zone?: string | null;
   edited: Blob | null;
   onEdited: (blob: Blob | null) => void;
   size?: 'medium' | 'large';
@@ -44,7 +45,7 @@ export function ProposedCover({ path, platform, editionType, edited, onEdited, s
   const [editedUrl, setEditedUrl] = useState('');
   const [zoom, setZoom] = useState(false);
   const [cropping, setCropping] = useState<HTMLCanvasElement | null>(null);
-  const [format, setFormat] = useState<CaseFormat>(() => caseFormatFor(platform, editionType));
+  const [format, setFormat] = useState<CaseFormat>(() => caseFormatFor(platform, editionType, zone));
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -52,7 +53,7 @@ export function ProposedCover({ path, platform, editionType, edited, onEdited, s
   }, [path]);
 
   // La console et l'édition arrivent avec la version (lue après coup) : le format suit
-  useEffect(() => { setFormat(caseFormatFor(platform, editionType)); }, [platform, editionType]);
+  useEffect(() => { setFormat(caseFormatFor(platform, editionType, zone)); }, [platform, editionType, zone]);
 
   useEffect(() => {
     if (!edited) return setEditedUrl('');
@@ -75,13 +76,13 @@ export function ProposedCover({ path, platform, editionType, edited, onEdited, s
   const shown = editedUrl || url;
   // Cadre aux proportions exactes de l'image proposée (le modérateur la voit entière, sans
   // bandes ni rognage) ; avant chargement, celles du boîtier choisi
-  const box = format === 'free' ? platformCase(platform) : format;
+  const box = format === 'free' ? platformCase(platform, zone) : format;
   const [natural, setNatural] = useState<number | null>(null);
   const fullQuad = (c: HTMLCanvasElement): Quad => [{ x: 0, y: 0 }, { x: c.width, y: 0 }, { x: c.width, y: c.height }, { x: 0, y: c.height }];
 
   return (
     <div className="proposed-cover">
-      <button type="button" className={`cover cover-${size} proposed-cover-image`} style={{ aspectRatio: String(natural ?? (box === 'dvd' ? 135 / 190 : box === 'carton' ? 127 / 178 : box === 'disquette' ? 88 / 98 : 1)) }}
+      <button type="button" className={`cover cover-${size} proposed-cover-image`} style={{ aspectRatio: String(natural ?? (box ? CASE_RATIO[box] : 1)) }}
         onClick={() => shown && setZoom(true)} title={tr('Agrandir pour examiner')} disabled={!shown}>
         {shown
           ? <img src={shown} alt={tr('Jaquette proposée')} onLoad={(e) => { const { naturalWidth: w, naturalHeight: h } = e.currentTarget; if (w && h) setNatural(w / h); }} />

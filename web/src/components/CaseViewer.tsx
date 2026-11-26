@@ -1,6 +1,7 @@
 import { useEffectEvent, useLayoutEffect, useRef, type CSSProperties, type PointerEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { SpineFace, spineKind } from './Spine';
+import { CameraIcon } from './Cover';
 import { prefersReducedMotion } from '../lib/motion';
 import { tr } from '../lib/i18n';
 
@@ -55,7 +56,8 @@ export interface Pulled {
 }
 
 
-export function CaseViewer({ pulled, onClose, onEdit }: { pulled: Pulled; onClose: () => void; onEdit?: () => void }) {
+// onPropose : son propre exemplaire sans jaquette, à prendre en photo
+export function CaseViewer({ pulled, onClose, onEdit, onPropose }: { pulled: Pulled; onClose: () => void; onEdit?: () => void; onPropose?: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const box = useRef<HTMLDivElement>(null);
   // L'ombre du boîtier sur le « sol », sous lui une fois arrivé au centre
@@ -170,7 +172,13 @@ export function CaseViewer({ pulled, onClose, onEdit }: { pulled: Pulled; onClos
               {/* PS1 Europe : le décroché du couvercle en acrylique, entre la charnière noire et la jaquette */}
               {format === 'ps1-pal' && <span className="cv-step" />}
               <span className="cv-inlay">
-                {pulled.src ? <img src={pulled.src} alt="" /> : <span className="cv-nocover">{title}</span>}
+                {pulled.src ? <img src={pulled.src} alt="" /> : (
+                  <span className="cv-nocover">
+                    <CameraIcon size={22} />
+                    <strong>{title}</strong>
+                    <span className="cover-missing-text">{tr('En attente de jaquette')}</span>
+                  </span>
+                )}
                 {/* Jeux PAL seulement (pas les versions de zone inconnue) : l'étiquette hologramme
                     collée en bas à gauche, toujours au même endroit, à la place qu'elle a sur une
                     vraie jaquette PAL (un scan recadré peut avoir son texte dessous). Dessin à
@@ -212,6 +220,7 @@ export function CaseViewer({ pulled, onClose, onEdit }: { pulled: Pulled; onClos
         <p className="muted small">{pulled.meta}</p>
         <div className="actions">
           {pulled.gameHref && <Link to={pulled.gameHref} className="button button-primary">{tr('Voir la fiche')}</Link>}
+          {onPropose && <button type="button" className="button" onClick={() => { closing.current = true; dialog.current?.close(); onClose(); onPropose(); }}>{tr('Proposer ma photo')}</button>}
           {onEdit && <button type="button" className="button" onClick={() => { closing.current = true; dialog.current?.close(); onClose(); onEdit(); }}>{tr('Modifier')}</button>}
           <button type="button" className="button" onClick={close}>{tr('Fermer')}</button>
         </div>

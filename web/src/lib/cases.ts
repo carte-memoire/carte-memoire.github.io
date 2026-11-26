@@ -6,16 +6,18 @@
 // boîtier CD et l'édition « Standard ».
 import { tr } from './i18n';
 
-export type CaseFormat = 'cd' | 'dvd' | 'carton' | 'disquette' | 'free';
+export type CaseFormat = 'cd' | 'dvd' | 'carton' | 'carton-jp' | 'disquette' | 'free';
 export type BoxFormat = Exclude<CaseFormat, 'free'>;
 
 // Largeur / hauteur du recto : boîtier CD 120 × 120 mm, boîtier DVD 135 × 190 mm, boîte en
-// carton NES 127 × 178 mm (la boîte Famicom, à l'horizontale, suit la forme de sa jaquette),
-// étui de disquette Famicom Disk System 88 × 98 mm
-export const CASE_RATIO: Record<BoxFormat, number> = { cd: 1, dvd: 135 / 190, carton: 127 / 178, disquette: 88 / 98 };
+// carton NES 127 × 178 mm (debout), boîte Famicom 142 × 98 mm (couchée, comme presque toutes
+// les boîtes japonaises), étui de disquette Famicom Disk System 88 × 98 mm
+export const CASE_RATIO: Record<BoxFormat, number> = { cd: 1, dvd: 135 / 190, carton: 127 / 178, 'carton-jp': 142 / 98, disquette: 88 / 98 };
 
 interface ConsoleTraits {
   box: BoxFormat;
+  // Boîtier des versions japonaises, s'il n'est pas le même (Famicom : la boîte en largeur)
+  boxJapan?: BoxFormat;
   // « Black Label » : l'édition standard européenne et américaine (pas au Japon)
   blackLabel?: boolean;
   // Les jeux sont des cartouches, des disquettes (sinon des disques)
@@ -29,14 +31,16 @@ const CONSOLE_TRAITS: Record<string, ConsoleTraits> = {
   PS1: { box: 'cd', blackLabel: true, spineCard: true },
   PS2: { box: 'dvd', blackLabel: true, spineCard: true },
   // NES (et Famicom, ses versions japonaises) : boîte en carton, cartouche
-  NES: { box: 'carton', cartridge: true },
+  NES: { box: 'carton', boxJapan: 'carton-jp', cartridge: true },
   // Famicom Disk System : la disquette dans un étui en plastique translucide
   FDS: { box: 'disquette', diskette: true },
 };
 
-// Boîtier d'une console connue, sinon rien (la forme suivra alors l'image)
-export function platformCase(platform?: string | null): BoxFormat | null {
-  return CONSOLE_TRAITS[platform ?? '']?.box ?? null;
+// Boîtier d'une console connue (selon la zone de la version, si on la connaît), sinon rien
+// (la forme suivra alors l'image)
+export function platformCase(platform?: string | null, zone?: string | null): BoxFormat | null {
+  const traits = CONSOLE_TRAITS[platform ?? ''];
+  return (zone === 'NTSC-J' ? traits?.boxJapan : undefined) ?? traits?.box ?? null;
 }
 
 // L'édition standard de cette console s'appelle-t-elle « Black Label » ?
@@ -51,7 +55,7 @@ export const mediaName = (platform?: string | null): string =>
 export const hasSpineCard = (platform?: string | null): boolean => CONSOLE_TRAITS[platform ?? '']?.spineCard === true;
 
 // Une édition collector ou un bundle n'a pas forcément le boîtier standard : sans cadre
-export function caseFormatFor(platform?: string | null, editionType?: string | null): CaseFormat {
+export function caseFormatFor(platform?: string | null, editionType?: string | null, zone?: string | null): CaseFormat {
   if (editionType === 'collector' || editionType === 'bundle') return 'free';
-  return platformCase(platform) ?? 'cd';
+  return platformCase(platform, zone) ?? 'cd';
 }

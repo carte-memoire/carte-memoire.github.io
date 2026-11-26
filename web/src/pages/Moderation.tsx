@@ -239,7 +239,7 @@ function SubmissionCard({ submission: s, onDone }: { submission: Submission; onD
     <article className="panel submission-card">
       <div className="submission-head">
         {s.data.cover_path ? (
-          <ProposedCover path={s.data.cover_path} platform={platforms.find((p) => p.id === r?.platform_id)?.short_name} editionType={r?.edition_type}
+          <ProposedCover path={s.data.cover_path} platform={platforms.find((p) => p.id === r?.platform_id)?.short_name} editionType={r?.edition_type} zone={r?.zone}
             edited={edited} onEdited={setEdited} size="medium" />
         ) : (
           <div className={`cover cover-medium${s.data.no_cover ? ' cover-disabled' : ''}`}>
@@ -442,11 +442,11 @@ function CoverSubmissionCard({ submission: s, onDone }: { submission: Submission
       <div className="cover-compare">
         <figure>
           <figcaption className="field-label">{tr('Jaquette actuelle')}</figcaption>
-          {release ? <Cover images={release.image} title={release.local_title} size="large" platform={release.platform.short_name} zoomable /> : <span className="cover cover-large" />}
+          {release ? <Cover images={release.image} title={release.local_title} size="large" platform={release.platform.short_name} zone={release.zone} zoomable /> : <span className="cover cover-large" />}
         </figure>
         <figure>
           <figcaption className="field-label">{tr('Jaquette proposée')}</figcaption>
-          <ProposedCover path={coverPath} platform={release?.platform.short_name} editionType={release?.edition_type} edited={edited} onEdited={setEdited} />
+          <ProposedCover path={coverPath} platform={release?.platform.short_name} editionType={release?.edition_type} zone={release?.zone} edited={edited} onEdited={setEdited} />
         </figure>
       </div>
       <label className="field">

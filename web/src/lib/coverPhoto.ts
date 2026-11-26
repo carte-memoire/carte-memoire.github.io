@@ -19,6 +19,7 @@ export const CASE_FORMATS: { value: CaseFormat; label: string; ratio: number | n
   { value: 'cd', label: tr('Boîtier CD (carré)'), ratio: CASE_RATIO.cd },
   { value: 'dvd', label: tr('Boîtier DVD (haut)'), ratio: CASE_RATIO.dvd },
   { value: 'carton', label: tr('Boîte en carton (NES)'), ratio: CASE_RATIO.carton },
+  { value: 'carton-jp', label: tr('Boîte en carton, en largeur (Famicom)'), ratio: CASE_RATIO['carton-jp'] },
   { value: 'disquette', label: tr('Étui de disquette (Famicom Disk System)'), ratio: CASE_RATIO.disquette },
   { value: 'free', label: tr('Sans cadre (libre)'), ratio: null },
 ];

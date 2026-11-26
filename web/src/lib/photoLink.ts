@@ -90,7 +90,7 @@ export function usePhotoReceiver(link: string | null, onPhoto: (photo: ReceivedP
       .on('broadcast', { event: 'photo-start' }, ({ payload }) => {
         const p = payload as { id: string; parts: number; quad: Quad; format: CaseFormat };
         if (!p?.id || !Number.isInteger(p.parts) || p.parts < 1 || p.parts > 200 || !Array.isArray(p.quad) || p.quad.length !== 4) return;
-        current = { id: p.id, parts: Array.from<string>({ length: p.parts }), total: p.parts, quad: p.quad, format: (['cd', 'dvd', 'carton', 'disquette', 'free'] as const).includes(p.format) ? p.format : 'free' };
+        current = { id: p.id, parts: Array.from<string>({ length: p.parts }), total: p.parts, quad: p.quad, format: (['cd', 'dvd', 'carton', 'carton-jp', 'disquette', 'free'] as const).includes(p.format) ? p.format : 'free' };
         setError('');
         setProgress({ done: 0, total: p.parts });
       })

@@ -126,7 +126,9 @@ export const EN: Record<string, string> = {
   "Jaquette d'une autre version du jeu, en attendant celle de cette version ({0})": "Cover from another version of the game, until we have this version's ({0})",
   "Jaquette d'une autre version de {0}": "Cover from another version of {0}",
   "Jaquette de {0}": "Cover of {0}",
-  "Pas encore de jaquette": "No cover yet",
+  "En attente de jaquette": "Awaiting a cover",
+  "Proposer ma photo": "Submit my photo",
+  "Tu as ce jeu ? Prends sa jaquette en photo pour la proposer": "Got this game? Take a photo of its cover to submit it",
   "Rééditions (Platinum…)": "Reissues (Platinum…)",
   "Éditions standard": "Standard editions",
   "Le presse-papiers ne contient pas d'image : sur l'autre site, fais un clic droit sur l'image puis « Copier l'image ».": "The clipboard doesn't contain an image: on the other site, right-click the image then “Copy image”.",
@@ -1883,4 +1885,5 @@ export const EN: Record<string, string> = {
   "La base de données collaborative des jeux vidéo, faite par et pour les collectionneurs : pour l’instant les jeux {0}. Retrouve toutes les versions de tes jeux et range ta collection au même endroit, gratuitement et sans publicité.": "The collaborative video game database, made by and for collectors: {0} games for now. Find every version of your games and keep your collection in one place, free and ad-free.",
   "Disquette": "Disk",
   "Étui de disquette (Famicom Disk System)": "Disk case (Famicom Disk System)",
+  "Boîte en carton, en largeur (Famicom)": "Cardboard box, landscape (Famicom)",
 };

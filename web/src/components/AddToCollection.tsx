@@ -113,7 +113,7 @@ export function AddToCollection({ open, onClose, onSaved, initialReleaseId, edit
             {releases.map((r) => (
               <li key={r.id}>
                 <button type="button" className="choice" onClick={() => { setRelease(r); setStep('details'); }}>
-                  <Cover images={r.image} title={r.local_title} size="small" platform={r.platform.short_name} standIn={standInFor(r, releases.filter((x) => x.platform.id === r.platform.id))} />
+                  <Cover images={r.image} title={r.local_title} size="small" platform={r.platform.short_name} zone={r.zone} standIn={standInFor(r, releases.filter((x) => x.platform.id === r.platform.id))} />
                   <span>
                     <span className="choice-title">{r.local_title}</span>
                     <ReleaseSummary release={r} showPlatform={multiPlatform} />
@@ -230,7 +230,7 @@ function ItemForm({ release, item, onBack, onSaved, onRemoved }: {
   return (
     <form onSubmit={submit} className="form">
       <div className="chosen">
-        <Cover images={release.image} title={release.local_title} size="small" platform={release.platform.short_name} />
+        <Cover images={release.image} title={release.local_title} size="small" platform={release.platform.short_name} zone={release.zone} />
         <span>
           <span className="choice-title">{release.local_title}</span>
           <ReleaseSummary release={release} showPlatform />

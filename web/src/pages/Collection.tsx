@@ -23,7 +23,7 @@ import { AddToCollection, savedText, type SavedItem } from '../components/AddToC
 import { CollectionImport } from '../components/CollectionImport';
 import { CollectionProgress } from '../components/CollectionProgress';
 import { ProgressStrip } from '../components/ProgressStrip';
-import { Cover, tilt, untilt } from '../components/Cover';
+import { CameraIcon, Cover, tilt, untilt } from '../components/Cover';
 import { travel, type Voyage } from '../lib/voyage';
 import { SpineFace } from '../components/Spine';
 import { CaseViewer, type Pulled } from '../components/CaseViewer';
@@ -744,7 +744,8 @@ export function Collection() {
           <CoverProposal open release={coverFor.release} gameTitle={coverFor.release.game.title} onClose={() => setCoverFor(null)} />
         </Suspense>
       )}
-      {pulled && <CaseViewer pulled={pulled.view} onClose={() => { setPulled(null); setOpenVitrine(null); }} onEdit={() => setDialog({ open: true, item: pulled.item })} />}
+      {pulled && <CaseViewer pulled={pulled.view} onClose={() => { setPulled(null); setOpenVitrine(null); }} onEdit={() => setDialog({ open: true, item: pulled.item })}
+        onPropose={pulled.item.status === 'owned' && !hasOwnCover(pulled.item) ? () => setCoverFor(pulled.item) : undefined} />}
       {/* La tranche en main pendant un glisser : elle suit le pointeur (useShelfDrag) */}
       {drag && createPortal(
         <div ref={ghost} className="shelf shelf-ghost" style={{ left: drag.left, top: drag.top, width: drag.width, height: drag.height }} aria-hidden="true">
@@ -793,8 +794,9 @@ function ItemBlock({ item, value, fresh, showPlatform, standIn, onEdit, onPhoto 
   return (
     <li className={fresh ? 'block just-saved' : 'block'}>
       <div className="photo-cover">
-        <Cover images={r.image} title={r.local_title} size="medium" platform={r.platform.short_name} standIn={standIn} />
-        {onPhoto && <PhotoButton onClick={onPhoto} />}
+        {/* Sans aucune jaquette, l'emplacement vide est lui-même le bouton « Proposer ma photo » */}
+        <Cover images={r.image} title={r.local_title} size="medium" platform={r.platform.short_name} zone={r.zone} standIn={standIn} onPropose={standIn ? undefined : onPhoto} />
+        {onPhoto && standIn && <PhotoButton onClick={onPhoto} />}
       </div>
       <div className="block-body">
         <Link to={gamePath(r.game)} className="block-title">{r.local_title}</Link>
@@ -838,7 +840,7 @@ function ItemTile({ item, index, fresh, showPlatform, standIn, onEdit, onPhoto }
           const voyage: Voyage = { releaseId: r.id, path: coverPath, platform: r.platform.short_name, title: r.local_title };
           travel(event, event.currentTarget.querySelector<HTMLElement>('.cover'), () => navigate(gamePath(r.game), { state: { voyage } }));
         }}>
-        <Cover images={r.image} title={r.local_title} size="medium" platform={r.platform.short_name} standIn={standIn} />
+        <Cover images={r.image} title={r.local_title} size="medium" platform={r.platform.short_name} zone={r.zone} standIn={standIn} />
         <span className="cover-tile-title">{r.local_title}</span>
       </Link>
       <span className="cover-tile-meta">
@@ -864,10 +866,7 @@ function PhotoButton({ onClick }: { onClick: () => void }) {
   return (
     <button type="button" className="photo-cover-button" onClick={onClick}
       title={tr('Cette version n’a pas encore sa propre jaquette : prends-la en photo')} aria-label={tr('Prendre la jaquette en photo')}>
-      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
-        <path d="M4 8h3l2-3h6l2 3h3v11H4z" />
-        <circle cx="12" cy="13" r="3.5" />
-      </svg>
+      <CameraIcon />
     </button>
   );
 }

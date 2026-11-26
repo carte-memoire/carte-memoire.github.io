@@ -7,7 +7,7 @@ import type { BarcodeMatch } from '../lib/types';
 import { ScanCamera } from '../components/ScanCamera';
 import { CoverCamera } from '../components/CoverCamera';
 import { usePhotoSender } from '../lib/photoLink';
-import type { CaseFormat, Quad } from '../lib/coverPhoto';
+import { CASE_FORMATS, type CaseFormat, type Quad } from '../lib/coverPhoto';
 import { ManualCode, matchLabel, useScanner } from '../components/Scanner';
 import { InstallHint } from '../components/InstallHint';
 import { tr } from '../lib/i18n';
@@ -29,11 +29,11 @@ export function ScannerPage() {
   const [params] = useSearchParams();
   const link = params.get('lien');
   if (link && LINK_PATTERN.test(link)) return <LinkedScanner link={link} />;
-  // Photo de jaquette pour l'ordinateur (?photo=…&format=cd|dvd|free)
+  // Photo de jaquette pour l'ordinateur (?photo=…&format=cd|dvd|carton|…|free)
   const photo = params.get('photo');
   if (photo && LINK_PATTERN.test(photo)) {
     const format = params.get('format');
-    return <LinkedPhoto link={photo} initialFormat={format === 'dvd' || format === 'free' ? format : 'cd'} />;
+    return <LinkedPhoto link={photo} initialFormat={CASE_FORMATS.find((f) => f.value === format)?.value ?? 'cd'} />;
   }
   return <StandaloneScanner />;
 }

@@ -77,7 +77,7 @@ export function ScanVerdict({ match, onAdd, onOpen, onAgain }: {
     <div className="verdict">
       <div className="verdict-head">
         {release
-          ? <Cover images={release.image} title={release.local_title} size="small" platform={release.platform.short_name} />
+          ? <Cover images={release.image} title={release.local_title} size="small" platform={release.platform.short_name} zone={release.zone} />
           : <span className="cover cover-small" aria-hidden="true" />}
         <div>
           <strong>{match.game_title}</strong>
