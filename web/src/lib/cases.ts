@@ -6,16 +6,18 @@
 // boîtier CD et l'édition « Standard ».
 import { tr } from './i18n';
 
-export type CaseFormat = 'cd' | 'dvd' | 'carton' | 'carton-jp' | 'carton-snes' | 'carton-sfc' | 'disquette' | 'free';
+export type CaseFormat = 'cd' | 'dvd' | 'carton' | 'carton-jp' | 'carton-snes' | 'carton-sfc' | 'carton-gb' | 'carton-gb-jp' | 'disquette' | 'free';
 export type BoxFormat = Exclude<CaseFormat, 'free'>;
 
 // Largeur / hauteur du recto : boîtier CD 120 × 120 mm, boîtier DVD 135 × 190 mm, boîte en
 // carton NES 127 × 178 mm (debout), boîte Famicom 142 × 98 mm (couchée, comme presque toutes
 // les boîtes japonaises), étui de disquette Famicom Disk System 88 × 98 mm ; boîte Super
 // Nintendo (Amérique du Nord et Europe) 179 × 127 mm, couchée, et Super Famicom 105 × 190 mm,
-// haute et étroite (proportions des scans : 1,41 et 0,55)
+// haute et étroite (proportions des scans : 1,41 et 0,55) ; boîte Game Boy presque carrée
+// (Amérique du Nord, Europe : 121 × 121 mm) et en hauteur au Japon (98 × 114 mm, 0,86)
 export const CASE_RATIO: Record<BoxFormat, number> = {
-  cd: 1, dvd: 135 / 190, carton: 127 / 178, 'carton-jp': 142 / 98, 'carton-snes': 179 / 127, 'carton-sfc': 105 / 190, disquette: 88 / 98,
+  cd: 1, dvd: 135 / 190, carton: 127 / 178, 'carton-jp': 142 / 98, 'carton-snes': 179 / 127, 'carton-sfc': 105 / 190,
+  'carton-gb': 1, 'carton-gb-jp': 98 / 114, disquette: 88 / 98,
 };
 
 interface ConsoleTraits {
@@ -41,6 +43,8 @@ const CONSOLE_TRAITS: Record<string, ConsoleTraits> = {
   // Super Nintendo (et Super Famicom, ses versions japonaises) : boîte en carton couchée en
   // Amérique du Nord et en Europe, haute et étroite au Japon ; cartouche
   SNES: { box: 'carton-snes', boxJapan: 'carton-sfc', cartridge: true },
+  // Game Boy : petite boîte en carton, presque carrée (en hauteur au Japon) ; cartouche
+  GB: { box: 'carton-gb', boxJapan: 'carton-gb-jp', cartridge: true },
 };
 
 // Boîtier d'une console connue (selon la zone de la version, si on la connaît), sinon rien

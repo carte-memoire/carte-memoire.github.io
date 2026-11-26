@@ -32,6 +32,10 @@ const CASE_MM: Record<string, { w: number; h: number; d: number }> = {
   // 105 × 190 × 30 mm
   snes: { w: 179, h: 127, d: 33 },
   'snes-jp': { w: 105, h: 190, d: 30 },
+  // Game Boy : petite boîte en carton presque carrée, 121 × 121 × 24 mm (proportions des scans) ;
+  // au Japon, en hauteur, 98 × 114 × 22 mm
+  gb: { w: 121, h: 121, d: 24 },
+  'gb-jp': { w: 98, h: 114, d: 22 },
 };
 
 // Format du boîtier PS2 selon la zone de la version (zone inconnue : européen)
@@ -75,9 +79,10 @@ export function CaseViewer({ pulled, onClose, onEdit, onPropose }: { pulled: Pul
   const format = kind === 'ps1' ? (!pulled.release.zone || pulled.release.zone === 'PAL' ? 'ps1-pal' : 'ps1-flat')
     : kind === 'ps2' ? ps2Format(pulled.release.zone)
       : kind === 'nes' ? (pulled.release.zone === 'NTSC-J' ? 'nes-jp' : 'nes')
-        : kind === 'snes' ? (pulled.release.zone === 'NTSC-J' ? 'snes-jp' : 'snes') : kind;
+        : kind === 'snes' ? (pulled.release.zone === 'NTSC-J' ? 'snes-jp' : 'snes')
+          : kind === 'gb' ? (pulled.release.zone === 'NTSC-J' ? 'gb-jp' : 'gb') : kind;
   // Tranche dessinée selon la région du boîtier (sur l'étagère, toujours au format européen)
-  const region = format === 'ps2-us' ? 'us' : format === 'ps2-jp' || format === 'nes-jp' || format === 'snes-jp' ? 'jp' : undefined;
+  const region = format === 'ps2-us' ? 'us' : format === 'ps2-jp' || format === 'nes-jp' || format === 'snes-jp' || format === 'gb-jp' ? 'jp' : undefined;
   // Boîte Super Famicom dont l'illustration est imprimée de côté (Square : Final Fantasy VI,
   // Chrono Trigger…) : la jaquette, plus large que haute, est tournée d'un quart de tour
   const [sideways, setSideways] = useState(false);
@@ -217,7 +222,7 @@ export function CaseViewer({ pulled, onClose, onEdit, onPropose }: { pulled: Pul
             {/* Côté ouverture : la seconde tranche du verso (boîtier CD), le plastique lisse et sa rainure (DVD) */}
             <div className="cv-face cv-side" style={face({ width: d, height: h - 2 * round, top: round, left: (w - d) / 2, transform: `rotateY(90deg) translateZ(${w / 2}px)`, ['--spine-w' as string]: `${d}px` })}>
               {/* Boîte en carton : le titre aussi sur l'autre tranche */}
-              {(kind === 'ps1' || kind === 'nes' || kind === 'snes') && <SpineFace release={pulled.release} region={kind === 'ps1' ? undefined : region} />}
+              {(kind === 'ps1' || kind === 'nes' || kind === 'snes' || kind === 'gb') && <SpineFace release={pulled.release} region={kind === 'ps1' ? undefined : region} />}
               {/* PS2 : la rainure où l'on glisse les doigts pour ouvrir le boîtier */}
               {kind === 'ps2' && <span className="cv-notch" />}
               <span className="cv-gloss" />

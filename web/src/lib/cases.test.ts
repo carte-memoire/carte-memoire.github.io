@@ -16,6 +16,10 @@ describe('boîtier selon la console et la zone', () => {
     expect(caseFormatFor('SNES', 'standard', 'PAL')).toBe('carton-snes');
     expect(caseFormatFor('SNES', 'standard', 'NTSC-J')).toBe('carton-sfc');
   });
+  it('Game Boy : presque carrée en Amérique et en Europe, en hauteur au Japon', () => {
+    expect(caseFormatFor('GB', 'standard', 'PAL')).toBe('carton-gb');
+    expect(caseFormatFor('GB', 'standard', 'NTSC-J')).toBe('carton-gb-jp');
+  });
   it('les autres consoles ne changent pas avec la zone', () => {
     expect(caseFormatFor('PS1', 'standard', 'NTSC-J')).toBe('cd');
     expect(caseFormatFor('PS2', 'standard', 'NTSC-J')).toBe('dvd');

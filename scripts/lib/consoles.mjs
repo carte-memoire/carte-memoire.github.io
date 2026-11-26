@@ -105,6 +105,51 @@ export const CONSOLES = {
       { id: 'unlicensedgames', columns: ['title', 'developers', 'publishers', 'date', 'regions'], zone: 'NTSC-U' },
     ],
   },
+  // Game Boy : la console portable d'origine (les jeux Game Boy Color seront une console à part)
+  GB: {
+    code: 'GB',
+    name: 'Game Boy',
+    slug: 'gb',
+    wikidata: 'Q186437',
+    // Liste Wikipédia : titre, studio, éditeur, puis une date par zone (JP, NA, PAL)
+    wikipediaPages: ['List of Game Boy games'],
+    wikipediaFormat: 'dates-by-zone',
+    dateColumns: ['NTSC-J', 'NTSC-U', 'PAL'],
+    redump: 'Nintendo - Game Boy',
+    datFolder: 'no-intro',
+    thumbnails: 'libretro-thumbnails/Nintendo_-_Game_Boy',
+    jaWikipediaList: 'ゲームボーイのゲームタイトル一覧',
+    confirmWikidata: true,
+    // Wikidata range aussi sous la Game Boy des jeux d'une autre console (le jeu d'origine d'un
+    // portage : MIDI Maze pour Faceball 2000, Prehistorik 2 pour Prehistorik Man ; M.C. Kids pour
+    // McDonaldland, qui est Spot), une série (Space Invaders) et des jeux amateurs récents
+    // jamais vendus en boîte
+    wikidataExclude: ['Q335946', 'Q1093995', 'Q6712166', 'Q220665', 'Q5182325', 'Q376785',
+      'Q130723247', 'Q81948431', 'Q130731746', 'Q122041740',
+      // Adventure Island (jeu NES : la version Game Boy est le portage du II) ; New Ghostbusters II (NES)
+      'Q568489', 'Q8762678'],
+    // Lignes de la liste reliées à l'article d'une série ou du jeu d'une autre console : la fiche
+    // Wikidata propre à la version Game Boy
+    wikipediaQids: {
+      'Adventures of Lolo': 'Q2825397', Baseball: 'Q116687747', "Bonk's Adventure": 'Q134868330',
+      'Burai Fighter Deluxe': 'Q97653423', 'Choplifter III': 'Q109502583', 'Daffy Duck: The Marvin Missions': 'Q96076258',
+      'Ghostbusters II': 'Q123530037', 'Nontan no Issho: Kuru Kuru Puzzle': 'Q104876516',
+      'Pokémon Yellow Version: Special Pikachu Edition': 'Q1988120', "Pop'n TwinBee": 'Q2008875', 'Small Soldiers': 'Q95069603',
+      "Solomon's Club": 'Q7558528', 'The Addams Family': 'Q7712362', "The Smurfs 3: The Smurfs' Nightmare": 'Q67113842',
+      'Tetris Blast': 'Q136784104', 'V-Rally: Championship Edition': 'Q138458319',
+      'Downtown Special: Kunio-Kun no Jidaigeki Dayo Zenin Shūgō!': 'Q11265439',
+    },
+    unlicensed: true,
+    // Les compilations vendues en boîte, et les jeux sans licence vendus en magasin, pendant la
+    // vie de la console (Sachen…) et bien après (cartouches neuves). Pas les applications
+    // (Game Boy Camera…) : ce ne sont pas des jeux. Les tableaux sans licence n'ont pas
+    // d'identifiant : repérés par le titre de leur section
+    extraTables: [
+      { id: 'softwarelist', heading: 'Bundle compilations', main: true },
+      { heading: 'Before the discontinuation of the Game Boy', columns: ['title', 'developers', 'publishers', 'date', 'country'], zone: 'NTSC-J' },
+      { heading: 'After the discontinuation of the Game Boy', columns: ['title', 'developers', 'publishers', 'date', 'country'], zone: 'NTSC-U' },
+    ],
+  },
   // Famicom Disk System (Japon) : jeux sur disquette. Un jeu sorti aussi en cartouche garde une
   // seule fiche (même identifiant Wikidata), avec ses versions NES et FDS.
   FDS: {

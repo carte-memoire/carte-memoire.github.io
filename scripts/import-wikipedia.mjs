@@ -251,9 +251,13 @@ function parsePresence(cells) {
 }
 
 // Cellule de sociétés → [{ name, article, tags }]
+// La forme juridique n'est pas le nom : « Natsume Co., Ltd. » (sans couper à la virgule, qui
+// faisait une société « Ltd. »), « Probe Entertainment Limited », « Acclaim Entertainment, Inc. »
+const LEGAL_FORM = /,?\s+(?:Co\.,?\s*Ltd\.?|Co\.\s*Limited|Ltd\.?|Limited|Inc\.?|LLC)$/i;
 function parseCompanies(cell) {
-  return splitTopLevel(stripRefs(cell).replace(/<br\s*\/?\s*>/gi, '\n'), [',', '\n', ';'])
-    .map((part) => ({ name: clean(part).replace(/\s*\([A-Z]{2,4}(?:\s*[,/]\s*[A-Z]{2,4})*\)$/, ''), article: linkTarget(part), tags: tagsOf(part) }))
+  const text = stripRefs(cell).replace(/<br\s*\/?\s*>/gi, '\n').replace(/,(\s*(?:Ltd\.?|Inc\.?|LLC|Limited)\b)/gi, '$1');
+  return splitTopLevel(text, [',', '\n', ';'])
+    .map((part) => ({ name: clean(part).replace(/\s*\([A-Z]{2,4}(?:\s*[,/]\s*[A-Z]{2,4})*\)$/, '').replace(LEGAL_FORM, ''), article: linkTarget(part), tags: tagsOf(part) }))
     .filter((c) => c.name && !/^(n\/a|unknown|—|-|\?)$/i.test(c.name));
 }
 
@@ -322,15 +326,28 @@ function parseTable(wikitext, page) {
 }
 
 // Pays des tableaux de jeux sans licence (« Taiwan ») → mention de région
-const COUNTRY_TAG = { Taiwan: 'TW', China: 'CN', 'Hong Kong': 'HK', Japan: 'JP', 'South Korea': 'KR', Korea: 'KR', Russia: 'RU', 'United States': 'US', USA: 'US' };
+const COUNTRY_TAG = {
+  Taiwan: 'TW', China: 'CN', 'Hong Kong': 'HK', Japan: 'JP', 'South Korea': 'KR', Korea: 'KR', Russia: 'RU', 'United States': 'US', USA: 'US',
+  Asia: 'ASIA', 'North America': 'NA', Europe: 'EU',
+};
 const HEADING = /\n(==+)\s*([^=\n]+?)\s*\1\s*\n/g;
 
 // Les autres tableaux d'une liste (CONSOLE.extraTables) : repérés par leur identifiant et le
 // titre de leur section ; colonnes données par la description (titre, studios, éditeurs,
 // date ou année, pays), zone par défaut de la description
 function parseExtraTable(wikitext, page, spec) {
-  const starts = [...wikitext.matchAll(new RegExp('id="' + spec.id + '"', 'g'))].map((m) => m.index);
-  const start = starts.find((i) => !spec.heading || [...wikitext.slice(0, i).matchAll(HEADING)].at(-1)?.[2] === spec.heading);
+  // Tableau sans identifiant (jeux sans licence de la Game Boy) : le premier après le titre de sa section
+  const sectionTable = () => {
+    // (titre cherché seul : de deux titres qui se suivent, HEADING ne voit que le premier)
+    const head = wikitext.split('\n').findIndex((line) => line.replace(/=/g, '').trim() === spec.heading && /^=+[^=]/.test(line));
+    const offset = head < 0 ? -1 : wikitext.split('\n').slice(0, head + 1).join('\n').length;
+    const at = offset < 0 ? -1 : wikitext.indexOf('\n{|', offset);
+    return at >= 0 ? at + 1 : undefined;
+  };
+  const starts = spec.id ? [...wikitext.matchAll(new RegExp('id="' + spec.id + '"', 'g'))].map((m) => m.index) : [];
+  const start = spec.id
+    ? starts.find((i) => !spec.heading || [...wikitext.slice(0, i).matchAll(HEADING)].at(-1)?.[2] === spec.heading)
+    : sectionTable();
   if (start === undefined) { stats.anomalies.push(`${page} : tableau ${spec.id} (${spec.heading ?? ''}) introuvable`); return []; }
   const rows = tableCells(wikitext, start);
   if (spec.main) return rows.map((c) => parseRow(c, page)).filter(Boolean).map((r) => ({ ...r, extra: true }));
@@ -437,6 +454,10 @@ const companyArticles = await resolveArticles(
 
 // Un identifiant Wikidata n'est retenu pour un jeu que s'il désigne bien UN jeu vidéo
 for (const r of rows) r.qid = r.article ? gameArticles.get(r.article)?.qid ?? null : null;
+// Ligne dont l'article est celui d'une série ou de la version d'une autre console (ou sans
+// article) : l'élément Wikidata propre à cette console, s'il existe (CONSOLE.wikipediaQids :
+// titre de la ligne → élément). Sinon, le jeu de Wikidata resterait à part, sans zone
+for (const r of rows) if (CONSOLE.wikipediaQids?.[r.title]) r.qid = CONSOLE.wikipediaQids[r.title];
 
 // Un jeu présent dans deux tableaux (After Burner : sous licence au Japon, sans licence aux
 // États-Unis ; un jeu Sachen vendu en NES et en Famicom) reste UN jeu : la ligne du tableau
@@ -703,7 +724,7 @@ $$;
 
 -- Clé de titre souple : les transcriptions du japonais varient d'une source à l'autre
 -- (Daibōken / Daibouken, Kyūkyoku / Kyuukyoku), comme les chiffres romains (Elfaria II / 2)
-create function pg_temp.loose_key(t text)
+create or replace function pg_temp.loose_key(t text)
 returns text
 language sql
 immutable
@@ -868,6 +889,7 @@ end;
 $import$;
 
 drop function pg_temp.company_id(text, text);
+drop function pg_temp.loose_key(text);
 `;
 
 writeFileSync(file, sql);

@@ -1888,4 +1888,6 @@ export const EN: Record<string, string> = {
   "Boîte en carton, en largeur (Famicom)": "Cardboard box, landscape (Famicom)",
   "Boîte en carton, en largeur (Super Nintendo)": "Cardboard box, landscape (Super Nintendo)",
   "Boîte en carton, haute et étroite (Super Famicom)": "Cardboard box, tall and narrow (Super Famicom)",
+  "Petite boîte carrée (Game Boy)": "Small square box (Game Boy)",
+  "Petite boîte en hauteur (Game Boy japonaise)": "Small upright box (Japanese Game Boy)",
 };

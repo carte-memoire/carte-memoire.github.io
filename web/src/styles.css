@@ -1259,6 +1259,7 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .shelf .spine-nes { --spine-w: 43px; height: 320px; border-block: 2px solid #1d1d21; }
 .shelf .spine-fds { --spine-w: 17px; height: 176px; }
 .shelf .spine-snes { --spine-w: 59px; height: 229px; border-block: 2px solid #1d1d21; }
+.shelf .spine-gb { --spine-w: 43px; height: 218px; border-block: 2px solid rgba(0, 0, 0, 0.35); }
 @media (max-width: 640px) {
   .shelf > li { padding-right: 4px; }
   .shelf .spine-ps1 { --spine-w: 25px; height: 190px; }
@@ -1266,6 +1267,7 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
   .shelf .spine-nes { --spine-w: 35px; height: 262px; }
   .shelf .spine-fds { --spine-w: 14px; height: 145px; }
   .shelf .spine-snes { --spine-w: 48px; height: 188px; }
+  .shelf .spine-gb { --spine-w: 35px; height: 179px; }
 }
 .shelf-spine.is-wanted .spine-face { opacity: 0.5; outline: 1px dashed rgba(255, 255, 255, 0.55); outline-offset: -1px; }
 
@@ -1398,6 +1400,22 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .spine-snes.spine-region-jp .spine-band { border-bottom: 0; }
 .spine-snes.spine-region-jp .spine-mark { color: #111114; font-size: calc(var(--spine-w) * 0.34); letter-spacing: 0.04em; }
 .spine-snes.is-reissue { background: linear-gradient(90deg, #8f939c, #c4c7ce 45%, #8a8e97); color: #141518; }
+/* Game Boy : petite boîte en carton (121 × 121 × 24 mm, 1,8 px par mm sur l'étagère), tranche
+   de la couleur du jeu (--ink, Spine.tsx), assombrie ; en haut, le bandeau gris de la console
+   avec son nom en texte simple (pas de logo) ; le titre en blanc, de haut en bas */
+.spine-gb {
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.32), rgba(0, 0, 0, 0.12) 35%, rgba(0, 0, 0, 0.18) 70%, rgba(0, 0, 0, 0.4)), var(--ink, #3b5bd6);
+  color: #fff; box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.25), inset -1px 0 0 rgba(0, 0, 0, 0.45);
+}
+.spine-gb .spine-band { height: auto; padding: calc(var(--spine-w) * 0.16) 0; background: linear-gradient(90deg, #8d8f97, #b9bbc2 45%, #9a9ca4); }
+.spine-gb .spine-mark { writing-mode: vertical-rl; color: #2a2f78; font: 900 calc(var(--spine-w) * 0.26) / 1 'Arial Black', system-ui, sans-serif; letter-spacing: 0.04em; }
+.spine-gb .spine-title {
+  flex: 1 1 auto; padding-top: calc(var(--spine-w) * 0.2); text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
+  font-size: calc(var(--spine-w) * 0.4 * var(--fit, 1));
+}
+.spine-gb .spine-code { display: none; }
+.spine-gb.spine-region-jp .spine-band { display: none; }
+.spine-gb.is-reissue { background: linear-gradient(90deg, #8f939c, #c4c7ce 45%, #8a8e97); color: #141518; }
 /* Réédition (Classic Serie, Player's Choice…) : tranche grise, titre foncé */
 .spine-nes.is-reissue { background: linear-gradient(90deg, #8f939c, #c4c7ce 45%, #8a8e97); color: #141518; }
 
@@ -2094,6 +2112,20 @@ body.is-shelf-dragging, body.is-shelf-dragging * { cursor: grabbing !important; 
 .cv-snes-jp .cv-back-inlay { background: linear-gradient(160deg, #f7f5f0, #dedad1); }
 .cv-snes-jp .cv-edge { background: linear-gradient(180deg, #f4f2ed, #dcd8cf 50%, #ebe8e1); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08); }
 .cv-snes-jp .cv-edge::after { background: rgba(0, 0, 0, 0.14); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7); }
+/* Game Boy : petite boîte en carton, comme la NES (CaseViewer.tsx : 121 × 121 × 24 mm ; au Japon,
+   98 × 114 × 22 mm) ; la jaquette sur toute la face, carton clair au dos et sur les bords */
+.cv-gb .cv-hinge { display: none; }
+.cv-gb .cv-front, .cv-gb .cv-back { background: #f1f0ec; border-radius: 1px; }
+.cv-gb .cv-front .cv-inlay, .cv-gb .cv-back-inlay { inset: 0; }
+.cv-gb .cv-back-inlay { background: linear-gradient(160deg, #f5f4f0, #dcd9d2); }
+.cv-gb .cv-spine, .cv-gb .cv-side { background: #2d3a8c; }
+.cv-gb .cv-edge { background: linear-gradient(180deg, #f2f1ed, #d9d6cf 50%, #e9e7e1); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08); }
+.cv-gb .cv-gloss { opacity: 0.5; }
+.cv-gb .cv-front, .cv-gb .cv-spine, .cv-gb .cv-side { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2), inset 0 0 0 2px rgba(0, 0, 0, 0.25); }
+.cv-gb .cv-edge::after {
+  content: ''; position: absolute; left: 3%; right: 3%; top: 34%; height: 1px; pointer-events: none;
+  background: rgba(0, 0, 0, 0.14); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
+}
 /* Illustration imprimée de côté : la jaquette tournée d'un quart de tour (son haut vers la
    gauche, comme le texte de la tranche), à la taille de la face */
 .cv-inlay img.is-sideways { position: absolute; left: 50%; top: 50%; max-width: none; transform: translate(-50%, -50%) rotate(-90deg); }
