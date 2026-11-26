@@ -8,13 +8,12 @@ import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode }
 import { AUTO, type Meuble } from '../lib/room';
 import { shelfClass } from './ShelfStyle';
 
-export function ShelfCabinet<T>({ meuble, levels, tall, narrow, renderItem, title, tune, editing, open, onPerRow }: {
+export function ShelfCabinet<T>({ meuble, levels, consoles, renderItem, title, tune, editing, open, onPerRow }: {
   meuble: Meuble;
   levels: T[][];
-  // Des jeux PS2 (tranches plus hautes) : des étages plus hauts
-  tall: boolean;
-  // Seulement des jeux PS2 : des places plus étroites
-  narrow: boolean;
+  // Les consoles des jeux du meuble (et celle qu'il reçoit) : hauteur des étages (PS2, NES :
+  // plus hauts), largeur des places (PS2 seule : plus étroites ; NES : boîtes épaisses)
+  consoles: string[];
   renderItem: (item: T, meuble: Meuble) => ReactNode;
   title: ReactNode;
   tune?: ReactNode;
@@ -28,6 +27,9 @@ export function ShelfCabinet<T>({ meuble, levels, tall, narrow, renderItem, titl
   const [zoom, setZoom] = useState(1);
   const style = meuble.style;
   const fixed = meuble.perLevel !== AUTO;
+  const tall = consoles.includes('PS2') || consoles.includes('NES');
+  const narrow = consoles.length > 0 && consoles.every((c) => c === 'PS2');
+  const wide = consoles.includes('NES');
 
   // Largeur « auto » : combien de jeux tiennent sur un étage
   useLayoutEffect(() => {
@@ -43,7 +45,7 @@ export function ShelfCabinet<T>({ meuble, levels, tall, narrow, renderItem, titl
     const observer = new ResizeObserver(measure);
     observer.observe(el);
     return () => observer.disconnect();
-  }, [fixed, meuble.id, onPerRow, style.furniture, style.thickness, narrow]);
+  }, [fixed, meuble.id, onPerRow, style.furniture, style.thickness, narrow, wide]);
 
   // Largeur fixe : le meuble réduit s'il est plus large que la pièce
   useLayoutEffect(() => {
@@ -64,7 +66,7 @@ export function ShelfCabinet<T>({ meuble, levels, tall, narrow, renderItem, titl
     const observer = new ResizeObserver(measure);
     observer.observe(parent);
     return () => observer.disconnect();
-  }, [fixed, meuble.perLevel, style.furniture, style.thickness, narrow]);
+  }, [fixed, meuble.perLevel, style.furniture, style.thickness, narrow, wide]);
 
   // Le point de vue : quelqu'un debout devant le milieu du meuble. Les jeux à sa gauche
   // montrent un peu leur face avant (la jaquette), ceux à sa droite un peu leur dos, d'autant
@@ -77,25 +79,47 @@ export function ShelfCabinet<T>({ meuble, levels, tall, narrow, renderItem, titl
     if (!el) return;
     const eye = el.clientHeight * 0.25;
     const range = Math.max(el.clientHeight * 0.75, 320);
-    const view = (y: number) => Math.max(-1, Math.min(1, (y - eye) / range)).toFixed(2);
+    const view = (y: number) => Math.max(-1, Math.min(1, (y - eye) / range));
+    // Profondeur visible du dessus d'un boîtier (au plus bas), et décalage de côté (au bord)
+    const depth = window.matchMedia('(max-width: 640px)').matches ? 8 : 11;
+    const sideMax = 5;
+    const center = el.clientWidth / 2;
     for (const level of el.querySelectorAll<HTMLElement>(':scope > .furniture-level')) {
       const shelf = level.querySelector<HTMLElement>(':scope > .shelf');
       const board = level.querySelector<HTMLElement>(':scope > .furniture-board');
-      if (shelf) level.style.setProperty('--top-view', String(Math.max(0, Number(view(level.offsetTop + shelf.offsetTop)))));
-      if (board) level.style.setProperty('--board-view', view(level.offsetTop + board.offsetTop));
-    }
-    const center = el.clientWidth / 2;
-    for (const li of el.querySelectorAll<HTMLElement>('.furniture-level > .shelf > li')) {
-      let x = li.offsetWidth / 2;
-      let node: HTMLElement | null = li;
-      while (node && node !== el) {
-        x += node.offsetLeft;
-        node = node.offsetParent as HTMLElement | null;
+      const topView = shelf ? Math.max(0, view(level.offsetTop + shelf.offsetTop)) : 0;
+      if (board) level.style.setProperty('--board-view', view(level.offsetTop + board.offsetTop).toFixed(2));
+      // Chaque boîtier : le coin du fond est décalé de (vx, -vy) par rapport à la tranche,
+      // vers le milieu du meuble et vers le haut. Le dessus et la face de côté partent tous deux
+      // de ce même coin : leurs arêtes se rejoignent exactement.
+      const vy = depth * topView;
+      for (const li of level.querySelectorAll<HTMLElement>(':scope > .shelf > li')) {
+        const spine = li.firstElementChild as HTMLElement | null;
+        if (!spine) continue;
+        let x = li.offsetWidth / 2;
+        let node: HTMLElement | null = li;
+        while (node && node !== el) {
+          x += node.offsetLeft;
+          node = node.offsetParent as HTMLElement | null;
+        }
+        const side = Math.max(-1, Math.min(1, (x - center) / center));
+        const vx = -side * sideMax;
+        const ax = Math.abs(vx);
+        const w = spine.offsetWidth;
+        // À gauche du milieu, on voit la face de droite (le recto) ; à droite, celle de gauche (le dos)
+        li.dataset.side = vx > 0 ? 'front' : 'back';
+        li.style.setProperty('--vy', `${vy.toFixed(1)}px`);
+        li.style.setProperty('--top-x', `${Math.min(0, vx).toFixed(1)}px`);
+        li.style.setProperty('--top-w', `${(w + ax).toFixed(1)}px`);
+        li.style.setProperty('--top-clip', vx < 0
+          ? `polygon(0px 0px, ${w}px 0px, ${(w + ax).toFixed(1)}px 100%, ${ax.toFixed(1)}px 100%)`
+          : `polygon(${ax.toFixed(1)}px 0px, ${(w + ax).toFixed(1)}px 0px, ${w}px 100%, 0px 100%)`);
+        li.style.setProperty('--side-x', `${(vx < 0 ? vx : w).toFixed(1)}px`);
+        li.style.setProperty('--side-w', `${ax.toFixed(1)}px`);
+        li.style.setProperty('--side-clip', vx < 0
+          ? `polygon(0px 0px, 100% ${vy.toFixed(1)}px, 100% 100%, 0px calc(100% - ${vy.toFixed(1)}px))`
+          : `polygon(0px ${vy.toFixed(1)}px, 100% 0px, 100% calc(100% - ${vy.toFixed(1)}px), 0px 100%)`);
       }
-      const side = Math.max(-1, Math.min(1, (x - center) / center));
-      li.dataset.side = side < 0 ? 'front' : 'back';
-      li.style.setProperty('--side-w', `${(Math.abs(side) * 5).toFixed(1)}px`);
-      li.style.setProperty('--skew', `${(-side * 4).toFixed(1)}px`);
     }
   });
 
@@ -103,7 +127,7 @@ export function ShelfCabinet<T>({ meuble, levels, tall, narrow, renderItem, titl
   const lit = style.light !== 'eteint';
   const head = <div className="furniture-head">{title}{tune}</div>;
   const classes = [
-    'furniture', shelfClass(style), lit && 'is-lit', fixed ? 'is-fixed' : 'is-auto', tall && 'is-tall', narrow && 'is-narrow', editing && 'is-editing', open && 'is-open',
+    'furniture', shelfClass(style), lit && 'is-lit', fixed ? 'is-fixed' : 'is-auto', tall && 'is-tall', narrow && 'is-narrow', wide && 'is-wide', editing && 'is-editing', open && 'is-open',
   ].filter(Boolean).join(' ');
   return (
     <div ref={box} className={classes} data-meuble={meuble.id}

@@ -22,7 +22,7 @@ import { SpineFace } from '../components/Spine';
 import { CaseViewer, type Pulled } from '../components/CaseViewer';
 import { RoomBox, ShelfCabinet } from '../components/ShelfCabinet';
 import { ShelfFurniture } from '../components/ShelfFurniture';
-import { cleanRoom, compareShelfTitles, distribute, startingRoom, type Meuble, type Room } from '../lib/room';
+import { ALL_CONSOLES, cleanRoom, compareShelfTitles, distribute, startingRoom, type Meuble, type Room } from '../lib/room';
 import { coverUrl } from '../lib/supabase';
 
 interface PublicProfile {
@@ -360,8 +360,7 @@ export function MemberPage() {
                 return (
                   <Fragment key={meuble.id}>
                     <ShelfCabinet meuble={meuble} levels={levels} renderItem={renderSpine} onPerRow={onPerRow} open={openVitrine === meuble.id}
-                      tall={meuble.content === 'PS2' || inside.some((i) => i.platform === 'PS2')}
-                      narrow={meuble.content === 'PS2' || inside.every((i) => i.platform === 'PS2')}
+                      consoles={[...new Set([...(meuble.content === ALL_CONSOLES ? [] : [meuble.content]), ...inside.map((i) => i.platform)])]}
                       title={<h2 className="shelf-name">{meuble.name || platformName(meuble.content)}<span className="shelf-count">{formatNumber(count)}</span></h2>} />
                     {furnished.boxes.filter((b) => b.after === meuble.id).map((b) => (
                       <RoomBox key={`carton-${b.console}`} label={tr('{0} jeu{1?x} {2} pas encore rangé{3?s}.', formatNumber(b.items.length), b.items.length > 1, platformName(b.console), b.items.length > 1)}>

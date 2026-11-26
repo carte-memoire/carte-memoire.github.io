@@ -19,6 +19,10 @@ const CASE_MM: Record<string, { w: number; h: number; d: number }> = {
   ps2: { w: 135, h: 190, d: 14 },
   'ps2-us': { w: 135, h: 190, d: 14 },
   'ps2-jp': { w: 135, h: 190, d: 14 },
+  // NES : boîte en carton, 127 × 178 × 24 mm (Europe, Amérique, mesures de collectionneurs) ;
+  // Famicom (Japon) : boîte plus petite, à l'horizontale, 142 × 98 × 22 mm
+  nes: { w: 127, h: 178, d: 24 },
+  'nes-jp': { w: 142, h: 98, d: 22 },
 };
 
 // Format du boîtier PS2 selon la zone de la version (zone inconnue : européen)
@@ -59,9 +63,10 @@ export function CaseViewer({ pulled, onClose, onEdit }: { pulled: Pulled; onClos
   const spot = useRef(pulled.source);
   const kind = spineKind(pulled.release.platform.short_name) ?? 'ps1';
   const format = kind === 'ps1' ? (!pulled.release.zone || pulled.release.zone === 'PAL' ? 'ps1-pal' : 'ps1-flat')
-    : kind === 'ps2' ? ps2Format(pulled.release.zone) : kind;
+    : kind === 'ps2' ? ps2Format(pulled.release.zone)
+      : kind === 'nes' ? (pulled.release.zone === 'NTSC-J' ? 'nes-jp' : 'nes') : kind;
   // Tranche dessinée selon la région du boîtier (sur l'étagère, toujours au format européen)
-  const region = format === 'ps2-us' ? 'us' : format === 'ps2-jp' ? 'jp' : undefined;
+  const region = format === 'ps2-us' ? 'us' : format === 'ps2-jp' || format === 'nes-jp' ? 'jp' : undefined;
   const mm = CASE_MM[format];
   // La moitié de l'écran en hauteur (400 px au plus), et jamais plus large que l'écran moins une
   // marge : sur téléphone, le boîtier PS1 européen (plus large que haut) débordait
@@ -182,7 +187,8 @@ export function CaseViewer({ pulled, onClose, onEdit }: { pulled: Pulled; onClos
             </div>
             {/* Côté ouverture : la seconde tranche du verso (boîtier CD), le plastique lisse et sa rainure (DVD) */}
             <div className="cv-face cv-side" style={face({ width: d, height: h - 2 * round, top: round, left: (w - d) / 2, transform: `rotateY(90deg) translateZ(${w / 2}px)`, ['--spine-w' as string]: `${d}px` })}>
-              {kind === 'ps1' && <SpineFace release={pulled.release} />}
+              {/* Boîte en carton : le titre aussi sur l'autre tranche */}
+              {(kind === 'ps1' || kind === 'nes') && <SpineFace release={pulled.release} region={kind === 'nes' ? region : undefined} />}
               {/* PS2 : la rainure où l'on glisse les doigts pour ouvrir le boîtier */}
               {kind === 'ps2' && <span className="cv-notch" />}
               <span className="cv-gloss" />

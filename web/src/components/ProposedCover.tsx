@@ -75,13 +75,13 @@ export function ProposedCover({ path, platform, editionType, edited, onEdited, s
   const shown = editedUrl || url;
   // Cadre aux proportions exactes de l'image proposée (le modérateur la voit entière, sans
   // bandes ni rognage) ; avant chargement, celles du boîtier choisi
-  const tall = format === 'dvd' || (format === 'free' && platformCase(platform) === 'dvd');
+  const box = format === 'free' ? platformCase(platform) : format;
   const [natural, setNatural] = useState<number | null>(null);
   const fullQuad = (c: HTMLCanvasElement): Quad => [{ x: 0, y: 0 }, { x: c.width, y: 0 }, { x: c.width, y: c.height }, { x: 0, y: c.height }];
 
   return (
     <div className="proposed-cover">
-      <button type="button" className={`cover cover-${size} proposed-cover-image`} style={{ aspectRatio: String(natural ?? (tall ? 135 / 190 : 1)) }}
+      <button type="button" className={`cover cover-${size} proposed-cover-image`} style={{ aspectRatio: String(natural ?? (box === 'dvd' ? 135 / 190 : box === 'carton' ? 127 / 178 : 1)) }}
         onClick={() => shown && setZoom(true)} title={tr('Agrandir pour examiner')} disabled={!shown}>
         {shown
           ? <img src={shown} alt={tr('Jaquette proposée')} onLoad={(e) => { const { naturalWidth: w, naturalHeight: h } = e.currentTarget; if (w && h) setNatural(w / h); }} />

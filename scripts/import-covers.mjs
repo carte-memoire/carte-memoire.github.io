@@ -46,7 +46,7 @@ const tree = await fetch(`https://api.github.com/repos/${REPO}/git/trees/${sha}`
 const covers = [];
 for (const f of tree.tree) {
   if (f.type !== 'blob' || f.mode === '120000' || !f.path.endsWith('.png')) continue; // 120000 = raccourci
-  const info = parseName(f.path.slice(0, -4)); // démos, prototypes… écartés (null)
+  const info = parseName(f.path.slice(0, -4), { unlicensed: CONSOLE.unlicensed }); // démos, prototypes… écartés (null)
   if (info) covers.push({ ...info, file: f.path, size: f.size });
 }
 const index = buildIndex(covers);
@@ -108,7 +108,7 @@ if (!download) {
 const sharp = (await import('sharp')).default;
 // Dossier d'envoi : uniquement les images de CE lancement (vidé à chaque fois),
 // pour ne jamais renvoyer des images déjà présentes dans le stockage.
-// Envoi : npx supabase storage cp -r .covers-import/upload/releases ss:///covers ...
+// Envoi : npx supabase storage cp -r .covers-import/upload/releases ss:///covers --remote -j 8 --experimental
 // (« cp -r dossier ss:///covers » crée covers/releases/<id>/front.webp)
 const uploadDir = join(ROOT, '.covers-import', 'upload');
 rmSync(uploadDir, { recursive: true, force: true });
@@ -177,7 +177,7 @@ writeFileSync(join(ROOT, '.covers-import', 'link-covers.sql'), `-- =============
 -- Carte Mémoire · Rattachement des jaquettes importées depuis libretro-thumbnails
 -- Fichier GÉNÉRÉ par scripts/import-covers.mjs le ${now.toISOString().slice(0, 10)} (${stamp}).
 -- Ce n'est PAS une migration : à lancer APRÈS l'envoi des images dans le stockage,
---   npx supabase db query --linked -f .covers-import/link-covers.sql
+--   npx supabase db query --remote -f .covers-import/link-covers.sql
 -- Rejouable sans risque : seules les images présentes dans le stockage sont rattachées.
 -- Une version qui a déjà une image n'en reçoit pas d'autre.
 -- Les jaquettes appartiennent à leurs éditeurs respectifs.

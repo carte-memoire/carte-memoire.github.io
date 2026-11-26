@@ -333,14 +333,14 @@ await egal('32 consoles déclarées', val(`select count(*)::int as n from public
 await egal('chaque console a son constructeur et son identifiant Wikidata', val(`select count(*)::int as n from public.platform where manufacturer_id is null or wikidata_id is null`), [{ n: 0 }]);
 await egal('pas de constructeur en double', val(`select count(*)::int as n from public.possible_duplicate_company where name_key in ('nintendo', 'sega', 'microsoft', 'nec')`), [{ n: 0 }]);
 const consoles = await lignes(en(null, `select short_name, manufacturer, game_count from public.list_platforms()`));
-await egal('la liste des consoles est publique, avec le nombre de jeux', consoles.find((c) => c.short_name === 'PS1').game_count > 4000 && consoles.find((c) => c.short_name === 'NES').game_count === 0, true);
+await egal('la liste des consoles est publique, avec le nombre de jeux', consoles.find((c) => c.short_name === 'PS1').game_count > 4000 && consoles.find((c) => c.short_name === 'SNES').game_count === 0, true);
 await egal('…rangée par constructeur', consoles.find((c) => c.short_name === 'NSW2').manufacturer, 'Nintendo');
 const annees = await lignes(en(null, `select short_name, first_year, last_year from public.list_platforms()`));
 await egal('années d\'activité de la PS1 (filtre « année » du catalogue) : lancée en 1994, jeux datés jusque dans les années 2000', [annees.find((c) => c.short_name === 'PS1').first_year, annees.find((c) => c.short_name === 'PS1').last_year >= 2000], [1994, true]);
-await egal('console sans jeu daté : son année de lancement, pas de dernière année (le site garde sa large fourchette)', annees.find((c) => c.short_name === 'NES'), { short_name: 'NES', first_year: 1983, last_year: null });
+await egal('console sans jeu daté : son année de lancement, pas de dernière année (le site garde sa large fourchette)', annees.find((c) => c.short_name === 'SNES'), { short_name: 'SNES', first_year: 1990, last_year: null });
 const filtre = (q, c) => lignes(en(null, `select title from public.search_games($1, 20, $2)`, [q, c]));
 await egal('recherche limitée à la PS1 : FF7 trouvé', filtre('final fantasy vii', 'PS1').then((r) => r[0]?.title), 'Final Fantasy VII');
-await egal('recherche limitée à la NES : aucun jeu pour l\'instant', filtre('final fantasy', 'NES').then((r) => r.length), 0);
+await egal('recherche limitée à la Super Nintendo : aucun jeu pour l\'instant', filtre('final fantasy', 'SNES').then((r) => r.length), 0);
 await egal('console inconnue : aucun résultat', filtre('final fantasy', 'ZZZ').then((r) => r.length), 0);
 await egal('sans console : toutes', filtre('final fantasy vii', null).then((r) => r.length > 0), true);
 
@@ -714,7 +714,8 @@ await en(ADMIN, `delete from public.image where path like 'test/ff7-%'`);
 console.log('\nDates de sortie (correction de Strider, historique)');
 await egal('Strider prend les dates de Strider 2, vendu avec lui (Japon : 24 février 2000, et non 2006)',
   val(`select r.zone::text as zone, rg.code, rr.release_date::text as d from public.release r join public.game g on g.id = r.game_id
-       join public.release_region rr on rr.release_id = r.id join public.region rg on rg.id = rr.region_id where g.title = 'Strider' order by 1`),
+       join public.release_region rr on rr.release_id = r.id join public.region rg on rg.id = rr.region_id
+       where g.title = 'Strider' and r.platform_id = (select id from public.platform where short_name = 'PS1') order by 1`),
   [{ zone: 'NTSC-J', code: 'JP', d: '2000-02-24' }, { zone: 'NTSC-U', code: 'north-america', d: '2000-07-29' }, { zone: 'PAL', code: 'europe', d: '2000-12-15' }]);
 const france = (await val(`select id from public.region where code = 'FR'`))[0].id;
 await ok('un modérateur ajoute une date de sortie (Platinum de test, France)', en(ADMIN, `insert into public.release_region (release_id, region_id, release_date, date_precision) values ($1, $2, '1998-11-01', 'month')`, [ff7platinum, france]));
@@ -1072,7 +1073,7 @@ await egal('texte → adresse : minuscules, sans accents ni ponctuation', val(`s
   [{ a: 'pokemon-edition-jaune', b: 'final-fantasy-vii', c: '' }]);
 await egal('chaque jeu importé (avec une version) a son adresse', val(`select count(*)::int as n from public.game g where g.slug is null and exists (select 1 from public.release r where r.game_id = g.id)`), [{ n: 0 }]);
 await egal('…toutes différentes', val(`select count(*)::int - count(distinct slug)::int as n from public.game where slug is not null`), [{ n: 0 }]);
-await egal('…la console en tête : ps1/… ou ps2/…', val(`select count(*)::int as n from public.game where slug is not null and slug !~ '^(ps1|ps2)/'`), [{ n: 0 }]);
+await egal('…la console en tête : ps1/…, ps2/… ou nes/…', val(`select count(*)::int as n from public.game where slug is not null and slug !~ '^(ps1|ps2|nes)/'`), [{ n: 0 }]);
 const jeuAdresse = async (title, date = null) => (await en(ADMIN, `insert into public.game (title, first_release_date, first_release_precision) values ($1, $2, $3) returning id`, [title, date, date ? 'day' : null])).rows[0].id;
 const versionAdresse = (game, platform, code = null) => en(ADMIN, `insert into public.release (game_id, platform_id, zone, local_title, edition_type, product_code) values ($1, $2, 'PAL', 'x', 'standard', $3)`, [game, platform, code]);
 const adresseDe = async (game) => (await val(`select slug from public.game where id = $1`, [game]))[0].slug;

@@ -22,7 +22,9 @@ const COUNTRY = { France: 'FR', Germany: 'DE', Spain: 'ES', Italy: 'IT', UK: 'GB
 const DEFAULT_LANGUAGE = { Japan: 'ja', USA: 'en', Canada: 'en', UK: 'en', Australia: 'en', Europe: 'en', France: 'fr', Germany: 'de', Spain: 'es', Italy: 'it', Netherlands: 'nl', Sweden: 'sv', Korea: 'ko' };
 // Pas le jeu vendu en magasin : démos (dont les démos de magasin japonaises
 // « Tentou Shiyuudai-you »), prototypes, disques bonus, guides…
-const EXCLUDED = /demo|beta|proto|sample|taikenban|otameshi|kiosk|preview|trial|promo|not for resale|review|unl|pirate|hack|program|playable|tech|test|putative|sampler|tentou|shiyuu|shotenban|premium disc|special disc|perfect guide|append|bonus|making|trailer/i;
+// Jeux sans licence (« Unl ») : écartés, sauf pour les consoles où ils ont été vendus en magasin (NES…)
+const UNLICENSED = /^unl$/i;
+const EXCLUDED = /demo|beta|proto|sample|taikenban|otameshi|kiosk|preview|trial|promo|not for resale|review|pirate|hack|program|playable|tech|test|putative|sampler|tentou|shiyuu|shotenban|premium disc|special disc|perfect guide|append|bonus|making|trailer/i;
 // Une autre édition que la standard : rééditions et éditions limitées, qui ont
 // souvent leur propre code produit et leur propre jaquette
 const SPECIAL_EDITION = /the best|psone books|major wave|rerelease|best choice|culture publishers|fukkokuban|reprint|greatest hits|platinum|genteiban|limited|premium|deluxe|controller set|special edition|tokubetsuban|value|nice price|collector/i;
@@ -60,9 +62,9 @@ export async function loadReleases(api, fields, code = 'PS1') {
 export const loadPs1Releases = (api, fields) => loadReleases(api, fields, 'PS1');
 
 // « Gran Turismo (Europe) (En,Fr,De,Es,It) (Disc 1) » → ses informations
-export function parseName(name) {
+export function parseName(name, { unlicensed = false } = {}) {
   const tags = [...name.matchAll(/\(([^)]*)\)/g)].map((m) => m[1]);
-  if (tags.some((t) => EXCLUDED.test(t))) return null;
+  if (tags.some((t) => EXCLUDED.test(t) || (!unlicensed && UNLICENSED.test(t)))) return null;
   let base = name.replace(/\s*\(.*$/, '').replace(/_/g, ' ').trim();
   const article = /^(.*), (The|A|An)$/.exec(base); // « Legend of Dragoon, The »
   if (article) base = `${article[2]} ${article[1]}`;

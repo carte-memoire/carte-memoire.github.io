@@ -21,7 +21,7 @@ export interface ReleasePrice {
 
 // Du moins cher au plus cher, en général
 export const PRICE_CATEGORIES: { value: PriceCategory; label: string }[] = [
-  { value: 'loose', label: tr('Disque seul') },
+  { value: 'loose', label: tr('Jeu seul') },
   { value: 'incomplete', label: tr('Incomplet') },
   { value: 'complete', label: tr('Complet') },
   { value: 'new', label: tr('Neuf') },
@@ -29,7 +29,7 @@ export const PRICE_CATEGORIES: { value: PriceCategory; label: string }[] = [
 export const priceCategoryLabel = (category: PriceCategory) => PRICE_CATEGORIES.find((c) => c.value === category)?.label ?? category;
 
 // L'état au moment de l'achat, comme la base le calcule : neuf (sous blister ou
-// acheté neuf), complet (boîte + notice + disque), disque seul, sinon incomplet
+// acheté neuf), complet (boîte + notice + jeu), jeu seul (disque ou cartouche), sinon incomplet
 export function priceCategory(condition: ItemCondition | '' | null, acquisition: AcquisitionType | '' | null,
   box: boolean | null, manual: boolean | null, media: boolean | null): PriceCategory | null {
   if (condition === 'sealed' || acquisition === 'new') return 'new';

@@ -18,7 +18,7 @@ interface SpineRelease {
   platform: { short_name: string };
 }
 
-const KIND: Record<string, string> = { PS1: 'ps1', PS2: 'ps2' };
+const KIND: Record<string, string> = { PS1: 'ps1', PS2: 'ps2', NES: 'nes' };
 
 export function spineKind(platform: string): string | undefined {
   return KIND[platform];
@@ -33,7 +33,16 @@ function splitCode(code: string | null): [string, string] | null {
 // Caractères qui tiennent sur une ligne de titre à pleine taille (place entre la marque et
 // le code, capitales étroites) : au-delà, le titre est écrit plus petit, et sur deux lignes
 // quand il est très long, comme sur les vrais boîtiers ; jamais coupé
-const CAPACITY: Record<string, number> = { ps1: 18, ps2: 32 };
+const CAPACITY: Record<string, number> = { ps1: 18, ps2: 32, nes: 15 };
+
+// Tranches NES : comme sur les boîtes « black box », chaque jeu a son titre d'une couleur vive
+// (bleu, rose, cyan, jaune, rouge, violet, vert, orange), toujours la même pour un même titre
+const NES_INKS = ['#35c3f3', '#f2509f', '#4ce0d2', '#f7d23a', '#f0483e', '#b46cf5', '#5ed35a', '#f8962e', '#5b86ff'];
+function nesInk(title: string): string {
+  let h = 0;
+  for (const c of title) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return NES_INKS[h % NES_INKS.length];
+}
 
 function titleFit(kind: string, title: string): { fit: number; twoLines: boolean } {
   const capacity = CAPACITY[kind] ?? 28;
@@ -113,7 +122,8 @@ export function SpineFace({ release, region }: { release: SpineRelease; region?:
   const { fit, twoLines } = titleFit(kind, release.local_title);
   const titleRef = useFittedTitle(release.local_title, fit, twoLines);
   return (
-    <span className={`spine-face spine-${kind}${reissue ? ' is-reissue' : ''}${region ? ` spine-region-${region}` : ''}`} aria-hidden="true">
+    <span className={`spine-face spine-${kind}${reissue ? ' is-reissue' : ''}${region ? ` spine-region-${region}` : ''}`} aria-hidden="true"
+      style={kind === 'nes' ? ({ ['--ink' as string]: nesInk(release.local_title) } as CSSProperties) : undefined}>
       <span className="spine-band">
         <span className="spine-mark">{release.platform.short_name}</span>
         {/* PS2 : sous la marque, l'étiquette PAL (en Europe seulement) puis le nom de la

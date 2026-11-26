@@ -54,7 +54,7 @@ const TAGS = {
 // région concerne la sortie de base, pas une version nationale.
 const BASE_REGION = { 'NTSC-J': 'JP', 'NTSC-U': 'north-america', PAL: 'europe' };
 // Colonnes de dates du tableau, dans l'ordre
-const DATE_COLUMNS = ['NTSC-J', 'PAL', 'NTSC-U'];
+const DATE_COLUMNS = CONSOLE.dateColumns ?? ['NTSC-J', 'PAL', 'NTSC-U'];
 const MONTHS = ['january', 'february', 'march', 'april', 'may', 'june', 'july',
   'august', 'september', 'october', 'november', 'december'];
 
@@ -274,9 +274,11 @@ function parseRow(cells, page) {
 
   // Les dates connues d'abord : une région déjà datée ne reçoit pas de date « inconnue » ensuite
   const byZones = CONSOLE.wikipediaFormat === 'first-date-and-zones';
+  // Liste NES : la colonne « première sortie » vient avant les dates par zone
+  const dateCells = CONSOLE.wikipediaFormat === 'first-date-then-dates' ? rest.slice(1) : rest;
   const dates = byZones
     ? [...parseFirstDate(rest[0] ?? ''), ...parsePresence(rest.slice(1))]
-    : DATE_COLUMNS.flatMap((zone, i) => parseDates(rest[i] ?? '', zone));
+    : DATE_COLUMNS.flatMap((zone, i) => parseDates(dateCells[i] ?? '', zone));
   if (!dates.some((d) => d.date)) stats.noDate++;
 
   return {
@@ -287,12 +289,12 @@ function parseRow(cells, page) {
     publishers: parseCompanies(pubCell),
     dates,
     // Mention « P » des Platinum : listes PS1 seulement (pour la PS2, elles viendront de Redump)
-    platinum: !byZones && /&nbsp;P&nbsp;/.test(rest[3] ?? ''),
+    platinum: CONSOLE.code === 'PS1' && /&nbsp;P&nbsp;/.test(rest[3] ?? ''),
   };
 }
 
-function parseTable(wikitext, page) {
-  const start = wikitext.indexOf('id="softwarelist"');
+// Les lignes (cellules brutes) du tableau qui commence à `start`
+function tableCells(wikitext, start) {
   const end = wikitext.indexOf('\n|}', start);
   const lines = wikitext.slice(wikitext.lastIndexOf('\n', start) + 1, end).split('\n');
   const rows = [];
@@ -306,7 +308,55 @@ function parseTable(wikitext, page) {
     else if (cells.length) cells[cells.length - 1] += `\n${line}`;
   }
   flush();
-  return rows.map((c) => parseRow(c, page)).filter(Boolean);
+  return rows;
+}
+
+function parseTable(wikitext, page) {
+  return tableCells(wikitext, wikitext.indexOf('id="softwarelist"')).map((c) => parseRow(c, page)).filter(Boolean);
+}
+
+// Pays des tableaux de jeux sans licence (« Taiwan ») → mention de région
+const COUNTRY_TAG = { Taiwan: 'TW', China: 'CN', 'Hong Kong': 'HK', Japan: 'JP', 'South Korea': 'KR', Korea: 'KR', Russia: 'RU', 'United States': 'US', USA: 'US' };
+const HEADING = /\n(==+)\s*([^=\n]+?)\s*\1\s*\n/g;
+
+// Les autres tableaux d'une liste (CONSOLE.extraTables) : repérés par leur identifiant et le
+// titre de leur section ; colonnes données par la description (titre, studios, éditeurs,
+// date ou année, pays), zone par défaut de la description
+function parseExtraTable(wikitext, page, spec) {
+  const starts = [...wikitext.matchAll(new RegExp('id="' + spec.id + '"', 'g'))].map((m) => m.index);
+  const start = starts.find((i) => !spec.heading || [...wikitext.slice(0, i).matchAll(HEADING)].at(-1)?.[2] === spec.heading);
+  if (start === undefined) { stats.anomalies.push(`${page} : tableau ${spec.id} (${spec.heading ?? ''}) introuvable`); return []; }
+  const rows = tableCells(wikitext, start);
+  if (spec.main) return rows.map((c) => parseRow(c, page)).filter(Boolean).map((r) => ({ ...r, extra: true }));
+  return rows.map((raw) => {
+    const cells = raw.filter((c) => !/^\s*([a-z-]+\s*=\s*"[^"]*"\s*)+$/i.test(c));
+    const cell = (name) => cells[spec.columns.indexOf(name)] ?? '';
+    const segments = stripRefs(cell('title')).split(/<br\s*\/?\s*>|\n/i).map((s) => s.trim()).filter((s) => clean(s));
+    const main = segments[0] ?? '';
+    const title = clean(main);
+    if (!title) return null;
+    const publishers = parseCompanies(cell('publishers'));
+    let zone = spec.zone;
+    if (spec.japanesePublishers && publishers.some((p) => spec.japanesePublishers.includes(p.name))) zone = 'NTSC-J';
+    const tag = COUNTRY_TAG[clean(cell('country'))];
+    const [tagZone, region] = tag ? TAGS[tag] : [zone, BASE_REGION[zone]];
+    zone = tagZone ?? zone;
+    const dates = parseDates(cell('date'), zone).map((d) => ({ ...d, zone, region }));
+    // Les éditeurs de ce tableau éditent dans sa zone (ou son pays) : sans mention, on la leur donne
+    const zoneTag = tag ?? { 'NTSC-J': 'JP', 'NTSC-U': 'NA', PAL: 'PAL' }[zone];
+    for (const p of publishers) if (!p.tags.length) p.tags = [zoneTag];
+    if (dates.length === 0) { stats.noDate++; dates.push({ zone, region, date: null, precision: null }); }
+    return {
+      title,
+      article: linkTarget(main),
+      altTitles: segments.slice(1).map((s) => ({ text: clean(s), tags: tagsOf(s) })).filter((a) => a.text),
+      developers: spec.columns.includes('developers') ? parseCompanies(cell('developers')) : [],
+      publishers,
+      dates,
+      platinum: false,
+      extra: true,
+    };
+  }).filter(Boolean);
 }
 
 
@@ -327,6 +377,11 @@ for (const page of PAGES) {
   const parsed = parseTable(revision.slots.main.content, page);
   console.log(`  ${p.title} (révision ${revision.revid}) : ${parsed.length} jeux`);
   rows.push(...parsed);
+  for (const spec of CONSOLE.extraTables ?? []) {
+    const extra = parseExtraTable(revision.slots.main.content, page, spec);
+    console.log(`    + ${spec.heading ?? spec.id} : ${extra.length} jeux`);
+    rows.push(...extra);
+  }
 }
 stats.rows = rows.length;
 
@@ -362,6 +417,39 @@ const companyArticles = await resolveArticles(
 
 // Un identifiant Wikidata n'est retenu pour un jeu que s'il désigne bien UN jeu vidéo
 for (const r of rows) r.qid = r.article ? gameArticles.get(r.article)?.qid ?? null : null;
+
+// Un jeu présent dans deux tableaux (After Burner : sous licence au Japon, sans licence aux
+// États-Unis ; un jeu Sachen vendu en NES et en Famicom) reste UN jeu : la ligne du tableau
+// secondaire complète la première (dates, éditeurs, titres). Même article Wikipédia, ou même
+// titre quand rien ne les distingue (deux articles différents : deux jeux, comme le Tetris
+// de Nintendo et celui de Tengen).
+{
+  const kept = [];
+  const byQid = new Map();
+  const byTitle = new Map();
+  stats.extraMerged = 0;
+  for (const r of rows) {
+    const key = normalize(r.title);
+    const target = r.extra
+      ? (r.qid && byQid.get(r.qid)) || (byTitle.get(key) ?? []).find((t) => !t.qid || !r.qid || t.qid === r.qid)
+      : undefined;
+    if (target) {
+      target.dates.push(...r.dates);
+      for (const field of ['developers', 'publishers']) {
+        for (const c of r[field]) if (!target[field].some((x) => x.name === c.name)) target[field].push(c);
+      }
+      target.altTitles.push(...r.altTitles);
+      if (!target.qid && r.qid) { target.qid = r.qid; byQid.set(r.qid, target); }
+      stats.extraMerged++;
+      continue;
+    }
+    kept.push(r);
+    if (r.qid) byQid.set(r.qid, r);
+    byTitle.set(key, [...(byTitle.get(key) ?? []), r]);
+  }
+  rows.length = 0;
+  rows.push(...kept);
+}
 const qidCount = new Map();
 for (const r of rows) if (r.qid) qidCount.set(r.qid, (qidCount.get(r.qid) ?? 0) + 1);
 for (const r of rows) if (r.qid && qidCount.get(r.qid) > 1) { r.qid = null; stats.qidDuplicates++; }
@@ -512,6 +600,7 @@ console.log(`
 Bilan
   Lignes de la liste             ${stats.rows}
     reliées à Wikidata           ${games.filter((g) => g.qid).length}
+    lignes fusionnées (2 tableaux) ${stats.extraMerged ?? 0}
     lien ignoré (doublon)        ${stats.qidDuplicates}  ·  lien ignoré (pas un jeu) ${stats.notVideoGames}
     titres en double dans la liste ${games.filter((g) => !g.title_merge).length}
     sans aucune date             ${stats.noDate}  ·  année en texte libre ${stats.plainYears}

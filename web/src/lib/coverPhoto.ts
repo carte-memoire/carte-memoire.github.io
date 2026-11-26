@@ -18,6 +18,7 @@ export type Quad = [Point, Point, Point, Point];
 export const CASE_FORMATS: { value: CaseFormat; label: string; ratio: number | null }[] = [
   { value: 'cd', label: tr('Boîtier CD (carré)'), ratio: CASE_RATIO.cd },
   { value: 'dvd', label: tr('Boîtier DVD (haut)'), ratio: CASE_RATIO.dvd },
+  { value: 'carton', label: tr('Boîte en carton (NES)'), ratio: CASE_RATIO.carton },
   { value: 'free', label: tr('Sans cadre (libre)'), ratio: null },
 ];
 export const fixedRatio = (format: CaseFormat): number => CASE_FORMATS.find((f) => f.value === format)?.ratio ?? 1;

@@ -15,6 +15,7 @@ import { useConfirm } from './Confirm';
 import { tr } from '../lib/i18n';
 import { priceCategory, priceCategoryLabel, priceText, useReleasePrices } from '../lib/prices';
 import { notifyCollectionChanged } from '../lib/trophies';
+import { isCartridge, mediaName } from '../lib/cases';
 
 // Ce qui vient d'être enregistré (pour le message de confirmation)
 export interface SavedItem {
@@ -156,7 +157,8 @@ function ItemForm({ release, item, onBack, onSaved, onRemoved }: {
   const [today] = useState(() => new Date().toISOString().slice(0, 10)); // date d'achat : pas dans le futur
   const [tradeStatus, setTradeStatus] = useState<TradeStatus | ''>(item?.trade_status ?? '');
   // La spine card (bande sur la tranche) n'existe que sur les boîtes japonaises
-  const spineCard = release.zone === 'NTSC-J';
+  // La spine card (bande cartonnée des boîtes japonaises) : jeux sur disque seulement
+  const spineCard = release.zone === 'NTSC-J' && !isCartridge(release.platform.short_name);
 
   // Sous blister : forcément complet
   function chooseCondition(value: ItemCondition | '') {
@@ -255,7 +257,7 @@ function ItemForm({ release, item, onBack, onSaved, onRemoved }: {
             <legend className="field-label">{tr('Contenu')}</legend>
             <label><input type="checkbox" checked={hasBox} onChange={(e) => setHasBox(e.target.checked)} />{tr(' Boîte')}</label>
             <label><input type="checkbox" checked={hasManual} onChange={(e) => setHasManual(e.target.checked)} />{tr(' Notice')}</label>
-            <label><input type="checkbox" checked={hasMedia} onChange={(e) => setHasMedia(e.target.checked)} />{tr(' Disque')}</label>
+            <label><input type="checkbox" checked={hasMedia} onChange={(e) => setHasMedia(e.target.checked)} />{' '}{mediaName(release.platform.short_name)}</label>
             {spineCard && (
               <label title={tr('Bande cartonnée glissée sur la tranche des boîtes japonaises')}>
                 <input type="checkbox" checked={hasSpineCard} onChange={(e) => setHasSpineCard(e.target.checked)} />{tr(' Spine card')}

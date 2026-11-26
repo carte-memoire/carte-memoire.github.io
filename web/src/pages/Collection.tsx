@@ -4,6 +4,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { coverUrl, supabase } from '../lib/supabase';
 import { COLLECTION_FIELDS } from '../lib/queries';
 import { standInFor, type CoverSource, type StandIn } from '../lib/images';
+import { mediaName } from '../lib/cases';
 import {
   acquisitionLabel, CATALOG_ZONES, CONDITIONS, conditionLabel, editionClass, editionLabel, formatNumber, formatPrice, gamePath, languagesLong, languagesShort, searchKey, TRADE_STATUSES, tradeStatusLabel, zoneLabel, boxRegionName,
 } from '../lib/format';
@@ -66,9 +67,9 @@ const SORTS: { value: Sort; label: string; ownedOnly?: boolean }[] = [
 
 type Content = 'complete' | 'incomplete' | 'loose' | 'unknown';
 const CONTENTS: { value: Content; label: string }[] = [
-  { value: 'complete', label: tr('Complets (boîte, notice, disque)') },
+  { value: 'complete', label: tr('Complets (boîte, notice et jeu)') },
   { value: 'incomplete', label: tr('Incomplets') },
-  { value: 'loose', label: tr('Disque seul') },
+  { value: 'loose', label: tr('Jeu seul (disque ou cartouche)') },
   { value: 'unknown', label: tr('Contenu non précisé') },
 ];
 
@@ -681,8 +682,7 @@ export function Collection() {
                           onClose={() => setStyling(null)} />
                       )}
                       <ShelfCabinet meuble={meuble} levels={levels} renderItem={renderSpine} onPerRow={onPerRow} editing={styling === meuble.id} open={openVitrine === meuble.id}
-                        tall={meuble.content === 'PS2' || inside.some((i) => consoleOf(i) === 'PS2')}
-                        narrow={meuble.content === 'PS2' || (inside.length > 0 && inside.every((i) => consoleOf(i) === 'PS2'))}
+                        consoles={[...new Set([...(meuble.content === ALL_CONSOLES ? [] : [meuble.content]), ...inside.map((i) => consoleOf(i))])]}
                         title={<h2 className="shelf-name">{label}<span className="shelf-count">{formatNumber(count)}</span></h2>}
                         tune={tuneButton(meuble.id, label)} />
                       {layout.boxes.filter((box) => box.after === meuble.id).map(renderBox)}
@@ -764,7 +764,7 @@ const notableEdition = (r: CollectionItem['release']) => r.edition_type !== 'sta
 // « Complet », « Boîte + Disque »… ; rien quand le contenu n'est pas précisé
 function contentText(item: CollectionItem): string {
   if (item.has_box && item.has_manual && item.has_media) return tr('Complet');
-  return [item.has_box && tr('Boîte'), item.has_manual && tr('Notice'), item.has_media && tr('Disque')].filter(Boolean).join(' + ');
+  return [item.has_box && tr('Boîte'), item.has_manual && tr('Notice'), item.has_media && mediaName(item.release.platform.short_name)].filter(Boolean).join(' + ');
 }
 
 // Console, zone et langues en une ligne discrète, séparées par « · »
@@ -844,7 +844,7 @@ function ItemTile({ item, index, fresh, showPlatform, standIn, onEdit, onPhoto }
       <span className="cover-tile-meta">
         <ReleaseLine release={r} showPlatform={showPlatform} />
         {notableEdition(r) && ` · ${editionLabel(r)}`}
-        {item.status === 'owned' && complete && <span className="cover-tile-complete" title={tr('Complet (boîte, notice, disque)')}>{tr(' · Complet')}</span>}
+        {item.status === 'owned' && complete && <span className="cover-tile-complete" title={tr('Complet (boîte, notice et jeu)')}>{tr(' · Complet')}</span>}
       </span>
       {(item.condition || item.trade_status) && (
         <span className="cover-tile-badges">

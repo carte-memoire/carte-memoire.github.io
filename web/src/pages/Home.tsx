@@ -30,12 +30,12 @@ const FEATURES: { shape: PsShape; title: string; text: string }[] = [
   { shape: 'square', title: tr('Contribue'), text: tr('Un jeu, une version ou une jaquette manque ? Propose-les : les modérateurs vérifient avant de les publier.') },
 ];
 
-function Welcome() {
+function Welcome({ consoleNames }: { consoleNames: string }) {
   return (
     <section className="panel welcome" aria-labelledby="bienvenue">
       <h2 id="bienvenue">{tr('Bienvenue sur Carte Mémoire')}</h2>
       <p className="welcome-intro">
-        {tr('La base de données collaborative des jeux vidéo, faite par et pour les collectionneurs : pour l’instant les jeux PlayStation et PlayStation 2. Retrouve toutes les versions de tes jeux et range ta collection au même endroit, gratuitement et sans publicité.')}
+        {tr('La base de données collaborative des jeux vidéo, faite par et pour les collectionneurs : pour l’instant les jeux {0}. Retrouve toutes les versions de tes jeux et range ta collection au même endroit, gratuitement et sans publicité.', consoleNames)}
       </p>
       <ul className="welcome-grid">
         {FEATURES.map((f) => (
@@ -135,7 +135,7 @@ export function Home() {
       )}
 
       {/* Pour qui découvre le site ; les membres connectés le connaissent déjà */}
-      {!loading && !session && <Welcome />}
+      {!loading && !session && <Welcome consoleNames={joinNames(platforms.map((p) => p.name))} />}
       {/* Ce qui manque encore, et comment aider (tout le monde) */}
       {!loading && <HelpWanted signedIn={Boolean(session)} />}
     </section>

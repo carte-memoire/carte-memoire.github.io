@@ -1203,10 +1203,12 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .shelf .spine-face { border-radius: 2px; }
 .shelf .spine-ps1 { border-block: calc(var(--spine-w) * 0.13) solid rgba(226, 231, 243, 0.42); }
 .shelf .spine-ps2 { border-block: calc(var(--spine-w) * 0.12) solid #3f44c2; }
+.shelf .spine-nes { --spine-w: 43px; height: 320px; border-block: 2px solid #1d1d21; }
 @media (max-width: 640px) {
   .shelf > li { padding-right: 4px; }
   .shelf .spine-ps1 { --spine-w: 25px; height: 190px; }
   .shelf .spine-ps2 { --spine-w: 20px; height: 272px; }
+  .shelf .spine-nes { --spine-w: 35px; height: 262px; }
 }
 .shelf-spine.is-wanted .spine-face { opacity: 0.5; outline: 1px dashed rgba(255, 255, 255, 0.55); outline-offset: -1px; }
 
@@ -1267,6 +1269,36 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .spine-ps2.spine-region-us, .spine-ps2.spine-region-us.is-reissue { background: linear-gradient(90deg, #18181b, #0b0b0d 45%, #141417); color: #f2f2f2; }
 .spine-ps2.spine-region-us.is-reissue .spine-band { background: #c4122f; }
 .spine-ps1.is-reissue .spine-mark { border-color: rgba(0, 0, 0, 0.55); }
+/* NES : boîte en carton (127 × 178 × 24 mm, 1,8 px par mm sur l'étagère), d'après les boîtes
+   « black box » : tranche noire et brillante, le titre EN HAUT, en grandes capitales grasses
+   d'une couleur vive propre au jeu (--ink, Spine.tsx) ; en bas, la marque de la console dans un
+   cadre rouge, à la place du logo du fabricant (marque, non reproduite) */
+.spine-nes {
+  background: linear-gradient(90deg, #070708, #1b1b1f 30%, #0e0e10 55%, #19191c 80%, #060607); color: var(--ink, #f4f4f2);
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.18), inset -1px 0 0 rgba(0, 0, 0, 0.7);
+}
+.spine-nes .spine-title {
+  order: 1; flex: 1 1 auto; padding-top: calc(var(--spine-w) * 0.32);
+  font-family: 'Arial Black', Montserrat, 'Helvetica Neue', Arial, sans-serif; font-weight: 900; font-style: italic;
+  font-size: calc(var(--spine-w) * 0.5 * var(--fit, 1)); letter-spacing: 0.02em; text-transform: uppercase;
+}
+.spine-nes .spine-band { order: 2; height: auto; padding: calc(var(--spine-w) * 0.2) 0 calc(var(--spine-w) * 0.32); }
+.spine-nes .spine-mark {
+  writing-mode: vertical-rl; padding: calc(var(--spine-w) * 0.14) calc(var(--spine-w) * 0.06);
+  border: 2px solid #d4192c; border-radius: calc(var(--spine-w) * 0.12); color: #e1222f;
+  font: 800 calc(var(--spine-w) * 0.3) / 1 system-ui, sans-serif; letter-spacing: 0.06em;
+}
+.spine-nes .spine-code { display: none; }
+/* Boîte Famicom (boîte 3D d'une version japonaise) : tranche claire, titre foncé sous un bandeau
+   de la couleur du jeu, sans marque de console */
+.spine-nes.spine-region-jp {
+  background: linear-gradient(90deg, #e2dfd8, #fbfaf6 45%, #d9d5cc); color: #18181b;
+  box-shadow: inset 0 calc(var(--spine-w) * 0.22) 0 var(--ink, #d4192c), inset 1px 0 0 rgba(255, 255, 255, 0.6), inset -1px 0 0 rgba(0, 0, 0, 0.25);
+}
+.spine-nes.spine-region-jp .spine-title { font-style: normal; padding-top: calc(var(--spine-w) * 0.45); }
+.spine-nes.spine-region-jp .spine-band { display: none; }
+/* Réédition (Classic Serie, Player's Choice…) : tranche grise, titre foncé */
+.spine-nes.is-reissue { background: linear-gradient(90deg, #8f939c, #c4c7ce 45%, #8a8e97); color: #141518; }
 
 /* Les tranches tombent sur la tablette à l'arrivée ; au survol, on tire un peu le jeu */
 @keyframes spine-in { from { opacity: 0; transform: translateY(-26px); } }
@@ -1307,6 +1339,7 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
   position: relative;
 }
 .furniture.is-narrow { --slot: 31px; }
+.furniture.is-wide { --slot: 49px; }
 .furniture.is-tall { --level-h: 342px; }
 .board-fine { --thick: 4px; }
 .board-normale { --thick: 9px; }
@@ -1614,6 +1647,7 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 @media (max-width: 640px) {
   .furniture { --headroom: 18px; --crown: 40px; --plinth: 14px; --frame: calc(4px + var(--thick) * 0.6); --board-depth: 5px; --inset: 8px; --slot: 29px; --level-h: 190px; }
   .furniture.is-narrow { --slot: 24px; }
+  .furniture.is-wide { --slot: 39px; }
   .furniture.is-tall { --level-h: 272px; }
   .furniture-glass::after { right: 1px; width: 7px; height: 7px; margin-top: -3.5px; }
   .furniture-tune-label { display: none; }
@@ -1645,32 +1679,34 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 /* La profondeur des boîtiers : au-dessus de chaque tranche, le dessus du boîtier qui part vers
    le fond du meuble (vu d'un peu au-dessus, plus étroit au fond, dans l'ombre) : acrylique
    transparent d'un jeu PS1, plastique bleu d'un jeu PS2 */
-.furniture .shelf-spine { position: relative; --case-depth: calc(11px * var(--top-view, 0.6)); }
+/* La forme vient de ShelfCabinet.tsx : le coin du fond de chaque boîtier, décalé vers le milieu
+   du meuble et vers le haut (--vy) ; le dessus (--top-*) et la face de côté (--side-*) partent de
+   ce même coin, leurs arêtes se rejoignent */
+.furniture .shelf-spine { position: relative; }
 .furniture .shelf-spine::before {
-  content: ''; position: absolute; left: 0; right: 0; bottom: 100%; height: var(--case-depth); pointer-events: none;
+  content: ''; position: absolute; left: var(--top-x, 0px); width: var(--top-w, 100%); bottom: 100%; height: var(--vy, 0px); pointer-events: none;
   background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.12) 70%, rgba(255, 255, 255, 0.2)), rgba(214, 220, 232, 0.55);
-  clip-path: polygon(calc(9% + var(--skew, 0px)) 0, calc(91% + var(--skew, 0px)) 0, 100% 100%, 0 100%);
+  clip-path: var(--top-clip, none);
 }
-/* Les faces du boîtier, à peine : la face avant (jaquette sous l'acrylique) des jeux à gauche
-   du milieu, le dos de ceux à droite (ShelfCabinet.tsx : data-side, --side-w) */
+/* Les faces du boîtier, à peine : la face avant (jaquette) des jeux à gauche du milieu, le dos
+   de ceux à droite (data-side) */
 .furniture .shelf > li > .shelf-spine::after {
-  content: ''; position: absolute; top: 2px; bottom: 2px; width: var(--side-w, 0px); pointer-events: none;
+  content: ''; position: absolute; left: var(--side-x, 0px); width: var(--side-w, 0px); top: calc(-1 * var(--vy, 0px)); bottom: 0;
+  pointer-events: none; clip-path: var(--side-clip, none);
 }
 .furniture .shelf > li[data-side='front'] > .shelf-spine::after {
-  left: 100%;
   background: linear-gradient(90deg, rgba(255, 255, 255, 0.22), transparent 45%), linear-gradient(#3a3a44, #1b1b21 55%, #2b2b33);
-  clip-path: polygon(0 0, 100% 2%, 100% 98%, 0 100%);
 }
 .furniture .shelf > li[data-side='back'] > .shelf-spine::after {
-  right: 100%;
   background: linear-gradient(90deg, transparent 55%, rgba(255, 255, 255, 0.16)), linear-gradient(#25252b, #111114 55%, #1e1e24);
-  clip-path: polygon(0 2%, 100% 0, 100% 100%, 0 98%);
 }
 .furniture .shelf-spine:has(.spine-ps2)::before {
   background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.12) 70%, rgba(255, 255, 255, 0.22)), #3d43c4;
 }
+.furniture .shelf-spine:has(.spine-nes)::before {
+  background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.12) 70%, rgba(255, 255, 255, 0.12)), #1c1c20;
+}
 .furniture .shelf-spine.is-wanted::before { opacity: 0.5; }
-@media (max-width: 640px) { .furniture .shelf-spine { --case-depth: calc(8px * var(--top-view, 0.6)); } }
 
 /* « Ajouter un meuble » : un emplacement libre, en pointillés */
 .room-add {
@@ -1910,6 +1946,22 @@ body.is-shelf-dragging, body.is-shelf-dragging * { cursor: grabbing !important; 
    (--round), la tranche et les bords du dessus et du dessous s'arrêtent avant le coin, et
    des facettes (CaseViewer.tsx, cornerFacets) en font le tour sur toute l'épaisseur, dans le
    même plastique que les bords : un seul volume, sans marche ni trou au sommet */
+/* NES : boîte en carton (CaseViewer.tsx : 127 × 178 × 24 mm ; Famicom à l'horizontale,
+   142 × 98 × 22 mm). La jaquette est imprimée sur toute la face ; carton brillant, arêtes un peu
+   blanchies par l'usure ; sur les petits côtés, les rabats qui ferment la boîte */
+.cv-nes .cv-hinge { display: none; }
+.cv-nes .cv-front, .cv-nes .cv-back { background: #141416; border-radius: 1px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1); }
+.cv-nes .cv-front .cv-inlay, .cv-nes .cv-back-inlay { inset: 0; }
+.cv-nes .cv-back-inlay { background: linear-gradient(160deg, #1e1e23, #0e0e11); }
+.cv-nes .cv-spine, .cv-nes .cv-side { background: #111113; }
+.cv-nes .cv-edge { background: linear-gradient(180deg, #232327, #121214 50%, #1a1a1d); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06); }
+.cv-nes .cv-gloss { opacity: 0.55; }
+.cv-nes .cv-front, .cv-nes .cv-spine, .cv-nes .cv-side { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16), inset 0 0 0 2px rgba(0, 0, 0, 0.35); }
+/* Le rabat (dessus et dessous) : le bord de la languette rentrée, un peu en retrait */
+.cv-nes .cv-edge::after {
+  content: ''; position: absolute; left: 3%; right: 3%; top: 34%; height: 1px; pointer-events: none;
+  background: rgba(255, 255, 255, 0.16); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
+}
 .cv-ps2 .cv-round { background: linear-gradient(180deg, var(--plastic-0), var(--plastic-3) 50%, var(--plastic-5)); }
 /* L'arête verticale (tranche ↔ face) arrondie : le reflet continue sur le bord de la face */
 /* Le film plastique de la pochette : un voile brillant, un liseré clair sur ses bords, et un

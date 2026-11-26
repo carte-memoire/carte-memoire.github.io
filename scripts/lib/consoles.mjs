@@ -1,8 +1,8 @@
 // =====================================================================
 // Consoles que les scripts d'import savent traiter, et ce qu'il faut pour
-// chacune : identifiant Wikidata, listes Wikipédia, fichiers Redump et
-// jaquettes libretro. Les scripts prennent l'option --console PS2
-// (sans option : la PlayStation, comme avant).
+// chacune : identifiant Wikidata, listes Wikipédia, fichiers Redump (disques) ou
+// No-Intro (cartouches) et jaquettes libretro. Les scripts prennent l'option
+// --console PS2 (sans option : la PlayStation, comme avant).
 // =====================================================================
 
 import { readdirSync } from 'node:fs';
@@ -37,11 +37,46 @@ export const CONSOLES = {
     // (Wikidata classe aussi en PS2 des jeux annulés ou sortis seulement en compilation)
     confirmWikidata: true,
   },
+  // NES : la Famicom japonaise en est la version japonaise (NTSC-J), comme Wikidata et
+  // Wikipédia la rangent (une seule console « Nintendo Entertainment System »)
+  NES: {
+    code: 'NES',
+    name: 'NES',
+    slug: 'nes',
+    wikidata: 'Q172742',
+    // Liste Wikipédia : titre, studio, éditeur, première sortie, puis une date par zone (JP, NA, PAL)
+    wikipediaPages: ['List of Nintendo Entertainment System games'],
+    wikipediaFormat: 'first-date-then-dates',
+    dateColumns: ['NTSC-J', 'NTSC-U', 'PAL'],
+    // Cartouches vérifiées : No-Intro (pas de code produit dans ce fichier)
+    redump: 'Nintendo - Nintendo Entertainment System',
+    datFolder: 'no-intro',
+    thumbnails: 'libretro-thumbnails/Nintendo_-_Nintendo_Entertainment_System',
+    jaWikipediaList: 'ファミリーコンピュータのゲームタイトル一覧',
+    // Wikidata range aussi sous la NES des jeux annulés, des rééditions et des jeux sans licence
+    confirmWikidata: true,
+    // Jeux sans licence vendus en magasin (Tengen, Camerica…) : gardés (No-Intro, jaquettes)
+    unlicensed: true,
+    // Les autres tableaux de la liste : compilations, cartouches de championnat, Konami QTa,
+    // Bandai Datach, et les jeux SANS LICENCE vendus en magasin (NES de l'époque, Famicom
+    // d'Asie, cartouches sorties après la fin de la console). Pas les jeux jamais sortis.
+    extraTables: [
+      { id: 'softwarelist', heading: 'Compilations', main: true },
+      { id: 'softwarelistchampionship', columns: ['title', 'developers', 'publishers', 'date'], zone: 'NTSC-U' },
+      { id: 'konamiqtalist', columns: ['title', 'developers', 'publishers', 'date'], zone: 'NTSC-J' },
+      { id: 'datachlist', columns: ['title', 'developers', 'publishers', 'date'], zone: 'NTSC-J' },
+      { id: 'unlicensedgames', heading: 'Unlicensed games', columns: ['title', 'publishers', 'date'], zone: 'NTSC-U' },
+      { id: 'unlicensedgames', heading: 'Famicom games', columns: ['title', 'date', 'publishers', 'country'], zone: 'NTSC-J' },
+      // Après la fin de la console : cartouches NES, ou Famicom pour les éditeurs japonais
+      { id: 'unlicensedgamesafter', columns: ['title', 'publishers', 'date'], zone: 'NTSC-U', japanesePublishers: ['Columbus Circle'] },
+    ],
+  },
 };
 
-// Fichier Redump d'une console (libretro-database) : noms des disques vérifiés
+// Fichier Redump (disques) ou No-Intro (cartouches) d'une console (libretro-database) :
+// noms des disques ou cartouches vérifiés
 export const redumpDatUrl = (console_) =>
-  `https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/redump/${encodeURIComponent(console_.redump)}.dat`;
+  `https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/${console_.datFolder ?? 'redump'}/${encodeURIComponent(console_.redump)}.dat`;
 
 // --console PS2 (ou --console=PS2) ; sans option, la PlayStation
 export function consoleFromArgs(argv = process.argv) {
