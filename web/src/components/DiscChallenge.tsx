@@ -9,7 +9,7 @@ import { tr } from '../lib/i18n';
 // vraie vérification, côté Supabase, est celle de Turnstile (lib/turnstile.ts).
 //
 // La PlayStation d'origine vue de dessus, avec sa façade, en millimètres (mêmes mesures
-// que le dessin de l'accueil, lib/consoleArt.ts) : 270 × 188, deux ailes de 67 mm, le
+// que le rendu de l'accueil, scripts/consoles/render.py) : 270 × 188, deux ailes de 67 mm, le
 // grand capot rond (Ø 172) qui empiète sur les ailes, Reset et Power à gauche avec le
 // voyant devant, Open à droite, les deux ports carte mémoire + manette en façade. Capot
 // ouvert : basculé vers l'arrière sur sa charnière, on voit le puits, le bloc laser noir,
