@@ -345,7 +345,7 @@ def n64():
     body, dark, mid = plastic('#2c2d32', 0.5), plastic('#17171a', 0.6), plastic('#4a4b52', 0.5)
     W, D = 26.0, 19.0
     profile('ailes', [(0.4, 0), (D, 0), (D, 4.2), (D - 1.0, 4.9), (2.4, 4.0), (0, 2.6)], 0, W, body, bevel=0.5)
-    prism('dome', rr(5.5, 2.0, 15.0, 16.4, 3.5), 2.6, 7.3, body, bevel=1.2, top_pts=rr(7.2, 5.5, 11.6, 11.6, 2.6))
+    prism('dome', rr(5.0, 1.5, 16.0, 17.0, 4.5), 2.6, 7.3, body, bevel=1.8, segments=6, top_pts=rr(7.6, 6.0, 10.8, 10.8, 3.4))
     box('fente', 9.6, 10.6, 7.25, 16.4, 12.2, 7.35, dark)
     box('volet', 9.7, 12.2, 7.2, 16.3, 14.6, 7.45, mid, bevel=0.15)
     for x in (7.0, 17.2):
@@ -512,8 +512,12 @@ def ps5():
     D, H = 26.0, 39.0
     wing = [(2.2, 1.0), (D - 2.2, 1.0), (D - 0.5, 4.5), (D + 0.6, 30.0), (D - 1.5, H), (1.5, H), (-0.6, 30.0), (0.5, 4.5)]
     profile('cœur', [(1.0, 1.0), (D - 1.0, 1.0), (D - 1.0, H - 1.6), (1.0, H - 1.6)], 2.0, 8.4, core, bevel=0.4)
-    profile('aile-gauche', wing, 0.0, 2.0, white, bevel=0.5)
-    profile('aile-droite', wing, 8.4, 10.4, white, bevel=0.5)
+    # Les ailes s'évasent vers le haut (cisaillement : l'écart grandit avec la hauteur)
+    left = profile('aile-gauche', wing, 0.0, 2.0, white, bevel=0.5)
+    right = profile('aile-droite', wing, 8.4, 10.4, white, bevel=0.5)
+    flare = 0.07
+    left.matrix_world = Matrix(((1, 0, -flare, 2.0 * 0), (0, 1, 0, 0), (0, 0, 1, 0), (0, 0, 0, 1)))
+    right.matrix_world = Matrix(((1, 0, flare, 0), (0, 1, 0, 0), (0, 0, 1, 0), (0, 0, 0, 1)))
     for x in (1.95, 8.35):
         profile('lumiere', [(2.0, 2.0), (2.15, 2.0), (2.15, H - 2.4), (2.0, H - 2.4)], x, x + 0.1, led('#4a86ff', 5))
     cyl('socle', 5.2, D / 2, 0, 1.0, 6.5, dark, bevel=0.2)
@@ -712,7 +716,8 @@ def xbox():
     W, D = 32.4, 26.0
     prism('corps', rr(0, 0, W, D, 2.5), 0, 8.6, black, bevel=0.8, top_pts=rr(1.5, 1.8, W - 3.0, D - 3.6, 2.0))
     prism('bosse', rr(9.0, 6.0, 14.4, 14.0, 6.0), 8.4, 10.0, black, bevel=1.0)
-    cyl('bijou', W / 2, 13.0, 9.8, 10.5, 4.4, material('#3fb33a', 0.15, transmission=0.6, coat=0.8, emit='#2a8f26', strength=0.6), bevel=0.5)
+    cyl('bijou', W / 2, 13.0, 9.8, 10.35, 2.6, material('#2e8f2a', 0.12, transmission=0.5, coat=1.0, emit='#1f6e1c', strength=0.4), bevel=0.45)
+    cyl('bijou-cadre', W / 2, 13.0, 9.8, 10.05, 3.3, plastic('#0c0c0e', 0.4), bevel=0.25)
     box('tiroir', 10.0, -0.05, 4.2, 22.4, 0.3, 5.2, dark, bevel=0.1)
     for x, c in ((24.5, '#3fd13a'), (27.0, '#8a8a90')):
         cyl('bouton', x, 1.4, 6.6, 7.0, 0.8, plastic('#2b2b30'), bevel=0.15) if False else box('bouton', x, -0.12, 4.3, x + 1.8, 0.2, 5.1, plastic('#2b2b30'), bevel=0.15)
