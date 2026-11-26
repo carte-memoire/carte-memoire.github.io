@@ -11,6 +11,11 @@ describe('boîtier selon la console et la zone', () => {
     expect(caseFormatFor('NES', 'standard', 'PAL')).toBe('carton');
     expect(caseFormatFor('NES', 'standard')).toBe('carton');
   });
+  it('Super Nintendo : couchée en Amérique et en Europe, haute et étroite au Japon', () => {
+    expect(caseFormatFor('SNES', 'standard', 'NTSC-U')).toBe('carton-snes');
+    expect(caseFormatFor('SNES', 'standard', 'PAL')).toBe('carton-snes');
+    expect(caseFormatFor('SNES', 'standard', 'NTSC-J')).toBe('carton-sfc');
+  });
   it('les autres consoles ne changent pas avec la zone', () => {
     expect(caseFormatFor('PS1', 'standard', 'NTSC-J')).toBe('cd');
     expect(caseFormatFor('PS2', 'standard', 'NTSC-J')).toBe('dvd');

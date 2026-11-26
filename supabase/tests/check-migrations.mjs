@@ -333,14 +333,14 @@ await egal('33 consoles déclarées (avec la Famicom Disk System)', val(`select 
 await egal('chaque console a son constructeur et son identifiant Wikidata', val(`select count(*)::int as n from public.platform where manufacturer_id is null or wikidata_id is null`), [{ n: 0 }]);
 await egal('pas de constructeur en double', val(`select count(*)::int as n from public.possible_duplicate_company where name_key in ('nintendo', 'sega', 'microsoft', 'nec')`), [{ n: 0 }]);
 const consoles = await lignes(en(null, `select short_name, manufacturer, game_count from public.list_platforms()`));
-await egal('la liste des consoles est publique, avec le nombre de jeux', consoles.find((c) => c.short_name === 'PS1').game_count > 4000 && consoles.find((c) => c.short_name === 'SNES').game_count === 0, true);
+await egal('la liste des consoles est publique, avec le nombre de jeux', consoles.find((c) => c.short_name === 'PS1').game_count > 4000 && consoles.find((c) => c.short_name === 'N64').game_count === 0, true);
 await egal('…rangée par constructeur', consoles.find((c) => c.short_name === 'NSW2').manufacturer, 'Nintendo');
 const annees = await lignes(en(null, `select short_name, first_year, last_year from public.list_platforms()`));
 await egal('années d\'activité de la PS1 (filtre « année » du catalogue) : lancée en 1994, jeux datés jusque dans les années 2000', [annees.find((c) => c.short_name === 'PS1').first_year, annees.find((c) => c.short_name === 'PS1').last_year >= 2000], [1994, true]);
-await egal('console sans jeu daté : son année de lancement, pas de dernière année (le site garde sa large fourchette)', annees.find((c) => c.short_name === 'SNES'), { short_name: 'SNES', first_year: 1990, last_year: null });
+await egal('console sans jeu daté : son année de lancement, pas de dernière année (le site garde sa large fourchette)', annees.find((c) => c.short_name === 'N64'), { short_name: 'N64', first_year: 1996, last_year: null });
 const filtre = (q, c) => lignes(en(null, `select title from public.search_games($1, 20, $2)`, [q, c]));
 await egal('recherche limitée à la PS1 : FF7 trouvé', filtre('final fantasy vii', 'PS1').then((r) => r[0]?.title), 'Final Fantasy VII');
-await egal('recherche limitée à la Super Nintendo : aucun jeu pour l\'instant', filtre('final fantasy', 'SNES').then((r) => r.length), 0);
+await egal('recherche limitée à la Nintendo 64 : aucun jeu pour l\'instant', filtre('final fantasy', 'N64').then((r) => r.length), 0);
 await egal('console inconnue : aucun résultat', filtre('final fantasy', 'ZZZ').then((r) => r.length), 0);
 await egal('sans console : toutes', filtre('final fantasy vii', null).then((r) => r.length > 0), true);
 
@@ -730,7 +730,7 @@ console.log('\nStudios mal rattachés à l\'import (correction)');
 const studiosDe = (title) => val(`select string_agg(c.name || coalesce(' (' || c.country || ')', ''), ', ' order by c.name) as s
   from public.game g join public.game_developer gd on gd.game_id = g.id join public.company c on c.id = gd.company_id where g.title = $1`, [title]).then((r) => r[0].s);
 await egal('Re-Volt : Acclaim Studios London (déjà connu, britannique), et non une liste Wikipédia', studiosDe('Re-Volt'), 'Acclaim Studios London (GB)');
-await egal('Mortal Kombat II : Midway et Probe Entertainment', studiosDe('Mortal Kombat II'), 'Midway Games (US), Probe Entertainment');
+await egal('Mortal Kombat II : Midway, Probe Entertainment et Sculptured Software (la version Super Nintendo)', studiosDe('Mortal Kombat II'), 'Midway Games (US), Probe Entertainment, Sculptured Software (US)');
 await egal('Tenchu : un seul Acquire, le vrai (Japon), plus le jeu de société', studiosDe('Tenchu: Stealth Assassins'), 'Acquire (JP)');
 await egal('Tintin: Destination Adventure : Infogrames et Runecraft, et non « Runic magic »', studiosDe('Tintin: Destination Adventure'), 'Infogrames (FR), Runecraft (GB)');
 // Des homonymes distincts dans Wikidata existent (Atari, Inc. de 1972 et de 1993…) ; pas un
@@ -1073,7 +1073,7 @@ await egal('texte → adresse : minuscules, sans accents ni ponctuation', val(`s
   [{ a: 'pokemon-edition-jaune', b: 'final-fantasy-vii', c: '' }]);
 await egal('chaque jeu importé (avec une version) a son adresse', val(`select count(*)::int as n from public.game g where g.slug is null and exists (select 1 from public.release r where r.game_id = g.id)`), [{ n: 0 }]);
 await egal('…toutes différentes', val(`select count(*)::int - count(distinct slug)::int as n from public.game where slug is not null`), [{ n: 0 }]);
-await egal('…la console en tête : ps1/…, ps2/…, nes/… ou fds/…', val(`select count(*)::int as n from public.game where slug is not null and slug !~ '^(ps1|ps2|nes|fds)/'`), [{ n: 0 }]);
+await egal('…la console en tête : ps1/…, ps2/…, nes/…, fds/… ou snes/…', val(`select count(*)::int as n from public.game where slug is not null and slug !~ '^(ps1|ps2|nes|fds|snes)/'`), [{ n: 0 }]);
 const jeuAdresse = async (title, date = null) => (await en(ADMIN, `insert into public.game (title, first_release_date, first_release_precision) values ($1, $2, $3) returning id`, [title, date, date ? 'day' : null])).rows[0].id;
 const versionAdresse = (game, platform, code = null) => en(ADMIN, `insert into public.release (game_id, platform_id, zone, local_title, edition_type, product_code) values ($1, $2, 'PAL', 'x', 'standard', $3)`, [game, platform, code]);
 const adresseDe = async (game) => (await val(`select slug from public.game where id = $1`, [game]))[0].slug;
@@ -1301,8 +1301,12 @@ await egal('une seule fiche PS2 pour chacun des 17 jeux fusionnés', val(`
       'Q2087318', 'Q136756899', 'Q47461217', 'Q61091433', 'Q88323752', 'Q7934910', 'Q63165269', 'Q56707738'))
     group by g.title_key having count(distinct g.id) > 1
   ) d`), [{ n: 0 }]);
-await egal('les fiches gardent l\'élément Wikidata de la version PS2 (Ys V, Crimson Sea 2, Quake III Revolution)', val(`
-  select count(*)::int as n from public.game where wikidata_id in ('Q2450491', 'Q5185708', 'Q726545')`), [{ n: 0 }]);
+await egal('les fiches PS2 gardent l\'élément Wikidata de leur version PS2 (Ys V, Crimson Sea 2, Quake III Revolution)', val(`
+  select count(*)::int as n from public.game g where g.wikidata_id in ('Q2450491', 'Q5185708', 'Q726545')
+    and exists (select 1 from public.release r join public.platform p on p.id = r.platform_id where r.game_id = g.id and p.short_name = 'PS2')`), [{ n: 0 }]);
+await egal('Ys V : l\'original Super Famicom garde sa fiche, à part du remake PS2', val(`
+  select count(*)::int as n from public.game g join public.release r on r.game_id = g.id join public.platform p on p.id = r.platform_id
+  where g.wikidata_id = 'Q2450491' and p.short_name = 'SNES'`), [{ n: 1 }]);
 await egal('Ys V PS2 : ses versions ont suivi', val(`
   select count(*)::int as n from public.game g join public.release r on r.game_id = g.id where g.wikidata_id = 'Q56707738'`), [{ n: 1 }]);
 await egal('Sonic Mega Collection Plus : une seule version par zone', val(`

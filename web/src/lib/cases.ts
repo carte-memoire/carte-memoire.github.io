@@ -6,13 +6,17 @@
 // boîtier CD et l'édition « Standard ».
 import { tr } from './i18n';
 
-export type CaseFormat = 'cd' | 'dvd' | 'carton' | 'carton-jp' | 'disquette' | 'free';
+export type CaseFormat = 'cd' | 'dvd' | 'carton' | 'carton-jp' | 'carton-snes' | 'carton-sfc' | 'disquette' | 'free';
 export type BoxFormat = Exclude<CaseFormat, 'free'>;
 
 // Largeur / hauteur du recto : boîtier CD 120 × 120 mm, boîtier DVD 135 × 190 mm, boîte en
 // carton NES 127 × 178 mm (debout), boîte Famicom 142 × 98 mm (couchée, comme presque toutes
-// les boîtes japonaises), étui de disquette Famicom Disk System 88 × 98 mm
-export const CASE_RATIO: Record<BoxFormat, number> = { cd: 1, dvd: 135 / 190, carton: 127 / 178, 'carton-jp': 142 / 98, disquette: 88 / 98 };
+// les boîtes japonaises), étui de disquette Famicom Disk System 88 × 98 mm ; boîte Super
+// Nintendo (Amérique du Nord et Europe) 179 × 127 mm, couchée, et Super Famicom 105 × 190 mm,
+// haute et étroite (proportions des scans : 1,41 et 0,55)
+export const CASE_RATIO: Record<BoxFormat, number> = {
+  cd: 1, dvd: 135 / 190, carton: 127 / 178, 'carton-jp': 142 / 98, 'carton-snes': 179 / 127, 'carton-sfc': 105 / 190, disquette: 88 / 98,
+};
 
 interface ConsoleTraits {
   box: BoxFormat;
@@ -34,6 +38,9 @@ const CONSOLE_TRAITS: Record<string, ConsoleTraits> = {
   NES: { box: 'carton', boxJapan: 'carton-jp', cartridge: true },
   // Famicom Disk System : la disquette dans un étui en plastique translucide
   FDS: { box: 'disquette', diskette: true },
+  // Super Nintendo (et Super Famicom, ses versions japonaises) : boîte en carton couchée en
+  // Amérique du Nord et en Europe, haute et étroite au Japon ; cartouche
+  SNES: { box: 'carton-snes', boxJapan: 'carton-sfc', cartridge: true },
 };
 
 // Boîtier d'une console connue (selon la zone de la version, si on la connaît), sinon rien

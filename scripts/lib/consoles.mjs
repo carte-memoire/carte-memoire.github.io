@@ -71,6 +71,40 @@ export const CONSOLES = {
       { id: 'unlicensedgamesafter', columns: ['title', 'publishers', 'date'], zone: 'NTSC-U', japanesePublishers: ['Columbus Circle'] },
     ],
   },
+  // Super Nintendo : la Super Famicom japonaise en est la version japonaise (NTSC-J), comme
+  // pour la NES et la Famicom
+  SNES: {
+    code: 'SNES',
+    name: 'Super Nintendo',
+    slug: 'snes',
+    wikidata: 'Q183259',
+    // Liste Wikipédia : titre, studio, éditeur, puis une date par zone (JP, NA, PAL)
+    wikipediaPages: ['List of Super Nintendo Entertainment System games'],
+    wikipediaFormat: 'dates-by-zone',
+    dateColumns: ['NTSC-J', 'NTSC-U', 'PAL'],
+    redump: 'Nintendo - Super Nintendo Entertainment System',
+    datFolder: 'no-intro',
+    thumbnails: 'libretro-thumbnails/Nintendo_-_Super_Nintendo_Entertainment_System',
+    jaWikipediaList: 'スーパーファミコンのゲームタイトル一覧',
+    confirmWikidata: true,
+    // Wikidata range aussi sous la Super Nintendo le jeu d'origine d'une série (le jeu SNES a
+    // sa propre fiche : Arkanoid: Doh It Again, Pitfall: The Mayan Adventure, Space Invaders:
+    // The Original Game), le jeu FDS dont la version SNES est un autre jeu (Shin Onigashima),
+    // un article d'anime, et des doublons d'un jeu de la liste (RoboCop 3, Taikō Risshiden)
+    // Puis les doublons d'une ligne de la liste écrite sous un titre plus complet (Aretha, Yokozuna
+    // Monogatari, The Shinri Game 2, A-Train III Super Version, Crayon Shin-chan, Kyūyaku Megami
+    // Tensei, Daibakushō Jinsei Gekijō, Ancient Magic) et un cadeau promotionnel jamais vendu
+    wikidataExclude: ['Q91282', 'Q1573878', 'Q220665', 'Q3482155', 'Q131357353', 'Q2589086', 'Q851255',
+      'Q4789098', 'Q11543448', 'Q137998907', 'Q4651925', 'Q3002369', 'Q969588', 'Q11437758', 'Q11327733', 'Q107043291'],
+    unlicensed: true,
+    // Les cartouches de championnat (comme pour la NES) et les jeux sans licence vendus en
+    // magasin (deux à l'époque, les autres bien après). Pas les cadeaux promotionnels, ni les
+    // logiciels hors jeux, ni les rééditions sur d'autres consoles (Switch…)
+    extraTables: [
+      { id: 'softwarelistchampionship', columns: ['title', 'developers', 'date'], zone: 'NTSC-U' },
+      { id: 'unlicensedgames', columns: ['title', 'developers', 'publishers', 'date', 'regions'], zone: 'NTSC-U' },
+    ],
+  },
   // Famicom Disk System (Japon) : jeux sur disquette. Un jeu sorti aussi en cartouche garde une
   // seule fiche (même identifiant Wikidata), avec ses versions NES et FDS.
   FDS: {

@@ -31,6 +31,8 @@ export function ShelfCabinet<T>({ meuble, levels, consoles, renderItem, title, t
   const narrow = consoles.length > 0 && consoles.every((c) => c === 'PS2');
   const wide = consoles.includes('NES');
   const thin = consoles.length > 0 && consoles.every((c) => c === 'FDS');
+  // Super Nintendo : boîtes épaisses (33 mm), les places les plus larges
+  const chunky = consoles.includes('SNES');
 
   // Largeur « auto » : combien de jeux tiennent sur un étage
   useLayoutEffect(() => {
@@ -46,7 +48,7 @@ export function ShelfCabinet<T>({ meuble, levels, consoles, renderItem, title, t
     const observer = new ResizeObserver(measure);
     observer.observe(el);
     return () => observer.disconnect();
-  }, [fixed, meuble.id, onPerRow, style.furniture, style.thickness, narrow, wide, thin]);
+  }, [fixed, meuble.id, onPerRow, style.furniture, style.thickness, narrow, wide, thin, chunky]);
 
   // Largeur fixe : le meuble réduit s'il est plus large que la pièce
   useLayoutEffect(() => {
@@ -67,7 +69,7 @@ export function ShelfCabinet<T>({ meuble, levels, consoles, renderItem, title, t
     const observer = new ResizeObserver(measure);
     observer.observe(parent);
     return () => observer.disconnect();
-  }, [fixed, meuble.perLevel, style.furniture, style.thickness, narrow, wide, thin]);
+  }, [fixed, meuble.perLevel, style.furniture, style.thickness, narrow, wide, thin, chunky]);
 
   // Le point de vue : quelqu'un debout devant le milieu du meuble. Les jeux à sa gauche
   // montrent un peu leur face avant (la jaquette), ceux à sa droite un peu leur dos, d'autant
@@ -128,7 +130,7 @@ export function ShelfCabinet<T>({ meuble, levels, consoles, renderItem, title, t
   const lit = style.light !== 'eteint';
   const head = <div className="furniture-head">{title}{tune}</div>;
   const classes = [
-    'furniture', shelfClass(style), lit && 'is-lit', fixed ? 'is-fixed' : 'is-auto', tall && 'is-tall', narrow && 'is-narrow', wide && 'is-wide', thin && 'is-thin', editing && 'is-editing', open && 'is-open',
+    'furniture', shelfClass(style), lit && 'is-lit', fixed ? 'is-fixed' : 'is-auto', tall && 'is-tall', narrow && 'is-narrow', wide && 'is-wide', chunky && 'is-chunky', thin && 'is-thin', editing && 'is-editing', open && 'is-open',
   ].filter(Boolean).join(' ');
   return (
     <div ref={box} className={classes} data-meuble={meuble.id}

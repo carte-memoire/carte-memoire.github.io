@@ -119,8 +119,14 @@ function splitTopLevel(str, separators) {
 const stripRefs = (s) => stripRefsAndComments(s
   .replace(/\{\{\s*sup\s*\|([^{}]*)\}\}/gi, '<sup>$1</sup>'))
   .replace(/\{\{\s*not a typo\s*\|([^{}]*)\}\}/gi, (_, p) => p.split('|').join(''))
-  // {{ill|Phase Paradox|ja|フェイズパラドックス}} (article dans une autre langue) → Phase Paradox
-  .replace(/\{\{\s*ill\s*\|([^|{}]*)[^{}]*\}\}/gi, '$1')
+  // {{ill|Phase Paradox|ja|フェイズパラドックス}} (article dans une autre langue) → Phase Paradox ;
+  // {{ill|Kunio-kun|lt=Kunio no Oden|ja|…}} → le texte affiché, Kunio no Oden (pas l'article)
+  .replace(/\{\{\s*ill\s*\|([^{}]*)\}\}/gi, (_, inner) => {
+    const parts = inner.split('|');
+    const shown = parts.find((p) => /^\s*lt\s*=/.test(p));
+    if (shown) return shown.replace(/^\s*lt\s*=\s*/, '');
+    return (parts.find((p) => !p.includes('=')) ?? '').replace(/#.*$/, '');
+  })
   .replace(/\{\{\s*sort\s*\|[^|{}]*\|((?:[^{}]|\{\{[^{}]*\}\})*)\}\}/gi, '$1');
 
 // Wikitexte → texte lisible
@@ -129,7 +135,7 @@ function clean(s) {
     .replace(/<sup>[\s\S]*?<\/sup>/gi, '')
     .replace(/\{\{\s*nihongo[^|}]*\|([^|}]*)[^}]*\}\}/gi, '$1')
     .replace(/\{\{\s*(?:lang|transl)\s*\|[^|}]*\|([^|}]*)[^}]*\}\}/gi, '$1')
-    .replace(/\{\{[^{}]*\}\}/g, '')
+    .replace(/(?:\{\{[^{}]*\}\})+/g, '').replace(/(?:\{\{[^{}]*\}\})+/g, '').replace(/(?:\{\{[^{}]*\}\})+/g, '')
     .replace(/\[\[(?:[^\]|]*\|)?([^\]]*)\]\]/g, '$1')
     .replace(/'{2,}/g, '')))
     .replace(/^[\s•·*]+/, '')
@@ -329,7 +335,10 @@ function parseExtraTable(wikitext, page, spec) {
   const rows = tableCells(wikitext, start);
   if (spec.main) return rows.map((c) => parseRow(c, page)).filter(Boolean).map((r) => ({ ...r, extra: true }));
   return rows.map((raw) => {
-    const cells = raw.filter((c) => !/^\s*([a-z-]+\s*=\s*"[^"]*"\s*)+$/i.test(c));
+    const cells = raw.filter((c) => !/^\s*([a-z-]+\s*=\s*"[^"]*"\s*)+$/i.test(c)).map((c) => {
+      const parts = splitTopLevel(c, ['|']);
+      return parts.length > 1 && /^\s*(?:[a-z-]+\s*=\s*(?:"[^"]*"|[^\s"]+)(?:\s+|$))*$/i.test(parts[0]) ? parts.slice(1).join('|') : c;
+    });
     const cell = (name) => cells[spec.columns.indexOf(name)] ?? '';
     const segments = stripRefs(cell('title')).split(/<br\s*\/?\s*>|\n/i).map((s) => s.trim()).filter((s) => clean(s));
     const main = segments[0] ?? '';
@@ -398,13 +407,23 @@ async function resolveArticles(titles, label) {
       titles: batch.join('|'), format: 'json', formatversion: '2',
     }, `${label} ${i + 1}–${i + batch.length}`);
     const follow = new Map();
+    // Redirection vers une section (« Wrecking Crew '98 » → l'article du jeu NES, section
+    // « Wrecking Crew '98 ») : l'article parle d'un autre sujet, comme un lien à ancre (#)
+    const toSection = new Set();
     for (const n of json.query.normalized ?? []) follow.set(n.from, n.to);
-    for (const r of json.query.redirects ?? []) follow.set(r.from, r.to);
+    for (const r of json.query.redirects ?? []) {
+      follow.set(r.from, r.to);
+      if (r.tofragment) toSection.add(r.from);
+    }
     const qidOf = new Map((json.query.pages ?? []).map((pg) => [pg.title, pg.pageprops?.wikibase_item]));
     for (const t of batch) {
       let target = t;
-      for (let hops = 0; follow.has(target) && hops < 3; hops++) target = follow.get(target);
-      result.set(t, { qid: qidOf.get(target) ?? null, resolvedTitle: target });
+      let section = false;
+      for (let hops = 0; follow.has(target) && hops < 3; hops++) {
+        if (toSection.has(target)) section = true;
+        target = follow.get(target);
+      }
+      result.set(t, { qid: section ? null : qidOf.get(target) ?? null, resolvedTitle: target });
     }
   }
   console.log(`  ${label} : ${list.length} articles`);
@@ -682,6 +701,18 @@ begin
 end;
 $$;
 
+-- Clé de titre souple : les transcriptions du japonais varient d'une source à l'autre
+-- (Daibōken / Daibouken, Kyūkyoku / Kyuukyoku), comme les chiffres romains (Elfaria II / 2)
+create function pg_temp.loose_key(t text)
+returns text
+language sql
+immutable
+as $$
+  select regexp_replace(regexp_replace(public.normalize_name(
+    regexp_replace(regexp_replace(regexp_replace(coalesce(t, ''), '\\mIV\\M', '4', 'g'), '\\mIII\\M', '3', 'g'), '\\mII\\M', '2', 'g')),
+    '(ou|oo)', 'o', 'g'), 'uu', 'u', 'g')
+$$;
+
 do $import$
 declare
   data      jsonb := $wikipedia$${payload}$wikipedia$::jsonb;
@@ -697,6 +728,15 @@ declare
   v_zone    public.video_zone;
   companies jsonb := '{}';
 begin
+  -- Les jeux déjà sur cette console (import Wikidata), par clé de titre souple : un jeu de la
+  -- liste sans lien Wikidata qui n'a pas trouvé son titre exact s'y raccroche
+  create temp table loose_game on commit drop as
+    select distinct r.game_id, pg_temp.loose_key(t.title) as k
+    from public.release r
+    join public.game x on x.id = r.game_id
+    cross join lateral (values (x.title), (r.local_title)) as t (title)
+    where r.platform_id = v_platform and t.title is not null;
+
   -- 1. Sociétés
   for company in select value from jsonb_array_elements(data -> 'companies') loop
     companies := companies || jsonb_build_object(
@@ -722,6 +762,22 @@ begin
       if v_game is not null and g ->> 'qid' is not null then
         update public.game set wikidata_id = g ->> 'qid' where id = v_game;
       end if;
+    end if;
+    -- Titre exact introuvable : un jeu déjà sur cette console dont le titre correspond, en plus
+    -- souple, au titre de la ligne ou à l'un de ses titres par zone (Lock On / Super Air Diver).
+    -- Avec un lien Wikidata, seulement un jeu qui n'a ici qu'une version « à compléter » :
+    -- Wikidata range parfois le même jeu sous deux éléments (Super Castles, Wrecking Crew '98),
+    -- et celui que la liste n'a pas confirmé est le même jeu, pas un autre
+    if v_game is null and (g ->> 'title_merge')::boolean then
+      select l.game_id into v_game from loose_game l
+      where l.k in (select pg_temp.loose_key(t.title) from (
+              select g ->> 'title' union select x ->> 'title' from jsonb_array_elements(g -> 'releases') as x
+            ) as t (title))
+        and (g ->> 'qid' is null
+             or not exists (select 1 from public.release o
+                            where o.game_id = l.game_id and o.platform_id = v_platform and o.zone is not null))
+      order by l.game_id
+      limit 1;
     end if;
     if v_game is null then
       insert into public.game (title, wikidata_id)

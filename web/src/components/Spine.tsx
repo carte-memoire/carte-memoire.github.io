@@ -18,7 +18,7 @@ interface SpineRelease {
   platform: { short_name: string };
 }
 
-const KIND: Record<string, string> = { PS1: 'ps1', PS2: 'ps2', NES: 'nes', FDS: 'fds' };
+const KIND: Record<string, string> = { PS1: 'ps1', PS2: 'ps2', NES: 'nes', FDS: 'fds', SNES: 'snes' };
 
 export function spineKind(platform: string): string | undefined {
   return KIND[platform];
@@ -33,10 +33,12 @@ function splitCode(code: string | null): [string, string] | null {
 // Caractères qui tiennent sur une ligne de titre à pleine taille (place entre la marque et
 // le code, capitales étroites) : au-delà, le titre est écrit plus petit, et sur deux lignes
 // quand il est très long, comme sur les vrais boîtiers ; jamais coupé
-const CAPACITY: Record<string, number> = { ps1: 18, ps2: 32, nes: 15, fds: 16 };
+const CAPACITY: Record<string, number> = { ps1: 18, ps2: 32, nes: 15, fds: 16, snes: 14 };
 
 // Tranches NES : comme sur les boîtes « black box », chaque jeu a son titre d'une couleur vive
-// (bleu, rose, cyan, jaune, rouge, violet, vert, orange), toujours la même pour un même titre
+// (bleu, rose, cyan, jaune, rouge, violet, vert, orange), toujours la même pour un même titre ;
+// Super Nintendo : le titre en couleur sur la tranche noire (Amérique du Nord), ou la tranche
+// entière de cette couleur (Super Famicom)
 const NES_INKS = ['#35c3f3', '#f2509f', '#4ce0d2', '#f7d23a', '#f0483e', '#b46cf5', '#5ed35a', '#f8962e', '#5b86ff'];
 function nesInk(title: string): string {
   let h = 0;
@@ -123,9 +125,11 @@ export function SpineFace({ release, region }: { release: SpineRelease; region?:
   const titleRef = useFittedTitle(release.local_title, fit, twoLines);
   return (
     <span className={`spine-face spine-${kind}${reissue ? ' is-reissue' : ''}${region ? ` spine-region-${region}` : ''}`} aria-hidden="true"
-      style={kind === 'nes' ? ({ ['--ink' as string]: nesInk(release.local_title) } as CSSProperties) : undefined}>
+      style={kind === 'nes' || kind === 'snes' ? ({ ['--ink' as string]: nesInk(release.local_title) } as CSSProperties) : undefined}>
       <span className="spine-band">
-        <span className="spine-mark">{release.platform.short_name}</span>
+        {/* Super Nintendo : le nom de la console en texte simple, à la place de son logo
+            (Super Famicom au Japon) */}
+        <span className="spine-mark">{kind === 'snes' ? (region === 'jp' ? 'SUPER FAMICOM' : 'SUPER NES') : release.platform.short_name}</span>
         {/* PS2 : sous la marque, l'étiquette PAL (en Europe seulement) puis le nom de la
             console à la verticale, en texte simple (pas de logo) */}
         {kind === 'ps2' && <>{!region && <span className="spine-pal">PAL</span>}<span className="spine-console">PlayStation 2</span></>}

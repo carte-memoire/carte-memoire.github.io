@@ -1886,4 +1886,6 @@ export const EN: Record<string, string> = {
   "Disquette": "Disk",
   "Étui de disquette (Famicom Disk System)": "Disk case (Famicom Disk System)",
   "Boîte en carton, en largeur (Famicom)": "Cardboard box, landscape (Famicom)",
+  "Boîte en carton, en largeur (Super Nintendo)": "Cardboard box, landscape (Super Nintendo)",
+  "Boîte en carton, haute et étroite (Super Famicom)": "Cardboard box, tall and narrow (Super Famicom)",
 };

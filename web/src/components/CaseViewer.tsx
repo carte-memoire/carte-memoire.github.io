@@ -1,4 +1,4 @@
-import { useEffectEvent, useLayoutEffect, useRef, type CSSProperties, type PointerEvent } from 'react';
+import { useEffectEvent, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { SpineFace, spineKind } from './Spine';
 import { CameraIcon } from './Cover';
@@ -27,6 +27,11 @@ const CASE_MM: Record<string, { w: number; h: number; d: number }> = {
   // Famicom Disk System : étui en plastique translucide, 88 × 98 × 9,5 mm, la jaquette en papier
   // sous la face, la disquette (jaune) derrière
   fds: { w: 88, h: 98, d: 9.5 },
+  // Super Nintendo : boîte en carton couchée, 179 × 127 × 33 mm (Amérique du Nord, Europe :
+  // protections de collectionneurs, proportions des scans) ; Super Famicom : haute et étroite,
+  // 105 × 190 × 30 mm
+  snes: { w: 179, h: 127, d: 33 },
+  'snes-jp': { w: 105, h: 190, d: 30 },
 };
 
 // Format du boîtier PS2 selon la zone de la version (zone inconnue : européen)
@@ -69,9 +74,13 @@ export function CaseViewer({ pulled, onClose, onEdit, onPropose }: { pulled: Pul
   const kind = spineKind(pulled.release.platform.short_name) ?? 'ps1';
   const format = kind === 'ps1' ? (!pulled.release.zone || pulled.release.zone === 'PAL' ? 'ps1-pal' : 'ps1-flat')
     : kind === 'ps2' ? ps2Format(pulled.release.zone)
-      : kind === 'nes' ? (pulled.release.zone === 'NTSC-J' ? 'nes-jp' : 'nes') : kind;
+      : kind === 'nes' ? (pulled.release.zone === 'NTSC-J' ? 'nes-jp' : 'nes')
+        : kind === 'snes' ? (pulled.release.zone === 'NTSC-J' ? 'snes-jp' : 'snes') : kind;
   // Tranche dessinée selon la région du boîtier (sur l'étagère, toujours au format européen)
-  const region = format === 'ps2-us' ? 'us' : format === 'ps2-jp' || format === 'nes-jp' ? 'jp' : undefined;
+  const region = format === 'ps2-us' ? 'us' : format === 'ps2-jp' || format === 'nes-jp' || format === 'snes-jp' ? 'jp' : undefined;
+  // Boîte Super Famicom dont l'illustration est imprimée de côté (Square : Final Fantasy VI,
+  // Chrono Trigger…) : la jaquette, plus large que haute, est tournée d'un quart de tour
+  const [sideways, setSideways] = useState(false);
   const mm = CASE_MM[format];
   // La moitié de l'écran en hauteur (400 px au plus), et jamais plus large que l'écran moins une
   // marge : sur téléphone, le boîtier PS1 européen (plus large que haut) débordait
@@ -172,7 +181,14 @@ export function CaseViewer({ pulled, onClose, onEdit, onPropose }: { pulled: Pul
               {/* PS1 Europe : le décroché du couvercle en acrylique, entre la charnière noire et la jaquette */}
               {format === 'ps1-pal' && <span className="cv-step" />}
               <span className="cv-inlay">
-                {pulled.src ? <img src={pulled.src} alt="" /> : (
+                {pulled.src ? (
+                  <img src={pulled.src} alt="" className={sideways ? 'is-sideways' : undefined}
+                    style={sideways ? ({ width: h, height: w } as CSSProperties) : undefined}
+                    onLoad={(event) => {
+                      const img = event.currentTarget;
+                      if (format === 'snes-jp' && img.naturalWidth > img.naturalHeight * 1.2) setSideways(true);
+                    }} />
+                ) : (
                   <span className="cv-nocover">
                     <CameraIcon size={22} />
                     <strong>{title}</strong>
@@ -201,7 +217,7 @@ export function CaseViewer({ pulled, onClose, onEdit, onPropose }: { pulled: Pul
             {/* Côté ouverture : la seconde tranche du verso (boîtier CD), le plastique lisse et sa rainure (DVD) */}
             <div className="cv-face cv-side" style={face({ width: d, height: h - 2 * round, top: round, left: (w - d) / 2, transform: `rotateY(90deg) translateZ(${w / 2}px)`, ['--spine-w' as string]: `${d}px` })}>
               {/* Boîte en carton : le titre aussi sur l'autre tranche */}
-              {(kind === 'ps1' || kind === 'nes') && <SpineFace release={pulled.release} region={kind === 'nes' ? region : undefined} />}
+              {(kind === 'ps1' || kind === 'nes' || kind === 'snes') && <SpineFace release={pulled.release} region={kind === 'ps1' ? undefined : region} />}
               {/* PS2 : la rainure où l'on glisse les doigts pour ouvrir le boîtier */}
               {kind === 'ps2' && <span className="cv-notch" />}
               <span className="cv-gloss" />

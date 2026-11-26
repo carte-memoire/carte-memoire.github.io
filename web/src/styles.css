@@ -1258,12 +1258,14 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .shelf .spine-ps2 { border-block: calc(var(--spine-w) * 0.12) solid #3f44c2; }
 .shelf .spine-nes { --spine-w: 43px; height: 320px; border-block: 2px solid #1d1d21; }
 .shelf .spine-fds { --spine-w: 17px; height: 176px; }
+.shelf .spine-snes { --spine-w: 59px; height: 229px; border-block: 2px solid #1d1d21; }
 @media (max-width: 640px) {
   .shelf > li { padding-right: 4px; }
   .shelf .spine-ps1 { --spine-w: 25px; height: 190px; }
   .shelf .spine-ps2 { --spine-w: 20px; height: 272px; }
   .shelf .spine-nes { --spine-w: 35px; height: 262px; }
   .shelf .spine-fds { --spine-w: 14px; height: 145px; }
+  .shelf .spine-snes { --spine-w: 48px; height: 188px; }
 }
 .shelf-spine.is-wanted .spine-face { opacity: 0.5; outline: 1px dashed rgba(255, 255, 255, 0.55); outline-offset: -1px; }
 
@@ -1365,6 +1367,37 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
   padding-top: calc(var(--spine-w) * 0.6); font-family: system-ui, sans-serif; font-weight: 700; text-transform: none; letter-spacing: 0.01em;
   font-size: calc(var(--spine-w) * 0.58 * var(--fit, 1));
 }
+/* Super Nintendo : boîte en carton couchée (179 × 127 × 33 mm, 1,8 px par mm sur l'étagère),
+   d'après les tranches américaines : noire, le nom de la console en haut (texte simple, gris, à
+   la place de son logo, une marque), puis le titre écrit de haut en bas, en capitales grasses de
+   la couleur du jeu (--ink, Spine.tsx) */
+.spine-snes {
+  background: linear-gradient(90deg, #060607, #18181c 28%, #0d0d0f 55%, #17171a 82%, #050506); color: var(--ink, #f4f4f2);
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.16), inset -1px 0 0 rgba(0, 0, 0, 0.7);
+}
+.spine-snes .spine-band {
+  height: auto; padding: calc(var(--spine-w) * 0.14) 0 calc(var(--spine-w) * 0.12);
+  border-bottom: calc(var(--spine-w) * 0.04) solid #b3202c;
+}
+.spine-snes .spine-mark {
+  writing-mode: vertical-rl; color: #b9bac2; border: 0;
+  font: 800 calc(var(--spine-w) * 0.17) / 1 system-ui, sans-serif; letter-spacing: 0.12em;
+}
+.spine-snes .spine-title {
+  flex: 1 1 auto; padding-top: calc(var(--spine-w) * 0.16);
+  font-family: 'Arial Black', Montserrat, 'Helvetica Neue', Arial, sans-serif; font-weight: 900;
+  font-size: calc(var(--spine-w) * 0.3 * var(--fit, 1)); letter-spacing: 0.02em; text-transform: uppercase;
+}
+.spine-snes .spine-code { display: none; }
+/* Boîte Super Famicom (boîte 3D d'une version japonaise) : tranche de la couleur du jeu, le nom
+   de la console en grand et le titre en noir */
+.spine-snes.spine-region-jp {
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.18), transparent 30%, transparent 70%, rgba(0, 0, 0, 0.2)), var(--ink, #f7d23a); color: #111114;
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.35), inset -1px 0 0 rgba(0, 0, 0, 0.3);
+}
+.spine-snes.spine-region-jp .spine-band { border-bottom: 0; }
+.spine-snes.spine-region-jp .spine-mark { color: #111114; font-size: calc(var(--spine-w) * 0.34); letter-spacing: 0.04em; }
+.spine-snes.is-reissue { background: linear-gradient(90deg, #8f939c, #c4c7ce 45%, #8a8e97); color: #141518; }
 /* Réédition (Classic Serie, Player's Choice…) : tranche grise, titre foncé */
 .spine-nes.is-reissue { background: linear-gradient(90deg, #8f939c, #c4c7ce 45%, #8a8e97); color: #141518; }
 
@@ -1409,6 +1442,7 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .furniture.is-narrow { --slot: 31px; }
 .furniture.is-wide { --slot: 49px; }
 .furniture.is-thin { --slot: 23px; --level-h: 176px; }
+.furniture.is-chunky { --slot: 65px; }
 .furniture.is-tall { --level-h: 342px; }
 .board-fine { --thick: 4px; }
 .board-normale { --thick: 9px; }
@@ -1720,6 +1754,7 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
   .furniture.is-narrow { --slot: 24px; }
   .furniture.is-wide { --slot: 39px; }
   .furniture.is-thin { --slot: 18px; --level-h: 145px; }
+  .furniture.is-chunky { --slot: 53px; }
   .furniture.is-tall { --level-h: 272px; }
   .furniture-glass::after { right: 1px; width: 7px; height: 7px; margin-top: -3.5px; }
   .furniture-tune-label { display: none; }
@@ -2040,6 +2075,28 @@ body.is-shelf-dragging, body.is-shelf-dragging * { cursor: grabbing !important; 
   content: ''; position: absolute; left: 3%; right: 3%; top: 34%; height: 1px; pointer-events: none;
   background: rgba(255, 255, 255, 0.16); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
 }
+/* Super Nintendo : boîte en carton, comme la NES (CaseViewer.tsx : 179 × 127 × 33 mm, couchée ;
+   Super Famicom 105 × 190 × 30 mm, haute et étroite). La jaquette sur toute la face, carton
+   brillant ; les rabats sur le dessus et le dessous ; au Japon, carton clair (dos et bords) */
+.cv-snes .cv-hinge { display: none; }
+.cv-snes .cv-front, .cv-snes .cv-back { background: #141416; border-radius: 1px; }
+.cv-snes .cv-front .cv-inlay, .cv-snes .cv-back-inlay { inset: 0; }
+.cv-snes .cv-back-inlay { background: linear-gradient(160deg, #1e1e23, #0e0e11); }
+.cv-snes .cv-spine, .cv-snes .cv-side { background: #111113; }
+.cv-snes .cv-edge { background: linear-gradient(180deg, #232327, #121214 50%, #1a1a1d); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06); }
+.cv-snes .cv-gloss { opacity: 0.55; }
+.cv-snes .cv-front, .cv-snes .cv-spine, .cv-snes .cv-side { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16), inset 0 0 0 2px rgba(0, 0, 0, 0.35); }
+.cv-snes .cv-edge::after {
+  content: ''; position: absolute; left: 3%; right: 3%; top: 34%; height: 1px; pointer-events: none;
+  background: rgba(255, 255, 255, 0.16); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
+}
+.cv-snes-jp .cv-front, .cv-snes-jp .cv-back { background: #f3f1ec; }
+.cv-snes-jp .cv-back-inlay { background: linear-gradient(160deg, #f7f5f0, #dedad1); }
+.cv-snes-jp .cv-edge { background: linear-gradient(180deg, #f4f2ed, #dcd8cf 50%, #ebe8e1); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08); }
+.cv-snes-jp .cv-edge::after { background: rgba(0, 0, 0, 0.14); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7); }
+/* Illustration imprimée de côté : la jaquette tournée d'un quart de tour (son haut vers la
+   gauche, comme le texte de la tranche), à la taille de la face */
+.cv-inlay img.is-sideways { position: absolute; left: 50%; top: 50%; max-width: none; transform: translate(-50%, -50%) rotate(-90deg); }
 /* Famicom Disk System : étui translucide un peu laiteux (CaseViewer.tsx : 88 × 98 × 9,5 mm),
    coins arrondis ; la jaquette en papier sous la face, la disquette jaune derrière */
 .cv-fds .cv-hinge { display: none; }

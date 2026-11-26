@@ -270,13 +270,28 @@ for (const r of gameRows) {
 // ceux que la liste Wikipédia de la console cite (lien vers leur article, ou même titre) ou
 // dont Redump a un disque du même titre. Les autres sont écrits dans exports/, à relire.
 const unconfirmed = [];
+// Éléments que Wikidata range à tort sous cette console (CONSOLE.wikidataExclude) : écartés
+for (const id of CONSOLE.wikidataExclude ?? []) {
+  const g = games.get(id);
+  if (!g) continue;
+  unconfirmed.push(g);
+  games.delete(id);
+}
 if (CONSOLE.confirmWikidata) {
   console.log('Confirmation par la liste Wikipédia et par Redump…');
   const listLinks = new Set();
   const listTitles = new Set();
   for (const page of CONSOLE.wikipediaPages) {
     const url = `https://en.wikipedia.org/w/api.php?${new URLSearchParams({ action: 'query', prop: 'revisions', rvprop: 'content', rvslots: 'main', titles: page, format: 'json', formatversion: '2' })}`;
-    const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT } });
+    // Serveur occupé (429, 503) : on attend le délai qu'il demande, puis on réessaie
+    let res;
+    for (let attempt = 1; ; attempt++) {
+      res = await fetch(url, { headers: { 'User-Agent': USER_AGENT } });
+      if (res.ok || ![429, 503].includes(res.status) || attempt === 6) break;
+      const wait = Math.max(30, Number(res.headers.get('retry-after')) || 0) * attempt;
+      console.log(`  Wikipédia est occupé (${res.status}), nouvel essai dans ${wait} s`);
+      await new Promise((r) => setTimeout(r, wait * 1000));
+    }
     if (!res.ok) throw new Error(`Wikipédia : ${res.status} pour « ${page} »`);
     const text = (await res.json()).query.pages[0].revisions[0].slots.main.content;
     const start = text.indexOf('id="softwarelist"');
