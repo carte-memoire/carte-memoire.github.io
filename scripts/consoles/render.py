@@ -515,7 +515,7 @@ def ps5():
     # Les ailes s'évasent vers le haut (cisaillement : l'écart grandit avec la hauteur)
     left = profile('aile-gauche', wing, 0.0, 2.0, white, bevel=0.5)
     right = profile('aile-droite', wing, 8.4, 10.4, white, bevel=0.5)
-    flare = 0.07
+    flare = 0.11
     left.matrix_world = Matrix(((1, 0, -flare, 2.0 * 0), (0, 1, 0, 0), (0, 0, 1, 0), (0, 0, 0, 1)))
     right.matrix_world = Matrix(((1, 0, flare, 0), (0, 1, 0, 0), (0, 0, 1, 0), (0, 0, 0, 1)))
     for x in (1.95, 8.35):

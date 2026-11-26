@@ -17,7 +17,7 @@ const target = join(here, '../../web/src/assets/consoles');
 mkdirSync(target, { recursive: true });
 
 let total = 0;
-for (const file of readdirSync(source).filter((f) => f.endsWith('.png') && /^[A-Z0-9]+.png$/.test(f))) {
+for (const file of readdirSync(source).filter((f) => /^[A-Z0-9]+\.png$/.test(f))) {
   const code = file.replace(/\.png$/, '');
   const out = join(target, `${code}.webp`);
   const trimmed = await sharp(join(source, file)).trim({ threshold: 2 }).toBuffer();
