@@ -355,7 +355,9 @@ for (const g of games.values()) {
     if (!zones.has(zone)) zones.set(zone, []);
     zones.get(zone).push({ region, ...d });
   }
-  if (zones.size === 0) zones.set(null, []);
+  // Sans lieu de sortie : « à compléter », sauf pour une console sortie dans une seule zone
+  // (Famicom Disk System : le Japon)
+  if (zones.size === 0) zones.set(CONSOLE.onlyZone ?? null, []);
   for (const [zone, regs] of zones) {
     const localTitle = (zone === 'NTSC-J' ? g.ja ?? g.title : g.en ?? g.title);
     releases.push({ game: g.qid, zone, localTitle });

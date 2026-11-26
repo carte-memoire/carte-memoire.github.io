@@ -374,7 +374,8 @@ for (const page of PAGES) {
   const p = json.query.pages[0];
   const revision = p.revisions[0];
   sources.push({ page: p.title, revid: revision.revid });
-  const parsed = parseTable(revision.slots.main.content, page);
+  // Liste sans tableau « par zone » (Famicom Disk System) : seulement les tableaux décrits
+  const parsed = CONSOLE.wikipediaFormat === 'tables' ? [] : parseTable(revision.slots.main.content, page);
   console.log(`  ${p.title} (révision ${revision.revid}) : ${parsed.length} jeux`);
   rows.push(...parsed);
   for (const spec of CONSOLE.extraTables ?? []) {

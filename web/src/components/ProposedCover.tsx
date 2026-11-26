@@ -81,7 +81,7 @@ export function ProposedCover({ path, platform, editionType, edited, onEdited, s
 
   return (
     <div className="proposed-cover">
-      <button type="button" className={`cover cover-${size} proposed-cover-image`} style={{ aspectRatio: String(natural ?? (box === 'dvd' ? 135 / 190 : box === 'carton' ? 127 / 178 : 1)) }}
+      <button type="button" className={`cover cover-${size} proposed-cover-image`} style={{ aspectRatio: String(natural ?? (box === 'dvd' ? 135 / 190 : box === 'carton' ? 127 / 178 : box === 'disquette' ? 88 / 98 : 1)) }}
         onClick={() => shown && setZoom(true)} title={tr('Agrandir pour examiner')} disabled={!shown}>
         {shown
           ? <img src={shown} alt={tr('Jaquette proposée')} onLoad={(e) => { const { naturalWidth: w, naturalHeight: h } = e.currentTarget; if (w && h) setNatural(w / h); }} />

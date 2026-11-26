@@ -1204,11 +1204,13 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .shelf .spine-ps1 { border-block: calc(var(--spine-w) * 0.13) solid rgba(226, 231, 243, 0.42); }
 .shelf .spine-ps2 { border-block: calc(var(--spine-w) * 0.12) solid #3f44c2; }
 .shelf .spine-nes { --spine-w: 43px; height: 320px; border-block: 2px solid #1d1d21; }
+.shelf .spine-fds { --spine-w: 17px; height: 176px; }
 @media (max-width: 640px) {
   .shelf > li { padding-right: 4px; }
   .shelf .spine-ps1 { --spine-w: 25px; height: 190px; }
   .shelf .spine-ps2 { --spine-w: 20px; height: 272px; }
   .shelf .spine-nes { --spine-w: 35px; height: 262px; }
+  .shelf .spine-fds { --spine-w: 14px; height: 145px; }
 }
 .shelf-spine.is-wanted .spine-face { opacity: 0.5; outline: 1px dashed rgba(255, 255, 255, 0.55); outline-offset: -1px; }
 
@@ -1297,6 +1299,19 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 }
 .spine-nes.spine-region-jp .spine-title { font-style: normal; padding-top: calc(var(--spine-w) * 0.45); }
 .spine-nes.spine-region-jp .spine-band { display: none; }
+/* Famicom Disk System : le bord de l'étui (88 × 98 × 9,5 mm), en plastique translucide un peu
+   laiteux, la tranche de la disquette jaune devinée derrière ; le titre en petit, gris, comme
+   l'étiquette qu'on y colle (l'étui lui-même n'a rien d'imprimé) */
+.spine-fds {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.55), rgba(244, 244, 240, 0.85) 30%, rgba(236, 236, 231, 0.8) 70%, rgba(210, 210, 204, 0.75)),
+    linear-gradient(90deg, transparent 58%, rgba(240, 196, 40, 0.55) 62%, rgba(240, 196, 40, 0.55) 86%, transparent 90%);
+  color: #3a3a40; box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.9), inset -1px 0 0 rgba(0, 0, 0, 0.18);
+}
+.spine-fds .spine-band, .spine-fds .spine-code { display: none; }
+.spine-fds .spine-title {
+  padding-top: calc(var(--spine-w) * 0.6); font-family: system-ui, sans-serif; font-weight: 700; text-transform: none; letter-spacing: 0.01em;
+  font-size: calc(var(--spine-w) * 0.58 * var(--fit, 1));
+}
 /* Réédition (Classic Serie, Player's Choice…) : tranche grise, titre foncé */
 .spine-nes.is-reissue { background: linear-gradient(90deg, #8f939c, #c4c7ce 45%, #8a8e97); color: #141518; }
 
@@ -1340,6 +1355,7 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 }
 .furniture.is-narrow { --slot: 31px; }
 .furniture.is-wide { --slot: 49px; }
+.furniture.is-thin { --slot: 23px; --level-h: 176px; }
 .furniture.is-tall { --level-h: 342px; }
 .board-fine { --thick: 4px; }
 .board-normale { --thick: 9px; }
@@ -1648,6 +1664,7 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
   .furniture { --headroom: 18px; --crown: 40px; --plinth: 14px; --frame: calc(4px + var(--thick) * 0.6); --board-depth: 5px; --inset: 8px; --slot: 29px; --level-h: 190px; }
   .furniture.is-narrow { --slot: 24px; }
   .furniture.is-wide { --slot: 39px; }
+  .furniture.is-thin { --slot: 18px; --level-h: 145px; }
   .furniture.is-tall { --level-h: 272px; }
   .furniture-glass::after { right: 1px; width: 7px; height: 7px; margin-top: -3.5px; }
   .furniture-tune-label { display: none; }
@@ -1705,6 +1722,9 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 }
 .furniture .shelf-spine:has(.spine-nes)::before {
   background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.12) 70%, rgba(255, 255, 255, 0.12)), #1c1c20;
+}
+.furniture .shelf-spine:has(.spine-fds)::before {
+  background: linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.05) 70%, rgba(255, 255, 255, 0.4)), rgba(236, 236, 231, 0.85);
 }
 .furniture .shelf-spine.is-wanted::before { opacity: 0.5; }
 
@@ -1962,6 +1982,32 @@ body.is-shelf-dragging, body.is-shelf-dragging * { cursor: grabbing !important; 
   content: ''; position: absolute; left: 3%; right: 3%; top: 34%; height: 1px; pointer-events: none;
   background: rgba(255, 255, 255, 0.16); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
 }
+/* Famicom Disk System : étui translucide un peu laiteux (CaseViewer.tsx : 88 × 98 × 9,5 mm),
+   coins arrondis ; la jaquette en papier sous la face, la disquette jaune derrière */
+.cv-fds .cv-hinge { display: none; }
+.cv-fds .cv-front, .cv-fds .cv-back { background: rgba(238, 238, 233, 0.92); border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.85), inset 0 0 0 2px rgba(0, 0, 0, 0.12); }
+.cv-fds .cv-front .cv-inlay { inset: 4% 5% 4% 5%; border-radius: 1px; }
+.cv-fds .cv-front .cv-gloss {
+  background: linear-gradient(rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.18)),
+    linear-gradient(125deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.08) 30%, transparent 50%, rgba(255, 255, 255, 0.16) 78%, transparent);
+}
+.cv-fds .cv-back-inlay { display: none; }
+.cv-fds .cv-diskette {
+  inset: 6% 9% 3% 9%; border-radius: 2px 2px 3px 3px;
+  background: linear-gradient(160deg, #f6cf3a, #e5b51e 60%, #d9a514);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12), inset 0 -18px 0 -12px rgba(0, 0, 0, 0.12);
+  opacity: 0.85;
+}
+/* La disquette : la zone de l'étiquette en haut, la fenêtre du disque magnétique en bas (sans la marque gravée) */
+.cv-fds .cv-diskette::before, .cv-fds .cv-diskette::after { content: ''; position: absolute; }
+.cv-fds .cv-diskette::before { left: 8%; right: 8%; top: 6%; height: 30%; border-radius: 2px; background: linear-gradient(rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.15)); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08); }
+.cv-fds .cv-diskette::after {
+  left: 37%; right: 37%; bottom: 7%; height: 30%; border-radius: 4px;
+  background: radial-gradient(circle at 50% 38%, #b9bcc2 0 14%, #3a3b3f 15% 24%, transparent 25%), linear-gradient(#2b2a2c, #1a191b);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+.cv-fds .cv-back .cv-gloss { background: linear-gradient(rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.25)); }
+.cv-fds .cv-spine, .cv-fds .cv-side, .cv-fds .cv-edge { background: rgba(232, 232, 227, 0.95); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7); }
 .cv-ps2 .cv-round { background: linear-gradient(180deg, var(--plastic-0), var(--plastic-3) 50%, var(--plastic-5)); }
 /* L'arête verticale (tranche ↔ face) arrondie : le reflet continue sur le bord de la face */
 /* Le film plastique de la pochette : un voile brillant, un liseré clair sur ses bords, et un

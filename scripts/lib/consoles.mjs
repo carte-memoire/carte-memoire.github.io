@@ -71,6 +71,29 @@ export const CONSOLES = {
       { id: 'unlicensedgamesafter', columns: ['title', 'publishers', 'date'], zone: 'NTSC-U', japanesePublishers: ['Columbus Circle'] },
     ],
   },
+  // Famicom Disk System (Japon) : jeux sur disquette. Un jeu sorti aussi en cartouche garde une
+  // seule fiche (même identifiant Wikidata), avec ses versions NES et FDS.
+  FDS: {
+    code: 'FDS',
+    name: 'Famicom Disk System',
+    slug: 'fds',
+    wikidata: 'Q135321',
+    // Sortie au Japon seulement : un jeu sans lieu de sortie connu y est rangé
+    onlyZone: 'NTSC-J',
+    // Liste Wikipédia : titre, studio, éditeur, date de sortie (Japon), notes ; puis les jeux
+    // sans licence. Pas de tableau « par zone » : tout passe par les tableaux décrits ici.
+    wikipediaPages: ['List of Famicom Disk System games'],
+    wikipediaFormat: 'tables',
+    redump: 'Nintendo - Family Computer Disk System',
+    datFolder: 'no-intro',
+    thumbnails: 'libretro-thumbnails/Nintendo_-_Family_Computer_Disk_System',
+    confirmWikidata: true,
+    unlicensed: true,
+    extraTables: [
+      { id: 'softwarelist', columns: ['title', 'developers', 'publishers', 'date', 'notes'], zone: 'NTSC-J' },
+      { id: 'softwarelistunlicensed', columns: ['title', 'publishers', 'date'], zone: 'NTSC-J' },
+    ],
+  },
 };
 
 // Fichier Redump (disques) ou No-Intro (cartouches) d'une console (libretro-database) :

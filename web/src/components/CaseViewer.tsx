@@ -23,6 +23,9 @@ const CASE_MM: Record<string, { w: number; h: number; d: number }> = {
   // Famicom (Japon) : boîte plus petite, à l'horizontale, 142 × 98 × 22 mm
   nes: { w: 127, h: 178, d: 24 },
   'nes-jp': { w: 142, h: 98, d: 22 },
+  // Famicom Disk System : étui en plastique translucide, 88 × 98 × 9,5 mm, la jaquette en papier
+  // sous la face, la disquette (jaune) derrière
+  fds: { w: 88, h: 98, d: 9.5 },
 };
 
 // Format du boîtier PS2 selon la zone de la version (zone inconnue : européen)
@@ -176,8 +179,10 @@ export function CaseViewer({ pulled, onClose, onEdit }: { pulled: Pulled; onClos
               </span>
               <span className="cv-gloss" />
             </div>
-            {/* Dos : le verso n'est pas dans la base ; on voit le dos de la jaquette, sombre */}
+            {/* Dos : le verso n'est pas dans la base ; on voit le dos de la jaquette, sombre (Famicom
+                Disk System : la disquette jaune à travers le plastique) */}
             <div className="cv-face cv-back" style={face({ width: w, height: h, transform: `rotateY(180deg) translateZ(${d / 2}px)` })}>
+              {kind === 'fds' && <span className="cv-diskette" />}
               <span className="cv-inlay cv-back-inlay"><span>{title}</span>{pulled.release.product_code && <small>{pulled.release.product_code}</small>}</span>
               <span className="cv-gloss" />
             </div>

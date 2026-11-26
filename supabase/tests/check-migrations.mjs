@@ -329,7 +329,7 @@ await ko('un membre ne peut pas changer les studios', en(MEMBRE, `insert into pu
 await ko('des données trop volumineuses sont refusées', en(MEMBRE, `insert into public.submission (action, target, data) values ('create', 'game', $1::jsonb)`, [JSON.stringify({ game: { title: 'x'.repeat(40000) }, no_cover: true })]), 'submission_data_size');
 
 console.log('\nConsoles');
-await egal('32 consoles déclarées', val(`select count(*)::int as n from public.platform`), [{ n: 32 }]);
+await egal('33 consoles déclarées (avec la Famicom Disk System)', val(`select count(*)::int as n from public.platform`), [{ n: 33 }]);
 await egal('chaque console a son constructeur et son identifiant Wikidata', val(`select count(*)::int as n from public.platform where manufacturer_id is null or wikidata_id is null`), [{ n: 0 }]);
 await egal('pas de constructeur en double', val(`select count(*)::int as n from public.possible_duplicate_company where name_key in ('nintendo', 'sega', 'microsoft', 'nec')`), [{ n: 0 }]);
 const consoles = await lignes(en(null, `select short_name, manufacturer, game_count from public.list_platforms()`));
@@ -1073,7 +1073,7 @@ await egal('texte → adresse : minuscules, sans accents ni ponctuation', val(`s
   [{ a: 'pokemon-edition-jaune', b: 'final-fantasy-vii', c: '' }]);
 await egal('chaque jeu importé (avec une version) a son adresse', val(`select count(*)::int as n from public.game g where g.slug is null and exists (select 1 from public.release r where r.game_id = g.id)`), [{ n: 0 }]);
 await egal('…toutes différentes', val(`select count(*)::int - count(distinct slug)::int as n from public.game where slug is not null`), [{ n: 0 }]);
-await egal('…la console en tête : ps1/…, ps2/… ou nes/…', val(`select count(*)::int as n from public.game where slug is not null and slug !~ '^(ps1|ps2|nes)/'`), [{ n: 0 }]);
+await egal('…la console en tête : ps1/…, ps2/…, nes/… ou fds/…', val(`select count(*)::int as n from public.game where slug is not null and slug !~ '^(ps1|ps2|nes|fds)/'`), [{ n: 0 }]);
 const jeuAdresse = async (title, date = null) => (await en(ADMIN, `insert into public.game (title, first_release_date, first_release_precision) values ($1, $2, $3) returning id`, [title, date, date ? 'day' : null])).rows[0].id;
 const versionAdresse = (game, platform, code = null) => en(ADMIN, `insert into public.release (game_id, platform_id, zone, local_title, edition_type, product_code) values ($1, $2, 'PAL', 'x', 'standard', $3)`, [game, platform, code]);
 const adresseDe = async (game) => (await val(`select slug from public.game where id = $1`, [game]))[0].slug;

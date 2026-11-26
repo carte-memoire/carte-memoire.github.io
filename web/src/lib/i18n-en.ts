@@ -1881,4 +1881,6 @@ export const EN: Record<string, string> = {
   "Jeu seul (disque ou cartouche)": "Loose (disc or cartridge only)",
   "Complet (boîte, notice et jeu)": "Complete (box, manual and game)",
   "La base de données collaborative des jeux vidéo, faite par et pour les collectionneurs : pour l’instant les jeux {0}. Retrouve toutes les versions de tes jeux et range ta collection au même endroit, gratuitement et sans publicité.": "The collaborative video game database, made by and for collectors: {0} games for now. Find every version of your games and keep your collection in one place, free and ad-free.",
+  "Disquette": "Disk",
+  "Étui de disquette (Famicom Disk System)": "Disk case (Famicom Disk System)",
 };

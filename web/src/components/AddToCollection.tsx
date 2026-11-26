@@ -15,7 +15,7 @@ import { useConfirm } from './Confirm';
 import { tr } from '../lib/i18n';
 import { priceCategory, priceCategoryLabel, priceText, useReleasePrices } from '../lib/prices';
 import { notifyCollectionChanged } from '../lib/trophies';
-import { isCartridge, mediaName } from '../lib/cases';
+import { hasSpineCard as consoleHasSpineCard, mediaName } from '../lib/cases';
 
 // Ce qui vient d'être enregistré (pour le message de confirmation)
 export interface SavedItem {
@@ -158,7 +158,7 @@ function ItemForm({ release, item, onBack, onSaved, onRemoved }: {
   const [tradeStatus, setTradeStatus] = useState<TradeStatus | ''>(item?.trade_status ?? '');
   // La spine card (bande sur la tranche) n'existe que sur les boîtes japonaises
   // La spine card (bande cartonnée des boîtes japonaises) : jeux sur disque seulement
-  const spineCard = release.zone === 'NTSC-J' && !isCartridge(release.platform.short_name);
+  const spineCard = release.zone === 'NTSC-J' && consoleHasSpineCard(release.platform.short_name);
 
   // Sous blister : forcément complet
   function chooseCondition(value: ItemCondition | '') {
