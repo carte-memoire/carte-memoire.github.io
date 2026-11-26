@@ -1263,6 +1263,7 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .shelf .spine-fds { --spine-w: 17px; height: 176px; }
 .shelf .spine-snes { --spine-w: 59px; height: 229px; border-block: 2px solid #1d1d21; }
 .shelf .spine-gb { --spine-w: 41px; height: 225px; border-block: 2px solid rgba(0, 0, 0, 0.35); }
+.shelf .spine-md { --spine-w: 40px; height: 337px; border-block: 2px solid #0b0b0d; }
 @media (max-width: 640px) {
   .shelf > li { padding-right: 4px; }
   .shelf .spine-ps1 { --spine-w: 25px; height: 190px; }
@@ -1271,6 +1272,7 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
   .shelf .spine-fds { --spine-w: 14px; height: 145px; }
   .shelf .spine-snes { --spine-w: 48px; height: 188px; }
   .shelf .spine-gb { --spine-w: 34px; height: 185px; }
+  .shelf .spine-md { --spine-w: 32px; height: 270px; }
 }
 .shelf-spine.is-wanted .spine-face { opacity: 0.5; outline: 1px dashed rgba(255, 255, 255, 0.55); outline-offset: -1px; }
 
@@ -1439,6 +1441,32 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 }
 .spine-gb.spine-region-jp.is-gbc .spine-mark { font-size: calc(var(--spine-w) * 0.15); }
 .spine-gb.is-reissue { background: linear-gradient(90deg, #8f939c, #c4c7ce 45%, #8a8e97); color: #141518; }
+/* Mega Drive : boîtier en plastique noir (133 × 187 × 22 mm, 1,8 px par mm sur l'étagère), la
+   jaquette sous une pochette transparente. Tranche noire ; en haut, le nom de la console en texte
+   simple (à la place de son logo, une marque) sur un quadrillage fin, rappel des jaquettes
+   « grille » des débuts ; puis le titre en blanc, de haut en bas. Première version : à affiner
+   d'après des photos de vraies tranches */
+.spine-md {
+  background: linear-gradient(90deg, #050506, #17171a 28%, #0c0c0e 55%, #161619 82%, #040405); color: #f3f3f1;
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.14), inset -1px 0 0 rgba(0, 0, 0, 0.7);
+}
+.spine-md .spine-band {
+  height: auto; padding: calc(var(--spine-w) * 0.18) 0 calc(var(--spine-w) * 0.16);
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.09) 0 1px, transparent 1px calc(var(--spine-w) * 0.16)),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.09) 0 1px, transparent 1px calc(var(--spine-w) * 0.16));
+  border-bottom: calc(var(--spine-w) * 0.05) solid #c8202a;
+}
+.spine-md .spine-mark {
+  writing-mode: vertical-rl; color: #e9e9ec; border: 0;
+  font: 800 calc(var(--spine-w) * 0.24) / 1 system-ui, sans-serif; letter-spacing: 0.1em;
+}
+.spine-md .spine-title {
+  flex: 1 1 auto; padding-top: calc(var(--spine-w) * 0.22);
+  font-family: 'Arial Black', Montserrat, 'Helvetica Neue', Arial, sans-serif; font-weight: 900;
+  font-size: calc(var(--spine-w) * 0.38 * var(--fit, 1)); letter-spacing: 0.02em; text-transform: uppercase;
+}
+.spine-md .spine-code { display: none; }
 /* Réédition (Classic Serie, Player's Choice…) : tranche grise, titre foncé */
 .spine-nes.is-reissue { background: linear-gradient(90deg, #8f939c, #c4c7ce 45%, #8a8e97); color: #141518; }
 
@@ -2137,6 +2165,16 @@ body.is-shelf-dragging, body.is-shelf-dragging * { cursor: grabbing !important; 
 .cv-snes-jp .cv-edge::after { background: rgba(0, 0, 0, 0.14); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7); }
 /* Game Boy : petite boîte en carton, comme la NES (CaseViewer.tsx : 121 × 121 × 24 mm ; au Japon,
    98 × 114 × 22 mm) ; la jaquette sur toute la face, carton clair au dos et sur les bords */
+/* Mega Drive : boîtier en plastique noir qui s'ouvre comme un livre, la jaquette sous une
+   pochette transparente, avec un fin rebord de plastique autour (première version, à affiner
+   d'après des photos) */
+.cv-md .cv-hinge { display: none; }
+.cv-md .cv-front, .cv-md .cv-back { background: linear-gradient(160deg, #26272c, #0d0d10); border-radius: 2px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18); }
+.cv-md .cv-front .cv-inlay, .cv-md .cv-back-inlay { left: 0; right: 1.2%; top: 0.9%; bottom: 0.9%; border-radius: 0 1px 1px 0; }
+.cv-md .cv-back-inlay { background: linear-gradient(160deg, #1d1d23, #0e0e11); }
+.cv-md .cv-spine, .cv-md .cv-side { background: #101013; }
+.cv-md .cv-side { background: linear-gradient(90deg, #2a2b30, #17181b 30%, #101013 70%, #0a0a0c); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14); }
+.cv-md .cv-edge { background: linear-gradient(180deg, #2a2b30, #121215 50%, #1b1b1f); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08); }
 .cv-gb .cv-hinge { display: none; }
 .cv-gb .cv-front, .cv-gb .cv-back { background: #f1f0ec; border-radius: 1px; }
 .cv-gb .cv-front .cv-inlay, .cv-gb .cv-back-inlay { inset: 0; }

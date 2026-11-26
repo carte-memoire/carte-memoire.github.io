@@ -195,6 +195,68 @@ export const CONSOLES = {
       { heading: 'Aftermarket releases', columns: ['title', 'compatible', 'feature', 'developers', 'publishers', 'date'], zone: 'NTSC-U' },
     ],
   },
+  // Mega Drive (Genesis en Amérique du Nord) : les cartouches ; le Mega-CD et la 32X seront des
+  // consoles à part
+  MD: {
+    code: 'MD',
+    name: 'Mega Drive',
+    slug: 'md',
+    wikidata: 'Q10676',
+    // Liste Wikipédia : titre, studio, éditeur, puis une date par zone (JP, NA, PAL) et une colonne
+    // « Other » (Brésil, Corée, Taïwan : seulement les dates qui portent leur pays)
+    wikipediaPages: ['List of Sega Genesis games'],
+    wikipediaFormat: 'dates-by-zone',
+    dateColumns: ['NTSC-J', 'NTSC-U', 'PAL', 'other'],
+    redump: 'Sega - Mega Drive - Genesis',
+    datFolder: 'no-intro',
+    thumbnails: 'libretro-thumbnails/Sega_-_Mega_Drive_-_Genesis',
+    jaWikipediaList: 'メガドライブのゲームタイトル一覧',
+    confirmWikidata: true,
+    // Wikidata range aussi sous la Mega Drive :
+    // - des jeux du Sega Game Toshokan et du Game no Kanzume (téléchargés par modem, ou réunis sur
+    //   un CD du Mega-CD : jamais vendus en cartouche) ;
+    // - des jeux amateurs récents, des cartouches pirates (Super Mario World de Taïwan…) et un jeu
+    //   d'une autre console (Bubble Bath Babes, NES) ;
+    // - le jeu d'origine d'un portage dont la version Mega Drive a sa fiche (ESWAT, Slap Fight MD,
+    //   Dino Dini's Soccer, Speedball 2 de 1990, Taikō Risshiden, RoboCop 3, Syd of Valis, le
+    //   football de Kunio-kun) ou un doublon d'une ligne de la liste (David Robinson's Supreme
+    //   Court, Chi Chi's Pro Challenge Golf, Turma da Mônica = Wonder Boy in Monster World au
+    //   Brésil, Elitserien 95 et 96 = NHL 95 et 96 en Suède, versions nationales à venir) ;
+    // - Street Fighter II: Champion Edition, que la Mega Drive a sous un autre titre (sa fiche porte
+    //   à tort le titre d'une cartouche pirate NES), et le Batman de la NES
+    wikidataExclude: [
+      'Q2808850', 'Q3197502', 'Q3303889', 'Q2061507', 'Q3411241', 'Q3411244', 'Q3411242', 'Q3411245', 'Q3144099',
+      'Q3437247', 'Q3431701', 'Q3304194', 'Q3360323', 'Q3411063', 'Q3471623',
+      'Q141539797', 'Q135058151', 'Q62274153', 'Q9080572', 'Q106443445', 'Q30279438', 'Q3276866',
+      'Q1099141', 'Q664882', 'Q3772682', 'Q1883369', 'Q851255', 'Q2589086', 'Q986330', 'Q1145485',
+      'Q107819645', 'Q48704767', 'Q10385614', 'Q10481599', 'Q10481598',
+      'Q5575485',
+      // Batman: Return of the Joker (NES ; la Mega Drive a Batman: Revenge of the Joker) ; Canon, en double
+      'Q555897', 'Q122307140',
+    ],
+    // Lignes de la liste reliées à l'article d'une série, d'un autre jeu ou d'une autre console
+    // (ou sans lien) : la fiche Wikidata propre à la version Mega Drive
+    wikipediaQids: {
+      'Aah! Harimanada': 'Q65925226', 'Action 52': 'Q139888877', 'Batman: Revenge of the Joker': 'Q56220569',
+      "Beauty and the Beast: Belle's Quest": 'Q9293417', 'Beauty and the Beast: Roar of the Beast': 'Q2893330',
+      'Caesars Palace': 'Q649422', 'Canon: Legend of the New Gods': 'Q3068365', 'Chiki Chiki Boys': 'Q3087268',
+      'Darwin 4081': 'Q3016622', 'Davis Cup World Tour': 'Q10264467', 'Double Dragon 3: The Arcade Game': 'Q1937488',
+      'F1: World Championship Edition': 'Q2917766', 'Lotus II: R.E.C.S.': 'Q3837535',
+      'NBA Jam Tournament Edition': 'Q2248339', 'Nekketsu Kōkō Dojjibōru Bu: Mega Doraibu Sakkā-hen': 'Q3337873',
+      'Nobunaga no Yabō: Bushō Fūunroku': 'Q963231', 'Nobunaga no Yabō: Haōden': 'Q3342577', 'Raiden Trad': 'Q1290054',
+      'Sonic Compilation': 'Q7514182', 'Super Smash TV': 'Q97650059', 'Super Street Fighter II': 'Q2913706',
+      'T2: The Arcade Game': 'Q3511972', 'Triple Play 96': 'Q3539500', 'Triple Play: Gold Edition': 'Q121009189',
+      Ultraman: 'Q3018106',
+    },
+    unlicensed: true,
+    // Les jeux sans licence vendus en magasin (Taïwan, Amérique du Nord…) : même colonnes que la
+    // liste principale, tableau sans identifiant repéré par le titre de sa section. Les
+    // compilations vendues en boîte : la région suit chaque titre (sinon l'Europe, sauf le 6-Pak)
+    extraTables: [
+      { heading: 'Unlicensed games', main: true },
+      { heading: 'Compilations', columns: ['title', 'developers', 'publishers', 'date'], zone: 'PAL', titleZones: true, zoneByTitle: { '6-Pak': 'NTSC-U' } },
+    ],
+  },
   // Famicom Disk System (Japon) : jeux sur disquette. Un jeu sorti aussi en cartouche garde une
   // seule fiche (même identifiant Wikidata), avec ses versions NES et FDS.
   FDS: {

@@ -25,6 +25,7 @@ export const CASE_FORMATS: { value: CaseFormat; label: string; ratio: number | n
   { value: 'carton-gb', label: tr('Petite boîte carrée (Game Boy, Game Boy Color)'), ratio: CASE_RATIO['carton-gb'] },
   { value: 'carton-gb-jp', label: tr('Petite boîte en hauteur (Game Boy japonaise)'), ratio: CASE_RATIO['carton-gb-jp'] },
   { value: 'disquette', label: tr('Étui de disquette (Famicom Disk System)'), ratio: CASE_RATIO.disquette },
+  { value: 'boitier-md', label: tr('Boîtier en plastique (Mega Drive)'), ratio: CASE_RATIO['boitier-md'] },
   { value: 'free', label: tr('Sans cadre (libre)'), ratio: null },
 ];
 export const fixedRatio = (format: CaseFormat): number => CASE_FORMATS.find((f) => f.value === format)?.ratio ?? 1;

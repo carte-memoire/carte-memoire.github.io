@@ -47,7 +47,7 @@ const TAGS = {
   DK: ['PAL', 'DK'], FI: ['PAL', 'FI'], PL: ['PAL', 'PL'], GR: ['PAL', 'GR'],
   AU: ['PAL', 'AU'], AUS: ['PAL', 'AU'], NZ: ['PAL', 'NZ'], ZA: ['PAL', 'ZA'],
   // Pays sans région chez nous : la zone est retenue, la date ou le pays non
-  IN: ['PAL', 'IN'], RU: ['PAL', 'RU'], SAR: ['PAL', 'SAR'],
+  IN: ['PAL', 'IN'], RU: ['PAL', 'RU'], SAR: ['PAL', 'SAR'], VE: ['NTSC-U', 'VE'],
   WW: [null, 'world'],
 };
 // Région « principale » de chaque zone : un titre ou une date pour cette
@@ -214,20 +214,31 @@ function parseVgrtbl(cell) {
 function parseDates(cell, columnZone) {
   const vgrtbl = parseVgrtbl(cell);
   if (vgrtbl) return vgrtbl;
-  const fixed = stripRefs(cell).replace(/(^|[^{])\b(dts\|\d{4}(?:\|\d{1,2}){0,2})/gi, '$1{{$2}}');
+  const fixed = stripRefs(cell).replace(/(^|[^{])\b(dts\|\d{4}(?:\|\d{1,2}){0,2})/gi, '$1{{$2}}')
+    // Colonne « Other » de la Mega Drive : « TW ({{dts|1996}}) », « TW (1994) » → la date suivie de
+    // son pays, comme ailleurs (« {{dts|1996}}<sup>TW</sup> » ; de deux années possibles, la première)
+    .replace(/\b([A-Z]{2,4})\s*\(\s*(\{\{\s*dts\s*\|[^{}]*\}\}|\d{4})[^)]*\)/g,
+      (_, tag, d) => `${/^\d{4}$/.test(d) ? `{{dts|${d}}}` : d}<sup>${tag}</sup>`);
   const out = [];
+  // Colonne « other » (Mega Drive) : sans pays, une date ne dit pas dans quelle zone le jeu est sorti
+  const other = columnZone === 'other';
   for (const m of fixed.matchAll(/\{\{\s*dts\s*\|([^}]*)\}\}\s*(?:<sup>([\s\S]*?)<\/sup>)?/gi)) {
     const d = parseDts(m[1]);
     if (!d) continue;
     const tags = m[2] ? m[2].split(/[\s,/&+.]+/).map((t) => clean(t).toUpperCase()).filter(Boolean) : [];
-    if (tags.length === 0) { out.push({ zone: columnZone, region: BASE_REGION[columnZone], ...d }); continue; }
+    if (tags.length === 0) {
+      if (other) noteTag('(sans pays)', 'colonne Other');
+      else out.push({ zone: columnZone, region: BASE_REGION[columnZone], ...d });
+      continue;
+    }
     for (const t of tags) {
       if (!TAGS[t]) { noteTag(t, 'date'); continue; }
       const [zone, region] = TAGS[t];
+      if (!zone && other) { noteTag(t, 'colonne Other'); continue; }
       out.push({ zone: zone ?? columnZone, region, ...d });
     }
   }
-  if (out.length === 0 && !/unreleased|cancel|n\/a/i.test(fixed)) {
+  if (out.length === 0 && !other && !/unreleased|cancel|n\/a/i.test(fixed)) {
     const y = /\b(19[89]\d|20[0-2]\d)\b/.exec(clean(fixed));
     if (y) { stats.plainYears++; out.push({ zone: columnZone, region: BASE_REGION[columnZone], date: `${y[1]}-01-01`, precision: 'year' }); }
   }
@@ -278,10 +289,14 @@ function parsePresence(cells) {
 // La forme juridique n'est pas le nom : « Natsume Co., Ltd. » (sans couper à la virgule, qui
 // faisait une société « Ltd. »), « Probe Entertainment Limited », « Acclaim Entertainment, Inc. »
 const LEGAL_FORM = /,?\s+(?:Co\.,?\s*Ltd\.?|Co\.\s*Limited|Ltd\.?|Limited|Inc\.?|LLC)$/i;
+// Un même studio sous son ancien nom, sans fiche Wikidata pour les relier (Wikipédia renvoie les
+// deux vers la même section de la liste des filiales d'Acclaim) : un seul studio chez nous
+const COMPANY_RENAMES = { 'Probe Software': 'Probe Entertainment' };
 function parseCompanies(cell) {
   const text = stripRefs(cell).replace(/<br\s*\/?\s*>/gi, '\n').replace(/,(\s*(?:Ltd\.?|Inc\.?|LLC|Limited)\b)/gi, '$1');
   return splitTopLevel(text, [',', '\n', ';'])
     .map((part) => ({ name: clean(part).replace(/\s*\([A-Z]{2,4}(?:\s*[,/]\s*[A-Z]{2,4})*\)$/, '').replace(LEGAL_FORM, ''), article: linkTarget(part), tags: tagsOf(part) }))
+    .map((c) => (COMPANY_RENAMES[c.name] ? { ...c, name: COMPANY_RENAMES[c.name] } : c))
     .filter((c) => c.name && !/^(n\/a|unknown|—|-|\?)$/i.test(c.name));
 }
 
@@ -335,10 +350,26 @@ function tableCells(wikitext, start) {
   const lines = wikitext.slice(wikitext.lastIndexOf('\n', start) + 1, end).split('\n');
   const rows = [];
   let cells = null, header = false;
-  const flush = () => { if (cells && !header && cells.length) rows.push(cells); };
+  // Titre sur plusieurs lignes (« !rowspan=2 scope="row"|''Klax'' » : Namco au Japon, Tengen
+  // ailleurs) : les lignes suivantes reprennent le titre, marquées « suite »
+  let spanned = null;
+  const flush = () => {
+    if (!cells || header || !cells.length) return;
+    if (!cells.titleHere && spanned?.left > 0) { cells.unshift(spanned.cell); cells.continued = true; spanned.left--; }
+    rows.push(cells);
+  };
   for (const line of lines) {
     if (/^\|-/.test(line)) { flush(); cells = []; header = false; continue; }
     if (cells === null) continue;
+    // Titre écrit en en-tête de ligne (« !scope="row"|''Titre'' », liste Mega Drive) : une cellule
+    if (/^!(?=[^|]*scope\s*=\s*"?row"?)/i.test(line)) {
+      const [cell] = splitTopLevel(line.slice(1), ['!!', '||']);
+      const span = Number(/rowspan\s*=\s*"?(\d+)/i.exec(cell.split('|')[0])?.[1] ?? 1);
+      spanned = span > 1 ? { cell: cell.replace(/rowspan\s*=\s*"?\d+"?\s*/i, ''), left: span - 1 } : null;
+      cells.push(cell);
+      cells.titleHere = true;
+      continue;
+    }
     if (/^!/.test(line)) { header = true; continue; }
     if (/^\|/.test(line)) cells.push(...splitTopLevel(line.slice(1), ['||']));
     else if (cells.length) cells[cells.length - 1] += `\n${line}`;
@@ -350,7 +381,30 @@ function tableCells(wikitext, start) {
 // Le tableau principal : id="softwarelist", ou celui de CONSOLE.tableId (« id = "list" »)
 function parseTable(wikitext, page) {
   const id = new RegExp(`id\\s*=\\s*"${CONSOLE.tableId ?? 'softwarelist'}"`).exec(wikitext);
-  return tableCells(wikitext, id ? id.index : -1).map((c) => parseRow(c, page)).filter(Boolean);
+  return mergeContinued(tableCells(wikitext, id ? id.index : -1), page);
+}
+
+// Lignes « suite » d'un titre sur plusieurs lignes : un seul jeu, dont chaque ligne donne
+// l'éditeur des zones qu'elle date (Klax : Namco au Japon, Tengen en Amérique et en Europe)
+const ZONE_TAG = { 'NTSC-J': 'JP', 'NTSC-U': 'NA', PAL: 'PAL' };
+function mergeContinued(rawRows, page) {
+  const out = [];
+  for (const raw of rawRows) {
+    const row = parseRow(raw, page);
+    if (!row) continue;
+    const zoneTags = [...new Set(row.dates.map((d) => ZONE_TAG[d.zone]).filter(Boolean))];
+    if (raw.continued || rawRows[rawRows.indexOf(raw) + 1]?.continued) {
+      for (const p of row.publishers) if (!p.tags.length) p.tags = zoneTags;
+    }
+    const previous = out.at(-1);
+    if (!raw.continued || !previous) { out.push(row); continue; }
+    previous.dates.push(...row.dates);
+    for (const field of ['developers', 'publishers']) {
+      for (const c of row[field]) if (!previous[field].some((x) => x.name === c.name)) previous[field].push(c);
+    }
+    previous.altTitles.push(...row.altTitles);
+  }
+  return out;
 }
 
 // Pays des tableaux de jeux sans licence (« Taiwan ») → mention de région
@@ -359,6 +413,42 @@ const COUNTRY_TAG = {
   Asia: 'ASIA', 'North America': 'NA', Europe: 'EU',
 };
 const HEADING = /\n(==+)\s*([^=\n]+?)\s*\1\s*\n/g;
+
+// Compilations de la Mega Drive : une seule colonne d'année, et la région écrite après chaque
+// titre (« Sonic Compilation (PAL) / Sonic Classics (NA) », « 10 Super Jogos (BRAZIL) / Mega
+// Games 10 (ASIA) ») ; sans région, celle que la description donne au titre, sinon sa zone
+const TITLE_REGION_WORDS = { BRAZIL: 'BR', EUROPE: 'EU' };
+function titleZonesRow(spec, cell) {
+  const whole = clean(cell('title'));
+  let parts = whole.split(/\s+\/\s+/).map((p) => {
+    const m = /^(.*?)\s*\(([^)]+)\)\s*$/.exec(p);
+    const word = m?.[2].toUpperCase();
+    const tag = word && (TAGS[word] ? word : TITLE_REGION_WORDS[word]);
+    return tag ? { text: m[1], tags: [tag] } : { text: p, tags: [] };
+  });
+  // « The Disney Collection : Castle of Illusion … / QuackShot … » : un seul titre, sans région
+  if (!parts.some((p) => p.tags.length)) parts = [{ text: whole, tags: [] }];
+  if (!parts[0].text) return null;
+  const tagged = parts.flatMap((p) => p.tags);
+  const zones = tagged.length ? [...new Set(tagged.map((t) => TAGS[t][0]))] : [spec.zoneByTitle?.[parts[0].text] ?? spec.zone];
+  // L'année vaut pour chaque titre, dans son pays (« BRAZIL » : le Brésil)
+  const dates = tagged.length
+    ? tagged.flatMap((t) => parseDates(cell('date'), TAGS[t][0]).map((d) => ({ ...d, region: TAGS[t][1] })))
+    : zones.flatMap((z) => parseDates(cell('date'), z));
+  if (dates.length === 0) { stats.noDate++; for (const z of zones) dates.push({ zone: z, region: BASE_REGION[z], date: null, precision: null }); }
+  const publishers = parseCompanies(cell('publishers'));
+  for (const p of publishers) if (!p.tags.length) p.tags = zones.map((z) => ZONE_TAG[z]);
+  return {
+    title: parts[0].text,
+    article: linkTarget(cell('title')),
+    altTitles: parts.filter((p) => p.tags.length),
+    developers: parseCompanies(cell('developers')),
+    publishers,
+    dates,
+    platinum: false,
+    extra: true,
+  };
+}
 
 // Les autres tableaux d'une liste (CONSOLE.extraTables) : repérés par leur identifiant et le
 // titre de leur section ; colonnes données par la description (titre, studios, éditeurs,
@@ -378,13 +468,14 @@ function parseExtraTable(wikitext, page, spec) {
     : sectionTable();
   if (start === undefined) { stats.anomalies.push(`${page} : tableau ${spec.id} (${spec.heading ?? ''}) introuvable`); return []; }
   const rows = tableCells(wikitext, start);
-  if (spec.main) return rows.map((c) => parseRow(c, page)).filter(Boolean).map((r) => ({ ...r, extra: true }));
+  if (spec.main) return mergeContinued(rows, page).map((r) => ({ ...r, extra: true }));
   return rows.map((raw) => {
     const cells = raw.filter((c) => !/^\s*([a-z-]+\s*=\s*"[^"]*"\s*)+$/i.test(c)).map((c) => {
       const parts = splitTopLevel(c, ['|']);
       return parts.length > 1 && /^\s*(?:[a-z-]+\s*=\s*(?:"[^"]*"|[^\s"]+)(?:\s+|$))*$/i.test(parts[0]) ? parts.slice(1).join('|') : c;
     });
     const cell = (name) => cells[spec.columns.indexOf(name)] ?? '';
+    if (spec.titleZones) return titleZonesRow(spec, cell);
     const segments = stripRefs(cell('title')).split(/<br\s*\/?\s*>|\n/i).map((s) => s.trim()).filter((s) => clean(s));
     const main = segments[0] ?? '';
     const title = clean(main);

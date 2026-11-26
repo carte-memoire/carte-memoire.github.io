@@ -1073,7 +1073,7 @@ await egal('texte → adresse : minuscules, sans accents ni ponctuation', val(`s
   [{ a: 'pokemon-edition-jaune', b: 'final-fantasy-vii', c: '' }]);
 await egal('chaque jeu importé (avec une version) a son adresse', val(`select count(*)::int as n from public.game g where g.slug is null and exists (select 1 from public.release r where r.game_id = g.id)`), [{ n: 0 }]);
 await egal('…toutes différentes', val(`select count(*)::int - count(distinct slug)::int as n from public.game where slug is not null`), [{ n: 0 }]);
-await egal('…la console en tête : ps1/…, ps2/…, nes/…, fds/…, snes/…, gb/… ou gbc/…', val(`select count(*)::int as n from public.game where slug is not null and slug !~ '^(ps1|ps2|nes|fds|snes|gb|gbc)/'`), [{ n: 0 }]);
+await egal('…la console en tête : ps1/…, ps2/…, nes/…, fds/…, snes/…, gb/…, gbc/… ou md/…', val(`select count(*)::int as n from public.game where slug is not null and slug !~ '^(ps1|ps2|nes|fds|snes|gb|gbc|md)/'`), [{ n: 0 }]);
 const jeuAdresse = async (title, date = null) => (await en(ADMIN, `insert into public.game (title, first_release_date, first_release_precision) values ($1, $2, $3) returning id`, [title, date, date ? 'day' : null])).rows[0].id;
 const versionAdresse = (game, platform, code = null) => en(ADMIN, `insert into public.release (game_id, platform_id, zone, local_title, edition_type, product_code) values ($1, $2, 'PAL', 'x', 'standard', $3)`, [game, platform, code]);
 const adresseDe = async (game) => (await val(`select slug from public.game where id = $1`, [game]))[0].slug;
@@ -1318,6 +1318,27 @@ await egal('Defender (2002) ne reprend pas les studios du jeu d\'arcade de 1981'
 await egal('Cabela\'s Outdoor Adventures 2005 et 2009 : deux jeux, retirés des doublons possibles', val(`
   select count(*)::int as n from public.possible_duplicate_game p
   where p.title_key = (select title_key from public.game where wikidata_id = 'Q5015339')`), [{ n: 0 }]);
+
+console.log('\nMega Drive (liste Wikipédia : titre sur deux lignes, compilations, fiches corrigées)');
+await egal('Klax : un seul jeu, Namco au Japon, Tengen en Amérique et en Europe', val(`
+  select string_agg(r.zone::text || ':' || c.name, ', ' order by r.zone, c.name) as s
+  from public.game g join public.release r on r.game_id = g.id join public.platform p on p.id = r.platform_id and p.short_name = 'MD'
+  join public.release_company rc on rc.release_id = r.id and rc.role = 'publisher' join public.company c on c.id = rc.company_id
+  where g.title = 'Klax' and c.name in ('Namco', 'Tengen')`), [{ s: 'NTSC-J:Namco, NTSC-U:Tengen, PAL:Tengen' }]);
+await egal('Sonic Compilation : en Europe, et Sonic Classics en Amérique', val(`
+  select string_agg(r.zone::text || ':' || r.local_title, ', ' order by r.zone) as s
+  from public.game g join public.release r on r.game_id = g.id where g.wikidata_id = 'Q7514182'`), [{ s: 'NTSC-U:Sonic Classics, PAL:Sonic Compilation' }]);
+await egal('F1 (1993) reprend son titre, sans la version Super Nintendo de F1 World Championship Edition', val(`
+  select g.title, count(r.id) filter (where p.short_name = 'SNES')::int as snes from public.game g
+  join public.release r on r.game_id = g.id join public.platform p on p.id = r.platform_id
+  where g.wikidata_id = 'Q3062970' group by g.title`), [{ title: 'F1', snes: 0 }]);
+await egal('NBA Jam reprend son titre ; la PlayStation n\'a eu que Tournament Edition', val(`
+  select g.title, count(r.id) filter (where p.short_name = 'PS1')::int as ps1 from public.game g
+  join public.release r on r.game_id = g.id join public.platform p on p.id = r.platform_id
+  where g.wikidata_id = 'Q1959943' group by g.title`), [{ title: 'NBA Jam', ps1: 0 }]);
+await egal('…l\'ancienne adresse de NBA Jam Tournament Edition (PlayStation) mène toujours au bon jeu', val(`
+  select g.wikidata_id from public.game_slug_history h join public.game g on g.id = h.game_id
+  where h.slug = 'ps1/nba-jam-tournament-edition'`), [{ wikidata_id: 'Q2248339' }]);
 
 console.log('\nVersions vides en trop (import Wikidata)');
 await egal('plus de version vide à côté de vraies versions sur la même console', val(`

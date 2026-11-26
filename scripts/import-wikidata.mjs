@@ -296,13 +296,30 @@ if (CONSOLE.confirmWikidata) {
     const text = (await res.json()).query.pages[0].revisions[0].slots.main.content;
     // Le tableau principal : id="softwarelist", ou celui de CONSOLE.tableId (« id = "list" »)
     const start = new RegExp(`id\\s*=\\s*"${CONSOLE.tableId ?? 'softwarelist'}"`).exec(text)?.index ?? -1;
-    const table = text.slice(start, text.indexOf('\n|}', start));
-    for (const m of table.matchAll(/\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|[^\]]*)?\]\]/g)) listLinks.add(articleKey(m[1]));
-    // Titres (en italique) et titres secondaires (« •Tsukiyo ni Saraba »)
-    for (const m of table.matchAll(/''([^\n]+?)''|•([^\n<{]+)/g)) {
-      for (const part of (m[1] ?? m[2]).split(/<br\s*\/?\s*>|•/i)) {
-        const key = normalizeTitle(plainText(part));
-        if (key) listTitles.add(key);
+    const tables = [text.slice(start, text.indexOf('\n|}', start))];
+    // Liste dont les titres sont des en-têtes de ligne (« !scope="row"|''Titre'' », Mega Drive) :
+    // seule la cellule du titre confirme (pas un lien de la colonne Éditeur vers un jeu, ni d'une
+    // note), et les tableaux secondaires qui ont les mêmes colonnes (jeux sans licence) aussi
+    const rowHeaders = /\n!\s*[^|\n]*scope\s*=\s*"?row/.test(tables[0]);
+    if (rowHeaders) {
+      for (const spec of (CONSOLE.extraTables ?? []).filter((s) => s.main && !s.id)) {
+        const head = text.split('\n').findIndex((line) => line.replace(/=/g, '').trim() === spec.heading && /^=+[^=]/.test(line));
+        if (head < 0) continue;
+        const at = text.indexOf('\n{|', text.split('\n').slice(0, head + 1).join('\n').length);
+        if (at >= 0) tables.push(text.slice(at, text.indexOf('\n|}', at + 1)));
+      }
+    }
+    for (const table of tables) {
+      const titleText = rowHeaders
+        ? table.split('\n').filter((line) => /^!\s*[^|\n]*scope\s*=\s*"?row/.test(line)).join('\n')
+        : table;
+      for (const m of titleText.matchAll(/\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|[^\]]*)?\]\]/g)) listLinks.add(articleKey(m[1]));
+      // Titres (en italique) et titres secondaires (« •Tsukiyo ni Saraba »)
+      for (const m of titleText.matchAll(/''([^\n]+?)''|•([^\n<{]+)/g)) {
+        for (const part of (m[1] ?? m[2]).split(/<br\s*\/?\s*>|•/i)) {
+          const key = normalizeTitle(plainText(part));
+          if (key) listTitles.add(key);
+        }
       }
     }
   }
