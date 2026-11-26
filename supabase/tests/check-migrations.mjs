@@ -1073,7 +1073,7 @@ await egal('texte → adresse : minuscules, sans accents ni ponctuation', val(`s
   [{ a: 'pokemon-edition-jaune', b: 'final-fantasy-vii', c: '' }]);
 await egal('chaque jeu importé (avec une version) a son adresse', val(`select count(*)::int as n from public.game g where g.slug is null and exists (select 1 from public.release r where r.game_id = g.id)`), [{ n: 0 }]);
 await egal('…toutes différentes', val(`select count(*)::int - count(distinct slug)::int as n from public.game where slug is not null`), [{ n: 0 }]);
-await egal('…la console en tête : ps1/…, ps2/…, nes/…, fds/…, snes/… ou gb/…', val(`select count(*)::int as n from public.game where slug is not null and slug !~ '^(ps1|ps2|nes|fds|snes|gb)/'`), [{ n: 0 }]);
+await egal('…la console en tête : ps1/…, ps2/…, nes/…, fds/…, snes/…, gb/… ou gbc/…', val(`select count(*)::int as n from public.game where slug is not null and slug !~ '^(ps1|ps2|nes|fds|snes|gb|gbc)/'`), [{ n: 0 }]);
 const jeuAdresse = async (title, date = null) => (await en(ADMIN, `insert into public.game (title, first_release_date, first_release_precision) values ($1, $2, $3) returning id`, [title, date, date ? 'day' : null])).rows[0].id;
 const versionAdresse = (game, platform, code = null) => en(ADMIN, `insert into public.release (game_id, platform_id, zone, local_title, edition_type, product_code) values ($1, $2, 'PAL', 'x', 'standard', $3)`, [game, platform, code]);
 const adresseDe = async (game) => (await val(`select slug from public.game where id = $1`, [game]))[0].slug;

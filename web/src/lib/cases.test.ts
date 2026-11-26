@@ -19,6 +19,8 @@ describe('boîtier selon la console et la zone', () => {
   it('Game Boy : presque carrée en Amérique et en Europe, en hauteur au Japon', () => {
     expect(caseFormatFor('GB', 'standard', 'PAL')).toBe('carton-gb');
     expect(caseFormatFor('GB', 'standard', 'NTSC-J')).toBe('carton-gb-jp');
+    expect(caseFormatFor('GBC', 'standard', 'NTSC-U')).toBe('carton-gb');
+    expect(caseFormatFor('GBC', 'standard', 'NTSC-J')).toBe('carton-gb-jp');
   });
   it('les autres consoles ne changent pas avec la zone', () => {
     expect(caseFormatFor('PS1', 'standard', 'NTSC-J')).toBe('cd');

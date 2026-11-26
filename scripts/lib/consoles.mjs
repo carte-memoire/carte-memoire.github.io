@@ -150,6 +150,50 @@ export const CONSOLES = {
       { heading: 'After the discontinuation of the Game Boy', columns: ['title', 'developers', 'publishers', 'date', 'country'], zone: 'NTSC-U' },
     ],
   },
+  // Game Boy Color : les jeux en couleur, dont ceux « Dual Mode » (cartouche noire, aussi jouable
+  // sur Game Boy). Un jeu sorti aussi sur Game Boy garde une fiche, avec ses versions des deux
+  GBC: {
+    code: 'GBC',
+    name: 'Game Boy Color',
+    slug: 'gbc',
+    wikidata: 'Q203992',
+    // Liste Wikipédia : tableau « list » ; titre, Dual Mode, fonction de la cartouche (colonnes
+    // sautées), studio, éditeur, première sortie par région ({{Vgrtbl}}), puis JP, NA, EU cochés
+    wikipediaPages: ['List of Game Boy Color games'],
+    wikipediaFormat: 'first-date-and-zones',
+    tableId: 'list',
+    skipColumns: [1, 2],
+    presenceColumns: ['NTSC-J', 'NTSC-U', 'PAL'],
+    redump: 'Nintendo - Game Boy Color',
+    datFolder: 'no-intro',
+    thumbnails: 'libretro-thumbnails/Nintendo_-_Game_Boy_Color',
+    confirmWikidata: true,
+    // Wikidata range aussi sous la Game Boy Color des jeux amateurs récents, une réédition de
+    // 2024 (Toki Tori: Ultimate Edition) et un jeu Game Boy (V-Rally: Championship Edition)
+    wikidataExclude: ['Q130723626', 'Q122041248', 'Q122019588', 'Q122031452', 'Q122068442', 'Q138331623', 'Q138458319'],
+    // Lignes de la liste reliées à l'article d'une série ou du jeu d'une autre console : la fiche
+    // Wikidata propre à la version Game Boy Color
+    wikipediaQids: {
+      'Armorines: Project S.W.A.R.M.': 'Q113329759', 'Army Men: Air Combat': 'Q137205117', Asteroids: 'Q51000295',
+      Blade: 'Q123945230', 'Bomberman Max: Blue Champion': 'Q2909725', 'Choro Q Hyper GB': 'Q141906113',
+      'Daa! Daa! Daa! Totsuzen ★ Card de Battle de Uranai!?': 'Q142199625', "Dragon Warrior Monsters 2: Cobi's Journey": 'Q3038754',
+      'Driver: You Are the Wheelman': 'Q83863160', 'Déjà Vu I&II: The Casebooks of Ace Harding': 'Q133824874',
+      'ESPN National Hockey Night': 'Q97983355', "Sesame Street: Elmo's ABCs": 'Q96377174', 'Hype: The Time Quest': 'Q101143766',
+      'Thomas the Tank Engine & Friends: The Friends of Sodor': 'Q6406209', "Lego Island 2: The Brickster's Revenge": 'Q110253159',
+      "MTV Sports: T.J. Lavin's Ultimate BMX": 'Q96583239', 'Mary-Kate & Ashley: Winners Circle': 'Q115857684', 'NASCAR Heat': 'Q99720547',
+      'NFL Blitz 2001': 'Q113324389', 'No Fear Downhill Mountain Biking': 'Q98043531', 'Pokémon Gold Version': 'Q25991446',
+      'Pokémon Silver Version': 'Q25991443', 'Power Spike Pro Beach Volleyball': 'Q96238334', 'R-Type DX': 'Q110662911',
+      'Rayman 2: The Great Escape': 'Q104054000', 'Robopon: Sun Version': 'Q7353296', 'Shadowgate Classic': 'Q109016246',
+      'Space Marauder': 'Q7572413', "Tony Hawk's Pro Skater 2": 'Q133760555', 'Tootuff•Titeuf': 'Q3529535', 'WCW Mayhem': 'Q130550035',
+      'Xena: Warrior Princess': 'Q113301665',
+    },
+    unlicensed: true,
+    // Les cartouches sorties bien après la fin de la console (Grimace's Birthday…) ; pas les
+    // jeux « Nintendo Power » (téléchargés en boutique sur une cartouche réinscriptible)
+    extraTables: [
+      { heading: 'Aftermarket releases', columns: ['title', 'compatible', 'feature', 'developers', 'publishers', 'date'], zone: 'NTSC-U' },
+    ],
+  },
   // Famicom Disk System (Japon) : jeux sur disquette. Un jeu sorti aussi en cartouche garde une
   // seule fiche (même identifiant Wikidata), avec ses versions NES et FDS.
   FDS: {

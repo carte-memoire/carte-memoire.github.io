@@ -191,8 +191,29 @@ const stats = {
 };
 const noteTag = (t, where) => stats.unknownTags.set(`${t} (${where})`, (stats.unknownTags.get(`${t} (${where})`) ?? 0) + 1);
 
+// Liste Game Boy Color : {{Vgrtbl|NA, EU|2000-12-06|JP|December 1, 2000}} → une date par
+// région (paires « régions | date » ; dates écrites de plusieurs façons, comme {{dts}})
+function parseVgrtbl(cell) {
+  const m = /\{\{\s*vgrtbl\s*\|([^{}]*)\}\}/i.exec(stripRefs(cell));
+  if (!m) return null;
+  const parts = m[1].split('|').map((s) => s.trim()).filter((p) => p && !p.includes('='));
+  const out = [];
+  for (let i = 0; i + 1 < parts.length; i += 2) {
+    const d = parseDts(parts[i + 1]);
+    if (!d) continue;
+    for (const code of parts[i].split(/[\s,/]+/).filter(Boolean)) {
+      const tag = TAGS[code.toUpperCase()];
+      if (!tag) { noteTag(code, 'date'); continue; }
+      out.push({ zone: tag[0], region: tag[1], ...d });
+    }
+  }
+  return out;
+}
+
 // Cellule de dates → [{ zone, region, date, precision }]
 function parseDates(cell, columnZone) {
+  const vgrtbl = parseVgrtbl(cell);
+  if (vgrtbl) return vgrtbl;
   const fixed = stripRefs(cell).replace(/(^|[^{])\b(dts\|\d{4}(?:\|\d{1,2}){0,2})/gi, '$1{{$2}}');
   const out = [];
   for (const m of fixed.matchAll(/\{\{\s*dts\s*\|([^}]*)\}\}\s*(?:<sup>([\s\S]*?)<\/sup>)?/gi)) {
@@ -217,6 +238,8 @@ function parseDates(cell, columnZone) {
 // → la date de première sortie, dans chaque région citée. Sans région, elle ne sert
 // qu'à la date de première sortie du jeu.
 function parseFirstDate(cell) {
+  const vgrtbl = parseVgrtbl(cell);
+  if (vgrtbl) return vgrtbl;
   const text = stripRefs(cell);
   const m = /(\d{4})(?:\s*[-–]\s*(\d{1,2}))?(?:\s*-\s*(\d{1,2}))?/.exec(text.replace(/<sup>[\s\S]*?<\/sup>/gi, ''));
   if (!m) return [];
@@ -238,7 +261,8 @@ function parseFirstDate(cell) {
 
 // Listes PS2 : colonnes JP, EU / PAL, NA, cochées {{Ya}} (avec parfois les pays : {{sup|JP, KO}})
 // → la zone existe, dans ces pays (sinon sa région principale), date inconnue
-const PRESENCE_COLUMNS = ['NTSC-J', 'PAL', 'NTSC-U'];
+// (Game Boy Color : JP, NA, EU — CONSOLE.presenceColumns)
+const PRESENCE_COLUMNS = CONSOLE.presenceColumns ?? ['NTSC-J', 'PAL', 'NTSC-U'];
 function parsePresence(cells) {
   const out = [];
   PRESENCE_COLUMNS.forEach((zone, i) => {
@@ -269,6 +293,8 @@ function parseRow(cells, page) {
     const parts = splitTopLevel(c, ['|']);
     return parts.length > 1 && /^\s*(?:[a-z-]+\s*=\s*(?:"[^"]*"|[^\s"]+)(?:\s+|$))*$/i.test(parts[0]) ? parts.slice(1).join('|') : c;
   });
+  // Colonnes sans intérêt ici (Game Boy Color : « Dual Mode », « Cartridge feature »)
+  if (CONSOLE.skipColumns) cells = cells.filter((_, i) => !CONSOLE.skipColumns.includes(i));
   if (cells.length < 6) { stats.anomalies.push(`${page} : ligne à ${cells.length} cellules : ${clean(cells[0] ?? '').slice(0, 60)}`); return null; }
 
   const [titleCell, devCell, pubCell, ...rest] = cells;
@@ -321,8 +347,10 @@ function tableCells(wikitext, start) {
   return rows;
 }
 
+// Le tableau principal : id="softwarelist", ou celui de CONSOLE.tableId (« id = "list" »)
 function parseTable(wikitext, page) {
-  return tableCells(wikitext, wikitext.indexOf('id="softwarelist"')).map((c) => parseRow(c, page)).filter(Boolean);
+  const id = new RegExp(`id\\s*=\\s*"${CONSOLE.tableId ?? 'softwarelist'}"`).exec(wikitext);
+  return tableCells(wikitext, id ? id.index : -1).map((c) => parseRow(c, page)).filter(Boolean);
 }
 
 // Pays des tableaux de jeux sans licence (« Taiwan ») → mention de région

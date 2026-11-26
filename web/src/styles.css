@@ -1262,7 +1262,7 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .shelf .spine-nes { --spine-w: 43px; height: 320px; border-block: 2px solid #1d1d21; }
 .shelf .spine-fds { --spine-w: 17px; height: 176px; }
 .shelf .spine-snes { --spine-w: 59px; height: 229px; border-block: 2px solid #1d1d21; }
-.shelf .spine-gb { --spine-w: 43px; height: 218px; border-block: 2px solid rgba(0, 0, 0, 0.35); }
+.shelf .spine-gb { --spine-w: 41px; height: 225px; border-block: 2px solid rgba(0, 0, 0, 0.35); }
 @media (max-width: 640px) {
   .shelf > li { padding-right: 4px; }
   .shelf .spine-ps1 { --spine-w: 25px; height: 190px; }
@@ -1270,7 +1270,7 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
   .shelf .spine-nes { --spine-w: 35px; height: 262px; }
   .shelf .spine-fds { --spine-w: 14px; height: 145px; }
   .shelf .spine-snes { --spine-w: 48px; height: 188px; }
-  .shelf .spine-gb { --spine-w: 35px; height: 179px; }
+  .shelf .spine-gb { --spine-w: 34px; height: 185px; }
 }
 .shelf-spine.is-wanted .spine-face { opacity: 0.5; outline: 1px dashed rgba(255, 255, 255, 0.55); outline-offset: -1px; }
 
@@ -1403,21 +1403,41 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .spine-snes.spine-region-jp .spine-band { border-bottom: 0; }
 .spine-snes.spine-region-jp .spine-mark { color: #111114; font-size: calc(var(--spine-w) * 0.34); letter-spacing: 0.04em; }
 .spine-snes.is-reissue { background: linear-gradient(90deg, #8f939c, #c4c7ce 45%, #8a8e97); color: #141518; }
-/* Game Boy : petite boîte en carton (121 × 121 × 24 mm, 1,8 px par mm sur l'étagère), tranche
-   de la couleur du jeu (--ink, Spine.tsx), assombrie ; en haut, le bandeau gris de la console
-   avec son nom en texte simple (pas de logo) ; le titre en blanc, de haut en bas */
+/* Game Boy et Game Boy Color : petite boîte en carton (125 × 125 × 23 mm, 1,8 px par mm sur
+   l'étagère), d'après des photos de tranches : en Amérique du Nord et en Europe, la tranche est
+   entièrement aux couleurs du jeu (fond noir, blanc ou de couleur : --gb-back, et titre --gb-text,
+   Spine.tsx), le titre en grand de haut en bas ; en bas, un petit macaron avec le nom de la console
+   en texte simple, à la place du sceau de l'éditeur (une marque, non reproduite) */
 .spine-gb {
-  background: linear-gradient(90deg, rgba(0, 0, 0, 0.32), rgba(0, 0, 0, 0.12) 35%, rgba(0, 0, 0, 0.18) 70%, rgba(0, 0, 0, 0.4)), var(--ink, #3b5bd6);
-  color: #fff; box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.25), inset -1px 0 0 rgba(0, 0, 0, 0.45);
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.26), rgba(0, 0, 0, 0.04) 35%, rgba(0, 0, 0, 0.08) 70%, rgba(0, 0, 0, 0.32)), var(--gb-back, #2f56c9);
+  color: var(--gb-text, #fff); box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.25), inset -1px 0 0 rgba(0, 0, 0, 0.45);
 }
-.spine-gb .spine-band { height: auto; padding: calc(var(--spine-w) * 0.16) 0; background: linear-gradient(90deg, #8d8f97, #b9bbc2 45%, #9a9ca4); }
-.spine-gb .spine-mark { writing-mode: vertical-rl; color: #2a2f78; font: 900 calc(var(--spine-w) * 0.26) / 1 'Arial Black', system-ui, sans-serif; letter-spacing: 0.04em; }
 .spine-gb .spine-title {
-  flex: 1 1 auto; padding-top: calc(var(--spine-w) * 0.2); text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
+  order: 1; flex: 1 1 auto; padding-top: calc(var(--spine-w) * 0.28);
+  font-family: 'Arial Black', Montserrat, 'Helvetica Neue', Arial, sans-serif; font-weight: 900;
   font-size: calc(var(--spine-w) * 0.4 * var(--fit, 1));
 }
+/* Titre très long (deux colonnes ou plus) : un peu plus petit, sans toucher les bords de la tranche étroite */
+.spine-gb .spine-title.is-two-lines { font-size: calc(var(--spine-w) * 0.34 * var(--fit, 1)); }
+.spine-gb .spine-band { order: 2; height: auto; padding: calc(var(--spine-w) * 0.12) 0 calc(var(--spine-w) * 0.24); }
+.spine-gb .spine-mark {
+  writing-mode: vertical-rl; padding: calc(var(--spine-w) * 0.12) calc(var(--spine-w) * 0.05);
+  border: 1.5px solid currentColor; border-radius: 999px; opacity: 0.85;
+  font: 800 calc(var(--spine-w) * 0.15) / 1 system-ui, sans-serif; letter-spacing: 0.05em;
+}
+.spine-gb.is-gbc .spine-mark { font-size: calc(var(--spine-w) * 0.13); letter-spacing: 0.02em; }
 .spine-gb .spine-code { display: none; }
-.spine-gb.spine-region-jp .spine-band { display: none; }
+/* Boîte japonaise (boîte 3D d'une version japonaise) : en haut, le bandeau gris à liseré bleu,
+   avec le nom de la console ; le reste aux couleurs du jeu */
+.spine-gb.spine-region-jp .spine-band {
+  order: 0; padding: calc(var(--spine-w) * 0.16) 0;
+  background: linear-gradient(90deg, #8d8f97, #b9bbc2 45%, #9a9ca4); border-bottom: calc(var(--spine-w) * 0.09) solid #2c46a8;
+}
+.spine-gb.spine-region-jp .spine-mark {
+  border: 0; padding: 0; opacity: 1; color: #2a2f78;
+  font: 900 calc(var(--spine-w) * 0.22) / 1 'Arial Black', system-ui, sans-serif; letter-spacing: 0.04em;
+}
+.spine-gb.spine-region-jp.is-gbc .spine-mark { font-size: calc(var(--spine-w) * 0.15); }
 .spine-gb.is-reissue { background: linear-gradient(90deg, #8f939c, #c4c7ce 45%, #8a8e97); color: #141518; }
 /* Réédition (Classic Serie, Player's Choice…) : tranche grise, titre foncé */
 .spine-nes.is-reissue { background: linear-gradient(90deg, #8f939c, #c4c7ce 45%, #8a8e97); color: #141518; }

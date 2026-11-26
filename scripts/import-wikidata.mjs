@@ -294,7 +294,8 @@ if (CONSOLE.confirmWikidata) {
     }
     if (!res.ok) throw new Error(`Wikipédia : ${res.status} pour « ${page} »`);
     const text = (await res.json()).query.pages[0].revisions[0].slots.main.content;
-    const start = text.indexOf('id="softwarelist"');
+    // Le tableau principal : id="softwarelist", ou celui de CONSOLE.tableId (« id = "list" »)
+    const start = new RegExp(`id\\s*=\\s*"${CONSOLE.tableId ?? 'softwarelist'}"`).exec(text)?.index ?? -1;
     const table = text.slice(start, text.indexOf('\n|}', start));
     for (const m of table.matchAll(/\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|[^\]]*)?\]\]/g)) listLinks.add(articleKey(m[1]));
     // Titres (en italique) et titres secondaires (« •Tsukiyo ni Saraba »)

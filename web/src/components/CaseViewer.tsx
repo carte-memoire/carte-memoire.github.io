@@ -32,9 +32,9 @@ const CASE_MM: Record<string, { w: number; h: number; d: number }> = {
   // 105 × 190 × 30 mm
   snes: { w: 179, h: 127, d: 33 },
   'snes-jp': { w: 105, h: 190, d: 30 },
-  // Game Boy : petite boîte en carton presque carrée, 121 × 121 × 24 mm (proportions des scans) ;
+  // Game Boy et Game Boy Color : petite boîte en carton carrée, 125 × 125 × 23 mm (protections de collectionneurs : 128 × 128 × 25 mm à l'intérieur) ;
   // au Japon, en hauteur, 98 × 114 × 22 mm
-  gb: { w: 121, h: 121, d: 24 },
+  gb: { w: 125, h: 125, d: 23 },
   'gb-jp': { w: 98, h: 114, d: 22 },
 };
 

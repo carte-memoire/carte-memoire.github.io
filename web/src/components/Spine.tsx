@@ -18,7 +18,7 @@ interface SpineRelease {
   platform: { short_name: string };
 }
 
-const KIND: Record<string, string> = { PS1: 'ps1', PS2: 'ps2', NES: 'nes', FDS: 'fds', SNES: 'snes', GB: 'gb' };
+const KIND: Record<string, string> = { PS1: 'ps1', PS2: 'ps2', NES: 'nes', FDS: 'fds', SNES: 'snes', GB: 'gb', GBC: 'gb' };
 
 export function spineKind(platform: string): string | undefined {
   return KIND[platform];
@@ -40,10 +40,27 @@ const CAPACITY: Record<string, number> = { ps1: 18, ps2: 32, nes: 15, fds: 16, s
 // Super Nintendo : le titre en couleur sur la tranche noire (Amérique du Nord), ou la tranche
 // entière de cette couleur (Super Famicom)
 const NES_INKS = ['#35c3f3', '#f2509f', '#4ce0d2', '#f7d23a', '#f0483e', '#b46cf5', '#5ed35a', '#f8962e', '#5b86ff'];
-function nesInk(title: string): string {
+const titleHash = (title: string) => {
   let h = 0;
   for (const c of title) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  return NES_INKS[h % NES_INKS.length];
+  return h;
+};
+function nesInk(title: string): string {
+  return NES_INKS[titleHash(title) % NES_INKS.length];
+}
+
+// Tranches Game Boy et Game Boy Color (Amérique du Nord, Europe) : entièrement aux couleurs du
+// jeu, comme sur les photos (College Slam noire, Final Fantasy Legend III violette, HAL Wrestling
+// blanche, Micro Machines bleue…) : un fond et un titre bien lisible dessus, toujours les mêmes
+// pour un même titre
+const GB_SPINES: [string, string][] = [
+  ['#141416', '#35c3f3'], ['#141416', '#f7d23a'], ['#f2f1ec', '#c8202a'], ['#f2f1ec', '#2f56c9'],
+  ['#2f56c9', '#ffffff'], ['#c8202a', '#ffffff'], ['#5b3a96', '#f2c94c'], ['#1f8f5a', '#ffffff'],
+  ['#f2b51c', '#18181b'], ['#e46a1c', '#ffffff'], ['#1c9ac9', '#ffffff'], ['#7a1f3d', '#ffffff'],
+];
+function gbSpine(title: string): CSSProperties {
+  const [back, text] = GB_SPINES[titleHash(title) % GB_SPINES.length];
+  return { ['--gb-back' as string]: back, ['--gb-text' as string]: text, ['--ink' as string]: back } as CSSProperties;
 }
 
 function titleFit(kind: string, title: string): { fit: number; twoLines: boolean } {
@@ -124,12 +141,13 @@ export function SpineFace({ release, region }: { release: SpineRelease; region?:
   const { fit, twoLines } = titleFit(kind, release.local_title);
   const titleRef = useFittedTitle(release.local_title, fit, twoLines);
   return (
-    <span className={`spine-face spine-${kind}${reissue ? ' is-reissue' : ''}${region ? ` spine-region-${region}` : ''}`} aria-hidden="true"
-      style={kind === 'nes' || kind === 'snes' || kind === 'gb' ? ({ ['--ink' as string]: nesInk(release.local_title) } as CSSProperties) : undefined}>
+    <span className={`spine-face spine-${kind}${release.platform.short_name === 'GBC' ? ' is-gbc' : ''}${reissue ? ' is-reissue' : ''}${region ? ` spine-region-${region}` : ''}`} aria-hidden="true"
+      style={kind === 'gb' ? gbSpine(release.local_title)
+        : kind === 'nes' || kind === 'snes' ? ({ ['--ink' as string]: nesInk(release.local_title) } as CSSProperties) : undefined}>
       <span className="spine-band">
         {/* Super Nintendo : le nom de la console en texte simple, à la place de son logo
             (Super Famicom au Japon) */}
-        <span className="spine-mark">{kind === 'snes' ? (region === 'jp' ? 'SUPER FAMICOM' : 'SUPER NES') : kind === 'gb' ? 'GAME BOY' : release.platform.short_name}</span>
+        <span className="spine-mark">{kind === 'snes' ? (region === 'jp' ? 'SUPER FAMICOM' : 'SUPER NES') : kind === 'gb' ? (release.platform.short_name === 'GBC' ? 'GAME BOY COLOR' : 'GAME BOY') : release.platform.short_name}</span>
         {/* PS2 : sous la marque, l'étiquette PAL (en Europe seulement) puis le nom de la
             console à la verticale, en texte simple (pas de logo) */}
         {kind === 'ps2' && <>{!region && <span className="spine-pal">PAL</span>}<span className="spine-console">PlayStation 2</span></>}
