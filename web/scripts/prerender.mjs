@@ -234,8 +234,8 @@ function redirectPage(path, game) {
 // Pages du site sans contenu propre : adresse directe sans « introuvable » ; les pages
 // personnelles ne sont pas proposées aux moteurs de recherche
 const ROUTES = [
-  { path: '/catalogue', title: 'Catalogue des jeux PlayStation et PlayStation 2 · Carte Mémoire', description: 'Tous les jeux PlayStation et PlayStation 2, version par version (Black Label, Platinum, versions nationales), à cocher pour suivre ta collection.',
-    en: { title: 'PlayStation and PlayStation 2 games catalogue · Carte Mémoire', description: 'Every PlayStation and PlayStation 2 game, version by version (Black Label, Platinum, national versions), to tick off as you build your collection.' } },
+  { path: '/catalogue', title: 'Catalogue des jeux vidéo · Carte Mémoire', description: 'Tous les jeux NES, Super Nintendo, Game Boy, PlayStation, PlayStation 2…, version par version (Black Label, Platinum, versions nationales), à cocher pour suivre ta collection.',
+    en: { title: 'Video game catalogue · Carte Mémoire', description: 'Every NES, Super Nintendo, Game Boy, PlayStation, PlayStation 2… game, version by version (Black Label, Platinum, national versions), to tick off as you build your collection.' } },
   { path: '/mentions-legales', title: 'Mentions légales · Carte Mémoire', en: { title: 'Legal notice · Carte Mémoire' } },
   { path: '/conditions', title: "Conditions d'utilisation · Carte Mémoire", en: { title: 'Terms of use · Carte Mémoire' } },
   { path: '/confidentialite', title: 'Données personnelles et confidentialité · Carte Mémoire', en: { title: 'Personal data and privacy · Carte Mémoire' } },
@@ -268,8 +268,8 @@ const write = (relative, content) => {
 };
 for (const p of pages) write(`${p.path.slice(1)}.html`, p.html);
 for (const [path, game] of redirects) write(`${path.slice(1)}.html`, redirectPage(gamePath(game), game));
-const defaultDescription = 'La base de données collaborative des jeux PlayStation, et ta collection.';
-const defaultDescriptionEn = 'The collaborative database of PlayStation games, and your collection.';
+const defaultDescription = 'Gère ta collection de jeux vidéo, version par version : NES, Super Nintendo, Game Boy, PlayStation, PlayStation 2… La base collaborative, gratuite et sans publicité, faite par et pour les collectionneurs.';
+const defaultDescriptionEn = 'Manage your video game collection, version by version: NES, Super Nintendo, Game Boy, PlayStation, PlayStation 2… The collaborative database, free and ad-free, made by and for collectors.';
 for (const r of ROUTES) {
   write(`${r.path.slice(1)}.html`, page({ title: r.title, description: r.description ?? defaultDescription, path: r.path, noindex: r.noindex }));
   write(`en${r.path}.html`, page({ title: r.en?.title ?? r.title, description: r.en?.description ?? defaultDescriptionEn, path: inLang('en', r.path), frPath: r.path, lang: 'en', noindex: r.noindex }));
@@ -277,14 +277,14 @@ for (const r of ROUTES) {
 
 // L'accueil : titre et aperçu de lien plus parlants (le modèle a déjà été lu plus haut)
 write('index.html', page({
-  title: 'Carte Mémoire · les jeux PlayStation, version par version, et ta collection',
-  description: 'La base collaborative des jeux PlayStation et PlayStation 2 : toutes les versions (Black Label, Platinum, versions nationales), codes produit et jaquettes. Coche ta collection et suis ta progression.',
+  title: 'Carte Mémoire · gère ta collection de jeux vidéo, version par version',
+  description: 'Gère ta collection de jeux vidéo, version par version : NES, Super Nintendo, Game Boy, PlayStation, PlayStation 2… La base collaborative, gratuite et sans publicité, faite par et pour les collectionneurs.',
   path: '/',
 }));
 // L'accueil anglais : /en/ (un dossier, servi avec sa barre finale par GitHub Pages)
 write('en/index.html', page({
-  title: 'Carte Mémoire · PlayStation games, version by version, and your collection',
-  description: 'The collaborative database of PlayStation and PlayStation 2 games: every version (Black Label, Platinum, national versions), product codes and covers. Tick off your collection and track your progress.',
+  title: 'Carte Mémoire · manage your video game collection, version by version',
+  description: 'Manage your video game collection, version by version: NES, Super Nintendo, Game Boy, PlayStation, PlayStation 2… The collaborative database, free and ad-free, made by and for collectors.',
   path: '/en/',
   frPath: '/',
   lang: 'en',

@@ -387,7 +387,9 @@ ul.error { padding-left: 28px; }
    le chiffre garde la police pixel, comme les compteurs du reste du site */
 .hero { text-align: center; padding: clamp(24px, 6vw, 64px) 0 0; }
 .hero-title { margin: 0; font-size: clamp(2.3rem, 1.1rem + 4.6vw, 4.6rem); font-weight: 800; line-height: 1.02; letter-spacing: -0.045em; }
-.hero-subtitle { color: var(--muted); margin: 0.8em auto 0; max-width: 60ch; }
+.hero-subtitle { color: var(--text); margin: 0.8em auto 0; max-width: 56ch; font-size: var(--fs-4); line-height: 1.4; text-wrap: balance; }
+.hero-meta { color: var(--muted); margin: 0.7em auto 0; max-width: 64ch; font-size: var(--fs-2); }
+@media (max-width: 640px) { .hero-subtitle { font-size: var(--fs-3); } }
 .hero-count { font-weight: 750; color: #fff; }
 /* La recherche : un grand champ seul, sans cadre autour */
 .home-search { display: flex; flex-direction: column; gap: 10px; max-width: 760px; width: 100%; margin: 0 auto; background: none; border: 0; padding: 0; }
@@ -861,6 +863,7 @@ fieldset.notice { padding: 10px 12px; }
 @keyframes hero-rise { from { opacity: 0; transform: translateY(22px); filter: blur(10px); } }
 .motion .hero-title { animation: hero-rise 1s var(--ease) both; }
 .motion .hero-subtitle { animation: hero-rise 1s var(--ease) 0.12s both; }
+.motion .hero-meta { animation: hero-rise 1s var(--ease) 0.2s both; }
 /* Rubrique active : le trait se déroule */
 @keyframes nav-draw { from { transform: scaleX(0); } }
 .motion .nav-link.active::after { animation: nav-draw 0.45s var(--ease) both; }

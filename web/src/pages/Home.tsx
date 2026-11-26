@@ -75,11 +75,15 @@ export function Home() {
 
   return (
     <section className="home">
+      {/* Ce qu'est le site, dit d'emblée : gérer sa collection de jeux vidéo */}
       <div className="hero">
-        <h1 className="hero-title">{tr('Chaque jeu, version par version.')}</h1>
+        <h1 className="hero-title">{tr('Ta collection de jeux vidéo, version par version.')}</h1>
         <p className="hero-subtitle">
+          {tr('Le site pour gérer ta collection de jeux vidéo : range tes jeux, suis ce qui te manque et partage-la, gratuitement et sans publicité.')}
+        </p>
+        <p className="hero-meta">
           {total > 0 && <><strong className="hero-count"><CountUp value={total} /></strong>{tr(' jeux {0}', joinNames(platforms.map((p) => p.name)))} · </>}
-          {tr('Black Label, Platinum, versions japonaises et américaines… Et ta collection.')}
+          {tr('Black Label, Platinum, versions japonaises et américaines…')}
         </p>
       </div>
 
