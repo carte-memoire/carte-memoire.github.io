@@ -453,26 +453,69 @@ def n3ds():
 
 
 def ps2():
-    """PlayStation 2 (premier modèle) : 30,1 × 17,8 × 7,8 cm, noir mat ; le dessus strié de
-    rainures parallèles ; en façade, la fente du tiroir à disque en haut, deux ports manette
-    et deux fentes de carte mémoire en bas à gauche, Reset et Éjection (voyants) à droite ;
-    le bloc de droite, en retrait, marqué d'une rainure verticale."""
-    body, dark, groove = plastic('#1c1c1f', 0.55), plastic('#0d0d0f', 0.6), plastic('#2a2a2e', 0.5)
+    """PlayStation 2 « Fat » (SCPH-30001), d'après les photos studio d'Evan-Amos (Wikimedia
+    Commons, vues avant gauche, avant droite, arrière) : 30,1 × 17,8 × 7,8 cm, noire.
+    - Le dessus est LISSE ; c'est la moitié haute du boîtier qui est faite de six fines
+      lamelles empilées, séparées par des rainures sombres, qui font le tour de la façade et du
+      côté droit (le flanc gauche est un panneau plat, avec ses patins pour la poser debout).
+    - Dans les lamelles, à gauche : les deux fentes de carte mémoire au-dessus des deux ports
+      manette ; au centre, le tiroir du disque (une lamelle double) ; au bout droit, Reset
+      (voyant vert) au-dessus d'Éjection (voyant bleu).
+    - Dessous, un socle plus sombre en retrait (devant et à droite) : la grande grille
+      d'aération en façade et, à gauche, le petit panneau bleu des ports USB et i.Link."""
+    shell = material('#17171a', 0.36, coat=0.15)
+    core, base, grille = plastic('#060607', 0.7), plastic('#101012', 0.55), plastic('#050506', 0.8)
     W, D, H = 30.1, 17.8, 7.8
-    box('corps', 0, 0, 0.6, W, D, H, body, bevel=0.25)
-    box('pieds', 0.8, 0.8, 0, W - 0.8, D - 0.8, 0.7, dark, bevel=0.1)
-    for i in range(14):
-        y = 1.0 + i * 1.15
-        box('rainure', 0.6, y, H - 0.03, W - 4.6, y + 0.28, H + 0.01, dark)
-    box('bloc', W - 4.2, -0.02, 0.6, W - 4.05, D, H + 0.01, dark)
-    box('tiroir', 1.0, -0.05, 5.0, W - 5.0, 0.1, 6.6, groove, bevel=0.1)
-    box('fente', 1.4, -0.08, 5.5, W - 5.4, 0.1, 5.75, dark)
-    for x in (1.6, 6.0):
-        box('port', x, -0.08, 1.4, x + 3.6, 0.1, 2.9, dark, bevel=0.2)
-        box('carte', x + 0.4, -0.08, 3.4, x + 3.2, 0.1, 3.75, dark)
-    for z, color in ((5.3, '#2fd86a'), (3.6, '#3d8cff')):
-        box('bouton', W - 3.3, -0.12, z - 0.5, W - 1.2, 0.1, z + 0.5, groove, bevel=0.15)
-        box('voyant', W - 3.6, -0.13, z - 0.1, W - 3.4, 0.1, z + 0.1, led(color, 3))
+    ZB = 3.05                       # haut du socle, bas des lamelles
+    SLAT, GAP = 0.6, 0.19           # épaisseur d'une lamelle, rainure entre deux
+    # Flanc gauche plat, sur toute la hauteur : au ras des lamelles en haut, et en retrait
+    # avec le socle en bas (il ne dépasse pas devant le logement des ports)
+    box('flanc', 0, 0.15, ZB, 0.45, D, H, shell, bevel=0.12)
+    box('flanc-bas', 0, 1.0, 0, 0.45, D, ZB + 0.05, base, bevel=0.06)
+    # Cœur sombre derrière les rainures
+    box('coeur', 0.4, 0.35, ZB, W - 0.35, D - 0.3, H - 0.1, core)
+    # Six lamelles (la plus haute fait le dessus, lisse), arrondies au coin avant droit
+    levels = [ZB + i * (SLAT + GAP) for i in range(6)]
+    for i, z in enumerate(levels):
+        top = H if i == 5 else z + SLAT
+        prism('lamelle', rr(0.4, 0, W - 0.4, D, [0.0, 0.35, 0.35, 0.0]), z, top, shell, bevel=0.07, segments=2)
+    # Socle en retrait : plus sombre, devant (1 cm) et à droite (2,7 cm) ; à gauche, le
+    # logement des ports USB et i.Link, creusé dans le socle et cerné de noir
+    box('socle', 3.25, 1.0, 0, W - 2.7, D - 0.6, ZB, base, bevel=0.1)
+    box('socle-gauche', 0.45, 1.2, 0, 3.3, D - 0.6, ZB, base)
+    box('logement-bas', 0.45, 1.0, 0, 3.3, 1.22, 0.38, base, bevel=0.05)
+    box('logement-haut', 0.45, 1.0, ZB - 0.25, 3.3, 1.22, ZB, base)
+    box('logement-droit', 3.05, 1.0, 0, 3.3, 1.22, ZB, base, bevel=0.04)
+    # Grille d'aération du socle : fentes horizontales coupées de montants
+    for k in range(7):
+        z = 0.45 + k * 0.33
+        box('fente', 3.4, 0.97, z, W - 4.0, 1.02, z + 0.17, grille)
+    for k in range(25):
+        x = 3.4 + k * ((W - 7.4) / 24)
+        box('montant', x - 0.05, 0.93, 0.4, x + 0.05, 1.0, 2.75, base)
+    # Panneau bleu mat des ports USB (deux, l'un sur l'autre) et i.Link, au fond du logement
+    box('panneau-bleu', 0.45, 1.14, 0.38, 3.05, 1.22, ZB - 0.25, material('#2c5fc4', 0.55))
+    for z in (0.7, 1.45):
+        box('usb', 0.8, 1.09, z, 1.95, 1.15, z + 0.5, grille)
+        box('languette', 0.95, 1.07, z + 0.12, 1.8, 1.12, z + 0.26, plastic('#cfd3da', 0.4))
+    box('ilink', 2.25, 1.09, 1.75, 2.75, 1.15, 2.2, grille)
+    # Ports manette (deux lamelles du bas) et fentes de carte mémoire (au-dessus), à gauche
+    for x in (1.2, 7.2):
+        z0 = levels[1] - 0.05
+        box('port-manette', x, -0.06, z0, x + 5.2, 0.25, z0 + SLAT + 0.1, grille, bevel=0.05)
+        for k in range(4):
+            box('broches', x + 0.5 + k * 1.1, -0.08, z0 + 0.12, x + 1.2 + k * 1.1, 0.0, z0 + SLAT - 0.02, plastic('#2a2a2e', 0.5))
+        z1 = levels[3] + 0.18
+        box('carte', x + 0.2, -0.06, z1, x + 4.8, 0.25, z1 + 0.22, grille)
+    # Tiroir du disque : une lamelle double au centre, sa jointure et son bord
+    box('tiroir', 13.4, -0.03, levels[2], 26.9, 0.15, levels[3] + SLAT, shell, bevel=0.06)
+    box('jointure', 13.35, -0.04, levels[2] - 0.02, 13.45, 0.16, levels[3] + SLAT + 0.02, core)
+    box('jointure', 26.85, -0.04, levels[2] - 0.02, 26.95, 0.16, levels[3] + SLAT + 0.02, core)
+    # Bout droit : Reset (voyant vert) au-dessus d'Éjection (voyant bleu)
+    for lvl, color in ((4, '#3ee07a'), (2, '#3a86ff')):
+        z = levels[lvl]
+        box('bouton', W - 2.3, -0.08, z, W - 0.7, 0.1, z + SLAT, material('#1d1d21', 0.3, coat=0.3), bevel=0.05)
+        box('voyant', W - 1.75, -0.1, z + 0.18, W - 1.25, 0.0, z + SLAT - 0.18, led(color, 3.5))
 
 
 def ps3():
