@@ -201,7 +201,7 @@ export interface Submission {
 // Familles de genres (RPG, Course…) : filtres du catalogue et progression
 export type GenreFamily =
   | 'action' | 'adventure' | 'rpg' | 'platform' | 'fighting' | 'shooter' | 'racing' | 'sports'
-  | 'puzzle' | 'strategy' | 'simulation' | 'music' | 'horror' | 'visual_novel' | 'party';
+  | 'puzzle' | 'strategy' | 'simulation' | 'music' | 'horror' | 'visual_novel' | 'party' | 'education';
 
 // Filtre « possession » du catalogue
 export type Ownership = 'owned' | 'missing' | 'wanted';

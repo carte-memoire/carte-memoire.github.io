@@ -216,6 +216,7 @@ export const FAMILIES: { value: GenreFamily; label: string }[] = [
   { value: 'action', label: tr('Action') },
   { value: 'adventure', label: tr('Aventure') },
   { value: 'fighting', label: tr('Combat') },
+  { value: 'education', label: tr('Éducatif') },
   { value: 'racing', label: tr('Course') },
   { value: 'horror', label: tr('Horreur') },
   { value: 'music', label: tr('Musique et rythme') },

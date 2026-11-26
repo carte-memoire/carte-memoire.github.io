@@ -110,6 +110,25 @@ for (const page of PAGES) {
   for (const line of cache.lists[page].split('\n')) {
     const heading = /^=+\s*(\d{4})年/.exec(line);
     if (heading) { year = Number(heading[1]); continue; }
+    // Listes Nintendo (Famicom, Super Famicom, Game Boy) : une seule page, la date japonaise
+    // complète, puis les dates nord-américaine et européenne, le titre, l'éditeur et les
+    // remarques (« |1983年7月15日||…||…||[[ポパイ]]||任天堂||… »)
+    const full = /^\|(?:[^|\n]*\|(?!\|))?\s*(?:<span[^>]*><\/span>)?\s*(\d{4})年(\d{1,2})月(\d{1,2})日(.*)$/.exec(line);
+    if (full) {
+      const cells = full[4].split('||');
+      if (cells.length < 5) continue;
+      const titleCell = cells[3];
+      const link = /\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|([^\]]*))?\]\]/.exec(titleCell);
+      jaRows.push({
+        date: `${full[1]}-${full[2].padStart(2, '0')}-${full[3].padStart(2, '0')}`,
+        title: clean(titleCell.split(/<br\s*\/?>/i)[0]),
+        article: link ? link[1].trim() : null,
+        anchorOnly: Boolean(link && /#/.test(titleCell.slice(link.index, link.index + link[0].length))),
+        publisher: clean(cells[4]),
+        notes: clean(cells.slice(5).join(' ')),
+      });
+      continue;
+    }
     const m = /^\|\s*(\d{1,2})月(\d{1,2})日(.*)$/.exec(line);
     if (!m || !year) continue;
     const cells = m[3].split('||');

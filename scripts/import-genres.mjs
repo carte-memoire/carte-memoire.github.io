@@ -77,6 +77,15 @@ const BY_TITLE = {
   'Tile-matching video game': 'Q54767', 'Formula One': 'Q860750', 'Motocross': 'Q111411020', 'Dance': 'Q2632782',
   'Space simulation': 'Q1892535', 'Space simulator': 'Q1892535', 'Social simulation': 'Q7551387',
   'Interactive fiction': 'Q23916', 'Tactical wargame': 'Q2454898', 'Fighting': 'Q846224',
+  // Relevés sur les jeux NES, Super Nintendo et Game Boy (26 novembre 2026)
+  'Edutainment': 'Q1224999', 'Educational game': 'Q1224999', 'Educational software': 'Q1224999', 'Educational video game': 'Q1224999',
+  'Professional wrestling': 'Q105221690', 'List of professional wrestling video games': 'Q105221690',
+  'List of basketball video games': 'Q63915027', 'Volleyball': 'Q62019077', 'Beach volleyball': 'Q62019097',
+  'Tennis': 'Q61793886', 'Skateboarding': 'Q71468194', 'Skiing': 'Q71467370', 'Winter sports': 'Q71467408',
+  'List of boxing video games': 'Q3177953', 'List of association football video games': 'Q1478420',
+  'Mahjong': 'Q9318902', 'Mahjong video game': 'Q9318902', 'Mahjong solitaire': 'Q7802107', 'Slot machine': 'Q3742351',
+  'Cycling': 'Q63644993', 'Shooter game': 'Q4282636', 'Shooter': 'Q4282636', 'Snowboarding': 'Q7548531', 'Surfing': 'Q61793874',
+  'Fishing': 'Q16935625', 'Survival game': 'Q21030988', 'Dance video game': 'Q2187138', 'Monster-taming game': 'Q117474613',
 };
 
 // Genres hybrides : mêmes familles que dans la migration genre_families (pour un
@@ -96,6 +105,7 @@ const BY_TEXT = {
   "beat 'em up": 'Q401831', 'car combat': 'Q2070892', 'turn-based strategy rpg': 'Q1529437',
   'romance': 'Q14411698', 'racing': 'Q860750', 'puzzle': 'Q54767', 'platform': 'Q828322',
   'fighting': 'Q846224', 'shooter': 'Q4282636', 'rpg': 'Q744038', 'role-playing': 'Q744038',
+  'educational': 'Q1224999', 'edutainment': 'Q1224999', 'action game': 'Q270948', 'mahjong': 'Q9318902',
 };
 
 
@@ -105,6 +115,25 @@ const BY_TEXT = {
 console.log('Lecture des jeux…');
 const api = publicApi(readEnv());
 const genres = await api('genre?select=*&limit=1000');
+// Genres créés ou rangés dans une famille par une migration pas encore envoyée en ligne
+// (genres_cleanup, 26 novembre 2026) : connus dès maintenant, pour que Wikipédia puisse y
+// relier des jeux ; la migration écrite ici les désigne par leur identifiant Wikidata
+const PENDING_GENRES = [
+  { wikidata_id: 'Q2187138', name: 'Jeu de danse', families: ['music'] },
+  { wikidata_id: 'Q117474613', name: 'Jeu de collection de monstres', families: ['rpg'] },
+  { wikidata_id: 'Q21030988', name: 'Jeu de survie', families: ['action'] },
+  { wikidata_id: 'Q1137896', name: 'Tower defense', families: ['strategy'] },
+];
+const PENDING_FAMILIES = {
+  Q7802107: ['puzzle'], Q61715376: ['puzzle'], Q120373252: ['puzzle'], Q124041478: ['party'], Q110547060: ['party'],
+  Q878160: ['party'], Q7832342: ['party'], Q63645079: ['fighting', 'sports'], Q71468383: ['sports'], Q62019077: ['sports'],
+  Q63466098: ['sports'], Q111149309: ['simulation'], Q3775539: ['simulation', 'strategy'], Q18351283: ['simulation'],
+  Q1037904: ['shooter'], Q96146141: ['shooter'], Q63106609: ['shooter'], Q2281709: ['action'], Q30680823: ['action'],
+  Q1265717: ['rpg'], Q113940337: ['horror'], Q1143118: ['adventure'], Q1224999: ['education'], Q60616268: ['education'],
+  Q104861501: ['education'],
+};
+for (const g of PENDING_GENRES) if (!genres.some((x) => x.wikidata_id === g.wikidata_id)) genres.push({ id: -genres.length, ...g });
+for (const g of genres) if (PENDING_FAMILIES[g.wikidata_id]) g.families = PENDING_FAMILIES[g.wikidata_id];
 // Familles d'un genre : colonne families (après la migration genre_families) ou family (avant)
 const familiesOf = (g) => g.families ?? HYBRID[g.wikidata_id] ?? (g.family ? [g.family] : []);
 // --console PS2 : seulement les jeux qui ont une version sur cette console

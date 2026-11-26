@@ -495,7 +495,7 @@ console.log('\nGenres déduits du titre et file des jeux sans genre');
 const genresDuTitre = (title) => val(`select string_agg(ge.name, ', ' order by ge.name) as g from public.game g join public.game_genre gg on gg.game_id = g.id join public.genre ge on ge.id = gg.genre_id where g.title = $1`, [title]).then((r) => r[0].g);
 await egal('nouveau genre « Pachinko et pachislot », famille Société', val(`select array_to_string(families, ',') as f from public.genre where name = 'Pachinko et pachislot'`), [{ f: 'party' }]);
 await egal('Hissatsu Pachi-Slot Station : pachinko et pachislot', genresDuTitre('Hissatsu Pachi-Slot Station'), 'Pachinko et pachislot');
-await egal('Minna no Shogi: Jokyuuhen : shogi', genresDuTitre('Minna no Shogi: Jokyuuhen'), 'Shogi video game');
+await egal('Minna no Shogi: Jokyuuhen : shōgi (libellé traduit le 26 novembre 2026)', genresDuTitre('Minna no Shogi: Jokyuuhen'), 'Jeu de shōgi');
 await egal('Cross Romance: Koi to Mahjong to Hanafuda to : mahjong ET cartes', genresDuTitre('Cross Romance: Koi to Mahjong to Hanafuda to'), 'Jeu de cartes, Jeu de mah-jong');
 // (Le titre ne l'a pas classé ; Wikipédia en japonais l'a fait ensuite, avec le bon genre)
 await egal('cas ambigu : Tennis no Oujisama: Sweat & Tears n\'est pas pris pour un jeu de tennis', genresDuTitre('Tennis no Oujisama: Sweat & Tears').then((g) => !String(g ?? '').includes('tennis')), true);

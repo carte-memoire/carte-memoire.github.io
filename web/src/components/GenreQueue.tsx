@@ -21,6 +21,7 @@ const MAIN_GENRE: Record<GenreFamily, string> = {
   action: 'Q270948', adventure: 'Q23916', rpg: 'Q744038', platform: 'Q828322', fighting: 'Q846224',
   shooter: 'Q4282636', racing: 'Q860750', sports: 'Q868217', puzzle: 'Q54767', strategy: 'Q472055',
   simulation: 'Q1610017', music: 'Q584105', horror: 'Q11338014', visual_novel: 'Q689445', party: 'Q7888616',
+  education: 'Q1224999',
 };
 
 interface Genre extends GenreInfo {
