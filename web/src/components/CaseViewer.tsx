@@ -36,8 +36,9 @@ const CASE_MM: Record<string, { w: number; h: number; d: number }> = {
   // au Japon, en hauteur, 98 × 114 × 22 mm
   gb: { w: 125, h: 125, d: 23 },
   'gb-jp': { w: 98, h: 114, d: 22 },
-  // Mega Drive : boîtier en plastique noir, 133 × 187 × 22 mm (rapport des scans : 0,71)
-  md: { w: 133, h: 187, d: 22 },
+  // Mega Drive : boîtier en plastique noir, 133 × 187 × 23 mm (rapport des scans : 0,71 ; épaisseur
+  // relevée sur des photos de piles de boîtes), le même dans les trois régions
+  md: { w: 133, h: 187, d: 23 },
 };
 
 // Format du boîtier PS2 selon la zone de la version (zone inconnue : européen)

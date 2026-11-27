@@ -63,6 +63,13 @@ function gbSpine(title: string): CSSProperties {
   return { ['--gb-back' as string]: back, ['--gb-text' as string]: text, ['--ink' as string]: back } as CSSProperties;
 }
 
+// Mega Drive : le titre de la couleur du jeu sur la tranche noire quadrillée (Europe, Amérique) ;
+// au Japon, la tranche entière aux couleurs du jeu (les mêmes paires fond / titre que la Game Boy)
+function mdSpine(title: string): CSSProperties {
+  const [back, text] = GB_SPINES[titleHash(title) % GB_SPINES.length];
+  return { ['--ink' as string]: nesInk(title), ['--md-back' as string]: back, ['--md-text' as string]: text } as CSSProperties;
+}
+
 function titleFit(kind: string, title: string): { fit: number; twoLines: boolean } {
   const capacity = CAPACITY[kind] ?? 28;
   const fit = Math.min(1, capacity / title.length);
@@ -142,7 +149,7 @@ export function SpineFace({ release, region }: { release: SpineRelease; region?:
   const titleRef = useFittedTitle(release.local_title, fit, twoLines);
   return (
     <span className={`spine-face spine-${kind}${release.platform.short_name === 'GBC' ? ' is-gbc' : ''}${reissue ? ' is-reissue' : ''}${region ? ` spine-region-${region}` : ''}`} aria-hidden="true"
-      style={kind === 'gb' ? gbSpine(release.local_title)
+      style={kind === 'gb' ? gbSpine(release.local_title) : kind === 'md' ? mdSpine(release.local_title)
         : kind === 'nes' || kind === 'snes' ? ({ ['--ink' as string]: nesInk(release.local_title) } as CSSProperties) : undefined}>
       <span className="spine-band">
         {/* Super Nintendo : le nom de la console en texte simple, à la place de son logo
