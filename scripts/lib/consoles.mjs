@@ -257,6 +257,36 @@ export const CONSOLES = {
       { heading: 'Compilations', columns: ['title', 'developers', 'publishers', 'date'], zone: 'PAL', titleZones: true, zoneByTitle: { '6-Pak': 'NTSC-U' } },
     ],
   },
+  // Nintendo 64 : les cartouches (le 64DD japonais, à disquettes, n'est pas compté ici)
+  N64: {
+    code: 'N64',
+    name: 'Nintendo 64',
+    slug: 'n64',
+    wikidata: 'Q184839',
+    // Liste Wikipédia : titre, studio, éditeur, première sortie, puis une date par zone (JP, NA,
+    // PAL). Le tableau des sorties tardives (« Aftermarket ») n'est pas lu : presque tout y est
+    // encore annoncé (« TBA », années à venir)
+    wikipediaPages: ['List of Nintendo 64 games'],
+    wikipediaFormat: 'first-date-then-dates',
+    dateColumns: ['NTSC-J', 'NTSC-U', 'PAL'],
+    redump: 'Nintendo - Nintendo 64',
+    datFolder: 'no-intro',
+    thumbnails: 'libretro-thumbnails/Nintendo_-_Nintendo_64',
+    jaWikipediaList: 'NINTENDO64のゲームタイトル一覧',
+    confirmWikidata: true,
+    // Wikidata range aussi sous la Nintendo 64 un jeu PlayStation dont la version N64 a sa fiche
+    // (The Bombing Islands → Charlie Blast's Territory), le Super Bowling de la Super Nintendo (celui
+    // de la N64 a sa fiche) et 40 Winks, sorti seulement en 2019 (les sorties tardives ne sont pas
+    // importées)
+    wikidataExclude: ['Q7719077', 'Q7642219', 'Q2699066'],
+    // Lignes de la liste sans lien vers leur jeu, écrites sous un autre titre, ou reliées à l'article
+    // du jeu Super Nintendo (Super Bowling) : la fiche Wikidata du jeu (Duke Nukem 64, Quake 64, Hexen et StarCraft 64 sont les versions N64 des jeux PC)
+    wikipediaQids: {
+      "Charlie Blast's Territory": 'Q2960825', 'Dōbutsu no Mori': 'Q7049508', 'Duke Nukem 64': 'Q728061', Hexen: 'Q1423930',
+      'Itoi Shigesato no Bass Tsuri No. 1 Kettehan!': 'Q3155973', 'Quake 64': 'Q217423', 'StarCraft 64': 'Q165929',
+      'Zool: Majū Tsukai Densetsu': 'Q3576039', 'Super Bowling': 'Q3504117',
+    },
+  },
   // Famicom Disk System (Japon) : jeux sur disquette. Un jeu sorti aussi en cartouche garde une
   // seule fiche (même identifiant Wikidata), avec ses versions NES et FDS.
   FDS: {

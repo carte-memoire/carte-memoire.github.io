@@ -333,14 +333,14 @@ await egal('33 consoles déclarées (avec la Famicom Disk System)', val(`select 
 await egal('chaque console a son constructeur et son identifiant Wikidata', val(`select count(*)::int as n from public.platform where manufacturer_id is null or wikidata_id is null`), [{ n: 0 }]);
 await egal('pas de constructeur en double', val(`select count(*)::int as n from public.possible_duplicate_company where name_key in ('nintendo', 'sega', 'microsoft', 'nec')`), [{ n: 0 }]);
 const consoles = await lignes(en(null, `select short_name, manufacturer, game_count from public.list_platforms()`));
-await egal('la liste des consoles est publique, avec le nombre de jeux', consoles.find((c) => c.short_name === 'PS1').game_count > 4000 && consoles.find((c) => c.short_name === 'N64').game_count === 0, true);
+await egal('la liste des consoles est publique, avec le nombre de jeux', consoles.find((c) => c.short_name === 'PS1').game_count > 4000 && consoles.find((c) => c.short_name === 'GC').game_count === 0, true);
 await egal('…rangée par constructeur', consoles.find((c) => c.short_name === 'NSW2').manufacturer, 'Nintendo');
 const annees = await lignes(en(null, `select short_name, first_year, last_year from public.list_platforms()`));
 await egal('années d\'activité de la PS1 (filtre « année » du catalogue) : lancée en 1994, jeux datés jusque dans les années 2000', [annees.find((c) => c.short_name === 'PS1').first_year, annees.find((c) => c.short_name === 'PS1').last_year >= 2000], [1994, true]);
-await egal('console sans jeu daté : son année de lancement, pas de dernière année (le site garde sa large fourchette)', annees.find((c) => c.short_name === 'N64'), { short_name: 'N64', first_year: 1996, last_year: null });
+await egal('console sans jeu daté : son année de lancement, pas de dernière année (le site garde sa large fourchette)', annees.find((c) => c.short_name === 'GC'), { short_name: 'GC', first_year: 2001, last_year: null });
 const filtre = (q, c) => lignes(en(null, `select title from public.search_games($1, 20, $2)`, [q, c]));
 await egal('recherche limitée à la PS1 : FF7 trouvé', filtre('final fantasy vii', 'PS1').then((r) => r[0]?.title), 'Final Fantasy VII');
-await egal('recherche limitée à la Nintendo 64 : aucun jeu pour l\'instant', filtre('final fantasy', 'N64').then((r) => r.length), 0);
+await egal('recherche limitée à la GameCube : aucun jeu pour l\'instant', filtre('final fantasy', 'GC').then((r) => r.length), 0);
 await egal('console inconnue : aucun résultat', filtre('final fantasy', 'ZZZ').then((r) => r.length), 0);
 await egal('sans console : toutes', filtre('final fantasy vii', null).then((r) => r.length > 0), true);
 
@@ -1081,7 +1081,7 @@ await egal('texte → adresse : minuscules, sans accents ni ponctuation', val(`s
   [{ a: 'pokemon-edition-jaune', b: 'final-fantasy-vii', c: '' }]);
 await egal('chaque jeu importé (avec une version) a son adresse', val(`select count(*)::int as n from public.game g where g.slug is null and exists (select 1 from public.release r where r.game_id = g.id)`), [{ n: 0 }]);
 await egal('…toutes différentes', val(`select count(*)::int - count(distinct slug)::int as n from public.game where slug is not null`), [{ n: 0 }]);
-await egal('…la console en tête : ps1/…, ps2/…, nes/…, fds/…, snes/…, gb/…, gbc/… ou md/…', val(`select count(*)::int as n from public.game where slug is not null and slug !~ '^(ps1|ps2|nes|fds|snes|gb|gbc|md)/'`), [{ n: 0 }]);
+await egal('…la console en tête : ps1/…, ps2/…, nes/…, fds/…, snes/…, gb/…, gbc/…, md/… ou n64/…', val(`select count(*)::int as n from public.game where slug is not null and slug !~ '^(ps1|ps2|nes|fds|snes|gb|gbc|md|n64)/'`), [{ n: 0 }]);
 const jeuAdresse = async (title, date = null) => (await en(ADMIN, `insert into public.game (title, first_release_date, first_release_precision) values ($1, $2, $3) returning id`, [title, date, date ? 'day' : null])).rows[0].id;
 const versionAdresse = (game, platform, code = null) => en(ADMIN, `insert into public.release (game_id, platform_id, zone, local_title, edition_type, product_code) values ($1, $2, 'PAL', 'x', 'standard', $3)`, [game, platform, code]);
 const adresseDe = async (game) => (await val(`select slug from public.game where id = $1`, [game]))[0].slug;
@@ -1150,6 +1150,7 @@ await egal('…un jeu sorti sur PS1 et PS2 les montre dans l\'ordre de sortie de
     select g.id, g.title from public.game g
     where exists (select 1 from public.release r join public.platform p on p.id = r.platform_id where r.game_id = g.id and p.short_name = 'PS1')
       and exists (select 1 from public.release r join public.platform p on p.id = r.platform_id where r.game_id = g.id and p.short_name = 'PS2')
+      and not exists (select 1 from public.release r join public.platform p on p.id = r.platform_id where r.game_id = g.id and p.short_name not in ('PS1', 'PS2'))
     order by g.id limit 1
   )
   select (s.platforms = array['PS1', 'PS2']) as ok from dual cross join lateral public.search_games(dual.title, 50) s where s.id = dual.id`), [{ ok: true }]);

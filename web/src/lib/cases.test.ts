@@ -23,6 +23,8 @@ describe('boîtier selon la console et la zone', () => {
     expect(caseFormatFor('GBC', 'standard', 'NTSC-J')).toBe('carton-gb-jp');
     expect(caseFormatFor('MD', 'standard', 'PAL')).toBe('boitier-md');
     expect(caseFormatFor('MD', 'standard', 'NTSC-J')).toBe('boitier-md');
+    expect(caseFormatFor('N64', 'standard', 'PAL')).toBe('carton-snes');
+    expect(caseFormatFor('N64', 'standard', 'NTSC-J')).toBe('carton-n64-jp');
   });
   it('les autres consoles ne changent pas avec la zone', () => {
     expect(caseFormatFor('PS1', 'standard', 'NTSC-J')).toBe('cd');

@@ -2173,10 +2173,13 @@ body.is-shelf-dragging, body.is-shelf-dragging * { cursor: grabbing !important; 
   content: ''; position: absolute; left: 3%; right: 3%; top: 34%; height: 1px; pointer-events: none;
   background: rgba(255, 255, 255, 0.16); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
 }
-.cv-snes-jp .cv-front, .cv-snes-jp .cv-back { background: #f3f1ec; }
-.cv-snes-jp .cv-back-inlay { background: linear-gradient(160deg, #f7f5f0, #dedad1); }
-.cv-snes-jp .cv-edge { background: linear-gradient(180deg, #f4f2ed, #dcd8cf 50%, #ebe8e1); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08); }
-.cv-snes-jp .cv-edge::after { background: rgba(0, 0, 0, 0.14); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7); }
+.cv-snes-jp .cv-front, .cv-snes-jp .cv-back, .cv-n64-jp .cv-front, .cv-n64-jp .cv-back { background: #f3f1ec; }
+.cv-snes-jp .cv-back-inlay, .cv-n64-jp .cv-back-inlay { background: linear-gradient(160deg, #f7f5f0, #dedad1); }
+.cv-snes-jp .cv-edge, .cv-n64-jp .cv-edge { background: linear-gradient(180deg, #f4f2ed, #dcd8cf 50%, #ebe8e1); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08); }
+.cv-snes-jp .cv-edge::after, .cv-n64-jp .cv-edge::after { background: rgba(0, 0, 0, 0.14); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7); }
+/* Nintendo 64 : pour l'instant l'habillage de la boîte Super Nintendo (même boîte en carton) ;
+   la tranche porte « NINTENDO 64 » en texte simple (Spine.tsx). À affiner d'après des photos */
+.spine-snes.is-n64 .spine-mark { font-size: calc(var(--spine-w) * 0.15); letter-spacing: 0.08em; }
 /* Game Boy : petite boîte en carton, comme la NES (CaseViewer.tsx : 121 × 121 × 24 mm ; au Japon,
    98 × 114 × 22 mm) ; la jaquette sur toute la face, carton clair au dos et sur les bords */
 /* Mega Drive : boîtier en plastique noir (CaseViewer.tsx : 133 × 187 × 23 mm, le même dans les

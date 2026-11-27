@@ -6,7 +6,7 @@
 // boîtier CD et l'édition « Standard ».
 import { tr } from './i18n';
 
-export type CaseFormat = 'cd' | 'dvd' | 'carton' | 'carton-jp' | 'carton-snes' | 'carton-sfc' | 'carton-gb' | 'carton-gb-jp' | 'disquette' | 'boitier-md' | 'free';
+export type CaseFormat = 'cd' | 'dvd' | 'carton' | 'carton-jp' | 'carton-snes' | 'carton-sfc' | 'carton-gb' | 'carton-gb-jp' | 'disquette' | 'boitier-md' | 'carton-n64-jp' | 'free';
 export type BoxFormat = Exclude<CaseFormat, 'free'>;
 
 // Largeur / hauteur du recto : boîtier CD 120 × 120 mm, boîtier DVD 135 × 190 mm, boîte en
@@ -16,10 +16,12 @@ export type BoxFormat = Exclude<CaseFormat, 'free'>;
 // haute et étroite (proportions des scans : 1,41 et 0,55) ; boîte Game Boy presque carrée
 // (Amérique du Nord, Europe : 125 × 125 mm, la même pour la Game Boy Color) et en hauteur au Japon (98 × 114 mm, 0,86) ;
 // boîtier en plastique de la Mega Drive, 133 × 187 mm (les scans des trois régions ont le même
-// rapport, 0,71, à peu près celui d'un boîtier DVD)
+// rapport, 0,71, à peu près celui d'un boîtier DVD) ; Nintendo 64 : la boîte couchée de la Super
+// Nintendo en Amérique du Nord et en Europe (mêmes protections de collectionneurs, scans 1,43), et au
+// Japon une boîte debout (scans 0,715 ; environ 135 × 189 mm, à confirmer)
 export const CASE_RATIO: Record<BoxFormat, number> = {
   cd: 1, dvd: 135 / 190, carton: 127 / 178, 'carton-jp': 142 / 98, 'carton-snes': 179 / 127, 'carton-sfc': 105 / 190,
-  'carton-gb': 1, 'carton-gb-jp': 98 / 114, disquette: 88 / 98, 'boitier-md': 133 / 187,
+  'carton-gb': 1, 'carton-gb-jp': 98 / 114, disquette: 88 / 98, 'boitier-md': 133 / 187, 'carton-n64-jp': 135 / 189,
 };
 
 interface ConsoleTraits {
@@ -52,6 +54,9 @@ const CONSOLE_TRAITS: Record<string, ConsoleTraits> = {
   // Mega Drive : boîtier en plastique qui s'ouvre comme un livre, la jaquette glissée sous une
   // pochette transparente, dans les trois régions ; cartouche
   MD: { box: 'boitier-md', cartridge: true },
+  // Nintendo 64 : la boîte en carton couchée de la Super Nintendo (Amérique du Nord, Europe), debout
+  // au Japon ; cartouche
+  N64: { box: 'carton-snes', boxJapan: 'carton-n64-jp', cartridge: true },
 };
 
 // Boîtier d'une console connue (selon la zone de la version, si on la connaît), sinon rien

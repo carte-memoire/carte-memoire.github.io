@@ -39,6 +39,10 @@ const CASE_MM: Record<string, { w: number; h: number; d: number }> = {
   // Mega Drive : boîtier en plastique noir, 133 × 187 × 23 mm (rapport des scans : 0,71 ; épaisseur
   // relevée sur des photos de piles de boîtes), le même dans les trois régions
   md: { w: 133, h: 187, d: 23 },
+  // Nintendo 64 : la boîte couchée de la Super Nintendo ; au Japon, une boîte debout (scans 0,715,
+  // dimensions approximatives, à affiner d'après des photos)
+  n64: { w: 179, h: 127, d: 33 },
+  'n64-jp': { w: 135, h: 189, d: 30 },
 };
 
 // Format du boîtier PS2 selon la zone de la version (zone inconnue : européen)
@@ -82,11 +86,12 @@ export function CaseViewer({ pulled, onClose, onEdit, onPropose }: { pulled: Pul
   const format = kind === 'ps1' ? (!pulled.release.zone || pulled.release.zone === 'PAL' ? 'ps1-pal' : 'ps1-flat')
     : kind === 'ps2' ? ps2Format(pulled.release.zone)
       : kind === 'nes' ? (pulled.release.zone === 'NTSC-J' ? 'nes-jp' : 'nes')
+        : kind === 'snes' && pulled.release.platform.short_name === 'N64' ? (pulled.release.zone === 'NTSC-J' ? 'n64-jp' : 'n64')
         : kind === 'snes' ? (pulled.release.zone === 'NTSC-J' ? 'snes-jp' : 'snes')
           : kind === 'gb' ? (pulled.release.zone === 'NTSC-J' ? 'gb-jp' : 'gb') : kind;
   // Tranche dessinée selon la région du boîtier (sur l'étagère, toujours au format européen)
   const region = format === 'ps2-us' || (kind === 'md' && pulled.release.zone === 'NTSC-U') ? 'us'
-    : format === 'ps2-jp' || format === 'nes-jp' || format === 'snes-jp' || format === 'gb-jp' || (kind === 'md' && pulled.release.zone === 'NTSC-J') ? 'jp' : undefined;
+    : format === 'ps2-jp' || format === 'nes-jp' || format === 'snes-jp' || format === 'n64-jp' || format === 'gb-jp' || (kind === 'md' && pulled.release.zone === 'NTSC-J') ? 'jp' : undefined;
   // Boîte Super Famicom dont l'illustration est imprimée de côté (Square : Final Fantasy VI,
   // Chrono Trigger…) : la jaquette, plus large que haute, est tournée d'un quart de tour
   const [sideways, setSideways] = useState(false);

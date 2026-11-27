@@ -20,12 +20,13 @@ export const CASE_FORMATS: { value: CaseFormat; label: string; ratio: number | n
   { value: 'dvd', label: tr('Boîtier DVD (haut)'), ratio: CASE_RATIO.dvd },
   { value: 'carton', label: tr('Boîte en carton (NES)'), ratio: CASE_RATIO.carton },
   { value: 'carton-jp', label: tr('Boîte en carton, en largeur (Famicom)'), ratio: CASE_RATIO['carton-jp'] },
-  { value: 'carton-snes', label: tr('Boîte en carton, en largeur (Super Nintendo)'), ratio: CASE_RATIO['carton-snes'] },
+  { value: 'carton-snes', label: tr('Boîte en carton, en largeur (Super Nintendo, Nintendo 64)'), ratio: CASE_RATIO['carton-snes'] },
   { value: 'carton-sfc', label: tr('Boîte en carton, haute et étroite (Super Famicom)'), ratio: CASE_RATIO['carton-sfc'] },
   { value: 'carton-gb', label: tr('Petite boîte carrée (Game Boy, Game Boy Color)'), ratio: CASE_RATIO['carton-gb'] },
   { value: 'carton-gb-jp', label: tr('Petite boîte en hauteur (Game Boy japonaise)'), ratio: CASE_RATIO['carton-gb-jp'] },
   { value: 'disquette', label: tr('Étui de disquette (Famicom Disk System)'), ratio: CASE_RATIO.disquette },
   { value: 'boitier-md', label: tr('Boîtier en plastique (Mega Drive)'), ratio: CASE_RATIO['boitier-md'] },
+  { value: 'carton-n64-jp', label: tr('Boîte en carton, en hauteur (Nintendo 64 japonaise)'), ratio: CASE_RATIO['carton-n64-jp'] },
   { value: 'free', label: tr('Sans cadre (libre)'), ratio: null },
 ];
 export const fixedRatio = (format: CaseFormat): number => CASE_FORMATS.find((f) => f.value === format)?.ratio ?? 1;
