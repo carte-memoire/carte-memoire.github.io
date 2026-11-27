@@ -304,57 +304,155 @@ def nes():
 
 
 def fds():
-    """Famicom Disk System (lecteur HVC-022) : boîtier rouge, 15 × 26,5 × 7,5 cm ; en façade,
-    la fente de la disquette (volet noir) en haut, le bouton d'éjection noir et le voyant."""
+    """Famicom Disk System (lecteur HVC-022) : boîtier rouge, 15 × 26,5 × 7,5 cm ; en façade, un
+    panneau noir avec la fente de la disquette en haut, le bouton d'éjection jaune et le voyant."""
     red, black = plastic('#9e2126', 0.45), plastic('#1e1e21', 0.5)
     W, D, H = 15.0, 26.5, 7.6
     box('corps', 0, 0, 0, W, D, H, red, bevel=0.45)
-    box('cadre-fente', 1.4, -0.06, 3.6, W - 1.4, 0.2, 6.6, plastic('#7a171b', 0.5), bevel=0.25)
-    box('fente', 2.0, -0.1, 4.4, W - 2.0, 0.2, 5.8, black, bevel=0.15)
-    box('ejection', W - 4.2, -0.2, 1.1, W - 1.4, 0.1, 2.5, black, bevel=0.2)
-    box('voyant', 1.6, -0.08, 1.6, 2.4, 0.1, 2.1, led('#ff3b30', 2))
+    # Façade noire (photo d'Evan-Amos) : la fente de la disquette, le bouton d'éjection jaune, le voyant
+    box('facade', 0.8, -0.06, 0.9, W - 0.8, 0.2, 6.6, black, bevel=0.2)
+    box('fente', 1.6, -0.12, 4.2, W - 1.6, 0.2, 5.6, plastic('#0a0a0b', 0.6), bevel=0.1)
+    box('ejection', W - 4.4, -0.2, 1.6, W - 2.0, 0.1, 2.6, plastic('#f2c22c', 0.4), bevel=0.12)
+    box('voyant', 1.8, -0.1, 2.0, 2.5, 0.1, 2.4, led('#ff3b30', 2))
     for i in range(6):
         box('grille', 2.5 + i * 1.0, D - 5.0, H - 0.02, 2.9 + i * 1.0, D - 1.2, H + 0.02, plastic('#6e1418'))
 
 
 def snes():
-    """Super Nintendo (modèle européen et japonais) : 20 × 24,2 × 7,2 cm, gris clair arrondi ;
-    sur le dessus, la fente de cartouche entourée de gris foncé, l'interrupteur Power et le
-    bouton Reset devant elle, l'éjection derrière ; deux ports manette en façade."""
-    body, dark, mid, lilac = plastic('#cfcfd2', 0.5), plastic('#55555c', 0.55), plastic('#a7a7ad', 0.5), plastic('#7f7a95', 0.45)
-    W, D = 20.0, 24.2
-    prism('socle', rr(0, 0, W, D, 3.2), 0, 3.6, body, bevel=0.6)
-    prism('dessus', rr(0.3, 0.6, W - 0.6, D - 1.2, 3.0), 3.4, 6.2, body, bevel=0.9, top_pts=rr(1.2, 1.6, W - 2.4, D - 3.2, 2.6))
-    # Fente de cartouche (et son volet), entourée de gris foncé
-    prism('entourage', rr(5.0, 11.0, 10.0, 9.0, 1.4), 6.0, 6.35, dark, bevel=0.25)
-    box('fente', 6.0, 14.2, 6.3, 14.0, 15.6, 6.4, plastic('#2a2a2e', 0.6))
-    box('volet', 6.2, 15.6, 6.3, 13.8, 19.2, 6.55, mid, bevel=0.15)
-    # Power (glissière) et Reset (bouton), éjection
-    box('power', 3.0, 7.0, 6.1, 6.4, 9.4, 6.55, lilac, bevel=0.2, r=0.4)
-    box('reset', 13.6, 7.0, 6.1, 17.0, 9.4, 6.55, lilac, bevel=0.2, r=0.4)
-    box('ejection', 15.8, 13.4, 6.1, 18.0, 18.2, 6.6, lilac, bevel=0.2, r=0.5)
-    cyl('voyant', 4.7, 5.6, 6.05, 6.25, 0.18, led('#ff3030', 2.5))
-    for x in (6.0, 11.0):
-        box('port', x, -0.06, 1.0, x + 3.0, 0.4, 2.6, dark, bevel=0.3)
+    """Super Nintendo européenne (la même que la Super Famicom japonaise), d'après les photos
+    studio d'Evan-Amos (Wikimedia Commons, de trois quarts avant et arrière) : 20 × 24,2 × 7,2 cm,
+    gris clair aux arêtes arrondies. Sur le dessus, un grand plateau gris plus foncé : la fente de
+    cartouche en long (une gouttière claire au fond), l'interrupteur Power à gauche (glissière
+    dans un cadre clair), le bouton Eject au milieu, le Reset à droite (carré foncé cerclé de
+    clair) ; devant le plateau, une bande claire avec le voyant (sans le nom ni le logo de
+    couleur). En façade, deux ports manette dans une bande en creux ; des grilles au dos."""
+    body, plate, light = plastic('#d0d0d4', 0.5), plastic('#a0a0a6', 0.5), plastic('#dcdce0', 0.45)
+    port, dark = plastic('#5c5c63', 0.55), plastic('#3a3a40', 0.6)
+    W, D, H = 20.0, 24.2, 5.8
+    # Deux coques (dessous et dessus) séparées par une fine rainure tout autour
+    prism('dessous', rr(0, 0, W, D, 1.4), 0, 2.9, body, bevel=0.6, segments=4)
+    prism('rainure', rr(0.25, 0.25, W - 0.5, D - 0.5, 1.2), 2.7, 3.2, plastic('#8e8e94', 0.6))
+    prism('dessus', rr(0, 0, W, D, 1.4), 3.0, H, body, bevel=0.9, segments=5)
+    # Plateau gris foncé du dessus (le quart avant reste clair)
+    prism('plateau', rr(1.4, 6.4, W - 2.8, D - 8.0, 1.0), H - 0.2, H + 0.25, plate, bevel=0.2)
+    # Fente de cartouche : gouttière claire en long, la fente sombre au milieu
+    prism('gouttiere', rr(2.8, 15.0, W - 5.6, 2.6, 1.3), H + 0.2, H + 0.36, light, bevel=0.12)
+    box('fente', 3.6, 16.05, H + 0.3, W - 3.6, 16.55, H + 0.4, dark)
+    # Power (glissière dans un cadre clair), Eject (au milieu), Reset (carré foncé cerclé de clair)
+    prism('cadre-power', rr(2.4, 8.2, 3.4, 3.6, 0.45), H + 0.2, H + 0.42, light, bevel=0.1)
+    prism('power', rr(2.9, 9.4, 2.4, 1.6, 0.3), H + 0.3, H + 0.75, plate, bevel=0.12)
+    for i in range(4):
+        box('strie', 3.1, 9.6 + i * 0.36, H + 0.74, 5.1, 9.72 + i * 0.36, H + 0.79, dark)
+    prism('eject', rr(7.2, 8.8, 5.6, 2.8, 0.7), H + 0.2, H + 0.62, plastic('#b3b3b8', 0.45), bevel=0.2)
+    prism('cadre-reset', rr(14.3, 8.2, 3.4, 3.4, 0.6), H + 0.2, H + 0.4, light, bevel=0.1)
+    prism('reset', rr(14.7, 8.6, 2.6, 2.6, 0.4), H + 0.3, H + 0.62, plastic('#6c6c73', 0.5), bevel=0.15)
+    box('voyant', 15.6, 2.6, H - 0.05, 16.6, 2.9, H + 0.03, led('#ff3a30', 2.5))
+    # Façade : bande en creux et deux ports manette
+    front('bande', rr(1.6, 1.0, W - 3.2, 2.6, 1.0), -0.04, 0.3, plastic('#b9b9be', 0.5), bevel=0.15)
+    for cx in (6.0, 14.0):
+        front('port', rr(cx - 2.2, 1.6, 4.4, 1.3, 0.55), -0.1, 0.35, port, bevel=0.1)
+        for i in range(7):
+            front('broche', rr(cx - 1.6 + i * 0.52, 2.05, 0.3, 0.42, 0.08), -0.14, 0.0, dark)
+    # Grilles au dos
+    for i in range(16):
+        x = 2.5 + i * 0.95
+        box('grille', x, D - 0.08, 0.8, x + 0.45, D + 0.02, 4.4, dark)
+
+
+def sweep(name, path, w, h, mat, zfun=lambda x, y: 0.0, steps=10, sink=0.3):
+    """Tube arrondi (demi-ellipse de largeur w et de hauteur h, enfoncé de sink) qui suit un chemin
+    fermé (x, y), posé sur la surface z = zfun(x, y) : un anneau sans jointure."""
+    bm = bmesh.new()
+    n = len(path)
+    rings = []
+    for i, (x, y) in enumerate(path):
+        (xa, ya), (xb, yb) = path[i - 1], path[(i + 1) % n]
+        tx, ty = xb - xa, yb - ya
+        ln = math.hypot(tx, ty) or 1.0
+        nx, ny = -ty / ln, tx / ln
+        z0 = zfun(x, y)
+        section = [(x + nx * w / 2, y + ny * w / 2, z0 - sink)]
+        for k in range(steps + 1):
+            a = math.pi * k / steps
+            section.append((x + nx * w / 2 * math.cos(a), y + ny * w / 2 * math.cos(a), z0 + h * math.sin(a)))
+        section.append((x - nx * w / 2, y - ny * w / 2, z0 - sink))
+        rings.append([bm.verts.new(p) for p in section])
+    m = len(rings[0])
+    for i in range(n):
+        r0, r1 = rings[i], rings[(i + 1) % n]
+        for k in range(m):
+            bm.faces.new([r0[k], r0[(k + 1) % m], r1[(k + 1) % m], r1[k]])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    return finish(to_object(name, bm, mat), 0)
+
+
+def slab(name, x0, x1, ya, za, yb, zb, mat, t=0.08):
+    """Plaque fine posée sur une pente (de (ya, za) à (yb, zb)), de x0 à x1 : ouïes, grilles."""
+    top = [(x0, ya, za), (x1, ya, za), (x1, yb, zb), (x0, yb, zb)]
+    return loft(name, [(x, y, z - t) for x, y, z in top], top, mat)
 
 
 def n64():
-    """Nintendo 64 : 26 × 19 × 7,3 cm, gris anthracite ; un dôme central (fente de cartouche,
-    Power et Reset de part et d'autre, trappe de l'extension devant) et deux ailes en pente ;
-    quatre ports manette en façade."""
-    body, dark, mid = plastic('#2c2d32', 0.5), plastic('#17171a', 0.6), plastic('#4a4b52', 0.5)
+    """Nintendo 64 (NUS-001), d'après les photos studio d'Evan-Amos (Wikimedia Commons, de face,
+    de trois quarts et de dos) : 26 × 19 × 7,3 cm, gris anthracite sur un socle noir. Aux coins
+    avant, deux « pieds » noirs arrondis qui avancent ; entre eux, la façade creusée porte quatre
+    ports manette gris clair, deux et deux, de part et d'autre d'un badge noir brillant (sans son
+    logo). Dessus en pente douce : l'interrupteur Power à gauche, le Reset à droite, la trappe de
+    l'extension au milieu ; au fond, une bosse en arche avec des ouïes devant et la fente de
+    cartouche (volets gris clair) ; des ouïes aussi sur les côtés."""
+    shell, base = plastic('#2d2e33', 0.48), plastic('#161619', 0.55)
+    light, dark, gloss = plastic('#babbc0', 0.5), plastic('#131316', 0.6), glossy('#0b0b0d')
     W, D = 26.0, 19.0
-    profile('ailes', [(0.4, 0), (D, 0), (D, 4.2), (D - 1.0, 4.9), (2.4, 4.0), (0, 2.6)], 0, W, body, bevel=0.5)
-    prism('dome', rr(5.0, 1.5, 16.0, 17.0, 4.5), 2.6, 7.3, body, bevel=1.8, segments=6, top_pts=rr(7.6, 6.0, 10.8, 10.8, 3.4))
-    box('fente', 9.6, 10.6, 7.25, 16.4, 12.2, 7.35, dark)
-    box('volet', 9.7, 12.2, 7.2, 16.3, 14.6, 7.45, mid, bevel=0.15)
-    for x in (7.0, 17.2):
-        box('glissiere', x, 9.6, 7.0, x + 1.8, 13.4, 7.5, mid, bevel=0.2, r=0.3)
-    box('trappe', 9.2, 4.0, 5.7, 16.8, 6.6, 5.9, plastic('#33343a', 0.45), bevel=0.2)
-    box('bandeau', 3.0, -0.04, 0.4, W - 3.0, 0.3, 2.2, dark, bevel=0.15)
-    for i in range(4):
-        x = 4.2 + i * 4.6
-        box('port', x, -0.08, 0.6, x + 3.0, 0.3, 2.0, plastic('#4c4d55', 0.6), bevel=0.25)
+
+    def front_y(x):
+        # Façade vue de dessus : en avant aux deux bouts, creusée au milieu
+        t = (x - W / 2) / (W / 2 - 0.6)
+        return 1.0 + 1.8 * (1 - t * t)
+
+    def outline(x0, x1, back, step=0.5, r_back=2.4):
+        pts = [(x, front_y(x)) for x in [x0 + i * step for i in range(int((x1 - x0) / step) + 1)]]
+        for cx, start in ((x1 - r_back, 0), (x0 + r_back, 90)):
+            for i in range(7):
+                a = math.radians(start + 90 * i / 6)
+                pts.append((cx + r_back * math.cos(a), back - r_back + r_back * math.sin(a)))
+        return pts
+
+    # Socle noir (en retrait) et façade anthracite creusée
+    prism('socle', rr(0.9, 1.8, W - 1.8, D - 2.6, 2.0), 0, 0.9, base, bevel=0.3)
+    prism('facade', outline(0.6, W - 0.6, D - 0.4), 0.6, 3.3, shell, bevel=0.35)
+    # Les deux pieds noirs des coins avant, gros et ronds, prolongés le long des côtés
+    for x in (-0.6, W - 5.6):
+        prism('pied', rr(x, -0.5, 6.0, 11.5, 3.0), 0, 3.0, base, bevel=1.1, segments=6)
+    # Coque du dessus, aux arêtes très arrondies
+    prism('coque', outline(0.6, W - 0.6, D - 0.4), 3.0, 5.6, shell, bevel=1.4, segments=6)
+    # Bosse du fond, large et basse : ouïes sur sa pente avant, fente de cartouche au sommet
+    loft('bosse', [(x, y, 5.3) for x, y in ccw(rr(5.4, 8.0, 15.2, 10.6, 4.5))],
+         [(x, y, 6.9) for x, y in ccw(rr(7.4, 10.9, 11.2, 7.7, 3.2))], shell, bevel=0.8, segments=5)
+    for i in range(25):
+        x = 7.9 + i * 0.42
+        slab('ouie', x, x + 0.2, 9.0, 5.95, 10.5, 6.72, dark)
+    # Fente de cartouche : longue et étroite, au fond de la bosse
+    box('fente', 8.6, 12.9, 6.8, 17.4, 15.3, 6.93, dark, bevel=0.05)
+    for y0, y1 in ((13.05, 14.05), (14.15, 15.15)):
+        box('volet', 8.8, y0, 6.84, 17.2, y1, 6.96, light, bevel=0.05)
+    # Trappe de l'extension, Power (glissière dans un creux ovale) à gauche, Reset à droite
+    box('trappe', 9.8, 3.6, 5.5, 16.2, 7.8, 5.7, plastic('#323338', 0.45), bevel=0.15, r=0.5)
+    box('logement-power', 2.6, 5.0, 5.45, 6.2, 8.8, 5.65, dark, bevel=0.1, r=1.6)
+    box('power', 3.3, 6.2, 5.5, 5.5, 7.6, 6.0, shell, bevel=0.18, r=0.55)
+    box('logement-reset', 19.9, 5.6, 5.45, 23.1, 8.6, 5.65, dark, bevel=0.1, r=1.4)
+    box('reset', 20.3, 6.0, 5.5, 22.7, 8.2, 5.95, shell, bevel=0.2, r=1.0)
+    # Façade : quatre ports manette (deux et deux) et le badge noir brillant
+    for cx in (7.2, 9.8, 16.2, 18.8):
+        y = front_y(cx)
+        front('port', rr(cx - 1.2, 1.3, 2.4, 1.6, 0.68), y - 0.14, y + 0.4, light, bevel=0.12)
+        front('prise', rr(cx - 0.7, 1.72, 1.4, 0.75, 0.3), y - 0.2, y + 0.2, dark)
+    y = front_y(W / 2)
+    front('badge', rr(W / 2 - 2.0, 1.1, 4.0, 2.0, 0.5), y - 0.1, y + 0.3, gloss, bevel=0.08)
+    # Ouïes des côtés
+    for side in (0.48, W - 0.58):
+        for i in range(14):
+            y0 = 7.0 + i * 0.55
+            box('ouie-cote', side, y0, 3.4, side + 0.1, y0 + 0.24, 4.7, dark)
 
 
 def gamecube():
@@ -365,6 +463,7 @@ def gamecube():
     box('corps', 0, 0, 0, W, D, H - 0.4, body, bevel=0.9)
     cyl('couvercle', W / 2, D / 2 + 0.6, H - 0.6, H, 6.2, body, bevel=0.35)
     cyl('rainure', W / 2, D / 2 + 0.6, H - 0.48, H - 0.38, 6.35, dark)
+    cyl('disque', W / 2, D / 2 + 0.6, H - 0.05, H + 0.03, 3.9, plastic('#232129', 0.35), bevel=0.05)
     for x, r in ((2.0, 0.55), (W - 2.0, 0.55)):
         cyl('bouton', x, 2.0, H - 0.5, H - 0.25, r, plastic('#5a4ca4', 0.4), bevel=0.12)
     cyl('ouvrir', W / 2, 2.0, H - 0.5, H - 0.3, 0.55, plastic('#5a4ca4', 0.4), bevel=0.12)
@@ -372,9 +471,13 @@ def gamecube():
     for x in (1.4, W - 1.4):
         box('poignee-pied', x - 0.7, D - 0.2, 5.6, x + 0.7, D + 3.0, 7.0, body, bevel=0.5)
     box('poignee', 0.7, D + 1.8, 5.6, W - 0.7, D + 3.0, 7.0, body, bevel=0.5)
+    # Quatre ports manette en haut de la façade (prises claires au creux sombre), la trappe des
+    # cartes mémoire dessous
     for i in range(4):
-        x = 1.3 + i * 3.25
-        box('port', x, -0.08, 1.0, x + 2.6, 0.3, 2.6, dark, bevel=0.3)
+        x = 1.6 + i * 3.1
+        front('port', rr(x, 6.6, 2.5, 1.9, 0.7), -0.12, 0.3, plastic('#cfcfd6', 0.4), bevel=0.12)
+        front('prise', rr(x + 0.55, 7.1, 1.4, 0.9, 0.35), -0.16, 0.0, dark)
+    front('trappe', rr(1.4, 1.4, W - 2.8, 3.6, 0.5), -0.06, 0.2, plastic('#43388a', 0.45), bevel=0.1)
 
 
 def gbc():
@@ -663,75 +766,132 @@ def nsw2():
 
 
 def master_system():
-    """Master System (premier modèle) : 36,5 × 17 × 7 cm, noire et anguleuse ; le dessus monte
-    vers l'arrière, quadrillé de fines rainures ; liserés rouges, fente de cartouche au milieu,
-    fente de carte en façade, boutons Pause et Reset rouges."""
-    black, red, dark = plastic('#151517', 0.5), plastic('#c8202a', 0.45), plastic('#0a0a0b', 0.6)
+    """Master System (premier modèle), d'après les photos studio d'Evan-Amos (Wikimedia Commons,
+    de trois quarts gauche et droite) : 36,5 × 17 × 7 cm, noire, longue et anguleuse, la façade en
+    biais soulignée d'un liseré rouge. À droite, un bloc surélevé en pyramide tronquée porte le
+    panneau rouge (avec les boutons Reset et Pause, sans son schéma ni ses inscriptions) et, au
+    fond, la fente de cartouche ; en façade, l'onglet Power rouge à gauche, les deux ports manette
+    au milieu, la fente de carte à droite."""
+    black, red, dark = plastic('#17171a', 0.42), plastic('#c8202a', 0.42), plastic('#0a0a0b', 0.6)
     W, D = 36.5, 17.0
-    profile('corps', [(0, 0), (D, 0), (D, 7.0), (D - 1.0, 7.0), (2.5, 4.6), (0, 4.2)], 0, W, black, bevel=0.25)
-    for i in range(9):
-        y = 3.6 + i * 1.4
-        z = 4.6 + (y - 2.5) / (D - 3.5) * 2.4
-        profile('rainure', [(y, z - 0.02), (y + 0.18, z + 0.01), (y + 0.18, z + 0.05), (y, z + 0.03)], 0.6, W - 0.6, dark)
-    profile('liseré', [(0.0, 4.15), (2.5, 4.55), (2.5, 4.72), (0.0, 4.32)], 0.0, W, red)
-    box('fente', 12.0, 9.5, 5.9, 24.5, 11.0, 6.6, dark)
-    box('carte', 3.0, -0.05, 2.0, 10.0, 0.2, 2.5, dark)
-    for x in (27.5, 31.0):
-        box('bouton', x, 4.0, 5.0, x + 2.2, 5.6, 5.6, red, bevel=0.15)
-    box('voyant', 25.6, 3.4, 4.9, 26.2, 3.8, 5.1, led('#ff2020', 2))
+    profile('corps', [(0, 0), (D, 0), (D, 4.9), (2.6, 4.9), (0, 3.4)], 0, W, black, bevel=0.25)
+    profile('liseré', [(0.02, 3.0), (0.25, 3.0), (0.25, 3.18), (0.02, 3.18)], 0.4, W - 0.4, red)
+    # Bloc surélevé de droite, en pyramide tronquée
+    loft('bloc', [(x, y, 4.8) for x, y in ccw([(19.6, 3.4), (35.8, 3.4), (35.8, 16.6), (19.6, 16.6)])],
+         [(x, y, 7.0) for x, y in ccw([(21.8, 5.6), (34.0, 5.6), (34.0, 15.8), (21.8, 15.8)])], plastic('#121214', 0.5), bevel=0.15)
+    # Panneau rouge, ses deux boutons noirs, la fente de cartouche au fond
+    box('panneau', 22.6, 6.2, 6.98, 33.2, 12.6, 7.04, red)
+    for x in (23.6, 28.6):
+        box('bouton', x, 11.2, 7.0, x + 3.6, 12.2, 7.2, black, bevel=0.08)
+    box('cadre-fente', 22.8, 12.9, 6.98, 33.0, 15.2, 7.1, dark, bevel=0.05)
+    box('fente', 23.3, 13.3, 7.0, 32.5, 14.8, 7.14, plastic('#8c8d92', 0.4))
+    # Façade : onglet Power rouge, ports manette, fente de carte
+    box('power', 1.2, -0.06, 2.0, 4.6, 0.25, 2.6, red, bevel=0.05)
+    for x in (14.6, 18.4):
+        front('port', [(x, 1.0), (x + 3.0, 1.0), (x + 2.7, 2.2), (x + 0.3, 2.2)], -0.08, 0.4, dark, bevel=0.06)
+    box('carte', 25.0, -0.06, 1.2, 31.0, 0.3, 1.8, dark)
 
 
 def mega_drive():
-    """Mega Drive (premier modèle) : 28 × 21,2 × 7 cm, noire ; au centre, le dôme rond de la fente
-    de cartouche et son anneau ; curseur de volume, interrupteur et Reset, deux ports manette."""
-    black, dark, ring = plastic('#141416', 0.45), plastic('#070708', 0.6), plastic('#2b2b30', 0.4)
-    W, D = 28.0, 21.2
-    prism('corps', rr(0, 0, W, D, [0.8, 0.8, 4.0, 4.0]), 0, 4.8, black, bevel=0.5)
-    cyl('dome', 14.0, 11.0, 4.6, 6.4, 8.0, black, bevel=0.9)
-    cyl('anneau', 14.0, 11.0, 6.35, 6.5, 6.2, ring)
-    cyl('fond', 14.0, 11.0, 6.45, 6.55, 5.6, black)
-    box('fente', 9.0, 10.3, 6.5, 19.0, 11.7, 6.6, dark)
-    box('volet', 9.2, 11.7, 6.5, 18.8, 12.4, 6.7, ring, bevel=0.1)
-    box('volume', 2.0, 0.8, 4.75, 4.6, 2.2, 5.0, dark, bevel=0.1)
-    box('power', 3.0, 9.0, 4.75, 5.6, 11.0, 5.2, ring, bevel=0.15)
-    box('reset', 22.4, 9.0, 4.75, 25.0, 11.0, 5.2, ring, bevel=0.15)
-    box('voyant', 3.6, 12.2, 4.75, 4.0, 12.6, 4.9, led('#ff2a2a', 2))
-    for x in (18.6, 22.8):
-        box('port', x, -0.08, 1.0, x + 3.4, 0.2, 2.8, dark, bevel=0.2)
-    for i in range(10):
-        box('grille', 3.0 + i * 0.6, D - 4.5, 4.78, 3.3 + i * 0.6, D - 1.6, 4.82, dark)
+    """Mega Drive européenne (premier modèle), d'après les photos studio d'Evan-Amos (Wikimedia
+    Commons) : 28 × 21,2 × 7 cm, noire. À droite, le grand plateau rond surélevé de la fente de
+    cartouche : un cercle intérieur en creux, la fente au fond, et devant, la plaque carrée (sans
+    son inscription « 16-BIT ») au liseré argenté et au voyant rouge. À l'avant gauche, un panneau
+    en creux : curseur de volume, interrupteur Power, Reset gris ; derrière lui, la grille
+    d'aération. En façade, la prise casque à gauche et les ports manette à droite."""
+    black, dark, mid = plastic('#151517', 0.42), plastic('#08080a', 0.6), plastic('#222226', 0.4)
+    silver, grey = metal('#b8b9bd', 0.35), plastic('#8d8e94', 0.4)
+    W, D, H = 28.0, 21.2, 4.4
+    # Corps : façade en pente, arrière droit très arrondi
+    corps = rr(0, 0, W, D, [0.8, 0.8, 4.6, 1.2])
+    loft('corps', [(x, y, 0) for x, y in ccw(corps)],
+         [(x, y + (1.0 if y < 1 else 0), H) for x, y in ccw(corps)], black, bevel=0.45, segments=4)
+    # Plateau rond, son cercle intérieur en creux, la fente au fond
+    cx, cy = 17.6, 11.4
+    prism('plateau', circle(cx, cy, 7.7), H - 0.2, H + 1.6, black, bevel=0.7, segments=5, top_pts=circle(cx, cy, 7.2))
+    prism('creux', circle(cx, cy, 6.1), H + 1.5, H + 1.62, mid, bevel=0.1)
+    box('fente', cx - 5.0, cy + 2.6, H + 1.55, cx + 5.0, cy + 3.6, H + 1.7, dark, bevel=0.05)
+    box('volet', cx - 4.8, cy + 1.6, H + 1.6, cx + 4.8, cy + 2.6, H + 1.78, black, bevel=0.1)
+    # Plaque carrée devant la fente : noire, un liseré argenté en bas, le voyant rouge
+    prism('plaque', rr(cx - 2.4, cy - 5.8, 4.8, 4.8, 0.4), H + 1.55, H + 1.8, black, bevel=0.08)
+    prism('liseré', rr(cx - 2.4, cy - 5.8, 4.8, 1.0, [0.4, 0.4, 0, 0]), H + 1.78, H + 1.84, silver)
+    cyl('voyant', cx - 0.5, cy - 5.3, H + 1.82, H + 1.9, 0.14, led('#ff2a20', 3))
+    # Panneau de commandes en creux, à l'avant gauche (la façade en pente l'entame un peu)
+    box('panneau', 5.0, 2.4, H - 0.12, 11.4, 8.6, H + 0.02, dark, bevel=0.08)
+    box('rail-volume', 5.7, 3.4, H - 0.05, 6.5, 7.8, H + 0.04, mid)
+    box('volume', 5.5, 5.6, H, 6.7, 6.6, H + 0.55, black, bevel=0.12)
+    box('cadre-power', 8.0, 5.8, H - 0.05, 10.8, 7.8, H + 0.05, silver, bevel=0.05)
+    box('power', 9.4, 6.2, H, 10.4, 7.4, H + 0.5, black, bevel=0.12)
+    box('reset', 8.2, 3.2, H - 0.05, 10.6, 4.6, H + 0.3, grey, bevel=0.12, r=0.15)
+    # Grille d'aération derrière le panneau (fines lames parallèles à la façade)
+    box('fond-grille', 5.3, 10.4, H - 0.08, 11.1, 17.0, H + 0.01, dark)
+    for i in range(12):
+        y = 10.6 + i * 0.52
+        box('grille', 5.5, y, H - 0.05, 10.9, y + 0.26, H + 0.07, plastic('#2c2c31', 0.4), bevel=0.04)
+    # Façade : prise casque à gauche, ports manette à droite
+    fcyl('casque', 3.0, 2.2, -0.1, 0.4, 0.3, dark)
+    for x in (18.4, 22.2):
+        front('port', [(x, 1.4), (x + 3.0, 1.4), (x + 2.7, 2.8), (x + 0.3, 2.8)], -0.08, 0.5, dark, bevel=0.08)
 
 
 def game_gear():
-    """Game Gear : 20,9 × 11,3 × 3,8 cm, noire, à l'horizontale ; écran au centre dans un cadre,
-    croix ronde à gauche, boutons 1 et 2 à droite, Start bleu."""
-    body, frame = plastic('#17171a', 0.45), plastic('#26262a', 0.4)
+    """Game Gear, d'après les photos studio d'Evan-Amos (Wikimedia Commons, de face et de trois
+    quarts) : 20,9 × 11,3 × 3,8 cm, gris anthracite, à l'horizontale, bouts arrondis. Au centre, un
+    grand cadre noir brillant en trapèze (plus large en haut, où il touche le bord) autour de
+    l'écran gris, un peu à gauche ; à gauche, la croix dans un disque et, dessous, la grille du
+    haut-parleur ; à droite, le Start bleu en haut et les boutons 1 et 2 en diagonale. Sans
+    inscriptions ni logo."""
+    body, bezel = plastic('#2b2c31', 0.38), glossy('#0e0e10')
     objs = []
     W, Hh, T = 20.9, 11.3, 3.8
-    objs.append(prism('corps', rr(0, 0, W, Hh, [3.2, 3.2, 2.2, 2.2]), 0, T, body, bevel=0.6))
-    objs.append(prism('cadre', rr(5.6, 1.3, 9.7, 8.6, 0.6), T - 0.03, T + 0.06, frame, bevel=0.05))
-    objs.append(box('ecran', 6.6, 2.3, T + 0.06, 14.3, 8.7, T + 0.1, screen('#0a0c10')))
-    objs.append(cyl('pad', 2.9, 5.0, T - 0.05, T + 0.15, 1.4, plastic('#222226'), bevel=0.15))
-    objs.append(prism('croix', cross_pts(2.9, 5.0, 2.0, 0.65), T + 0.1, T + 0.3, plastic('#0f0f11'), bevel=0.05))
-    for cx, cy in ((17.3, 4.4), (18.9, 5.4)):
-        objs.append(cyl('bouton', cx, cy, T - 0.05, T + 0.3, 0.62, plastic('#2c2c31'), bevel=0.15))
-    objs.append(cyl('start', 18.2, 8.3, T - 0.05, T + 0.2, 0.35, plastic('#2d63c8'), bevel=0.08))
+    objs.append(prism('corps', rr(0, 0, W, Hh, [3.4, 3.4, 2.4, 2.4]), 0, T, body, bevel=0.9, segments=5))
+    # Rebord du haut, un peu en saillie (la « visière » au-dessus de l'écran)
+    objs.append(prism('visiere', rr(4.6, Hh - 1.3, 11.7, 1.3, [0, 0, 0.5, 0.5]), T - 0.1, T + 0.12, body, bevel=0.1))
+    objs.append(prism('cadre', [(5.2, Hh - 0.35), (15.7, Hh - 0.35), (14.5, 2.3), (13.7, 1.45), (7.2, 1.45), (6.4, 2.3)],
+                      T + 0.05, T + 0.2, bezel, bevel=0.12))
+    objs.append(box('bord-ecran', 6.7, 2.5, T + 0.18, 13.3, 9.4, T + 0.24, plastic('#55585c', 0.45), bevel=0.04))
+    objs.append(box('ecran', 7.15, 2.95, T + 0.22, 12.85, 8.95, T + 0.27, screen('#30352f')))
+    # Croix dans son disque, et la grille du haut-parleur
+    objs.append(cyl('disque', 2.9, 6.3, T - 0.05, T + 0.12, 1.55, plastic('#1d1d20', 0.4), bevel=0.15))
+    objs.append(prism('croix', cross_pts(2.9, 6.3, 2.4, 0.9), T + 0.08, T + 0.2, plastic('#19191c', 0.35), bevel=0.06))
+    for i in range(6):
+        for j in range(4):
+            objs.append(cyl('trou', 1.6 + i * 0.48, 1.9 + j * 0.48, T - 0.02, T + 0.02, 0.11, plastic('#0a0a0b', 0.7), steps=12))
+    # Start bleu, boutons 1 et 2
+    objs.append(cyl('start', 17.4, 8.9, T - 0.05, T + 0.3, 0.55, plastic('#2f63cc', 0.35), bevel=0.12))
+    for cx, cy in ((17.4, 5.3), (19.2, 6.4)):
+        objs.append(cyl('bouton', cx, cy, T - 0.05, T + 0.36, 0.68, plastic('#1b1b1e', 0.35), bevel=0.18))
     group(objs, Matrix.Translation((0, 4.0, 0)) @ standing(16) @ Matrix.Translation((-W / 2, 0, 0)))
 
 
 def saturn():
-    """Saturn (modèle européen) : 26 × 23 × 8,3 cm, noire ; grand couvercle ovale du lecteur de CD
-    sur le dessus, boutons Power, Reset et Ouvrir à droite, deux ports manette en façade."""
-    black, dark, grey = plastic('#18181b', 0.45), plastic('#09090a', 0.6), plastic('#2e2e33', 0.45)
+    """Saturn européenne (premier modèle), d'après les photos studio d'Evan-Amos (Wikimedia
+    Commons) : 26 × 23 × 8,3 cm, noire. Au centre du dessus, le grand couvercle carré aux coins
+    très arrondis du lecteur de CD, dans une cuvette ; devant, une bande en pente avec Power à
+    gauche, Reset (allongé) au milieu et Open à droite ; au fond, la fente de cartouche et son
+    volet ; des ouïes sur les côtés, deux ports manette en façade. Sans inscriptions."""
+    black, dark, grey = plastic('#18181b', 0.42), plastic('#09090a', 0.6), plastic('#242428', 0.38)
     W, D = 26.0, 23.0
-    prism('corps', rr(0, 0, W, D, 2.0), 0, 6.8, black, bevel=0.6, top_pts=rr(0.4, 0.4, W - 0.8, D - 0.8, 1.8))
-    prism('couvercle', rr(3.0, 4.0, 15.6, 15.6, 7.0), 6.7, 8.3, black, bevel=0.7)
-    prism('rainure', rr(2.8, 3.8, 16.0, 16.0, 7.2), 6.7, 6.85, dark)
-    for name, y in (('power', 15.0), ('reset', 11.6)):
-        box(name, 20.5, y, 6.7, 24.0, y + 2.0, 7.1, grey, bevel=0.2, r=0.5)
-    cyl('ouvrir', 22.25, 6.8, 6.7, 7.15, 1.2, grey, bevel=0.2)
-    for x in (5.0, 9.2):
-        box('port', x, -0.08, 1.4, x + 3.4, 0.2, 3.2, dark, bevel=0.2)
+    slope = lambda y: 4.6 + (y - 0.6) * (2.4 / 2.8)
+    profile('corps', [(0, 0), (D, 0), (D, 7.0), (3.4, 7.0), (0.6, 4.6), (0, 4.4)], 0, W, black, bevel=0.6, segments=5)
+    # Cuvette et couvercle du lecteur de CD
+    prism('cuvette', rr(4.2, 4.6, 16.4, 15.2, 5.4), 6.9, 7.02, dark, bevel=0.1)
+    prism('couvercle', rr(4.8, 5.2, 15.2, 14.0, 4.9), 6.9, 7.7, black, bevel=0.6, segments=5, top_pts=rr(5.6, 6.0, 13.6, 12.4, 4.3))
+    # Fente de cartouche au fond, et son volet
+    box('fente', 7.0, 20.6, 6.95, 19.0, 22.0, 7.08, dark)
+    box('volet', 7.3, 20.8, 7.0, 18.7, 21.8, 7.12, grey, bevel=0.05)
+    # Boutons sur la bande en pente
+    for name, x0, x1 in (('power', 3.2, 6.0), ('reset', 10.4, 15.6), ('open', 20.0, 22.8)):
+        pts = ccw(rr(x0, 1.3, x1 - x0, 1.3, 0.6))
+        loft(name, [(x, y, slope(y) - 0.1) for x, y in pts], [(x, y, slope(y) + 0.22) for x, y in pts], grey, bevel=0.12)
+    box('voyant', 16.6, 1.7, slope(1.8) - 0.05, 17.0, 2.0, slope(1.8) + 0.08, led('#ff8a1a', 2))
+    # Ouïes des côtés, ports manette en façade
+    for side in (-0.05, W - 0.06):
+        for i in range(12):
+            y = 9.0 + i * 0.9
+            box('ouie', side, y, 2.0, side + 0.11, y + 0.42, 5.6, dark)
+    for x in (8.0, 12.4):
+        front('port', [(x, 1.2), (x + 3.4, 1.2), (x + 3.1, 2.5), (x + 0.3, 2.5)], -0.08, 0.4, dark, bevel=0.06)
 
 
 def dreamcast():
@@ -747,43 +907,84 @@ def dreamcast():
     box('voyant', 15.0 - 0.2, 4.3, 6.55, 15.2, 4.6, 6.65, led('#ff8a2a', 2))
     box('bandeau', 1.2, -0.05, 0.4, W - 1.2, 0.3, 2.6, grey, bevel=0.15)
     for i in range(4):
-        x = 2.0 + i * 4.0
-        box('port', x, -0.1, 0.8, x + 3.0, 0.2, 2.2, dark, bevel=0.2)
+        x = 2.2 + i * 3.9
+        front('port', rr(x, 0.75, 2.7, 1.5, 0.55), -0.12, 0.35, plastic('#f2f1ed', 0.4), bevel=0.1)
+        front('prise', rr(x + 0.6, 1.1, 1.5, 0.8, 0.3), -0.16, 0.0, dark)
 
 
 def xbox():
-    """Xbox (2001) : 32,4 × 26 × 10 cm, noire et massive ; au centre du dessus, le gros bijou rond
-    vert translucide (sans le X) ; tiroir du disque en façade, boutons Power et Éjection, quatre
-    ports manette en bas."""
-    black, dark = plastic('#141416', 0.45), plastic('#060607', 0.6)
-    W, D = 32.4, 26.0
-    prism('corps', rr(0, 0, W, D, 2.5), 0, 8.6, black, bevel=0.8, top_pts=rr(1.5, 1.8, W - 3.0, D - 3.6, 2.0))
-    prism('bosse', rr(9.0, 6.0, 14.4, 14.0, 6.0), 8.4, 10.0, black, bevel=1.0)
-    cyl('bijou', W / 2, 13.0, 9.8, 10.35, 2.6, material('#2e8f2a', 0.12, transmission=0.5, coat=1.0, emit='#1f6e1c', strength=0.4), bevel=0.45)
-    cyl('bijou-cadre', W / 2, 13.0, 9.8, 10.05, 3.3, plastic('#0c0c0e', 0.4), bevel=0.25)
-    box('tiroir', 10.0, -0.05, 4.2, 22.4, 0.3, 5.2, dark, bevel=0.1)
-    for x, c in ((24.5, '#3fd13a'), (27.0, '#8a8a90')):
-        cyl('bouton', x, 1.4, 6.6, 7.0, 0.8, plastic('#2b2b30'), bevel=0.15) if False else box('bouton', x, -0.12, 4.3, x + 1.8, 0.2, 5.1, plastic('#2b2b30'), bevel=0.15)
-    for i in range(4):
-        x = 6.2 + i * 5.4
-        box('port', x, -0.1, 1.3, x + 3.6, 0.2, 2.9, dark, bevel=0.2)
-        box('lueur', x + 1.4, -0.12, 3.1, x + 2.2, 0.2, 3.3, led('#3fd13a', 1.5))
+    """Xbox (2001), d'après les photos studio d'Evan-Amos (Wikimedia Commons) : 32,4 × 26 × 10 cm,
+    noire et massive. Sur le dessus, un grand « X » en relief, ses quatre branches en pente douce
+    jusqu'aux coins, et au centre le gros bijou rond vert translucide (sans le logo) ; en façade, le
+    tiroir du disque au milieu, les boutons Power et Éjection dessous, deux ports manette de
+    chaque côté ; des ouïes sur le côté."""
+    black, dark, grey = plastic('#161618', 0.42), plastic('#060607', 0.6), plastic('#2c2c31', 0.42)
+    W, D, H = 32.4, 26.0, 7.6
+    prism('corps', rr(0, 0, W, D, 1.6), 0, H, black, bevel=0.6)
+    # Les deux diagonales du « X » : bandes en pente qui montent vers le centre
+    cx, cy = W / 2, D / 2
+    for (x0, y0), (x1, y1) in (((1.2, 1.2), (W - 1.2, D - 1.2)), ((W - 1.2, 1.2), (1.2, D - 1.2))):
+        ln = math.hypot(x1 - x0, y1 - y0)
+        nx, ny = -(y1 - y0) / ln, (x1 - x0) / ln
+        steps = 16
+        def band(half, z_end, z_mid):
+            pts_top = [(x0 + (x1 - x0) * k / steps + nx * half, y0 + (y1 - y0) * k / steps + ny * half) for k in range(steps + 1)]
+            pts_bot = [(x0 + (x1 - x0) * k / steps - nx * half, y0 + (y1 - y0) * k / steps - ny * half) for k in range(steps + 1)]
+            zs = [z_end + (z_mid - z_end) * math.sin(math.pi * k / steps) for k in range(steps + 1)]
+            return [(x, y, z) for (x, y), z in zip(pts_top + pts_bot[::-1], zs + zs[::-1])]
+        top = band(1.6, H + 0.2, H + 2.0)
+        loft('x', [(x, y, H - 0.3) for x, y, _ in band(2.6, 0, 0)], top, black, bevel=0.3)
+    # Bijou vert au centre, dans son cadre noir
+    cyl('cadre-bijou', cx, cy, H + 1.6, H + 2.3, 3.6, plastic('#0c0c0e', 0.4), bevel=0.3)
+    cyl('bijou', cx, cy, H + 2.1, H + 2.55, 2.8, material('#2e8f2a', 0.12, transmission=0.5, coat=1.0, emit='#1f6e1c', strength=0.4), bevel=0.4)
+    # Façade : tiroir au milieu, Power et Éjection, deux ports manette de chaque côté
+    box('panneau', 11.8, -0.06, 0.8, 20.6, 0.2, 6.6, plastic('#1d1d20', 0.4), bevel=0.1)
+    box('tiroir', 12.3, -0.12, 5.0, 20.1, 0.2, 5.9, dark, bevel=0.08)
+    fcyl('power', cx, 3.6, -0.18, 0.2, 0.55, grey, bevel=0.08)
+    fcyl('ejection', cx, 2.2, -0.18, 0.2, 0.4, grey, bevel=0.06)
+    for x in (3.4, 7.4, 21.6, 25.6):
+        box('port', x, -0.1, 1.6, x + 3.2, 0.2, 3.4, dark, bevel=0.2)
+        box('lueur', x + 1.2, -0.12, 3.6, x + 2.0, 0.2, 3.8, led('#3fd13a', 1.2))
+    # Ouïes du côté droit
+    for i in range(14):
+        y = 6.0 + i * 1.0
+        box('ouie', W - 0.05, y, 1.4, W + 0.06, y + 0.5, 6.2, dark)
 
 
 def xbox360():
-    """Xbox 360 : 30,9 × 25,8 × 8,3 cm, blanche ; dessus et dessous légèrement creusés, tiroir du
-    disque en façade, bouton rond entouré de l'anneau de lumière verte à droite."""
-    white, grey, dark = plastic('#efefec', 0.38), plastic('#c7c9cc', 0.45), plastic('#2a2a2e', 0.55)
-    W, D = 30.9, 25.8
-    pts = [(0, 0.3), (W, 0.3), (W, 8.0)]
-    curve = [(W - i * W / 12, 8.0 - 0.45 * math.sin(math.pi * i / 12)) for i in range(1, 12)]
-    pts += curve + [(0, 8.0)]
-    front('corps', pts, 0, D, white, bevel=0.6, angle=30)
-    box('pied', 1.5, 1.5, 0, W - 1.5, D - 1.5, 0.4, grey)
-    box('tiroir', 2.0, -0.05, 5.2, 21.0, 0.3, 6.0, grey, bevel=0.1)
-    box('trappe', 22.5, -0.05, 1.2, 28.5, 0.25, 3.4, grey, bevel=0.15)
-    fcyl('anneau', 26.2, 6.0, -0.05, 0.4, 1.2, led('#5ee05a', 2.5))
-    fcyl('bouton', 26.2, 6.0, -0.15, 0.3, 0.85, white, bevel=0.15)
+    """Xbox 360 (premier modèle, blanc), d'après les photos studio d'Evan-Amos (Wikimedia Commons) :
+    30,9 × 25,8 × 8,3 cm. Les deux bouts sont des grilles grises creusées vers l'intérieur, la
+    façade aussi est creusée ; en façade, le tiroir chromé du disque et son bouton d'éjection,
+    les deux trappes des cartes mémoire, le gros bouton Power cerclé de l'anneau de lumière verte,
+    la trappe des prises USB ; des bandes perforées sur le dessus, près des bouts. Sans logo."""
+    white, light, grille = plastic('#f1f1ee', 0.36), plastic('#d4d4d4', 0.4), plastic('#4b5450', 0.62)
+    chrome, dark = metal('#c9cbcf', 0.25), plastic('#1c1c1f', 0.5)
+    W, D, H, end = 30.9, 25.8, 8.3, 1.6
+    fy = lambda z: 0.55 * math.sin(math.pi * min(max((z - 0.3) / (H - 0.6), 0), 1))
+    # Corps blanc : la façade creusée (vue de côté)
+    side = [(0.25, 0), (D - 0.25, 0), (D, 0.3), (D, H - 0.3), (D - 0.25, H), (0.25, H), (0, H - 0.3)]
+    side += [(fy(z), z) for z in [H - 0.3 - k * (H - 0.6) / 12 for k in range(1, 12)]] + [(0, 0.3)]
+    profile('corps', side, end, W - end, white, bevel=0.4)
+    # Les deux bouts : grilles grises creusées (vues de dessus)
+    for x_in, sign in ((end + 0.05, -1), (W - end - 0.05, 1)):
+        outer = [(x_in + sign * (end - 1.25 * math.sin(math.pi * k / 14)), D * k / 14) for k in range(15)]
+        prism('grille', [(x_in, 0.15), (x_in, D - 0.15)] + outer[::-1], 0.35, H - 0.35, grille, bevel=0.15)
+    # Bandes perforées du dessus, près des bouts
+    for x0 in (end + 0.9, W - end - 2.3):
+        for i in range(4):
+            for j in range(22):
+                cyl('trou', x0 + i * 0.42, 2.4 + j * 0.98, H - 0.03, H + 0.01, 0.12, plastic('#a9aaab', 0.5), steps=8)
+    # Façade : tiroir chromé, éjection, trappes, Power et son anneau, trappe USB, fenêtre infrarouge
+    zt = 5.4
+    front('tiroir', rr(3.2, zt - 0.45, 13.4, 0.9, 0.45), fy(zt) - 0.12, fy(zt) + 0.3, chrome, bevel=0.06)
+    fcyl('ejection', 3.6, zt, fy(zt) - 0.16, fy(zt) + 0.3, 0.42, light, bevel=0.06)
+    front('infrarouge', rr(3.1, 3.4, 1.1, 0.5, 0.2), fy(3.6) - 0.08, fy(3.6) + 0.3, dark)
+    for x in (5.0, 9.6):
+        front('trappe-carte', rr(x, 3.2, 3.9, 0.7, 0.35), fy(3.5) - 0.08, fy(3.5) + 0.3, light, bevel=0.05)
+    fcyl('anneau', 21.2, 3.9, fy(3.9) - 0.1, fy(3.9) + 0.3, 1.25, led('#63e05d', 1.2))
+    fcyl('cerclage', 21.2, 3.9, fy(3.9) - 0.12, fy(3.9) + 0.3, 1.12, light)
+    fcyl('power', 21.2, 3.9, fy(3.9) - 0.22, fy(3.9) + 0.3, 0.9, white, bevel=0.12)
+    front('trappe-usb', rr(24.9, 1.9, 1.0, 3.6, 0.5), fy(3.7) - 0.1, fy(3.7) + 0.3, light, bevel=0.06)
 
 
 def xbox_one():
@@ -821,51 +1022,113 @@ def xbox_series_x():
 
 
 def atari2600():
-    """Atari 2600 (« heavy sixer ») : 34 × 23 × 9,5 cm ; dessus noir strié, façade en bois, six
-    interrupteurs argentés sur le devant du dessus, fente de cartouche à l'arrière."""
-    black, wood, dark, silver = plastic('#141416', 0.45), material('#6b3f1d', 0.55), plastic('#080809', 0.6), metal('#c9cbd0', 0.3)
+    """Atari 2600 (« six interrupteurs »), d'après les photos studio d'Evan-Amos (Wikimedia
+    Commons) : 34 × 23 × 7,8 cm, noire, en coin. Devant, une large bande de bois sur toute la
+    largeur, puis le dessus nervuré (nervures parallèles à la façade) qui monte vers l'arrière
+    entre deux bords lisses ; au fond, un plateau surélevé cerclé d'un filet orange : trois
+    interrupteurs chromés de chaque côté et, au milieu, la fente de cartouche. Sans inscriptions."""
+    black, rib, dark = plastic('#161618', 0.45), plastic('#2a2a2e', 0.38), plastic('#09090a', 0.6)
+    wood, grain, silver, orange = material('#7a4a22', 0.5), material('#57321a', 0.55), metal('#d0d2d6', 0.25), plastic('#d2701f', 0.4)
     W, D = 34.0, 23.0
-    profile('corps', [(0, 0), (D, 0), (D, 9.0), (8.0, 9.0), (6.5, 7.5), (0, 5.0)], 0, W, black, bevel=0.3)
-    profile('bois', [(-0.05, 0.6), (0.6, 0.6), (6.6, 7.4), (6.5, 7.6), (-0.05, 5.1)], 0.3, W - 0.3, wood, bevel=0.1)
-    for i in range(10):
-        profile('veine', [(0.0 + i * 0.6, 0.9 + i * 0.6), (0.2 + i * 0.6, 1.1 + i * 0.6), (0.15 + i * 0.6, 1.15 + i * 0.6), (-0.05 + i * 0.6, 0.95 + i * 0.6)], 0.4, W - 0.4, material('#4e2c14', 0.6))
-    for i in range(12):
-        box('strie', 0.8, 9.0 + i * 1.1, 8.98, W - 0.8, 9.4 + i * 1.1, 9.06, dark)
-    for k, x in enumerate((3.5, 7.0, 10.5, 23.5, 27.0, 30.5)):
-        box('levier-fente', x - 0.3, 7.2, 8.9, x + 0.3, 8.6, 9.02, dark)
-        box('levier', x - 0.35, 7.5, 9.0, x + 0.35, 8.1, 10.4, silver, bevel=0.12)
-    box('fente', 11.5, 14.5, 8.95, 22.5, 17.5, 9.4, dark, bevel=0.1)
+    slope = lambda y: 4.4 + (y - 1.2) * (2.2 / 11.2)
+    # Corps : façade basse, dessus en pente, plateau au fond, dos en biais
+    profile('corps', [(0.4, 0.5), (D - 0.2, 0.5), (D - 0.2, 5.6), (20.8, 7.8), (12.6, 7.8), (12.4, 6.6), (1.2, 4.4), (0.2, 4.2)],
+            0, W, black, bevel=0.3)
+    profile('socle', [(1.5, 0), (D - 1.5, 0), (D - 1.5, 0.6), (1.5, 0.6)], 1.5, W - 1.5, dark)
+    # Bande de bois (avec quelques veines) sur toute la façade
+    profile('bois', [(-0.06, 0.8), (0.45, 0.8), (0.25, 4.0), (-0.26, 4.0)], 0.7, W - 0.7, wood, bevel=0.06)
+    for k in range(6):
+        z = 1.1 + k * 0.5
+        profile('veine', [(-0.1 - z * 0.08, z), (0.0, z), (0.0, z + 0.07), (-0.1 - z * 0.08, z + 0.07)], 0.9 + k * 1.3, W - 1.1 - k * 0.9, grain)
+    # Nervures du dessus, entre deux bords lisses un peu plus hauts
+    for i in range(16):
+        y0 = 1.6 + i * 0.68
+        slab('nervure', 1.3, W - 1.3, y0, slope(y0) + 0.14, y0 + 0.34, slope(y0 + 0.34) + 0.14, rib, t=0.2)
+    for x0, x1 in ((0.0, 1.3), (W - 1.3, W)):
+        profile('bord', [(1.0, 4.3), (12.5, 6.5), (12.5, 6.82), (1.0, 4.62)], x0, x1, black, bevel=0.15)
+    # Plateau du fond : filet orange, interrupteurs, fente de cartouche
+    for x0, y0, x1, y1 in ((1.0, 13.2, W - 1.0, 13.32), (1.0, 20.0, W - 1.0, 20.12), (1.0, 13.2, 1.12, 20.12), (W - 1.12, 13.2, W - 1.0, 20.12)):
+        box('filet', x0, y0, 7.78, x1, y1, 7.83, orange)
+    for x in (4.2, 7.6, 11.0, 23.0, 26.4, 29.8):
+        cyl('socle-levier', x, 16.6, 7.75, 7.95, 0.55, dark, bevel=0.08)
+        box('levier', x - 0.22, 16.0, 7.9, x + 0.22, 17.0, 9.1, silver, bevel=0.15, r=0.18)
+    box('cadre-fente', 13.4, 14.4, 7.75, 20.6, 18.6, 7.98, metal('#8c8e93', 0.35), bevel=0.08)
+    box('fente', 13.8, 14.8, 7.8, 20.2, 18.2, 8.02, dark)
 
 
 def pc_engine():
-    """PC Engine : un petit carré blanc de 14 × 14 × 3,8 cm ; la fente des HuCard en façade, son
-    loquet coulissant, l'interrupteur, le port manette ; bord arrière gris."""
-    white, grey, dark = plastic('#f0efea', 0.4), plastic('#8d9096', 0.45), plastic('#1c1c20', 0.55)
-    W, D, H = 14.0, 14.0, 3.8
-    box('corps', 0, 0, 0, W, D, H, white, bevel=0.35)
-    box('dos', 0.3, D - 2.6, H - 0.02, W - 0.3, D - 0.3, H + 0.05, grey, bevel=0.1)
-    box('fente', 2.4, -0.06, 2.1, 11.6, 0.2, 2.6, dark)
-    box('loquet', 3.0, -0.12, 2.8, 7.0, 0.2, 3.3, grey, bevel=0.08)
-    box('interrupteur', 1.0, -0.1, 0.8, 2.6, 0.2, 1.5, plastic('#e08a22', 0.4), bevel=0.08)
-    fcyl('port', 11.6, 1.2, -0.08, 0.2, 0.7, dark)
-    for i in range(6):
-        box('grille', 2.0 + i * 0.5, 4.0, H - 0.02, 2.2 + i * 0.5, 8.0, H + 0.02, plastic('#c9c8c2'))
+    """PC Engine, d'après les photos studio d'Evan-Amos (Wikimedia Commons) : un petit carré
+    blanc de 14 × 14 × 3,8 cm. Au milieu de la façade, un couloir plus bas mène à la fente des
+    HuCard (sombre, au fond) et se termine devant par un creux arrondi pour les doigts ; de part et
+    d'autre, deux épaules plus hautes, striées de grilles ; en façade, l'interrupteur vert à gauche
+    et la prise manette ronde à droite. Sans le logo."""
+    white, shade, dark = plastic('#efeee9', 0.4), plastic('#dcdbd5', 0.45), plastic('#1c1c20', 0.55)
+    W, D, H, low = 14.0, 14.0, 3.8, 3.0
+    # (blocs légèrement décalés les uns des autres : deux faces dans le même plan font des taches
+    # noires au rendu)
+    box('socle', 0.06, 0.06, 0, W - 0.06, D - 0.06, low, white, bevel=0.3)
+    box('arriere', 0.03, 6.4, 0.5, W - 0.03, D - 0.03, H, white, bevel=0.45)
+    for x0, x1 in ((0, 4.3), (W - 4.3, W)):
+        box('epaule', x0, 0, 0.5, x1, 6.8, H - 0.01, white, bevel=0.4)
+    # Couloir de la carte : stries dans le sens de la profondeur, creux pour les doigts devant
+    for i in range(7):
+        x = 4.9 + i * 0.68
+        box('strie', x, 1.9, low - 0.02, x + 0.12, 6.4, low + 0.04, shade)
+    cyl('creux', W / 2, 0.7, low - 0.04, low + 0.01, 1.7, shade, steps=48)
+    front('fente', rr(4.8, low + 0.15, W - 9.6, 0.45, 0.15), 6.32, 6.6, dark)
+    # Grilles des épaules (lames parallèles à la façade)
+    for x0, x1 in ((0.9, 3.6), (W - 3.6, W - 0.9)):
+        for i in range(5):
+            y = 2.4 + i * 0.5
+            box('grille', x0, y, H - 0.04, x1, y + 0.18, H + 0.03, shade)
+    # Interrupteur vert à gauche, prise manette ronde à droite, joint autour
+    box('interrupteur', 0.9, -0.18, 1.0, 2.1, 0.3, 2.2, plastic('#3caa6c', 0.4), bevel=0.08)
+    fcyl('bague', 10.9, 1.5, -0.06, 0.25, 0.75, plastic('#9b9ca1', 0.35))
+    fcyl('port', 10.9, 1.5, -0.1, 0.2, 0.55, dark)
+    box('joint', -0.02, -0.02, 0.48, W + 0.02, D + 0.02, 0.55, shade)
 
 
 def neo_geo():
-    """Neo-Geo AES : 32,5 × 23,7 × 6 cm, noire et plate ; fente de cartouche à l'arrière du
-    dessus (volet), deux ports manette et la fente de carte mémoire en façade, curseurs."""
-    black, dark, grey = plastic('#141416', 0.45), plastic('#070708', 0.6), plastic('#2c2c31', 0.45)
-    W, D, H = 32.5, 23.7, 6.0
-    profile('corps', [(0, 0), (D, 0), (D, H), (3.0, H), (0, H - 1.2)], 0, W, black, bevel=0.35)
-    box('fente', 6.0, 12.0, H - 0.05, 26.5, 18.5, H + 0.1, dark, bevel=0.1)
-    box('volet', 6.4, 12.6, H + 0.05, 26.1, 17.9, H + 0.3, grey, bevel=0.15)
-    for x in (2.5, 8.4):
-        box('port', x, -0.08, 1.4, x + 4.4, 0.2, 3.0, dark, bevel=0.2)
-    box('carte', 20.0, -0.06, 2.2, 29.0, 0.2, 2.6, dark)
-    for x in (16.0, 18.2):
-        box('curseur', x, 1.0, H - 0.1, x + 1.2, 2.4, H + 0.2, grey, bevel=0.1)
-    box('bande', 0, -0.02, 4.2, W, 0.15, 4.4, plastic('#b3122b', 0.45))
+    """Neo-Geo AES, d'après les photos studio d'Evan-Amos (Wikimedia Commons, de trois quarts
+    avant et arrière) : 32,5 × 23,7 × 6 cm, noire, le dessus en pente vers l'avant. Sur le dessus,
+    un grand anneau en hippodrome autour de la fente de cartouche, des ouïes derrière lui, deux
+    rainures qui délimitent le panneau du milieu, et à gauche le gros bouton Reset rond ; en
+    façade, l'interrupteur, deux ports manette, la prise casque et la fente de carte mémoire.
+    Sans inscriptions."""
+    black, dark, ring = plastic('#151517', 0.42), plastic('#070708', 0.6), plastic('#1c1c1f', 0.32)
+    W, D = 32.5, 23.7
+    slope = lambda y: 3.2 + (y - 0.8) * (2.8 / 21.7)
+    profile('corps', [(0, 0), (D, 0), (D, 6.0), (D - 1.2, 6.0), (0.8, 3.2), (0, 3.0)], 0, W, black, bevel=0.4)
+
+    def on_top(name, pts, below, above, mat, bevel=0.0):
+        pts = ccw(pts)
+        return loft(name, [(x, y, slope(y) - below) for x, y in pts], [(x, y, slope(y) + above) for x, y in pts], mat, bevel)
+
+    # Grand anneau en hippodrome : un gros tube arrondi, sans jointure ; la fente de cartouche au
+    # milieu
+    cy, r, xl, xr = 15.2, 4.9, 10.8, 21.7
+    path = [(xl + r * math.cos(math.radians(a)), cy + r * math.sin(math.radians(a))) for a in range(90, 271, 10)]
+    path += [(x, cy - r) for x in (xl + 2.0, (xl + xr) / 2, xr - 2.0)]
+    path += [(xr + r * math.cos(math.radians(a)), cy + r * math.sin(math.radians(a))) for a in range(270, 451, 10)]
+    path += [(x, cy + r) for x in (xr - 2.0, (xl + xr) / 2, xl + 2.0)]
+    sweep('anneau', path, 2.4, 0.9, ring, zfun=lambda x, y: slope(y))
+    on_top('volet', [(xl - 2.4, cy - 1.6), (xr + 2.4, cy - 1.6), (xr + 2.4, cy + 0.2), (xl - 2.4, cy + 0.2)], 0.1, 0.12, ring)
+    on_top('fente', [(xl - 2.6, cy + 0.2), (xr + 2.6, cy + 0.2), (xr + 2.6, cy + 2.2), (xl - 2.6, cy + 2.2)], 0.1, 0.06, dark)
+    # Ouïes au fond, rainures du panneau du milieu
+    for i in range(16):
+        x = 8.6 + i * 0.95
+        on_top('ouie', [(x, 21.4), (x + 0.55, 21.4), (x + 0.55, 22.3), (x, 22.3)], 0.1, 0.03, dark)
+    for x in (6.0, 26.4):
+        on_top('rainure', [(x, 0.9), (x + 0.12, 0.9), (x + 0.12, 10.2), (x, 10.2)], 0.1, 0.03, dark)
+    # Gros bouton Reset rond, à gauche
+    on_top('logement-reset', circle(3.2, 7.4, 1.6, 32), 0.1, 0.05, dark)
+    on_top('reset', circle(3.2, 7.4, 1.2, 32), 0.1, 0.55, glossy('#2c2d36'), bevel=0.4)
+    # Façade : interrupteur, deux ports manette, prise casque, fente de carte mémoire
+    box('interrupteur', 1.4, -0.08, 0.9, 3.2, 0.3, 1.6, plastic('#2a2a2e', 0.45), bevel=0.06)
+    for x in (8.6, 19.2):
+        front('port', [(x, 0.8), (x + 3.2, 0.8), (x + 2.9, 2.1), (x + 0.3, 2.1)], -0.08, 0.4, dark, bevel=0.06)
+    fcyl('casque', 13.6, 1.45, -0.08, 0.3, 0.28, dark)
+    box('carte', 23.4, -0.08, 1.0, 30.4, 0.4, 1.5, dark)
 
 
 CONSOLES = {'PS1': ps1, 'GB': gameboy, 'NES': nes, 'FDS': fds, 'SNES': snes, 'N64': n64, 'GC': gamecube,
@@ -920,7 +1183,9 @@ def scene_for(code):
     cam_data.type = 'ORTHO'
     cam = bpy.data.objects.new('camera', cam_data)
     bpy.context.collection.objects.link(cam)
-    direction = Vector((0.55, -1.0, 0.72)).normalized()
+    # CONSOLES_VIEW="x,y,z" : un autre point de vue (pour comparer le dessin à des photos)
+    view = os.environ.get('CONSOLES_VIEW')
+    direction = Vector([float(v) for v in view.split(',')] if view else (0.55, -1.0, 0.72)).normalized()
     cam.location = center + direction * size * 4
     cam.rotation_euler = (-direction).to_track_quat('-Z', 'Y').to_euler()
     bpy.context.scene.camera = cam

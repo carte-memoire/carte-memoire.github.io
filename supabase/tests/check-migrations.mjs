@@ -488,6 +488,14 @@ const origineDe = (title) => val(`select public.origin(g) as o from public.game 
 await egal('import Wikidata : Diablo vient des États-Unis', origineDe('Diablo'), ['US']);
 await egal('…Darkstone, de France', origineDe('Darkstone'), ['FR']);
 await egal('…un développeur indépendant prend sa nationalité (Chris Sawyer)', val(`select country from public.company where name = 'Chris Sawyer'`), [{ country: 'GB' }]);
+await egal('sorti seulement au Japon, studio de pays inconnu : japonais (Light Fantasy, Super Famicom)', origineDe('Light Fantasy'), ['JP']);
+await egal('…pas un jeu sorti aussi ailleurs (Drakkhen)', origineDe('Drakkhen'), [null]);
+await egal('…ni un jeu sans licence de Taïwan, de Chine ou de Hong Kong (rangé lui aussi en NTSC-J)', val(`
+  select count(*)::int as n from public.game g
+  where g.origin_country is null and public.origin(g) = 'JP'
+    and not exists (select 1 from public.game_developer gd join public.company c on c.id = gd.company_id where gd.game_id = g.id and c.country = 'JP')
+    and exists (select 1 from public.release r join public.release_region rr on rr.release_id = r.id join public.region re on re.id = rr.region_id
+                where r.game_id = g.id and re.code in ('TW', 'CN', 'HK'))`), [{ n: 0 }]);
 await ok('nettoyage', en(ADMIN, `update public.game set origin_country = null where id = $1;`, [jeu]));
 await ok('…des studios de test', en(ADMIN, `delete from public.game_developer where game_id = $1`, [jeu]));
 

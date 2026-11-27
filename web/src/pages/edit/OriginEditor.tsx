@@ -12,10 +12,12 @@ interface OriginInfo {
   origin_country: string | null;
   origin: string | null;
   game_developer: { company: { name: string; country: string | null } }[];
+  release: { zone: string | null; release_region: { region: { code: string } }[] }[];
 }
 
 // Origine du jeu (pays du studio) : déduite des studios s'ils sont tous du même pays connu,
-// sinon à choisir ici (coproduction, studio inconnu, ou cas particulier). Avec la famille
+// sinon le Japon pour un jeu sorti seulement au Japon (public.origin), sinon à choisir ici
+// (coproduction, studio inconnu, ou cas particulier). Avec la famille
 // RPG, le Japon range le jeu parmi les JRPG.
 export function OriginEditor({ gameId, onSaved }: { gameId: number; onSaved: () => void }) {
   const [info, setInfo] = useState<OriginInfo | null>(null);
@@ -24,7 +26,7 @@ export function OriginEditor({ gameId, onSaved }: { gameId: number; onSaved: () 
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
-    const { data } = await supabase.from('game').select('origin_country, origin, game_developer(company(name, country))').eq('id', gameId).maybeSingle();
+    const { data } = await supabase.from('game').select('origin_country, origin, game_developer(company(name, country)), release(zone, release_region(region(code)))').eq('id', gameId).maybeSingle();
     setInfo((data as OriginInfo | null) ?? null);
     setChoice((data as OriginInfo | null)?.origin_country ?? '');
   }, [gameId]);
@@ -38,6 +40,9 @@ export function OriginEditor({ gameId, onSaved }: { gameId: number; onSaved: () 
   const why = studios.length === 0 ? tr('aucun studio connu')
     : countries.includes(null) ? tr("pays d'un studio inconnu")
     : tr('studios de plusieurs pays');
+  // Sans studios d'un même pays connu : un jeu sorti seulement au Japon (toutes ses versions
+  // japonaises, aucun pays de sortie hors du Japon) est japonais d'office
+  const japanOnly = info.release.length > 0 && info.release.every((r) => r.zone === 'NTSC-J' && r.release_region.every((rr) => rr.region.code === 'JP'));
 
   async function save(e: FormEvent) {
     e.preventDefault();
@@ -63,7 +68,7 @@ export function OriginEditor({ gameId, onSaved }: { gameId: number; onSaved: () 
       <label className="field">
         <span className="field-label">{tr('Origine')}</span>
         <select value={choice} onChange={(e) => setChoice(e.target.value)}>
-          <option value="">{deduced ? tr('Déduite des studios : {0}', countryName(deduced)) : tr('Déduite des studios : inconnue ({0})', why)}</option>
+          <option value="">{deduced ? tr('Déduite des studios : {0}', countryName(deduced)) : japanOnly ? tr('Automatique : Japon (sorti seulement au Japon)') : tr('Déduite des studios : inconnue ({0})', why)}</option>
           {ORIGIN_COUNTRIES.map((c) => <option key={c} value={c}>{countryName(c)}</option>)}
         </select>
       </label>

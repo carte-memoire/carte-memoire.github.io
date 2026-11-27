@@ -88,6 +88,8 @@ const BY_TITLE = {
   'Fishing': 'Q16935625', 'Survival game': 'Q21030988', 'Dance video game': 'Q2187138', 'Monster-taming game': 'Q117474613',
   // Relevés sur les jeux Game Boy Color
   'Pinball': 'Q3177954', 'Boxing': 'Q3177953', 'Party': 'Q7888616', 'History of Eastern role-playing video games': 'Q5923834',
+  // Relevés sur les jeux Mega Drive
+  'Falling block puzzle': 'Q54767', 'Role-playing': 'Q744038', 'Professional hockey': 'Q71474750',
 };
 
 // Genres hybrides : mêmes familles que dans la migration genre_families (pour un

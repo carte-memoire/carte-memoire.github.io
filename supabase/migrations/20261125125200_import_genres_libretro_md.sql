@@ -1,0 +1,111 @@
+-- =====================================================================
+-- Carte Mémoire · Genres des jeux Mega Drive encore sans genre, depuis libretro-database
+-- Fichier GÉNÉRÉ par scripts/import-genres-libretro.mjs le 2026-11-26.
+-- Source : libretro-database, metadat/genre (licence CC BY-SA 4.0),
+--   https://github.com/libretro/libretro-database
+--
+-- 90 jeux. Seulement ceux qui n'ont toujours aucun genre (de famille) au moment
+-- de s'appliquer, et jamais un jeu revu par un modérateur. Jeux désignés par leur numéro ET
+-- leur titre (garde-fou).
+-- =====================================================================
+
+insert into public.game_genre (game_id, genre_id)
+select g.id, ge.id
+from (values
+  (14696, 'Party Quiz Mega Q', 'Q11298493', null),
+  (14732, 'Championship Bowling', 'Q868217', null),
+  (14779, 'Pepen ga Pengo', 'Q270948', null),
+  (15028, 'Fushigi no Umi no Nadia', 'Q23916', null),
+  (15034, 'G-LOC: Air Battle', 'Q1610017', null),
+  (15092, 'Fengshen Yingjiechuan', 'Q472055', null),
+  (15138, 'MiG-29: Fighter Pilot', 'Q1610017', null),
+  (15161, 'Marsupilami', 'Q270948', null),
+  (15169, 'Ninja Burai Densetsu', 'Q472055', null),
+  (15186, 'NHK Taiga Drama: Taiheiki', 'Q472055', null),
+  (15323, 'Surging Aura', 'Q744038', null),
+  (15331, 'Super Daisenryaku', 'Q472055', null),
+  (15352, 'The Ottifants', 'Q828322', null),
+  (15379, 'Virtua Fighter 2', 'Q270948', null),
+  (15382, 'Virtual Pinball', 'Q1610017', null),
+  (15415, 'Jurassic Park: Rampage Edition', 'Q828322', null),
+  (15447, 'Ultracore', 'Q4282636', null),
+  (15448, 'Kishi Densetsu', 'Q472055', null),
+  (15452, 'Batman: Revenge of the Joker', 'Q828322', null),
+  (15453, 'Thomas the Tank Engine & Friends', 'Q860750', null),
+  (15461, 'Tony La Russa Baseball', 'Q868217', null),
+  (15468, 'Show do milhão', 'Q11298493', null),
+  (15469, 'Triple Play: Gold Edition', 'Q868217', null),
+  (15472, 'Home Alone', 'Q23916', null),
+  (15476, 'Gunship', 'Q860750', null),
+  (15478, 'International Sensible Soccer', 'Q868217', null),
+  (15480, 'Action 52', 'Q270948', null),
+  (15481, 'Sangokushi Retsuden: Ransei no Eiyuutachi', 'Q1610017', null),
+  (15482, 'Street Fighter II'': Special Champion Edition', 'Q846224', null),
+  (15483, 'Menacer 6-game cartridge', 'Q3965952', null),
+  (15485, 'Arcade Classics', 'Q270948', null),
+  (15486, 'Advanced Daisenryaku: Deutsch Dengeki Sakusen', 'Q472055', null),
+  (15487, 'After Burner II', 'Q4282636', null),
+  (15489, 'Chibi Maruko-chan: Waku Waku Shopping', 'Q472055', null),
+  (15490, 'Chuck Rock II: Son of Chuck', 'Q828322', null),
+  (15491, 'Devilish: The Next Possession', 'Q270948', null),
+  (15493, 'Dragon''s Eye Plus: Shanghai III', 'Q19272838', null),
+  (15494, 'Exile', 'Q744038', null),
+  (15495, 'F1 Circus MD', 'Q860750', null),
+  (15496, 'Fire Mustang', 'Q1044478', null),
+  (15499, 'Hardball ''94', 'Q868217', null),
+  (15503, 'Jack Nicklaus'' Power Challenge Golf', 'Q868217', null),
+  (15504, 'Jeopardy!', 'Q1224999', null),
+  (15506, 'Jeopardy! Sports Edition', 'Q54767', null),
+  (15508, 'Junction', 'Q472055', null),
+  (15509, 'Kick Off 3: European Challenge', 'Q868217', null),
+  (15511, 'La Russa Baseball 95', 'Q868217', null),
+  (15512, 'Lotus Turbo Challenge', 'Q860750', null),
+  (15515, 'Outback Joey', 'Q270948', null),
+  (15516, 'Phantasy Star Fukkokuban', 'Q744038', null),
+  (15517, 'Pirates! Gold', 'Q23916', null),
+  (15520, 'Rainbow Islands Extra', 'Q270948', null),
+  (15521, 'Ransei no Hasha', 'Q472055', null),
+  (15523, 'Risk', 'Q19272838', null),
+  (15524, 'Rugby World Cup ''95', 'Q868217', null),
+  (15525, 'Shadow Dancer: The Secret of Shinobi', 'Q828322', null),
+  (15526, 'Show do Milhão Volume 2', 'Q11298493', null),
+  (15527, 'Slaughter Sport', 'Q846224', null),
+  (15529, 'Snow Bros.', 'Q270948', null),
+  (15530, 'Space Invaders 90', 'Q4282636', null),
+  (15531, 'Street Smart', 'Q270948', null),
+  (15532, 'Summer Challenge', 'Q868217', null),
+  (15533, 'Super Hang-On', 'Q860750', null),
+  (15534, 'Super Kick Off', 'Q868217', null),
+  (15535, 'Syd of Valis', 'Q270948', null),
+  (15536, 'Techno Cop', 'Q828322', null),
+  (15537, 'Twin Cobra: Desert Attack Helicopter', 'Q270948', null),
+  (15539, 'Vapor Trail', 'Q270948', null),
+  (15541, 'Wheel of Fortune', 'Q11298493', null),
+  (15542, 'Wimbledon Championship Tennis', 'Q868217', null),
+  (15543, 'World Class Leaderboard Golf', 'Q868217', null),
+  (15544, 'Arkagis Revolution', 'Q4282636', null),
+  (15545, 'Barver Battle Saga: Tài Kong Zhàn Shì', 'Q744038', null),
+  (15546, 'Blow ''em Out', 'Q270948', null),
+  (15547, 'Cascade', 'Q54767', null),
+  (15548, 'Darius Extra Version', 'Q270948', null),
+  (15552, 'Funny World & Balloon Boy', 'Q270948', null),
+  (15554, 'Hercules 2', 'Q828322', null),
+  (15555, 'Huan Lè Táo Qì Shǔ: Smart Mouse', 'Q54767', null),
+  (15557, 'Miniplanets', 'Q828322', null),
+  (15558, 'Papi Commando', 'Q4282636', null),
+  (15560, 'Switchblade', 'Q270948', null),
+  (15561, 'Star Control', 'Q472055', null),
+  (15563, 'Tanglewood', 'Q828322', null),
+  (15564, 'Thunderbolt II', 'Q1044478', null),
+  (15569, 'Xeno Crisis', 'Q270948', null),
+  (15571, 'Zhuo Guǐ Dà Shi: Ghost Hunter', 'Q54767', null),
+  (15574, 'The Disney Collection : Castle of Illusion Starring Mickey Mouse', 'Q270948', null),
+  (15575, 'EA Sports Double Header', 'Q868217', null),
+  (15578, 'Mega Games 3', 'Q860750', null)
+) as v (game_id, title, genre_qid, genre_name)
+join public.game g on g.id = v.game_id and g.title = v.title
+join public.genre ge on ge.wikidata_id = v.genre_qid or (v.genre_qid is null and ge.name = v.genre_name)
+where not g.genres_reviewed
+  and not exists (select 1 from public.game_genre gg join public.genre x on x.id = gg.genre_id
+                  where gg.game_id = g.id and cardinality(x.families) > 0)
+on conflict do nothing;

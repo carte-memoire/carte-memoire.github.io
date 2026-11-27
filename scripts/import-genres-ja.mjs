@@ -110,6 +110,26 @@ for (const page of PAGES) {
   for (const line of cache.lists[page].split('\n')) {
     const heading = /^=+\s*(\d{4})年/.exec(line);
     if (heading) { year = Number(heading[1]); continue; }
+    // Liste Mega Drive : une seule page, les dates japonaise, nord-américaine, européenne et
+    // brésilienne en {{dts}}, puis le titre (« {{ubl|[[アレックスキッド 天空魔城]]|Alex Kidd…}} » :
+    // le titre japonais d'abord), l'éditeur et les remarques. Seuls les jeux sortis au Japon (date
+    // japonaise complète) comptent ici
+    const dts = /^\|\s*(?:<span[^>]*><\/span>)?\s*\{\{\s*dts\s*\|\s*(\d{4})\s*\|\s*(\d{1,2})\s*\|\s*(\d{1,2})\s*\}\}(.*)$/i.exec(line);
+    if (dts) {
+      const cells = dts[4].split('||');
+      if (cells.length < 6) continue;
+      const titleCell = cells[4].replace(/\{\{\s*ubl\s*\|\s*(\[\[[^\]]*\]\]|[^|{}]*)[^{}]*\}\}/i, '$1');
+      const link = /\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|([^\]]*))?\]\]/.exec(titleCell);
+      jaRows.push({
+        date: `${dts[1]}-${dts[2].padStart(2, '0')}-${dts[3].padStart(2, '0')}`,
+        title: clean(titleCell.split(/<br\s*\/?>/i)[0]),
+        article: link ? link[1].trim() : null,
+        anchorOnly: Boolean(link && /#/.test(titleCell.slice(link.index, link.index + link[0].length))),
+        publisher: clean(cells[5]),
+        notes: clean(cells.slice(6).join(' ')),
+      });
+      continue;
+    }
     // Listes Nintendo (Famicom, Super Famicom, Game Boy) : une seule page, la date japonaise
     // complète, puis les dates nord-américaine et européenne, le titre, l'éditeur et les
     // remarques (« |1983年7月15日||…||…||[[ポパイ]]||任天堂||… »)

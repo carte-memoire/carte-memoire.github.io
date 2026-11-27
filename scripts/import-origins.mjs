@@ -188,19 +188,19 @@ writeFileSync(join(ROOT, 'supabase', 'migrations', file), `-- ==================
 -- Seulement les réponses uniques ; rien de ce qui est déjà renseigné n'est remplacé.
 -- =====================================================================
 
-update public.company c
+${companyCountry.size ? `update public.company c
 set country = v.country
 from (values
 ${values(companyCountry)}
 ) as v (wikidata_id, country)
 where c.wikidata_id = v.wikidata_id and c.country is null;
-
+` : '-- (aucun studio à compléter : une liste vide serait refusée)\n'}
 -- Après les studios : on ne complète que les jeux dont l'origine reste inconnue
-update public.game g
+${gameOrigin.size ? `update public.game g
 set origin_country = v.country
 from (values
 ${values(gameOrigin)}
 ) as v (wikidata_id, country)
 where g.wikidata_id = v.wikidata_id and g.origin_country is null and public.origin(g) is null;
-`);
+` : '-- (aucun jeu à compléter)\n'}`);
 console.log(`\nMigration écrite : supabase/migrations/${file}`);
