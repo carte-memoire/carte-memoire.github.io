@@ -20,6 +20,7 @@ import { spineKind } from '../components/Spine';
 import { ReportDialog } from '../components/ReportDialog';
 import { GameSkeleton } from '../components/Skeleton';
 import { PriceSummary } from '../components/PriceSummary';
+import { saleSearches } from '../lib/market';
 // Caméra, recadrage, liaison avec le téléphone : chargés seulement à l'ouverture de la fenêtre
 const CoverProposal = lazy(() => loadOrReload(() => import('../components/CoverProposal')).then((m) => ({ default: m.CoverProposal })));
 const SuggestCorrection = lazy(() => loadOrReload(() => import('../components/SuggestCorrection')).then((m) => ({ default: m.SuggestCorrection })));
@@ -513,6 +514,19 @@ export function GamePage() {
                         <dd><PriceSummary prices={pricesOf(r)} /></dd>
                       </>
                     )}
+                    {/* La cote : les ventes réellement conclues sur les sites de vente de la région de la
+                        version (lib/market.ts), ouvertes chez eux ; le site n'affiche ni ne garde ces prix */}
+                    <dt title={tr("Les objets réellement vendus ces derniers mois, au prix payé par l'acheteur, sur le site de vente de la région de cette version. La page s'ouvre chez eux, dans un nouvel onglet : Carte Mémoire n'affiche ni ne conserve ces prix.")}>
+                      {tr('Cote du marché')}
+                    </dt>
+                    <dd className="market-links">
+                      {saleSearches(r, game.title).map((s) => (
+                        <a key={s.site} href={s.url} target="_blank" rel="noopener noreferrer nofollow" className="button button-small market-link">
+                          {tr('Voir les ventes conclues sur {0}', s.name)} <span aria-hidden="true">↗</span>
+                          <span className="sr-only">{tr('(nouvel onglet)')}</span>
+                        </a>
+                      ))}
+                    </dd>
                     {codesOf(r).length > 0 && (
                       <>
                         <dt>{tr('Code-barres')}</dt>

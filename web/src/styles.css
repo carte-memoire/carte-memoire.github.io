@@ -3213,3 +3213,8 @@ button.proposed-cover-image { padding: 0; font: inherit; color: inherit; cursor:
   }
 }
 
+
+/* Cote du marché (fiche) : un bouton par site de vente, vers les objets vendus ; on voit tout de
+   suite que la page s'ouvre ailleurs (flèche ↗) */
+.market-links { display: flex; flex-wrap: wrap; gap: 6px; }
+.market-link { gap: 4px; }
