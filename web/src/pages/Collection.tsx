@@ -438,7 +438,7 @@ export function Collection() {
             const pull = () => setPulled({ item, view: {
               from, release: item.release, src: path ? coverUrl(path) : null,
               meta: [consoleName(code), zoneLabel(item.release.zone), notableEdition(item.release) ? editionLabel(item.release) : null, item.status === 'owned' ? contentText(item) : tr('Recherché')].filter(Boolean).join(' · '),
-              gameHref: gamePath(item.release.game),
+              gameHref: gamePath(item.release.game), spineCard: item.has_spine_card,
             } });
             if (meuble?.style.furniture !== 'vitrine') return pull();
             setOpenVitrine(meuble.id);

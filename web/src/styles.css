@@ -1346,6 +1346,35 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .spine-ps2.spine-region-us, .spine-ps2.spine-region-us.is-reissue { background: linear-gradient(90deg, #18181b, #0b0b0d 45%, #141417); color: #f2f2f2; }
 .spine-ps2.spine-region-us.is-reissue .spine-band { background: #c4122f; }
 .spine-ps1.is-reissue .spine-mark { border-color: rgba(0, 0, 0, 0.55); }
+/* PS1 américaine (boîtier 3D d'une version NTSC-U), d'après des photos de boîtiers : la tranche
+   noire du verso ; en haut, l'étiquette blanche « NTSC U/C » (texte noir, de haut en bas), verte
+   « GREATEST HITS » pour une réédition ; le titre centré, en capitales grasses, de la couleur du
+   logo du jeu (--ink, Spine.tsx) ; le code SLUS en petit, en bas, de haut en bas */
+.spine-ps1.spine-region-us, .spine-ps1.spine-region-us.is-reissue { background: linear-gradient(90deg, #17171a, #0a0a0c 45%, #141417); color: #f2f2f2; }
+.spine-ps1.spine-region-us .spine-band { height: auto; padding-top: calc(var(--spine-w) * 0.3); }
+.spine-ps1.spine-region-us .spine-mark {
+  writing-mode: vertical-rl; width: auto; aspect-ratio: auto; border: 0; border-radius: 1px;
+  padding: calc(var(--spine-w) * 0.07) calc(var(--spine-w) * 0.08); background: #f4f4f2; color: #111;
+  font: 700 calc(var(--spine-w) * 0.2) / 1 system-ui, sans-serif; letter-spacing: 0.1em; white-space: nowrap;
+}
+.spine-ps1.spine-region-us.is-reissue .spine-mark { background: #43d14f; color: #fff; font-weight: 800; letter-spacing: 0.06em; }
+.spine-ps1.spine-region-us .spine-title { color: var(--ink, #fff); text-align: center; padding-top: 0; }
+.spine-ps1.spine-region-us .spine-code {
+  writing-mode: vertical-rl; white-space: nowrap; padding-bottom: calc(var(--spine-w) * 0.3);
+  font: 600 calc(var(--spine-w) * 0.17) / 1 system-ui, sans-serif; letter-spacing: 0.04em; color: #dcdcdc;
+}
+/* PS1 japonaise : sur la tranche, la bande cartonnée (obi), d'après des photos : blanche, en haut
+   le carré noir de la marque, le titre en noir de haut en bas (sans capitales forcées : souvent
+   en japonais), le code SLPS en bas ; sans obi, la tranche du verso, aux couleurs du jeu
+   (--obi-back, --obi-text, CaseViewer.tsx) */
+.spine-ps1.spine-region-jp, .spine-ps1.spine-region-jp.is-reissue { background: var(--obi-back, #1c1c20); color: var(--obi-text, #fff); }
+.has-obi .cv-spine .spine-ps1.spine-region-jp { background: linear-gradient(90deg, #e6e5e1, #fbfbf9 45%, #e2e1dd); color: #111; }
+.spine-ps1.spine-region-jp .spine-band { height: auto; padding: calc(var(--spine-w) * 0.12) 0 calc(var(--spine-w) * 0.1); }
+.spine-ps1.spine-region-jp .spine-mark { border: 0; background: #0e0e10; color: #fff; width: calc(var(--spine-w) * 0.78); font-size: calc(var(--spine-w) * 0.26); }
+.spine-ps1.spine-region-jp .spine-title {
+  text-transform: none; letter-spacing: 0.02em; padding-top: calc(var(--spine-w) * 0.1);
+  font-family: system-ui, 'Hiragino Sans', 'Yu Gothic', 'Meiryo', sans-serif; font-weight: 700;
+}
 /* Pack PlayStation avec Multitap (cases.ts) : boîte en carton aux couleurs du jeu (Spine.tsx),
    la marque, le titre en grand, puis « + MULTI TAP » sur un bandeau sombre, en bas */
 .spine-ps1.is-multitap {
@@ -2025,6 +2054,39 @@ body.is-shelf-dragging, body.is-shelf-dragging * { cursor: grabbing !important; 
     linear-gradient(180deg, rgba(230, 234, 245, 0.55) 0 22%, #101013 22% 78%, rgba(230, 234, 245, 0.55) 78%);
 }
 .cv-ps1 .cv-side { background: #0b0b0d; box-shadow: inset 0 0 0 1px rgba(230, 234, 245, 0.45); }
+/* Charnière de la face : les boîtiers japonais ont des nervures verticales (ci-dessus). Les
+   américains, d'après la photo d'un boîtier d'origine (Akuji the Heartless, 9,3 px par mm) : de
+   gauche à droite, le bord transparent du couvercle, le plateau noir et sa colonne d'alvéoles ovales
+   en creux (≈ 5 mm sur 1,4 mm, une tous les 2,9 mm, soit ≈ 43 sur la hauteur : gris moyen, le
+   bord du bas clair, le haut dans l'ombre), puis la gouttière transparente de la charnière, rayée de clair ; la jaquette commence à
+   12 mm du bord. Un motif SVG d'un pas (12,1 × 2,9 mm), répété sur toute la hauteur */
+.cv-ps1-us .cv-hinge {
+  width: 8.5%;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 121 29'%3E%3Crect width='121' height='29' fill='%2308080a'/%3E%3Crect width='14' height='29' fill='%23c9ced8' fill-opacity='0.3'/%3E%3Crect x='13' width='1.5' height='29' fill='%23ffffff' fill-opacity='0.35'/%3E%3Cellipse cx='53' cy='15.4' rx='26' ry='7.4' fill='%23686c76'/%3E%3Cellipse cx='53' cy='14.4' rx='25' ry='6.6' fill='%2333363e'/%3E%3Cellipse cx='53' cy='12.6' rx='21' ry='4.2' fill='%2322242a'/%3E%3Cellipse cx='53' cy='11.4' rx='14' ry='2' fill='%23141418'/%3E%3Crect x='92' width='29' height='29' fill='%23b9bfca' fill-opacity='0.14'/%3E%3Crect x='94' width='2.5' height='29' fill='%23ffffff' fill-opacity='0.38'/%3E%3Crect x='103' width='1.5' height='29' fill='%23ffffff' fill-opacity='0.2'/%3E%3Crect x='112' width='3' height='29' fill='%23dfe3ea' fill-opacity='0.3'/%3E%3Crect x='119.5' width='1.5' height='29' fill='%23000000' fill-opacity='0.5'/%3E%3C/svg%3E") left top / 100% auto repeat-y, #08080a;
+}
+.cv-ps1-us .cv-front .cv-inlay { left: 8.5%; right: 2%; }
+/* L'obi (PS1 japonaise, CaseViewer.tsx) : son rabat sur la face, par-dessus la charnière et le bord
+   de la jaquette, aux couleurs du jeu ; en haut, l'étiquette blanche « NTSC J » ; le titre de haut
+   en bas. Au dos, son autre rabat, côté charnière */
+.cv-obi {
+  left: 0; top: 0; bottom: 0; width: 13%; display: flex; flex-direction: column; align-items: center; gap: calc(var(--case-h) * 0.025);
+  padding-top: calc(var(--case-h) * 0.04); overflow: hidden; color: var(--obi-text, #fff);
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.2), transparent 35%, rgba(255, 255, 255, 0.06)), var(--obi-back, #c8202a);
+  box-shadow: 1px 0 2px rgba(0, 0, 0, 0.45);
+}
+.cv-obi-label {
+  position: static; padding: calc(var(--case-h) * 0.008) calc(var(--case-h) * 0.01); background: #f4f4f2; color: #111;
+  font: 700 calc(var(--case-h) * 0.03) / 1 system-ui, sans-serif; letter-spacing: 0.04em; white-space: nowrap;
+}
+.cv-obi-title {
+  position: static; flex: 1 1 auto; min-height: 0; overflow: hidden; writing-mode: vertical-rl; white-space: nowrap;
+  font: 800 calc(var(--case-h) * 0.05) / 1.1 system-ui, 'Hiragino Sans', 'Yu Gothic', 'Meiryo', sans-serif;
+}
+.cv-obi-back { left: auto; right: 0; width: 15%; padding: 0; }
+/* PS1 japonaise : boîtier de 142 × 130 mm pour un livret de 120 mm : la charnière nervurée plus
+   large à gauche, une marge de plastique en haut et en bas */
+.cv-ps1-jp .cv-hinge { width: 9.5%; }
+.cv-ps1-jp .cv-front .cv-inlay { left: 12%; right: 2.2%; top: 3.8%; bottom: 3.8%; }
 /* PS1 Europe (PAL), d'après photos : boîtier plus épais ; sur la face, la charnière noire
    (≈ 13 mm) où « PlayStation » est moulé dans le plastique, lu de bas en haut ; sur les
    bords, cette charnière noire au bout du plastique clair */

@@ -90,6 +90,21 @@ function packSpine(title: string): CSSProperties {
   return { ['--pack-back' as string]: back, ['--pack-text' as string]: text } as CSSProperties;
 }
 
+// PS1 américaine (boîtier 3D d'une version NTSC-U) : la tranche noire du verso, d'après des photos
+// de boîtiers : le titre centré, en capitales, de la couleur du logo du jeu (blanc le plus souvent,
+// jaune, rouge, orange), toujours la même pour un même titre
+const PS1_US_INKS = ['#ffffff', '#ffffff', '#ffffff', '#f5d214', '#ef3b2f', '#f59a23'];
+function ps1UsInk(title: string): string {
+  return PS1_US_INKS[titleHash(title) % PS1_US_INKS.length];
+}
+
+// PS1 japonaise : la bande cartonnée (obi) glissée sur la tranche ; son rabat sur la face est aux
+// couleurs du jeu (les mêmes paires fond / texte que les boîtes en carton)
+export function obiColors(title: string): CSSProperties {
+  const [back, text] = N64_SPINES[titleHash(title) % N64_SPINES.length];
+  return { ['--obi-back' as string]: back, ['--obi-text' as string]: text } as CSSProperties;
+}
+
 function titleFit(kind: string, title: string): { fit: number; twoLines: boolean } {
   const capacity = CAPACITY[kind] ?? 28;
   const fit = Math.min(1, capacity / title.length);
@@ -171,12 +186,15 @@ export function SpineFace({ release, region }: { release: SpineRelease; region?:
   return (
     <span className={`spine-face spine-${kind}${release.platform.short_name === 'GBC' ? ' is-gbc' : ''}${release.platform.short_name === 'GBA' ? ' is-gba' : ''}${reissue ? ' is-reissue' : ''}${pack ? ' is-multitap' : ''}${region ? ` spine-region-${region}` : ''}`} aria-hidden="true"
       style={pack ? packSpine(release.local_title) : kind === 'gb' ? gbSpine(release.local_title) : kind === 'md' ? mdSpine(release.local_title) : kind === 'n64' ? n64Spine(release.local_title)
-        : kind === 'nes' || kind === 'snes' ? ({ ['--ink' as string]: nesInk(release.local_title) } as CSSProperties) : undefined}>
+        : kind === 'nes' || kind === 'snes' ? ({ ['--ink' as string]: nesInk(release.local_title) } as CSSProperties)
+          : kind === 'ps1' && region === 'us' ? ({ ['--ink' as string]: ps1UsInk(release.local_title) } as CSSProperties) : undefined}>
       <span className="spine-band">
         {/* Super Nintendo : le nom de la console en texte simple, à la place de son logo
             (Super Famicom au Japon) */}
         {/* Mega Drive : « GENESIS » sur un boîtier américain */}
-        <span className="spine-mark">{kind === 'snes' ? (region === 'jp' ? 'SUPER FAMICOM' : 'SUPER NES') : kind === 'n64' ? 'NINTENDO 64' : kind === 'gb' ? ({ GBC: 'GAME BOY COLOR', GBA: 'GAME BOY ADVANCE' }[release.platform.short_name] ?? 'GAME BOY') : kind === 'md' ? (region === 'us' ? 'GENESIS' : 'MEGA DRIVE') : release.platform.short_name}</span>
+        {/* PS1 américaine : l'étiquette blanche « NTSC U/C » en haut, ou l'étiquette verte
+            « GREATEST HITS » d'une réédition */}
+        <span className="spine-mark">{kind === 'ps1' && region === 'us' ? (reissue ? 'GREATEST HITS' : 'NTSC U/C') : kind === 'snes' ? (region === 'jp' ? 'SUPER FAMICOM' : 'SUPER NES') : kind === 'n64' ? 'NINTENDO 64' : kind === 'gb' ? ({ GBC: 'GAME BOY COLOR', GBA: 'GAME BOY ADVANCE' }[release.platform.short_name] ?? 'GAME BOY') : kind === 'md' ? (region === 'us' ? 'GENESIS' : 'MEGA DRIVE') : release.platform.short_name}</span>
         {/* PS2 : sous la marque, l'étiquette PAL (en Europe seulement) puis le nom de la
             console à la verticale, en texte simple (pas de logo) */}
         {kind === 'ps2' && <>{!region && <span className="spine-pal">PAL</span>}<span className="spine-console">PlayStation 2</span></>}
@@ -187,7 +205,7 @@ export function SpineFace({ release, region }: { release: SpineRelease; region?:
       {/* La place du code est toujours gardée en bas, même sans code (laissée vide) : le titre
           ne descend jamais dessus */}
       {pack ? null : code
-        ? <span className="spine-code">{code[0]}<br />{code[1]}</span>
+        ? <span className="spine-code">{kind === 'ps1' && region === 'us' ? `${code[0]}-${code[1]}` : <>{code[0]}<br />{code[1]}</>}</span>
         : <span className="spine-code is-empty">SLES<br />00000</span>}
     </span>
   );

@@ -1,6 +1,6 @@
 import { useEffectEvent, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { SpineFace, spineKind } from './Spine';
+import { obiColors, SpineFace, spineKind } from './Spine';
 import { CameraIcon } from './Cover';
 import { prefersReducedMotion } from '../lib/motion';
 import { isMultitapPack } from '../lib/cases';
@@ -10,12 +10,15 @@ import { tr } from '../lib/i18n';
 // pour montrer sa jaquette, au centre de l'écran. Il suit un peu la souris (on le fait
 // tourner) ; à la fermeture, il retourne à sa place sur l'étagère. Boîtiers au format
 // européen, aux proportions réelles : CD 142 × 125 × 10,4 mm, DVD 135 × 190 × 14 mm.
-// PS1 : deux formats. Europe (PAL) : boîtier plus épais, charnière noire avec
-// « PlayStation » moulé ; Amérique et Japon : boîtier CD plat à charnière transparente.
+// PS1 : trois formats. Europe (PAL) : boîtier épais, charnière noire avec « PlayStation »
+// moulé ; Amérique du Nord : boîtier CD plat, charnière noire à alvéoles ; Japon : boîtier
+// presque aussi épais que l'européen, charnière à nervures verticales, et la bande cartonnée (obi).
 const CASE_MM: Record<string, { w: number; h: number; d: number }> = {
   // Mesures relevées sur un boîtier PAL : 143 × 130 × 17 mm
   'ps1-pal': { w: 143, h: 130, d: 17 },
-  'ps1-flat': { w: 142, h: 125, d: 10.4 },
+  // Amérique du Nord : boîtier CD d'un disque, 142 × 125 × 10 mm ; Japon : 142 × 130 × 16 mm
+  'ps1-us': { w: 142, h: 125, d: 10 },
+  'ps1-jp': { w: 142, h: 130, d: 16 },
   // PS2 : boîtier DVD (135 × 190 × 14 mm) dans toutes les régions ; seuls la matière et la
   // tranche changent : bleu translucide en Europe, noir en Amérique du Nord et au Japon
   ps2: { w: 135, h: 190, d: 14 },
@@ -77,6 +80,8 @@ export interface Pulled {
   gameHref?: string;
   // Sorti d'une jaquette (fiche d'un jeu) plutôt que d'une tranche : il part de face
   fromCover?: boolean;
+  // PS1 japonaise : l'exemplaire a-t-il sa bande cartonnée (obi) ? Sans réponse : oui, comme vendu
+  spineCard?: boolean | null;
 }
 
 
@@ -92,15 +97,18 @@ export function CaseViewer({ pulled, onClose, onEdit, onPropose }: { pulled: Pul
   const spot = useRef(pulled.source);
   const kind = spineKind(pulled.release.platform.short_name) ?? 'ps1';
   const pack = isMultitapPack(pulled.release.platform.short_name, pulled.release.edition_type, pulled.release.edition_name);
-  const format = pack ? 'ps1-multitap' : kind === 'ps1' ? (!pulled.release.zone || pulled.release.zone === 'PAL' ? 'ps1-pal' : 'ps1-flat')
+  const format = pack ? 'ps1-multitap' : kind === 'ps1' ? (pulled.release.zone === 'NTSC-U' ? 'ps1-us' : pulled.release.zone === 'NTSC-J' ? 'ps1-jp' : 'ps1-pal')
     : kind === 'ps2' ? ps2Format(pulled.release.zone)
       : kind === 'nes' ? (pulled.release.zone === 'NTSC-J' ? 'nes-jp' : 'nes')
         : kind === 'n64' ? (pulled.release.zone === 'NTSC-J' ? 'n64-jp' : 'n64')
         : kind === 'snes' ? (pulled.release.zone === 'NTSC-J' ? 'snes-jp' : 'snes')
           : kind === 'gb' ? (pulled.release.zone === 'NTSC-J' ? (pulled.release.platform.short_name === 'GBA' ? 'gba-jp' : 'gb-jp') : 'gb') : kind;
   // Tranche dessinée selon la région du boîtier (sur l'étagère, toujours au format européen)
-  const region = format === 'ps2-us' || (kind === 'md' && pulled.release.zone === 'NTSC-U') ? 'us'
-    : format === 'ps2-jp' || format === 'nes-jp' || format === 'snes-jp' || format === 'n64-jp' || format === 'gb-jp' || format === 'gba-jp' || (kind === 'md' && pulled.release.zone === 'NTSC-J') ? 'jp' : undefined;
+  const region = format === 'ps2-us' || format === 'ps1-us' || (kind === 'md' && pulled.release.zone === 'NTSC-U') ? 'us'
+    : format === 'ps1-jp' || format === 'ps2-jp' || format === 'nes-jp' || format === 'snes-jp' || format === 'n64-jp' || format === 'gb-jp' || format === 'gba-jp' || (kind === 'md' && pulled.release.zone === 'NTSC-J') ? 'jp' : undefined;
+  // PS1 japonaise : la bande cartonnée (obi) glissée sur la tranche, avec ses rabats sur la face et
+  // le dos (sauf si l'exemplaire ne l'a plus)
+  const obi = format === 'ps1-jp' && pulled.spineCard !== false;
   // Boîte Super Famicom dont l'illustration est imprimée de côté (Square : Final Fantasy VI,
   // Chrono Trigger…) : la jaquette, plus large que haute, est tournée d'un quart de tour
   const [sideways, setSideways] = useState(false);
@@ -189,14 +197,15 @@ export function CaseViewer({ pulled, onClose, onEdit, onPropose }: { pulled: Pul
   const face = (style: CSSProperties) => ({ ...style, position: 'absolute' } as CSSProperties);
   const title = pulled.release.local_title;
   return (
-    <dialog ref={dialog} className={`case-viewer cv-${pack ? 'pack' : kind} cv-${format}`} aria-label={title}
+    <dialog ref={dialog} className={`case-viewer cv-${pack ? 'pack' : kind} cv-${format}${region ? ` cv-region-${region}` : ''}${obi ? ' has-obi' : ''}`} aria-label={title}
       onCancel={(event) => { event.preventDefault(); close(); }}
       onClick={(event) => { if (event.target === event.currentTarget) close(); }}>
       <div className="cv-stage" onPointerMove={follow} onClick={(event) => { if (event.target === event.currentTarget) close(); }}>
         <div ref={shadow} className="cv-shadow" aria-hidden="true"
           style={{ width: w * 1.15, height: Math.max(16, h * 0.09), marginLeft: -w * 0.575, marginTop: h / 2 + h * 0.03 }} />
         <div ref={box} className="cv-box" style={{ width: w, height: h, marginLeft: -w / 2, marginTop: -h / 2, ['--case-h' as string]: `${h}px`, ['--round' as string]: `${round}px`,
-            ...(pack && pulled.src ? { ['--pack-art' as string]: `url("${pulled.src}")` } : {}) } as CSSProperties}>
+            ...(pack && pulled.src ? { ['--pack-art' as string]: `url("${pulled.src}")` } : {}),
+            ...(format === 'ps1-jp' ? obiColors(pulled.release.local_title) : {}) } as CSSProperties}>
           <div ref={turn} className="cv-turn">
             {/* Face : la jaquette sous le plastique (couvercle transparent du boîtier CD,
                 pochette du boîtier DVD), avec ce qu'on voit autour d'elle */}
@@ -225,6 +234,8 @@ export function CaseViewer({ pulled, onClose, onEdit, onPropose }: { pulled: Pul
                     nous, sans le logo de la marque ; ses couleurs changent quand le boîtier tourne */}
                 {format === 'ps1-pal' && pulled.release.zone === 'PAL' && <span className="cv-holo" aria-hidden="true"><span className="cv-holo-text" /><span className="cv-holo-ghost" /><span className="cv-holo-window"><span className="cv-holo-emblem" /></span><span className="cv-holo-big" /></span>}
               </span>
+              {/* L'obi, côté face : son rabat aux couleurs du jeu, l'étiquette « NTSC J » en haut, le titre */}
+              {obi && <span className="cv-obi"><span className="cv-obi-label">NTSC J</span><span className="cv-obi-title">{title}</span></span>}
               <span className="cv-gloss" />
             </div>
             {/* Dos : le verso n'est pas dans la base ; on voit le dos de la jaquette, sombre (Famicom
@@ -232,6 +243,7 @@ export function CaseViewer({ pulled, onClose, onEdit, onPropose }: { pulled: Pul
             <div className="cv-face cv-back" style={face({ width: w, height: h, transform: `rotateY(180deg) translateZ(${d / 2}px)` })}>
               {kind === 'fds' && <span className="cv-diskette" />}
               <span className="cv-inlay cv-back-inlay"><span>{title}</span>{pulled.release.product_code && <small>{pulled.release.product_code}</small>}</span>
+              {obi && <span className="cv-obi cv-obi-back" />}
               <span className="cv-gloss" />
             </div>
             <div className="cv-face cv-spine" style={face({ width: d, height: h - 2 * round, top: round, left: (w - d) / 2, transform: `rotateY(-90deg) translateZ(${w / 2}px)`, ['--spine-w' as string]: `${d}px` })}>
@@ -241,7 +253,7 @@ export function CaseViewer({ pulled, onClose, onEdit, onPropose }: { pulled: Pul
             {/* Côté ouverture : la seconde tranche du verso (boîtier CD), le plastique lisse et sa rainure (DVD) */}
             <div className="cv-face cv-side" style={face({ width: d, height: h - 2 * round, top: round, left: (w - d) / 2, transform: `rotateY(90deg) translateZ(${w / 2}px)`, ['--spine-w' as string]: `${d}px` })}>
               {/* Boîte en carton : le titre aussi sur l'autre tranche */}
-              {(kind === 'ps1' || kind === 'nes' || kind === 'snes' || kind === 'n64' || kind === 'gb') && <SpineFace release={pulled.release} region={kind === 'ps1' ? undefined : region} />}
+              {(kind === 'ps1' || kind === 'nes' || kind === 'snes' || kind === 'n64' || kind === 'gb') && <SpineFace release={pulled.release} region={region} />}
               {/* PS2 : la rainure où l'on glisse les doigts pour ouvrir le boîtier */}
               {kind === 'ps2' && <span className="cv-notch" />}
               <span className="cv-gloss" />
