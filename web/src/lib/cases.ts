@@ -6,7 +6,7 @@
 // boîtier CD et l'édition « Standard ».
 import { tr } from './i18n';
 
-export type CaseFormat = 'cd' | 'dvd' | 'carton' | 'carton-jp' | 'carton-snes' | 'carton-sfc' | 'carton-gb' | 'carton-gb-jp' | 'disquette' | 'boitier-md' | 'carton-n64-jp' | 'free';
+export type CaseFormat = 'cd' | 'dvd' | 'carton' | 'carton-jp' | 'carton-snes' | 'carton-sfc' | 'carton-gb' | 'carton-gb-jp' | 'disquette' | 'boitier-md' | 'carton-n64-jp' | 'carton-gba-jp' | 'free';
 export type BoxFormat = Exclude<CaseFormat, 'free'>;
 
 // Largeur / hauteur du recto : boîtier CD 120 × 120 mm, boîtier DVD 135 × 190 mm, boîte en
@@ -18,10 +18,12 @@ export type BoxFormat = Exclude<CaseFormat, 'free'>;
 // boîtier en plastique de la Mega Drive, 133 × 187 mm (les scans des trois régions ont le même
 // rapport, 0,71, à peu près celui d'un boîtier DVD) ; Nintendo 64 : la boîte couchée de la Super
 // Nintendo en Amérique du Nord et en Europe (mêmes protections de collectionneurs, scans 1,43), et au
-// Japon la même boîte debout (127 × 179 mm, scans 0,715)
+// Japon la même boîte debout (127 × 179 mm, scans 0,715) ; Game Boy Advance : la petite boîte carrée
+// de la Game Boy en Amérique du Nord et en Europe (scans 1,0), une petite boîte couchée au Japon
+// (scans 1,57 ; environ 133 × 85 mm, à confirmer)
 export const CASE_RATIO: Record<BoxFormat, number> = {
   cd: 1, dvd: 135 / 190, carton: 127 / 178, 'carton-jp': 142 / 98, 'carton-snes': 179 / 127, 'carton-sfc': 105 / 190,
-  'carton-gb': 1, 'carton-gb-jp': 98 / 114, disquette: 88 / 98, 'boitier-md': 133 / 187, 'carton-n64-jp': 127 / 179,
+  'carton-gb': 1, 'carton-gb-jp': 98 / 114, disquette: 88 / 98, 'boitier-md': 133 / 187, 'carton-n64-jp': 127 / 179, 'carton-gba-jp': 1.57,
 };
 
 interface ConsoleTraits {
@@ -51,6 +53,8 @@ const CONSOLE_TRAITS: Record<string, ConsoleTraits> = {
   GB: { box: 'carton-gb', boxJapan: 'carton-gb-jp', cartridge: true },
   // Game Boy Color : les mêmes petites boîtes que la Game Boy
   GBC: { box: 'carton-gb', boxJapan: 'carton-gb-jp', cartridge: true },
+  // Game Boy Advance : la même boîte carrée (Amérique du Nord, Europe), couchée au Japon ; cartouche
+  GBA: { box: 'carton-gb', boxJapan: 'carton-gba-jp', cartridge: true },
   // Mega Drive : boîtier en plastique qui s'ouvre comme un livre, la jaquette glissée sous une
   // pochette transparente, dans les trois régions ; cartouche
   MD: { box: 'boitier-md', cartridge: true },

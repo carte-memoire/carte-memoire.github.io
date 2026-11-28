@@ -456,6 +456,11 @@ ul.error { padding-left: 28px; }
 .platform-card:hover, .platform-card:focus-visible { border-color: #3a3a42; background: var(--surface-hover); }
 .platform-card-art { grid-row: span 2; display: flex; align-items: center; justify-content: center; height: 64px; }
 .platform-card-art .console-art { height: 100%; }
+/* Console et modèle dérivé (mêmes jeux, ConsoleArt.tsx) : l'original en haut à gauche, le
+   dérivé devant lui, plus petit, en bas à droite ; ils débordent un peu de leur case */
+.console-pair { position: relative; display: block; width: 100%; height: 100%; }
+.platform-card-art .console-pair .console-art { position: absolute; width: auto; height: 84%; left: -12px; top: -8px; }
+.platform-card-art .console-pair .console-art.is-variant { height: 68%; left: auto; top: auto; right: -12px; bottom: -8px; }
 .platform-card-name { align-self: end; font-family: var(--display); font-size: var(--fs-4); font-weight: 700; text-wrap: balance; }
 .platform-card-count { align-self: start; color: var(--muted); font-size: var(--fs-2); }
 
@@ -888,6 +893,9 @@ fieldset.notice { padding: 10px 12px; }
 /* Consoles : la console se soulève et pivote un peu */
 .motion .platform-card-art .console-art { transition: transform 0.6s var(--ease); }
 .motion .platform-card:hover .platform-card-art .console-art { transform: translateY(-4px) scale(1.07) rotate(-2deg); }
+/* Le modèle dérivé se pose juste après l'original, et penche de l'autre côté au survol */
+.motion .console-pair .console-art.is-variant { animation-delay: 420ms; }
+.motion .platform-card:hover .console-pair .console-art.is-variant { transform: translateY(-6px) scale(1.1) rotate(3deg); }
 
 /* Voyage d'une jaquette, du mur à sa fiche (lib/voyage.ts, transition de vue) : la
    jaquette glisse et grandit ; le reste de la page s'efface puis remonte. Le bandeau
@@ -1430,6 +1438,7 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
   font: 800 calc(var(--spine-w) * 0.15) / 1 system-ui, sans-serif; letter-spacing: 0.05em;
 }
 .spine-gb.is-gbc .spine-mark { font-size: calc(var(--spine-w) * 0.13); letter-spacing: 0.02em; }
+.spine-gb.is-gba .spine-mark { font-size: calc(var(--spine-w) * 0.115); letter-spacing: 0.01em; }
 .spine-gb .spine-code { display: none; }
 /* Boîte japonaise (boîte 3D d'une version japonaise) : en haut, le bandeau gris à liseré bleu,
    avec le nom de la console ; le reste aux couleurs du jeu */
@@ -1442,6 +1451,7 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
   font: 900 calc(var(--spine-w) * 0.22) / 1 'Arial Black', system-ui, sans-serif; letter-spacing: 0.04em;
 }
 .spine-gb.spine-region-jp.is-gbc .spine-mark { font-size: calc(var(--spine-w) * 0.15); }
+.spine-gb.spine-region-jp.is-gba .spine-mark { font-size: calc(var(--spine-w) * 0.13); }
 .spine-gb.is-reissue { background: linear-gradient(90deg, #8f939c, #c4c7ce 45%, #8a8e97); color: #141518; }
 /* Mega Drive : boîtier en plastique noir (133 × 187 × 23 mm, 1,8 px par mm sur l'étagère), la
    jaquette sous une pochette transparente. D'après des photos de piles et d'étagères de vraies

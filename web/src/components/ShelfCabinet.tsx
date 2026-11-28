@@ -29,7 +29,7 @@ export function ShelfCabinet<T>({ meuble, levels, consoles, renderItem, title, t
   const fixed = meuble.perLevel !== AUTO;
   const tall = consoles.includes('PS2') || consoles.includes('NES') || consoles.includes('MD');
   const narrow = consoles.length > 0 && consoles.every((c) => c === 'PS2');
-  const wide = consoles.includes('NES') || consoles.includes('GB') || consoles.includes('GBC') || consoles.includes('MD');
+  const wide = consoles.includes('NES') || consoles.includes('GB') || consoles.includes('GBC') || consoles.includes('GBA') || consoles.includes('MD');
   const thin = consoles.length > 0 && consoles.every((c) => c === 'FDS');
   // Super Nintendo : boîtes épaisses (33 mm), les places les plus larges
   const chunky = consoles.includes('SNES') || consoles.includes('N64');

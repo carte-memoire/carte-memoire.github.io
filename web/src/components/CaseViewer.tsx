@@ -36,6 +36,9 @@ const CASE_MM: Record<string, { w: number; h: number; d: number }> = {
   // au Japon, en hauteur, 98 × 114 × 22 mm
   gb: { w: 125, h: 125, d: 23 },
   'gb-jp': { w: 98, h: 114, d: 22 },
+  // Game Boy Advance au Japon : petite boîte couchée (scans 1,57 ; dimensions approximatives, à
+  // affiner d'après des photos)
+  'gba-jp': { w: 133, h: 85, d: 22 },
   // Mega Drive : boîtier en plastique noir, 133 × 187 × 23 mm (rapport des scans : 0,71 ; épaisseur
   // relevée sur des photos de piles de boîtes), le même dans les trois régions
   md: { w: 133, h: 187, d: 23 },
@@ -88,10 +91,10 @@ export function CaseViewer({ pulled, onClose, onEdit, onPropose }: { pulled: Pul
       : kind === 'nes' ? (pulled.release.zone === 'NTSC-J' ? 'nes-jp' : 'nes')
         : kind === 'n64' ? (pulled.release.zone === 'NTSC-J' ? 'n64-jp' : 'n64')
         : kind === 'snes' ? (pulled.release.zone === 'NTSC-J' ? 'snes-jp' : 'snes')
-          : kind === 'gb' ? (pulled.release.zone === 'NTSC-J' ? 'gb-jp' : 'gb') : kind;
+          : kind === 'gb' ? (pulled.release.zone === 'NTSC-J' ? (pulled.release.platform.short_name === 'GBA' ? 'gba-jp' : 'gb-jp') : 'gb') : kind;
   // Tranche dessinée selon la région du boîtier (sur l'étagère, toujours au format européen)
   const region = format === 'ps2-us' || (kind === 'md' && pulled.release.zone === 'NTSC-U') ? 'us'
-    : format === 'ps2-jp' || format === 'nes-jp' || format === 'snes-jp' || format === 'n64-jp' || format === 'gb-jp' || (kind === 'md' && pulled.release.zone === 'NTSC-J') ? 'jp' : undefined;
+    : format === 'ps2-jp' || format === 'nes-jp' || format === 'snes-jp' || format === 'n64-jp' || format === 'gb-jp' || format === 'gba-jp' || (kind === 'md' && pulled.release.zone === 'NTSC-J') ? 'jp' : undefined;
   // Boîte Super Famicom dont l'illustration est imprimée de côté (Square : Final Fantasy VI,
   // Chrono Trigger…) : la jaquette, plus large que haute, est tournée d'un quart de tour
   const [sideways, setSideways] = useState(false);

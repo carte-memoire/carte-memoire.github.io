@@ -21,6 +21,8 @@ describe('boîtier selon la console et la zone', () => {
     expect(caseFormatFor('GB', 'standard', 'NTSC-J')).toBe('carton-gb-jp');
     expect(caseFormatFor('GBC', 'standard', 'NTSC-U')).toBe('carton-gb');
     expect(caseFormatFor('GBC', 'standard', 'NTSC-J')).toBe('carton-gb-jp');
+    expect(caseFormatFor('GBA', 'standard', 'PAL')).toBe('carton-gb');
+    expect(caseFormatFor('GBA', 'standard', 'NTSC-J')).toBe('carton-gba-jp');
     expect(caseFormatFor('MD', 'standard', 'PAL')).toBe('boitier-md');
     expect(caseFormatFor('MD', 'standard', 'NTSC-J')).toBe('boitier-md');
     expect(caseFormatFor('N64', 'standard', 'PAL')).toBe('carton-snes');

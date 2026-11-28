@@ -1,5 +1,5 @@
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ConsoleArt, hasConsoleArt } from '../components/ConsoleArt';
+import { ConsoleFamilyArt, hasConsoleArt } from '../components/ConsoleArt';
 import { ControllerButtons } from '../components/ControllerButtons';
 import { CountUp } from '../components/CountUp';
 import { CoverWall } from '../components/CoverWall';
@@ -127,7 +127,7 @@ export function Home() {
               <li key={p.short_name}>
                 <Link to={`/catalogue?console=${encodeURIComponent(p.short_name)}`} className="platform-card">
                   <span className="platform-card-art" aria-hidden="true">
-                    {hasConsoleArt(p.short_name) ? <ConsoleArt platform={p.short_name} /> : <span className="buttons-legend"><ControllerButtons platform={p.short_name} /></span>}
+                    {hasConsoleArt(p.short_name) ? <ConsoleFamilyArt platform={p.short_name} /> : <span className="buttons-legend"><ControllerButtons platform={p.short_name} /></span>}
                   </span>
                   <span className="platform-card-name">{p.name}</span>
                   <span className="platform-card-count">{tr('{0} jeux', formatNumber(p.game_count))}</span>

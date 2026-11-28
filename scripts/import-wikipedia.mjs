@@ -153,7 +153,8 @@ function linkTarget(s) {
 // Mentions de région <sup>JP, PAL</sup> ou (JP) → liste de codes
 function tagsOf(s) {
   const tags = [];
-  for (const m of stripRefs(s).matchAll(/<sup>([\s\S]*?)<\/sup>/gi)) tags.push(...m[1].split(/[\s,/&+.]+/));
+  // (« NA,&nbsp;PAL » : l'espace insécable n'est qu'une espace)
+  for (const m of stripRefs(s).matchAll(/<sup>([\s\S]*?)<\/sup>/gi)) tags.push(...m[1].replace(/&nbsp;/gi, ' ').split(/[\s,/&+.]+/));
   const paren = /\(([A-Z]{2,4}(?:\s*[,/]\s*[A-Z]{2,4})*)\)\s*$/.exec(clean(s.replace(/<sup>[\s\S]*?<\/sup>/gi, '')));
   if (paren) tags.push(...paren[1].split(/[\s,/]+/));
   return tags.map((t) => clean(t).toUpperCase()).filter(Boolean);
@@ -225,7 +226,7 @@ function parseDates(cell, columnZone) {
   for (const m of fixed.matchAll(/\{\{\s*dts\s*\|([^}]*)\}\}\s*(?:<sup>([\s\S]*?)<\/sup>)?/gi)) {
     const d = parseDts(m[1]);
     if (!d) continue;
-    const tags = m[2] ? m[2].split(/[\s,/&+.]+/).map((t) => clean(t).toUpperCase()).filter(Boolean) : [];
+    const tags = m[2] ? m[2].replace(/&nbsp;/gi, ' ').split(/[\s,/&+.]+/).map((t) => clean(t).toUpperCase()).filter(Boolean) : [];
     if (tags.length === 0) {
       if (other) noteTag('(sans pays)', 'colonne Other');
       else out.push({ zone: columnZone, region: BASE_REGION[columnZone], ...d });
@@ -272,15 +273,17 @@ function parseFirstDate(cell) {
 
 // Listes PS2 : colonnes JP, EU / PAL, NA, cochées {{Ya}} (avec parfois les pays : {{sup|JP, KO}})
 // → la zone existe, dans ces pays (sinon sa région principale), date inconnue
-// (Game Boy Color : JP, NA, EU — CONSOLE.presenceColumns)
+// (Game Boy Color : JP, NA, EU — CONSOLE.presenceColumns). Une colonne peut désigner un pays :
+// « PAL:AU » (Australie), « NTSC-J:KR » (Corée, Game Boy Advance)
 const PRESENCE_COLUMNS = CONSOLE.presenceColumns ?? ['NTSC-J', 'PAL', 'NTSC-U'];
 function parsePresence(cells) {
   const out = [];
-  PRESENCE_COLUMNS.forEach((zone, i) => {
+  PRESENCE_COLUMNS.forEach((column, i) => {
+    const [zone, country] = column.split(':');
     const cell = stripRefs(cells[i] ?? '');
     if (!/\{\{\s*(ya|yes|y)\s*\}\}/i.test(cell)) return;
     const regions = tagsOf(cell).filter((t) => TAGS[t]?.[0] === zone).map((t) => TAGS[t][1]);
-    for (const region of regions.length ? regions : [BASE_REGION[zone]]) out.push({ zone, region, date: null, precision: null });
+    for (const region of regions.length ? regions : [country ?? BASE_REGION[zone]]) out.push({ zone, region, date: null, precision: null });
   });
   return out;
 }

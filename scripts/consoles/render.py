@@ -1131,12 +1131,201 @@ def neo_geo():
     box('carte', 23.4, -0.08, 1.0, 30.4, 0.4, 1.5, dark)
 
 
+def gba_sp():
+    """Game Boy Advance SP (AGS-001), d'après la photo studio d'Evan-Amos (Wikimedia Commons) :
+    fermée 8,4 × 8,2 × 2,4 cm, bleu cobalt métallisé, ici ouverte. Moitié basse : la croix dans
+    une cuvette ronde, B et A dans une cuvette allongée, Select et Start ronds en bas à gauche,
+    les trous du haut-parleur au milieu, le voyant au-dessus ; au fond, la charnière en trois
+    cylindres ; deux petits pieds à l'avant. Moitié haute relevée : un grand cadre noir brillant
+    autour de l'écran, une petite pastille ronde aux coins."""
+    shell = material('#1d4fd0', 0.3, metal=0.35, coat=0.4)
+    recess, grey = material('#163a9e', 0.4, metal=0.3), plastic('#5f646e', 0.45)
+    W, D, T = 8.4, 8.2, 1.15
+    Z = 0.15 + T                     # dessus de la moitié basse
+    for x0 in (0.35, W - 1.35):
+        box('pied', x0, 0.15, 0, x0 + 1.0, 1.1, 0.25, shell, bevel=0.08)
+    prism('bas', rr(0, 0, W, D, [0.55, 0.55, 0.35, 0.35]), 0.15, Z, shell, bevel=0.25)
+    # Croix dans sa cuvette ronde
+    cyl('cuvette-croix', 2.0, 4.6, Z - 0.06, Z + 0.01, 1.3, recess)
+    prism('croix', cross_pts(2.0, 4.6, 1.75, 0.6), Z - 0.04, Z + 0.24, grey, bevel=0.06)
+    # B et A dans une cuvette allongée, en biais (A plus haut)
+    bx, by, ax, ay = 5.85, 4.1, 7.15, 4.5
+    ang = math.atan2(ay - by, ax - bx)
+    mx, my = (bx + ax) / 2, (by + ay) / 2
+    pill = [(mx + px * math.cos(ang) - py * math.sin(ang), my + px * math.sin(ang) + py * math.cos(ang))
+            for px, py in rr(-1.4, -0.68, 2.8, 1.36, 0.68)]
+    prism('cuvette-ab', pill, Z - 0.06, Z + 0.01, recess)
+    for cx, cy in ((bx, by), (ax, ay)):
+        cyl('bouton', cx, cy, Z - 0.04, Z + 0.22, 0.44, grey, bevel=0.12)
+    # Select et Start, ronds, chacun dans sa cuvette ; voyant ; haut-parleur
+    for cx in (1.65, 2.85):
+        cyl('cuvette-select', cx, 1.3, Z - 0.06, Z + 0.01, 0.5, recess)
+        cyl('select', cx, 1.3, Z - 0.04, Z + 0.12, 0.3, grey, bevel=0.06)
+    cyl('voyant', 4.55, 6.1, Z - 0.04, Z + 0.06, 0.22, grey, bevel=0.04)
+    for row in range(5):
+        n = 3 - abs(row - 2) + 1
+        for k in range(n):
+            cyl('trou', 4.25 + (k - (n - 1) / 2) * 0.34, 1.9 + row * 0.3, Z - 0.02, Z + 0.01, 0.06, plastic('#0f1d4a'), steps=12)
+    # Gâchettes L et R, sous la charnière
+    for x0 in (-0.05, W - 0.85):
+        box('gachette', x0, D - 1.7, 0.45, x0 + 0.9, D + 0.05, Z - 0.1, plastic('#3a3d45', 0.4), bevel=0.15)
+    # Charnière : deux cylindres sur la moitié basse, celui du milieu tient la moitié haute
+    hy, hz, hr = D - 0.55, Z + 0.15, 0.55
+    profile('charniere', circle(hy, hz, hr, 32), 0.2, 3.05, shell, bevel=0.12)
+    profile('charniere', circle(hy, hz, hr, 32), 6.05, W - 0.2, shell, bevel=0.12)
+    profile('charniere', circle(hy, hz, hr - 0.02, 32), 3.1, 6.0, shell, bevel=0.12)
+    # Moitié haute, dessinée à plat (face intérieure vers +z, y = 0 à la charnière), puis relevée
+    top, Tt, Dt = [], 1.0, 7.4
+    top.append(prism('haut', rr(0, 0, W, Dt, [0.3, 0.3, 0.55, 0.55]), 0, Tt, shell, bevel=0.25))
+    top.append(prism('cadre', rr(0.55, 0.75, W - 1.1, Dt - 1.25, 0.25), Tt - 0.02, Tt + 0.04, material('#0e0e12', 0.15, coat=0.8), bevel=0.03))
+    top.append(box('ecran', 1.12, 2.0, Tt + 0.04, W - 1.12, 6.1, Tt + 0.07, screen('#3d4045')))
+    for cx, cy in ((0.35, 0.4), (W - 0.35, 0.4), (0.35, Dt - 0.4), (W / 2, Dt - 0.3), (W - 0.35, Dt - 0.4)):
+        top.append(cyl('pastille', cx, cy, Tt - 0.03, Tt + 0.05, 0.16, recess))
+    rot = standing(34)                 # ouverte un peu plus qu'à angle droit
+    pivot = rot @ Vector((0, 0, Tt / 2))
+    group(top, Matrix.Translation((0, hy - pivot.y + 0.35, hz - pivot.z + 0.1)) @ rot)
+
+
+def gameboy_pocket():
+    """Game Boy Pocket (MGB-001), d'après la photo studio d'Evan-Amos : 7,7 × 12,7 × 2,5 cm,
+    argentée ; un grand écran gris-vert dans un cadre gris clair, croix noire, B et A ronds gris
+    foncé, Select et Start, le haut-parleur en petits trous ronds en bas à droite ; comme la
+    première Game Boy, le coin bas droit du boîtier très arrondi."""
+    body = material('#a7aaaf', 0.34, metal=0.6)
+    frame = material('#bdc0c3', 0.36, metal=0.45)
+    objs = []
+    W, Hh, T = 7.7, 12.7, 2.5
+    objs.append(prism('corps', rr(0, 0, W, Hh, [0.45, 1.9, 0.45, 0.45]), 0, T, body, bevel=0.3))
+    objs.append(prism('cadre', rr(0.55, 6.35, W - 1.1, 5.95, [0.3, 0.9, 0.3, 0.3]), T - 0.02, T + 0.05, frame, bevel=0.04))
+    objs.append(box('ecran', 1.2, 7.45, T + 0.05, W - 1.2, 11.95, T + 0.09, material('#9ea695', 0.3, coat=0.4)))
+    objs.append(prism('croix', cross_pts(1.95, 4.75, 2.0, 0.7), T - 0.05, T + 0.38, plastic('#1d1d20', 0.4), bevel=0.08))
+    for cx, cy in ((4.7, 4.35), (6.05, 4.6)):
+        objs.append(cyl('bouton', cx, cy, T - 0.05, T + 0.32, 0.52, plastic('#3a3c43', 0.35), bevel=0.14))
+    for cx in (3.15, 4.35):
+        objs.append(prism('select', rr(cx - 0.45, 2.3, 0.9, 0.28, 0.14), T - 0.05, T + 0.18, plastic('#55585f', 0.5), bevel=0.05))
+    # Haut-parleur : petits trous ronds en rosace
+    for ring, count in ((0, 1), (0.28, 6), (0.56, 12)):
+        for k in range(count):
+            a = 2 * math.pi * k / count
+            objs.append(cyl('trou', 6.0 + ring * math.cos(a), 1.35 + ring * math.sin(a), T - 0.02, T + 0.01, 0.07, plastic('#4a4c50'), steps=12))
+    group(objs, Matrix.Translation((0, 4.0, 0)) @ standing(14) @ Matrix.Translation((-W / 2, 0, 0)))
+
+
+def psone():
+    """PSone (SCPH-102), d'après la photo studio d'Evan-Amos : 19,3 × 14,4 × 3,8 cm, blanc
+    cassé, aux angles très arrondis, le bord du dessus largement arrondi, une couture tout
+    autour vers le bas ; le grand capot rond au centre, qui touche presque la façade ; aux coins
+    avant du dessus, deux gros boutons ronds dans leur cuvette (Power à gauche, Open à droite) ;
+    un panneau à peine surélevé à l'arrière ; en façade, deux blocs gris clair : la fente de
+    carte mémoire au-dessus du port manette."""
+    body, recess = plastic('#e4e4e1', 0.45), plastic('#cdcdca', 0.5)
+    port, hole = plastic('#c8c9c6', 0.5), plastic('#8a8b89', 0.55)
+    W, D, H = 19.3, 14.4, 3.8
+    prism('bas', rr(0, 0, W, D, 2.6), 0, 1.15, body, bevel=0.25)
+    prism('couture', rr(0.12, 0.12, W - 0.24, D - 0.24, 2.5), 1.1, 1.22, recess)
+    prism('haut', rr(0.02, 0.02, W - 0.04, D - 0.04, 2.58), 1.18, H, body, bevel=0.65, segments=5,
+          top_pts=rr(0.45, 0.45, W - 0.9, D - 0.9, 2.2))
+    # Panneau arrière, à peine surélevé, aux bouts en biais
+    prism('panneau', [(3.4, D - 0.6), (4.6, D - 2.6), (W - 4.6, D - 2.6), (W - 3.4, D - 0.6)], H - 0.05, H + 0.1, body, bevel=0.06)
+    # Capot rond dans son logement, son bord avant au ras de la façade
+    cx, cy = W / 2, 7.05
+    cyl('logement', cx, cy, H - 0.05, H + 0.12, 6.5, recess)
+    cyl('capot', cx, cy, H - 0.05, H + 0.25, 6.35, body, bevel=0.25)
+    # Boutons Power et Open dans leur cuvette
+    for x in (2.45, W - 2.45):
+        cyl('cuvette', x, 2.45, H - 0.08, H + 0.02, 1.62, recess)
+        cyl('bouton', x, 2.45, H - 0.06, H + 0.18, 1.4, body, bevel=0.22)
+    box('voyant', 1.75, 0.5, H - 0.6, 2.05, 0.62, H - 0.25, plastic('#4a4b4a', 0.4))
+    # Façade : deux blocs, la fente de carte mémoire au-dessus du port manette
+    for x in (3.3, 9.6):
+        box('bloc', x, -0.04, 0.45, x + 4.2, 0.6, 2.85, recess, bevel=0.08)
+        box('carte', x + 0.15, -0.08, 2.0, x + 4.05, 0.5, 2.75, port, bevel=0.06)
+        box('fente', x + 0.45, -0.1, 2.15, x + 3.75, -0.05, 2.3, hole)
+        for k in range(3):
+            box('manette', x + 0.2 + k * 1.28, -0.08, 0.6, x + 1.38 + k * 1.28, 0.5, 1.75, port, bevel=0.12)
+            for j in range(3):
+                cyl_x = x + 0.47 + k * 1.28 + j * 0.32
+                box('broche', cyl_x - 0.07, -0.11, 1.08, cyl_x + 0.07, -0.06, 1.27, hole)
+
+
+def ps2_slim():
+    """PlayStation 2 « Slim » (SCPH-70004), d'après la photo studio d'Evan-Amos : 23 × 15,2 ×
+    2,8 cm, noire, le dessus mat et grenu ; une bande brillante de l'avant à l'arrière sépare la
+    partie fixe (à gauche) du capot du lecteur (à droite) ; en façade, une fine lamelle sous le
+    dessus, puis à gauche les fentes de carte mémoire au-dessus des deux ports manette, au
+    milieu les deux ports USB, en bas à droite la grille d'aération, au bout droit le bouton."""
+    shell, top = plastic('#242427', 0.55), plastic('#2a2a2d', 0.75)
+    gloss = material('#17171a', 0.18, coat=0.6)
+    core, dark = plastic('#0b0b0c', 0.7), plastic('#050506', 0.8)
+    W, D, H = 23.0, 15.2, 2.8
+    box('coeur', 0.3, 0.4, 0.05, W - 0.3, D - 0.3, H - 0.2, core)
+    box('corps', 0.15, 0.32, 0.0, W - 0.15, D - 0.15, 1.72, shell, bevel=0.08)
+    box('lamelle', 0.05, 0.12, 1.8, W - 0.05, D - 0.08, 2.08, shell, bevel=0.05)
+    # Dessus en trois parties : partie fixe, bande brillante, capot
+    prism('fixe', rr(0, 0, 8.5, D, [0.35, 0, 0, 0.35]), 2.15, H, top, bevel=0.1)
+    box('bande', 8.56, 0, 2.15, 9.94, D, H + 0.03, gloss, bevel=0.05)
+    prism('capot', rr(10.0, 0, W - 10.0, D, [0, 0.35, 0.35, 0]), 2.15, H, top, bevel=0.1)
+    # Façade : cartes mémoire (dans la lamelle) au-dessus des ports manette, à gauche
+    for x in (0.7, 4.7):
+        box('carte', x + 0.1, 0.06, 1.86, x + 3.2, 0.2, 2.0, dark)
+        box('port-manette', x, 0.24, 0.75, x + 3.3, 0.36, 1.5, dark, bevel=0.05)
+        for k in range(3):
+            box('broches', x + 0.3 + k * 1.0, 0.2, 0.92, x + 1.0 + k * 1.0, 0.28, 1.33, plastic('#2c2c30', 0.5))
+    # Deux ports USB, la grille d'aération, le bouton et son voyant
+    for x in (8.9, 10.5):
+        box('usb', x, 0.24, 0.75, x + 1.1, 0.36, 1.2, dark)
+        box('languette', x + 0.12, 0.22, 0.95, x + 0.98, 0.3, 1.08, plastic('#46464b', 0.5))
+    for k in range(4):
+        z = 0.15 + k * 0.2
+        box('fente', 12.3, 0.26, z, 15.4, 0.36, z + 0.11, dark)
+    box('bouton', W - 1.6, 0.22, 0.25, W - 0.9, 0.36, 0.95, gloss, bevel=0.05)
+    box('voyant', W - 1.45, 0.06, 1.88, W - 1.05, 0.14, 1.98, led('#3ee07a', 3))
+
+
+def mega_drive_2():
+    """Mega Drive II, d'après la photo studio d'Evan-Amos (modèle américain, de même forme) :
+    22 × 21,2 cm, noire, plus petite et plus plate que la première : une galette aux flancs
+    presque droits, la façade en large pente, posée sur un socle en retrait où se trouvent les
+    deux ports manette. À l'arrière du dessus, le grand dôme ovale de la fente de cartouche (un
+    anneau en pente, puis un ovale bombé, la fente au fond) ; devant, un plateau à peine
+    surélevé avec une plaque sombre (sans son inscription) et la longue rainure où glissent Power
+    (à gauche) et Reset (à droite) ; le long du bord arrière, une rangée de fines fentes."""
+    black, dark = plastic('#1a1a1c', 0.45), plastic('#060607', 0.6)
+    gloss, grey = material('#131315', 0.22, coat=0.5), plastic('#3a3a3f', 0.5)
+    W, D, H, ZB = 22.0, 21.2, 3.5, 0.7
+    prism('socle', rr(0.5, 0.7, W - 1.0, D - 1.2, 1.7), 0, ZB + 0.05, dark, bevel=0.05)
+    loft('corps', [(x, y, ZB) for x, y in ccw(rr(0, 0, W, D, 2.6))],
+         [(x, y, H) for x, y in ccw(rr(0.3, 1.7, W - 0.6, D - 2.0, 2.4))], black, bevel=0.3, segments=4)
+    # Ports manette dans le socle, à gauche du milieu
+    for x in (5.4, 8.9):
+        front('port', [(x, 0.12), (x + 2.0, 0.12), (x + 1.8, 0.6), (x + 0.2, 0.6)], 0.6, 0.75, grey, bevel=0.04)
+    # Fentes d'aération le long du bord arrière
+    for i in range(40):
+        x = 2.6 + i * 0.42
+        box('aeration', x, D - 1.3, H - 0.04, x + 0.2, D - 0.6, H + 0.02, dark)
+    # Dôme ovale : anneau en pente, ovale bombé, la fente et son volet
+    def ellipse(cx, cy, a, b, steps=72):
+        return [(cx + a * math.cos(2 * math.pi * i / steps), cy + b * math.sin(2 * math.pi * i / steps)) for i in range(steps)]
+    cx, cy = W / 2, 13.9
+    prism('dome', ellipse(cx, cy, 8.2, 4.8), H - 0.1, H + 0.8, black, bevel=0.35, segments=5, top_pts=ellipse(cx, cy, 7.4, 4.1))
+    prism('ovale', ellipse(cx, cy, 6.6, 3.5), H + 0.75, H + 1.3, gloss, bevel=0.3, segments=5, top_pts=ellipse(cx, cy, 6.1, 3.1))
+    box('fente', cx - 4.2, cy + 0.4, H + 1.25, cx + 4.2, cy + 1.4, H + 1.36, dark, bevel=0.05)
+    box('volet', cx - 4.0, cy - 0.4, H + 1.25, cx + 4.0, cy + 0.4, H + 1.42, gloss, bevel=0.1)
+    # Plateau avant, la plaque sombre et la rainure de Power et Reset
+    prism('plateau', rr(1.5, 1.9, W - 3.0, 6.4, [0.8, 0.8, 2.6, 2.6]), H - 0.05, H + 0.25, black, bevel=0.15)
+    prism('plaque', rr(cx - 2.4, 5.7, 4.8, 1.5, 0.2), H + 0.22, H + 0.3, gloss, bevel=0.04)
+    prism('rainure', rr(3.6, 3.75, W - 7.2, 0.75, 0.37), H + 0.2, H + 0.28, dark)
+    for x0 in (3.9, W - 7.0):
+        prism('glissiere', rr(x0, 3.6, 3.1, 1.05, 0.52), H + 0.18, H + 0.48, gloss, bevel=0.15)
+
 CONSOLES = {'PS1': ps1, 'GB': gameboy, 'NES': nes, 'FDS': fds, 'SNES': snes, 'N64': n64, 'GC': gamecube,
             'SMS': master_system, 'MD': mega_drive, 'GG': game_gear, 'SAT': saturn, 'DC': dreamcast,
             'XBOX': xbox, 'X360': xbox360, 'XONE': xbox_one, 'XSX': xbox_series_x,
             '2600': atari2600, 'PCE': pc_engine, 'NEO': neo_geo,
             'GBC': gbc, 'GBA': gba, 'NDS': nds, '3DS': n3ds, 'PS2': ps2, 'PS3': ps3, 'PS4': ps4, 'PS5': ps5,
-            'PSP': psp, 'PSV': psv, 'WII': wii, 'WIIU': wiiu, 'NSW': nsw, 'NSW2': nsw2}
+            'PSP': psp, 'PSV': psv, 'WII': wii, 'WIIU': wiiu, 'NSW': nsw, 'NSW2': nsw2,
+            # Modèles dérivés, dessinés à côté de la console d'origine sur l'accueil (mêmes jeux)
+            'GBASP': gba_sp, 'GBP': gameboy_pocket, 'PSONE': psone, 'PS2SLIM': ps2_slim, 'MD2': mega_drive_2}
 
 
 # ---------------------------------------------------------------------

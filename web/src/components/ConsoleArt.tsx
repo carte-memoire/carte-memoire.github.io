@@ -12,3 +12,20 @@ export function ConsoleArt({ platform, className = 'console-art' }: { platform: 
   if (!src) return null;
   return <img className={className} src={src} alt="" width={288} height={192} loading="lazy" decoding="async" draggable={false} />;
 }
+
+// Les modèles dérivés d'une console, qui lisent les mêmes jeux (une seule console dans le
+// catalogue) : Game Boy Advance SP, Game Boy Pocket, PSone, PS2 « Slim », Mega Drive II
+const VARIANTS: Record<string, string> = { GBA: 'GBASP', GB: 'GBP', PS1: 'PSONE', PS2: 'PS2SLIM', MD: 'MD2' };
+
+// La console et, quand elle en a un, son modèle dérivé : l'original derrière, le dérivé devant,
+// plus petit (comme en vrai)
+export function ConsoleFamilyArt({ platform }: { platform: string }) {
+  const variant = VARIANTS[platform];
+  if (!variant || !renderOf(variant)) return <ConsoleArt platform={platform} />;
+  return (
+    <span className="console-pair">
+      <ConsoleArt platform={platform} />
+      <ConsoleArt platform={variant} className="console-art is-variant" />
+    </span>
+  );
+}

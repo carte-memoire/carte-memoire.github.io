@@ -195,6 +195,66 @@ export const CONSOLES = {
       { heading: 'Aftermarket releases', columns: ['title', 'compatible', 'feature', 'developers', 'publishers', 'date'], zone: 'NTSC-U' },
     ],
   },
+  // Game Boy Advance : les cartouches (les jeux Game Boy et Game Boy Color qu'elle lit restent sur
+  // leur console)
+  GBA: {
+    code: 'GBA',
+    name: 'Game Boy Advance',
+    slug: 'gba',
+    wikidata: 'Q188642',
+    // Liste Wikipédia : titre, studio, éditeur, dates par région ({{Vgrtbl}}), puis JP, NA,
+    // EU/PAL, Australie et Corée cochés. Le tableau des sorties tardives (« Aftermarket ») n'est
+    // pas lu, comme pour la Nintendo 64
+    wikipediaPages: ['List of Game Boy Advance games'],
+    wikipediaFormat: 'first-date-and-zones',
+    presenceColumns: ['NTSC-J', 'NTSC-U', 'PAL', 'PAL:AU', 'NTSC-J:KR'],
+    redump: 'Nintendo - Game Boy Advance',
+    datFolder: 'no-intro',
+    thumbnails: 'libretro-thumbnails/Nintendo_-_Game_Boy_Advance',
+    jaWikipediaList: 'ゲームボーイアドバンスのゲームタイトル一覧',
+    confirmWikidata: true,
+    // Beaucoup de jeux sortis aussi sur PS2, PC… ont dans Wikidata une fiche propre à leur version
+    // Game Boy Advance (un autre jeu, adapté à la portable), alors que la liste Wikipédia pointe
+    // l'article du jeu principal : la ligne prend la fiche GBA (wikipediaQids), et la fiche du jeu
+    // principal n'apporte pas de version GBA vide (wikidataExclude). Écartés aussi : des doublons
+    // (AirForce Delta Storm, Goemon 1 & 2, Risk / Battleship / Clue, The Cat in the Hat), le jeu
+    // d'arcade ou d'une autre console présent seulement dans une compilation GBA (Adventure Island,
+    // Rampage, A Link to the Past), un portage amateur (GBADoom), des sorties tardives (Shantae
+    // Advance, Goodboy Galaxy), et les Mega Man Battle Network 3 à 6 et Robopon 2, dont la liste
+    // donne chaque version (Blue, White…) sur sa propre ligne.
+    wikidataExclude: ['Q14447827', 'Q804851', 'Q2891561', 'Q254851', 'Q96381007', 'Q5755616', 'Q6083460', 'Q290981',
+      'Q2132221', 'Q3259252', 'Q56702758', 'Q715292', 'Q7622906', 'Q2736071', 'Q1191215', 'Q3984434', 'Q1442177',
+      'Q665785', 'Q2316781', 'Q107138227',
+      'Q161188', 'Q270940', 'Q2758716', 'Q2557419', 'Q1416931', 'Q54839',
+      'Q6395129', 'Q3433146', 'Q60541527', 'Q568489', 'Q1192318', 'Q128815494', 'Q124473641', 'Q120630311', 'Q122189973',
+      'Q3091513', 'Q3091522', 'Q2877093', 'Q3180498', 'Q16259146',
+      // Crash Bandicoot Purple et Spyro Orange, vendus chacun dans sa boîte : une seule fiche Wikidata pour les deux
+      'Q1052116'],
+    wikipediaQids: {
+      'Aggressive Inline': 'Q75096657', "Baldur's Gate: Dark Alliance": 'Q116179311', 'Batman Begins': 'Q131107877',
+      'Harry Potter and the Order of the Phoenix': 'Q132558051', 'High Heat Major League Baseball 2002': 'Q96624625',
+      'High Heat Major League Baseball 2003': 'Q96624382', 'Island Xtreme Stunts': 'Q110253213',
+      'Legends of Wrestling II': 'Q77933538', "Lego Island 2: The Brickster's Revenge": 'Q110414453',
+      'Looney Tunes: Back in Action': 'Q137884774', 'MLB Slugfest 2004': 'Q97460663',
+      'Prince of Persia: The Sands of Time': 'Q99309488', 'Street Racing Syndicate': 'Q105485223', Stuntman: 'Q142172924',
+      'Tales of Phantasia': 'Q9081588', 'Terminator 3: Rise of the Machines': 'Q124718847',
+      "Tom Clancy's Rainbow Six: Rogue Spear": 'Q135442715', 'Tomb Raider: Legend': 'Q62396186',
+      'The Urbz: Sims in the City': 'Q65173091',
+      '007: Nightfire': 'Q117358171', "Disney's Atlantis: The Lost Empire": 'Q116316251',
+      'Barbie Software - Horse Adventures: Blue Ribbon Race': 'Q4859668', 'Bubble Bobble Old & New': 'Q63125241',
+      'Cardcaptor Sakura: Sakura Card-hen - Sakura Card to Tomodachi': 'Q91615369', "Disney's Chicken Little": 'Q11680710',
+      'Donkey Kong Country 2': 'Q1072051', 'Driver 2 Advance': 'Q132129060',
+      'Final Fantasy IV Advance': 'Q911226', 'Final Fantasy V Advance': 'Q900305', 'Final Fantasy VI Advance': 'Q535940',
+      "Disney Presents Home on the Range Disney's Home on the Range": 'Q121008778',
+      "Disney's Kim Possible 2: Drakken's Demise": 'Q106620396', "Disney's Kim Possible 3: Team Possible": 'Q106620251',
+      'Kong: The 8th Wonder of the World': 'Q3815419', 'Max Payne': 'Q104916619', 'Rayman 3': 'Q116296793',
+      'Rugrats Go Wild': 'Q134442843', 'Famicom Mini: Famicom Mukashi Banashi - Shin Onigashima Zenkouhen': 'Q3482155',
+      'Star Wars Episode I: Jedi Power Battles': 'Q133316522', 'Super Chinese 1+2 Advance': 'Q7642255',
+      "Teen Titans 2: The Brotherhood's Revenge": 'Q28499085', "Disney's The Little Mermaid: Magic in Two Kingdoms": 'Q4051158',
+      "Disney's Treasure Planet": 'Q3211722', 'World Advance Soccer: Road to Win': 'Q116205183',
+      'CT Special Forces 3: Bioterror': 'Q2932062', 'Pawa Poke Dash': 'Q24960476', 'Titeuf: Ze Gag Machine': 'Q16680274',
+    },
+  },
   // Mega Drive (Genesis en Amérique du Nord) : les cartouches ; le Mega-CD et la 32X seront des
   // consoles à part
   MD: {
