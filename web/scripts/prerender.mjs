@@ -211,10 +211,10 @@ function gamePage(game, lang = 'fr') {
 
 // Ancienne adresse → la fiche : renvoi immédiat (garde ?version=… et #…), adresse
 // officielle indiquée aux moteurs de recherche, lien si rien ne se passe
-function redirectPage(path, game) {
+function redirectPage(path, game, lang = 'fr') {
   const url = `${SITE}${path}`;
   return `<!doctype html>
-<html lang="fr">
+<html lang="${lang}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -225,7 +225,7 @@ function redirectPage(path, game) {
     <style>body { background: #0b0d1c; color: #e8e9f3; font-family: system-ui, sans-serif; padding: 24px; } a { color: #8fb4ff; }</style>
   </head>
   <body>
-    <p>La fiche de ce jeu a changé d'adresse : <a href="${escape(path)}">${escape(game.title)}</a>.</p>
+    <p>${lang === 'en' ? 'This game page has moved:' : "La fiche de ce jeu a changé d'adresse :"} <a href="${escape(path)}">${escape(game.title)}</a>.</p>
   </body>
 </html>
 `;
@@ -267,7 +267,15 @@ const write = (relative, content) => {
   writeFileSync(file, content);
 };
 for (const p of pages) write(`${p.path.slice(1)}.html`, p.html);
-for (const [path, game] of redirects) write(`${path.slice(1)}.html`, redirectPage(gamePath(game), game));
+// Les mêmes renvois pour les adresses anglaises (/en/jeu/…) : sans eux, une fiche anglaise dont
+// le titre a été corrigé (ou fusionnée avec une autre) répondait « introuvable » aux moteurs
+// (seulement les adresses changées depuis l'arrivée du site anglais : la forme /jeu/36-titre n'a
+// jamais existé en anglais)
+const changed = new Set(history.map((h) => `/jeu/${h.slug}`));
+for (const [path, game] of redirects) {
+  write(`${path.slice(1)}.html`, redirectPage(gamePath(game), game));
+  if (changed.has(path) && !seen.has(inLang('en', path))) write(`en${path}.html`, redirectPage(inLang('en', gamePath(game)), game, 'en'));
+}
 const defaultDescription = 'Gère ta collection de jeux vidéo, version par version : NES, Super Nintendo, Nintendo 64, Mega Drive, Game Boy, PlayStation, PlayStation 2… La base collaborative, gratuite et sans publicité, faite par et pour les collectionneurs.';
 const defaultDescriptionEn = 'Manage your video game collection, version by version: NES, Super Nintendo, Nintendo 64, Mega Drive, Game Boy, PlayStation, PlayStation 2… The collaborative database, free and ad-free, made by and for collectors.';
 for (const r of ROUTES) {
