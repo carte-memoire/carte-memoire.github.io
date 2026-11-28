@@ -19,12 +19,13 @@ export type BoxFormat = Exclude<CaseFormat, 'free'>;
 // rapport, 0,71, à peu près celui d'un boîtier DVD) ; Nintendo 64 : la boîte couchée de la Super
 // Nintendo en Amérique du Nord et en Europe (mêmes protections de collectionneurs, scans 1,43), et au
 // Japon la même boîte debout (127 × 179 mm, scans 0,715) ; Game Boy Advance : la petite boîte carrée
-// de la Game Boy en Amérique du Nord et en Europe (scans 1,0), une petite boîte couchée au Japon
-// (scans 1,57 ; environ 133 × 85 mm, à confirmer) ; pack PlayStation avec Multitap : grande boîte
+// de la Game Boy en Amérique du Nord et en Europe (les mêmes protections de collectionneurs, 125 × 125
+// mm ; scans 1,0), une petite boîte couchée au Japon (137 × 87 mm, mesures des fabricants de
+// protections japonais ; scans 1,57) ; pack PlayStation avec Multitap : grande boîte
 // en carton couchée, 378 × 234 mm (mesurée sur celle de Crash Team Racing)
 export const CASE_RATIO: Record<BoxFormat, number> = {
   cd: 1, dvd: 135 / 190, carton: 127 / 178, 'carton-jp': 142 / 98, 'carton-snes': 179 / 127, 'carton-sfc': 105 / 190,
-  'carton-gb': 1, 'carton-gb-jp': 98 / 114, disquette: 88 / 98, 'boitier-md': 133 / 187, 'carton-n64-jp': 127 / 179, 'carton-gba-jp': 1.57,
+  'carton-gb': 1, 'carton-gb-jp': 98 / 114, disquette: 88 / 98, 'boitier-md': 133 / 187, 'carton-n64-jp': 127 / 179, 'carton-gba-jp': 137 / 87,
   'carton-multitap': 378 / 234,
 };
 

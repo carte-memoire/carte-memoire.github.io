@@ -37,9 +37,10 @@ const CASE_MM: Record<string, { w: number; h: number; d: number }> = {
   // au Japon, en hauteur, 98 × 114 × 22 mm
   gb: { w: 125, h: 125, d: 23 },
   'gb-jp': { w: 98, h: 114, d: 22 },
-  // Game Boy Advance au Japon : petite boîte couchée (scans 1,57 ; dimensions approximatives, à
-  // affiner d'après des photos)
-  'gba-jp': { w: 133, h: 85, d: 22 },
+  // Game Boy Advance : en Amérique du Nord et en Europe, la boîte de la Game Boy (ci-dessus : les mêmes
+  // protections de collectionneurs) ; au Japon, petite boîte couchée, 137 × 87 × 21 mm (mesures
+  // concordantes de fabricants de protections japonais ; scans 1,57)
+  'gba-jp': { w: 137, h: 87, d: 21 },
   // Mega Drive : boîtier en plastique noir, 133 × 187 × 23 mm (rapport des scans : 0,71 ; épaisseur
   // relevée sur des photos de piles de boîtes), le même dans les trois régions
   md: { w: 133, h: 187, d: 23 },
