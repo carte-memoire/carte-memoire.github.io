@@ -18,7 +18,7 @@ interface SpineRelease {
   platform: { short_name: string };
 }
 
-const KIND: Record<string, string> = { PS1: 'ps1', PS2: 'ps2', NES: 'nes', FDS: 'fds', SNES: 'snes', N64: 'snes', GB: 'gb', GBC: 'gb', MD: 'md' };
+const KIND: Record<string, string> = { PS1: 'ps1', PS2: 'ps2', NES: 'nes', FDS: 'fds', SNES: 'snes', N64: 'n64', GB: 'gb', GBC: 'gb', MD: 'md' };
 
 export function spineKind(platform: string): string | undefined {
   return KIND[platform];
@@ -33,7 +33,7 @@ function splitCode(code: string | null): [string, string] | null {
 // Caractères qui tiennent sur une ligne de titre à pleine taille (place entre la marque et
 // le code, capitales étroites) : au-delà, le titre est écrit plus petit, et sur deux lignes
 // quand il est très long, comme sur les vrais boîtiers ; jamais coupé
-const CAPACITY: Record<string, number> = { ps1: 18, ps2: 32, nes: 15, fds: 16, snes: 14, gb: 13, md: 20 };
+const CAPACITY: Record<string, number> = { ps1: 18, ps2: 32, nes: 15, fds: 16, snes: 14, n64: 14, gb: 13, md: 20 };
 
 // Tranches NES : comme sur les boîtes « black box », chaque jeu a son titre d'une couleur vive
 // (bleu, rose, cyan, jaune, rouge, violet, vert, orange), toujours la même pour un même titre ;
@@ -68,6 +68,16 @@ function gbSpine(title: string): CSSProperties {
 function mdSpine(title: string): CSSProperties {
   const [back, text] = GB_SPINES[titleHash(title) % GB_SPINES.length];
   return { ['--ink' as string]: nesInk(title), ['--md-back' as string]: back, ['--md-text' as string]: text } as CSSProperties;
+}
+
+// Nintendo 64 : les petits côtés de la boîte prolongent les couleurs de l'illustration (un fond et
+// un titre bien lisible, toujours les mêmes pour un même titre) ; au Japon, carton crème et titre
+// de la couleur du jeu
+// (sans les fonds presque blancs : en Europe, une tranche claire passerait pour une boîte japonaise)
+const N64_SPINES = GB_SPINES.filter(([back]) => back !== '#f2f1ec');
+function n64Spine(title: string): CSSProperties {
+  const [back, text] = N64_SPINES[titleHash(title) % N64_SPINES.length];
+  return { ['--n64-back' as string]: back, ['--n64-text' as string]: text, ['--ink' as string]: nesInk(title) } as CSSProperties;
 }
 
 function titleFit(kind: string, title: string): { fit: number; twoLines: boolean } {
@@ -148,14 +158,14 @@ export function SpineFace({ release, region }: { release: SpineRelease; region?:
   const { fit, twoLines } = titleFit(kind, release.local_title);
   const titleRef = useFittedTitle(release.local_title, fit, twoLines);
   return (
-    <span className={`spine-face spine-${kind}${release.platform.short_name === 'GBC' ? ' is-gbc' : ''}${release.platform.short_name === 'N64' ? ' is-n64' : ''}${reissue ? ' is-reissue' : ''}${region ? ` spine-region-${region}` : ''}`} aria-hidden="true"
-      style={kind === 'gb' ? gbSpine(release.local_title) : kind === 'md' ? mdSpine(release.local_title)
+    <span className={`spine-face spine-${kind}${release.platform.short_name === 'GBC' ? ' is-gbc' : ''}${reissue ? ' is-reissue' : ''}${region ? ` spine-region-${region}` : ''}`} aria-hidden="true"
+      style={kind === 'gb' ? gbSpine(release.local_title) : kind === 'md' ? mdSpine(release.local_title) : kind === 'n64' ? n64Spine(release.local_title)
         : kind === 'nes' || kind === 'snes' ? ({ ['--ink' as string]: nesInk(release.local_title) } as CSSProperties) : undefined}>
       <span className="spine-band">
         {/* Super Nintendo : le nom de la console en texte simple, à la place de son logo
             (Super Famicom au Japon) */}
         {/* Mega Drive : « GENESIS » sur un boîtier américain */}
-        <span className="spine-mark">{kind === 'snes' ? (release.platform.short_name === 'N64' ? 'NINTENDO 64' : region === 'jp' ? 'SUPER FAMICOM' : 'SUPER NES') : kind === 'gb' ? (release.platform.short_name === 'GBC' ? 'GAME BOY COLOR' : 'GAME BOY') : kind === 'md' ? (region === 'us' ? 'GENESIS' : 'MEGA DRIVE') : release.platform.short_name}</span>
+        <span className="spine-mark">{kind === 'snes' ? (region === 'jp' ? 'SUPER FAMICOM' : 'SUPER NES') : kind === 'n64' ? 'NINTENDO 64' : kind === 'gb' ? (release.platform.short_name === 'GBC' ? 'GAME BOY COLOR' : 'GAME BOY') : kind === 'md' ? (region === 'us' ? 'GENESIS' : 'MEGA DRIVE') : release.platform.short_name}</span>
         {/* PS2 : sous la marque, l'étiquette PAL (en Europe seulement) puis le nom de la
             console à la verticale, en texte simple (pas de logo) */}
         {kind === 'ps2' && <>{!region && <span className="spine-pal">PAL</span>}<span className="spine-console">PlayStation 2</span></>}

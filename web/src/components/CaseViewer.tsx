@@ -39,10 +39,10 @@ const CASE_MM: Record<string, { w: number; h: number; d: number }> = {
   // Mega Drive : boîtier en plastique noir, 133 × 187 × 23 mm (rapport des scans : 0,71 ; épaisseur
   // relevée sur des photos de piles de boîtes), le même dans les trois régions
   md: { w: 133, h: 187, d: 23 },
-  // Nintendo 64 : la boîte couchée de la Super Nintendo ; au Japon, une boîte debout (scans 0,715,
-  // dimensions approximatives, à affiner d'après des photos)
+  // Nintendo 64 : boîte en carton couchée, la même que la Super Nintendo (protections acryliques
+  // N64 : 182 × 129 × 36 mm à l'intérieur) ; au Japon, la même boîte debout (scans 0,715 = 127 / 179)
   n64: { w: 179, h: 127, d: 33 },
-  'n64-jp': { w: 135, h: 189, d: 30 },
+  'n64-jp': { w: 127, h: 179, d: 33 },
 };
 
 // Format du boîtier PS2 selon la zone de la version (zone inconnue : européen)
@@ -86,7 +86,7 @@ export function CaseViewer({ pulled, onClose, onEdit, onPropose }: { pulled: Pul
   const format = kind === 'ps1' ? (!pulled.release.zone || pulled.release.zone === 'PAL' ? 'ps1-pal' : 'ps1-flat')
     : kind === 'ps2' ? ps2Format(pulled.release.zone)
       : kind === 'nes' ? (pulled.release.zone === 'NTSC-J' ? 'nes-jp' : 'nes')
-        : kind === 'snes' && pulled.release.platform.short_name === 'N64' ? (pulled.release.zone === 'NTSC-J' ? 'n64-jp' : 'n64')
+        : kind === 'n64' ? (pulled.release.zone === 'NTSC-J' ? 'n64-jp' : 'n64')
         : kind === 'snes' ? (pulled.release.zone === 'NTSC-J' ? 'snes-jp' : 'snes')
           : kind === 'gb' ? (pulled.release.zone === 'NTSC-J' ? 'gb-jp' : 'gb') : kind;
   // Tranche dessinée selon la région du boîtier (sur l'étagère, toujours au format européen)
@@ -231,12 +231,16 @@ export function CaseViewer({ pulled, onClose, onEdit, onPropose }: { pulled: Pul
             {/* Côté ouverture : la seconde tranche du verso (boîtier CD), le plastique lisse et sa rainure (DVD) */}
             <div className="cv-face cv-side" style={face({ width: d, height: h - 2 * round, top: round, left: (w - d) / 2, transform: `rotateY(90deg) translateZ(${w / 2}px)`, ['--spine-w' as string]: `${d}px` })}>
               {/* Boîte en carton : le titre aussi sur l'autre tranche */}
-              {(kind === 'ps1' || kind === 'nes' || kind === 'snes' || kind === 'gb') && <SpineFace release={pulled.release} region={kind === 'ps1' ? undefined : region} />}
+              {(kind === 'ps1' || kind === 'nes' || kind === 'snes' || kind === 'n64' || kind === 'gb') && <SpineFace release={pulled.release} region={kind === 'ps1' ? undefined : region} />}
               {/* PS2 : la rainure où l'on glisse les doigts pour ouvrir le boîtier */}
               {kind === 'ps2' && <span className="cv-notch" />}
               <span className="cv-gloss" />
             </div>
-            <div className="cv-face cv-edge cv-top" style={face({ width: w - 2 * round, left: round, height: d, top: (h - d) / 2, transform: `rotateX(90deg) translateZ(${h / 2}px)` })} />
+            <div className="cv-face cv-edge cv-top" style={face({ width: w - 2 * round, left: round, height: d, top: (h - d) / 2, transform: `rotateX(90deg) translateZ(${h / 2}px)` })}>
+              {/* Nintendo 64 (Europe, Amérique) : le nom de la console en grand, en blanc, sur le long
+                  côté du dessus (texte simple, à la place du logo) */}
+              {format === 'n64' && <span className="cv-edge-label">NINTENDO 64</span>}
+            </div>
             <div className="cv-face cv-edge cv-bottom" style={face({ width: w - 2 * round, left: round, height: d, top: (h - d) / 2, transform: `rotateX(-90deg) translateZ(${h / 2}px)` })} />
             {round > 0 && cornerFacets(w, h, round).map((c, i) => (
               <div key={i} className="cv-face cv-round" style={face({ width: facet, height: d, left: (w - facet) / 2, top: (h - d) / 2,

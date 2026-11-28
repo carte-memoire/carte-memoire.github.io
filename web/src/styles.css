@@ -1264,6 +1264,7 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .shelf .spine-snes { --spine-w: 59px; height: 229px; border-block: 2px solid #1d1d21; }
 .shelf .spine-gb { --spine-w: 41px; height: 225px; border-block: 2px solid rgba(0, 0, 0, 0.35); }
 .shelf .spine-md { --spine-w: 41px; height: 337px; border-block: 2px solid #0b0b0d; }
+.shelf .spine-n64 { --spine-w: 59px; height: 229px; border-block: 2px solid rgba(0, 0, 0, 0.4); }
 @media (max-width: 640px) {
   .shelf > li { padding-right: 4px; }
   .shelf .spine-ps1 { --spine-w: 25px; height: 190px; }
@@ -1273,6 +1274,7 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
   .shelf .spine-snes { --spine-w: 48px; height: 188px; }
   .shelf .spine-gb { --spine-w: 34px; height: 185px; }
   .shelf .spine-md { --spine-w: 33px; height: 270px; }
+  .shelf .spine-n64 { --spine-w: 48px; height: 188px; }
 }
 .shelf-spine.is-wanted .spine-face { opacity: 0.5; outline: 1px dashed rgba(255, 255, 255, 0.55); outline-offset: -1px; }
 
@@ -2177,9 +2179,52 @@ body.is-shelf-dragging, body.is-shelf-dragging * { cursor: grabbing !important; 
 .cv-snes-jp .cv-back-inlay, .cv-n64-jp .cv-back-inlay { background: linear-gradient(160deg, #f7f5f0, #dedad1); }
 .cv-snes-jp .cv-edge, .cv-n64-jp .cv-edge { background: linear-gradient(180deg, #f4f2ed, #dcd8cf 50%, #ebe8e1); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08); }
 .cv-snes-jp .cv-edge::after, .cv-n64-jp .cv-edge::after { background: rgba(0, 0, 0, 0.14); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7); }
-/* Nintendo 64 : pour l'instant l'habillage de la boîte Super Nintendo (même boîte en carton) ;
-   la tranche porte « NINTENDO 64 » en texte simple (Spine.tsx). À affiner d'après des photos */
-.spine-snes.is-n64 .spine-mark { font-size: calc(var(--spine-w) * 0.15); letter-spacing: 0.08em; }
+/* Nintendo 64 : boîte en carton (CaseViewer.tsx : 179 × 127 × 33 mm couchée en Europe et en
+   Amérique ; au Japon la même boîte debout, 127 × 179). D'après des photos de vraies boîtes
+   (annonces de collectionneurs, Super Mario 64 et Donkey Kong 64 européens, Super Mario 64
+   japonais) : face, dos et longs côtés noirs, et sur le long côté du dessus « NINTENDO 64 » en
+   grandes lettres blanches (texte simple, à la place du logo) ; au Japon, carton crème ; dedans, du
+   carton gris. Les petits côtés : la tranche (Spine.tsx) */
+.cv-n64 .cv-hinge { display: none; }
+.cv-n64 .cv-front, .cv-n64 .cv-back { background: #0f0f11; border-radius: 1px; }
+.cv-n64 .cv-front .cv-inlay, .cv-n64 .cv-back-inlay { inset: 0; }
+.cv-n64 .cv-back-inlay { background: linear-gradient(160deg, #1e1e23, #0e0e11); }
+.cv-n64 .cv-spine, .cv-n64 .cv-side { background: #111113; }
+.cv-n64 .cv-edge { background: linear-gradient(180deg, #1f1f23, #0f0f11 50%, #17171a); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06); }
+.cv-n64 .cv-gloss { opacity: 0.55; }
+.cv-n64 .cv-front, .cv-n64 .cv-spine, .cv-n64 .cv-side { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14), inset 0 0 0 2px rgba(0, 0, 0, 0.35); }
+.cv-n64 .cv-edge-label {
+  position: absolute; inset: 0; display: flex; align-items: center; padding-left: 5%; pointer-events: none;
+  color: #f2f2f0; font: 900 calc(var(--case-h) * 0.1) / 1 'Arial Black', Montserrat, 'Helvetica Neue', Arial, sans-serif; letter-spacing: 0.04em;
+}
+.cv-n64-jp .cv-spine, .cv-n64-jp .cv-side { background: #f3f1ec; }
+.cv-n64-jp .cv-edge-label { display: none; }
+/* La tranche, d'après les petits côtés des boîtes européennes : les couleurs de l'illustration
+   (--n64-back, --n64-text, Spine.tsx), le titre en grand de haut en bas, et en haut le petit carré
+   blanc « NINTENDO 64 » qu'on trouve sur chaque côté de la boîte (texte simple, sans le logo cube) ;
+   au Japon, carton crème et titre de la couleur du jeu */
+.spine-n64 {
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.28), rgba(0, 0, 0, 0.04) 32%, rgba(0, 0, 0, 0.06) 68%, rgba(0, 0, 0, 0.3)), var(--n64-back, #2f56c9);
+  color: var(--n64-text, #ffffff); box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.22), inset -1px 0 0 rgba(0, 0, 0, 0.5);
+}
+.spine-n64 .spine-band { height: auto; padding: calc(var(--spine-w) * 0.14) 0 calc(var(--spine-w) * 0.08); }
+.spine-n64 .spine-mark {
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  width: calc(var(--spine-w) * 0.6); aspect-ratio: 1; background: #fbfbf8; color: #1c1c20; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+  font: 900 calc(var(--spine-w) * 0.105) / 1.05 system-ui, sans-serif; letter-spacing: 0.02em; white-space: normal;
+}
+.spine-n64 .spine-title {
+  flex: 1 1 auto; padding-top: calc(var(--spine-w) * 0.16);
+  font-family: 'Arial Black', Montserrat, 'Helvetica Neue', Arial, sans-serif; font-weight: 900;
+  font-size: calc(var(--spine-w) * 0.34 * var(--fit, 1)); letter-spacing: 0.02em; text-transform: uppercase;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);
+}
+.spine-n64 .spine-code { display: none; }
+.spine-n64.spine-region-jp {
+  background: linear-gradient(90deg, #d9d4c8, #f7f4ec 40%, #e6e1d5); color: var(--ink, #c8202a);
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.7), inset -1px 0 0 rgba(0, 0, 0, 0.2);
+}
+.spine-n64.spine-region-jp .spine-title { text-transform: none; text-shadow: none; font-family: system-ui, 'Arial Black', sans-serif; }
 /* Game Boy : petite boîte en carton, comme la NES (CaseViewer.tsx : 121 × 121 × 24 mm ; au Japon,
    98 × 114 × 22 mm) ; la jaquette sur toute la face, carton clair au dos et sur les bords */
 /* Mega Drive : boîtier en plastique noir (CaseViewer.tsx : 133 × 187 × 23 mm, le même dans les
