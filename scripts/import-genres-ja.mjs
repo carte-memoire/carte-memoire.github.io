@@ -43,7 +43,8 @@ const CACHE_DIR = join(ROOT, '.genres-import');
 // sont tirés (c'est alors le genre du manga qui ressort) : Hunter × Hunter, Devilman,
 // GetBackers, Nūbē, Kuro-chan, Senkai, Votoms, Bobobo, Reborn!, Kenichi, Gunslinger Girl,
 // Samurai 7, Ashita no Joe, Kurohime
-const EXCLUDED = new Set([2620, 3874, 4263, 7170, 8038, 8061, 8239,
+// Relecture (2026-11-28, GBA) : Scrabble relié par erreur à l'élément de Scramble (Konami, tir)
+const EXCLUDED = new Set([2620, 3874, 4263, 7170, 8038, 8061, 8239, 17340,
   2932, 2933, 2549, 2202, 2106, 3044, 3882, 4096,
   7540, 7541, 7191, 7851, 8549, 7588, 7589, 8461, 7133, 8656, 8024]);
 const CACHE = join(CACHE_DIR, CONSOLE.code === 'PS1' ? 'wikipedia-ja.json' : `wikipedia-ja-${CONSOLE.code.toLowerCase()}.json`);

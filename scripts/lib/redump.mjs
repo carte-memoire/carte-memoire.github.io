@@ -21,10 +21,14 @@ const COUNTRY = { France: 'FR', Germany: 'DE', Spain: 'ES', Italy: 'IT', UK: 'GB
 // Langue par défaut quand le nom ne la précise pas (convention Redump : « Europe » seul = anglais)
 const DEFAULT_LANGUAGE = { Japan: 'ja', USA: 'en', Canada: 'en', UK: 'en', Australia: 'en', Europe: 'en', France: 'fr', Germany: 'de', Spain: 'es', Italy: 'it', Netherlands: 'nl', Sweden: 'sv', Korea: 'ko' };
 // Pas le jeu vendu en magasin : démos (dont les démos de magasin japonaises
-// « Tentou Shiyuudai-you »), prototypes, disques bonus, guides…
+// « Tentou Shiyuudai-you »), prototypes, disques bonus, guides… ; ni les rééditions
+// dématérialisées (Virtual Console, Nintendo Switch Online, Castlevania Advance Collection),
+// ni les cartouches parues bien après la console (« Aftermarket »)
 // Jeux sans licence (« Unl ») : écartés, sauf pour les consoles où ils ont été vendus en magasin (NES…)
 const UNLICENSED = /^unl$/i;
-const EXCLUDED = /demo|beta|proto|sample|taikenban|otameshi|kiosk|preview|trial|promo|not for resale|review|pirate|hack|program|playable|tech|test|putative|sampler|tentou|shiyuu|shotenban|premium disc|special disc|perfect guide|append|bonus|making|trailer/i;
+const EXCLUDED = /demo|beta|proto|sample|taikenban|otameshi|kiosk|preview|trial|promo|not for resale|review|pirate|hack|program|playable|tech|test|putative|sampler|tentou|shiyuu|shotenban|premium disc|special disc|perfect guide|append|bonus|making|trailer|virtual console|switch online|advance collection|aftermarket/i;
+// Traductions d'amateurs (« [T-En by …] ») : pas la boîte vendue en magasin
+const FAN_TRANSLATION = /\[T[-+]/;
 // Une autre édition que la standard : rééditions et éditions limitées, qui ont
 // souvent leur propre code produit et leur propre jaquette
 const SPECIAL_EDITION = /the best|psone books|major wave|rerelease|best choice|culture publishers|fukkokuban|reprint|greatest hits|platinum|genteiban|limited|premium|deluxe|controller set|special edition|tokubetsuban|value|nice price|collector/i;
@@ -64,7 +68,7 @@ export const loadPs1Releases = (api, fields) => loadReleases(api, fields, 'PS1')
 // « Gran Turismo (Europe) (En,Fr,De,Es,It) (Disc 1) » → ses informations
 export function parseName(name, { unlicensed = false } = {}) {
   const tags = [...name.matchAll(/\(([^)]*)\)/g)].map((m) => m[1]);
-  if (tags.some((t) => EXCLUDED.test(t) || (!unlicensed && UNLICENSED.test(t)))) return null;
+  if (FAN_TRANSLATION.test(name) || tags.some((t) => EXCLUDED.test(t) || (!unlicensed && UNLICENSED.test(t)))) return null;
   let base = name.replace(/\s*\(.*$/, '').replace(/_/g, ' ').trim();
   const article = /^(.*), (The|A|An)$/.exec(base); // « Legend of Dragoon, The »
   if (article) base = `${article[2]} ${article[1]}`;

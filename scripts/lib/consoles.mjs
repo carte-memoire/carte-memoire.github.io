@@ -253,6 +253,8 @@ export const CONSOLES = {
       "Teen Titans 2: The Brotherhood's Revenge": 'Q28499085', "Disney's The Little Mermaid: Magic in Two Kingdoms": 'Q4051158',
       "Disney's Treasure Planet": 'Q3211722', 'World Advance Soccer: Road to Win': 'Q116205183',
       'CT Special Forces 3: Bioterror': 'Q2932062', 'Pawa Poke Dash': 'Q24960476', 'Titeuf: Ze Gag Machine': 'Q16680274',
+      // La ligne « Scrabble » de la liste pointe l'article de Scramble (Konami) : pas d'élément
+      Scrabble: null,
     },
   },
   // Mega Drive (Genesis en Amérique du Nord) : les cartouches ; le Mega-CD et la 32X seront des

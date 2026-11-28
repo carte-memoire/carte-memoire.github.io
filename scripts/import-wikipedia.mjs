@@ -578,8 +578,9 @@ const companyArticles = await resolveArticles(
 for (const r of rows) r.qid = r.article ? gameArticles.get(r.article)?.qid ?? null : null;
 // Ligne dont l'article est celui d'une série ou de la version d'une autre console (ou sans
 // article) : l'élément Wikidata propre à cette console, s'il existe (CONSOLE.wikipediaQids :
-// titre de la ligne → élément). Sinon, le jeu de Wikidata resterait à part, sans zone
-for (const r of rows) if (CONSOLE.wikipediaQids?.[r.title]) r.qid = CONSOLE.wikipediaQids[r.title];
+// titre de la ligne → élément ; null : la ligne pointe l'article d'un autre jeu, pas d'élément).
+// Sinon, le jeu de Wikidata resterait à part, sans zone
+for (const r of rows) if (CONSOLE.wikipediaQids && Object.hasOwn(CONSOLE.wikipediaQids, r.title)) r.qid = CONSOLE.wikipediaQids[r.title];
 
 // Un jeu présent dans deux tableaux (After Burner : sous licence au Japon, sans licence aux
 // États-Unis ; un jeu Sachen vendu en NES et en Famicom) reste UN jeu : la ligne du tableau
