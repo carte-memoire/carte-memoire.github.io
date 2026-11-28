@@ -34,6 +34,15 @@ describe('distribute', () => {
     const { boxes } = distribute([...games('PS1', 2), ...games('PS2', 2)], consoleOf, [meuble('a', 'PS1', AUTO, AUTO)], () => 10);
     expect(boxes).toEqual([{ console: 'PS2', after: null, items: games('PS2', 2) }]);
   });
+
+  it('une grande boîte (pack avec Multitap) prend trois places ; si elle ne tient plus, elle passe à l’étage suivant', () => {
+    const big = (g: { n: number }) => (g.n === 4 ? 3 : 1);
+    const auto = distribute(games('PS1', 8), consoleOf, [meuble('a', 'PS1', AUTO, 5)], () => 99, big);
+    expect(auto.placed[0].levels.map((l) => l.map((g) => g.n))).toEqual([[1, 2, 3], [4, 5, 6], [7, 8]]);
+    const fixed = distribute(games('PS1', 8), consoleOf, [meuble('a', 'PS1', 1, 5)], () => 99, big);
+    expect(fixed.placed[0].levels.map((l) => l.length)).toEqual([3]);
+    expect(fixed.boxes[0].items.map((g) => g.n)).toEqual([4, 5, 6, 7, 8]);
+  });
 });
 
 describe('cleanRoom', () => {

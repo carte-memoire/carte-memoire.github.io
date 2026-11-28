@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { SpineFace, spineKind } from './Spine';
 import { CameraIcon } from './Cover';
 import { prefersReducedMotion } from '../lib/motion';
+import { isMultitapPack } from '../lib/cases';
 import { tr } from '../lib/i18n';
 
 // Un jeu sorti de l'étagère : son boîtier glisse vers soi, tranche en avant, puis pivote
@@ -46,6 +47,9 @@ const CASE_MM: Record<string, { w: number; h: number; d: number }> = {
   // N64 : 182 × 129 × 36 mm à l'intérieur) ; au Japon, la même boîte debout (scans 0,715 = 127 / 179)
   n64: { w: 179, h: 127, d: 33 },
   'n64-jp': { w: 127, h: 179, d: 33 },
+  // Pack PlayStation avec Multitap (Crash Team Racing, Speed Freaks, Le Monde des Bleus) : grande
+  // boîte en carton couchée, 378 × 234 × 45 mm (mesurée sur celle de Crash Team Racing)
+  'ps1-multitap': { w: 378, h: 234, d: 45 },
 };
 
 // Format du boîtier PS2 selon la zone de la version (zone inconnue : européen)
@@ -65,7 +69,7 @@ export interface Pulled {
   from: DOMRect;
   // La tranche sur l'étagère : sa place reste vide tant que le jeu est sorti
   source?: HTMLElement;
-  release: { local_title: string; product_code: string | null; edition_type: string; zone?: string | null; platform: { short_name: string } };
+  release: { local_title: string; product_code: string | null; edition_type: string; edition_name?: string | null; zone?: string | null; platform: { short_name: string } };
   src: string | null;
   meta: string;
   // Lien vers la fiche (absent quand on y est déjà)
@@ -86,7 +90,8 @@ export function CaseViewer({ pulled, onClose, onEdit, onPropose }: { pulled: Pul
   // La tranche sur l'étagère (sa place reste vide tant que le jeu est sorti)
   const spot = useRef(pulled.source);
   const kind = spineKind(pulled.release.platform.short_name) ?? 'ps1';
-  const format = kind === 'ps1' ? (!pulled.release.zone || pulled.release.zone === 'PAL' ? 'ps1-pal' : 'ps1-flat')
+  const pack = isMultitapPack(pulled.release.platform.short_name, pulled.release.edition_type, pulled.release.edition_name);
+  const format = pack ? 'ps1-multitap' : kind === 'ps1' ? (!pulled.release.zone || pulled.release.zone === 'PAL' ? 'ps1-pal' : 'ps1-flat')
     : kind === 'ps2' ? ps2Format(pulled.release.zone)
       : kind === 'nes' ? (pulled.release.zone === 'NTSC-J' ? 'nes-jp' : 'nes')
         : kind === 'n64' ? (pulled.release.zone === 'NTSC-J' ? 'n64-jp' : 'n64')
@@ -183,13 +188,14 @@ export function CaseViewer({ pulled, onClose, onEdit, onPropose }: { pulled: Pul
   const face = (style: CSSProperties) => ({ ...style, position: 'absolute' } as CSSProperties);
   const title = pulled.release.local_title;
   return (
-    <dialog ref={dialog} className={`case-viewer cv-${kind} cv-${format}`} aria-label={title}
+    <dialog ref={dialog} className={`case-viewer cv-${pack ? 'pack' : kind} cv-${format}`} aria-label={title}
       onCancel={(event) => { event.preventDefault(); close(); }}
       onClick={(event) => { if (event.target === event.currentTarget) close(); }}>
       <div className="cv-stage" onPointerMove={follow} onClick={(event) => { if (event.target === event.currentTarget) close(); }}>
         <div ref={shadow} className="cv-shadow" aria-hidden="true"
           style={{ width: w * 1.15, height: Math.max(16, h * 0.09), marginLeft: -w * 0.575, marginTop: h / 2 + h * 0.03 }} />
-        <div ref={box} className="cv-box" style={{ width: w, height: h, marginLeft: -w / 2, marginTop: -h / 2, ['--case-h' as string]: `${h}px`, ['--round' as string]: `${round}px` } as CSSProperties}>
+        <div ref={box} className="cv-box" style={{ width: w, height: h, marginLeft: -w / 2, marginTop: -h / 2, ['--case-h' as string]: `${h}px`, ['--round' as string]: `${round}px`,
+            ...(pack && pulled.src ? { ['--pack-art' as string]: `url("${pulled.src}")` } : {}) } as CSSProperties}>
           <div ref={turn} className="cv-turn">
             {/* Face : la jaquette sous le plastique (couvercle transparent du boîtier CD,
                 pochette du boîtier DVD), avec ce qu'on voit autour d'elle */}
@@ -243,6 +249,8 @@ export function CaseViewer({ pulled, onClose, onEdit, onPropose }: { pulled: Pul
               {/* Nintendo 64 (Europe, Amérique) : le nom de la console en grand, en blanc, sur le long
                   côté du dessus (texte simple, à la place du logo) */}
               {format === 'n64' && <span className="cv-edge-label">NINTENDO 64</span>}
+              {/* Pack avec Multitap : l'illustration continue sur les côtés, et l'adaptateur nommé (texte simple) */}
+              {pack && <span className="cv-edge-label">+ Multi Tap</span>}
             </div>
             <div className="cv-face cv-edge cv-bottom" style={face({ width: w - 2 * round, left: round, height: d, top: (h - d) / 2, transform: `rotateX(-90deg) translateZ(${h / 2}px)` })} />
             {round > 0 && cornerFacets(w, h, round).map((c, i) => (

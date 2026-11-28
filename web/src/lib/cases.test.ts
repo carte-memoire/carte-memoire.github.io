@@ -35,5 +35,11 @@ describe('boîtier selon la console et la zone', () => {
   });
   it('un collector ou un bundle reste sans cadre', () => {
     expect(caseFormatFor('NES', 'collector', 'NTSC-J')).toBe('free');
+    expect(caseFormatFor('PS1', 'bundle', 'PAL', 'Pack console')).toBe('free');
+  });
+  it('un pack PlayStation avec Multitap a sa grande boîte en carton', () => {
+    expect(caseFormatFor('PS1', 'bundle', 'PAL', 'Multitap')).toBe('carton-multitap');
+    expect(caseFormatFor('PS1', 'bundle', 'PAL', 'Multi Tap')).toBe('carton-multitap');
+    expect(caseFormatFor('PS1', 'standard', 'PAL', 'Multitap')).toBe('cd');
   });
 });

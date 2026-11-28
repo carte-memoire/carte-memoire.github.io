@@ -1273,6 +1273,8 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .shelf .spine-gb { --spine-w: 41px; height: 225px; border-block: 2px solid rgba(0, 0, 0, 0.35); }
 .shelf .spine-md { --spine-w: 41px; height: 337px; border-block: 2px solid #0b0b0d; }
 .shelf .spine-n64 { --spine-w: 59px; height: 229px; border-block: 2px solid rgba(0, 0, 0, 0.4); }
+/* Pack PlayStation avec Multitap : la grande boîte en carton, 45 × 234 mm sur la tranche */
+.shelf .spine-ps1.is-multitap { --spine-w: 81px; height: 421px; border-block: 2px solid rgba(0, 0, 0, 0.4); }
 @media (max-width: 640px) {
   .shelf > li { padding-right: 4px; }
   .shelf .spine-ps1 { --spine-w: 25px; height: 190px; }
@@ -1283,6 +1285,7 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
   .shelf .spine-gb { --spine-w: 34px; height: 185px; }
   .shelf .spine-md { --spine-w: 33px; height: 270px; }
   .shelf .spine-n64 { --spine-w: 48px; height: 188px; }
+  .shelf .spine-ps1.is-multitap { --spine-w: 66px; height: 342px; }
 }
 .shelf-spine.is-wanted .spine-face { opacity: 0.5; outline: 1px dashed rgba(255, 255, 255, 0.55); outline-offset: -1px; }
 
@@ -1343,6 +1346,20 @@ button.release-chip:hover:not(:disabled) { border-color: var(--cross); }
 .spine-ps2.spine-region-us, .spine-ps2.spine-region-us.is-reissue { background: linear-gradient(90deg, #18181b, #0b0b0d 45%, #141417); color: #f2f2f2; }
 .spine-ps2.spine-region-us.is-reissue .spine-band { background: #c4122f; }
 .spine-ps1.is-reissue .spine-mark { border-color: rgba(0, 0, 0, 0.55); }
+/* Pack PlayStation avec Multitap (cases.ts) : boîte en carton aux couleurs du jeu (Spine.tsx),
+   la marque, le titre en grand, puis « + MULTI TAP » sur un bandeau sombre, en bas */
+.spine-ps1.is-multitap {
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.22), transparent 25%, transparent 75%, rgba(0, 0, 0, 0.28)), var(--pack-back);
+  color: var(--pack-text);
+}
+.spine-ps1.is-multitap .spine-band { height: calc(var(--spine-w) * 1.1); }
+.spine-ps1.is-multitap .spine-mark { width: calc(var(--spine-w) * 0.55); border-color: currentColor; font-size: calc(var(--spine-w) * 0.21); }
+.spine-ps1.is-multitap .spine-title { font-size: calc(var(--spine-w) * 0.46 * var(--fit, 1)); padding-top: calc(var(--spine-w) * 0.12); }
+.spine-pack {
+  flex: none; margin-bottom: calc(var(--spine-w) * 0.22); padding: calc(var(--spine-w) * 0.1) calc(var(--spine-w) * 0.07);
+  writing-mode: vertical-rl; white-space: nowrap; border-radius: 2px; background: rgba(0, 0, 0, 0.6); color: #fff;
+  font: 800 calc(var(--spine-w) * 0.24) / 1 Montserrat, 'Arial Black', sans-serif; letter-spacing: 0.04em; text-transform: uppercase;
+}
 /* NES : boîte en carton (127 × 178 × 24 mm, 1,8 px par mm sur l'étagère), d'après les boîtes
    « black box » : tranche noire et brillante, le titre EN HAUT, en grandes capitales grasses
    d'une couleur vive propre au jeu (--ink, Spine.tsx) ; en bas, la marque de la console dans un
@@ -2208,6 +2225,30 @@ body.is-shelf-dragging, body.is-shelf-dragging * { cursor: grabbing !important; 
   color: #f2f2f0; font: 900 calc(var(--case-h) * 0.1) / 1 'Arial Black', Montserrat, 'Helvetica Neue', Arial, sans-serif; letter-spacing: 0.04em;
 }
 .cv-n64-jp .cv-spine, .cv-n64-jp .cv-side { background: #f3f1ec; }
+/* Pack PlayStation avec Multitap : grande boîte en carton couchée (CaseViewer.tsx : 378 × 234 ×
+   45 mm). D'après la boîte de Crash Team Racing : la face est une seule illustration, avec le
+   boîtier du jeu derrière une fenêtre et l'adaptateur (la photo de la jaquette la montre en
+   entier) ; l'illustration continue sur les longs côtés (ici, la jaquette floutée, --pack-art),
+   avec « + MULTI TAP » ; les petits côtés : la tranche (Spine.tsx, is-multitap) */
+.cv-pack .cv-hinge { display: none; }
+.cv-pack .cv-front, .cv-pack .cv-back { background: #141416; border-radius: 1px; }
+.cv-pack .cv-front .cv-inlay, .cv-pack .cv-back-inlay { inset: 0; }
+/* Une photo qui n'est pas au format de la boîte est recadrée, jamais déformée */
+.cv-pack .cv-inlay img { object-fit: cover; }
+.cv-pack .cv-back-inlay { background: linear-gradient(160deg, #1e1e23, #0e0e11); }
+.cv-pack .cv-spine, .cv-pack .cv-side { background: #111113; }
+.cv-pack .cv-edge { background: linear-gradient(180deg, #2a2a2f, #151518); }
+.cv-pack .cv-edge::before {
+  content: ''; position: absolute; inset: -40% -4%; pointer-events: none;
+  background: var(--pack-art, none) center / cover no-repeat; filter: blur(5px) saturate(1.15) brightness(0.82);
+}
+.cv-pack .cv-gloss { opacity: 0.5; }
+.cv-pack .cv-front, .cv-pack .cv-spine, .cv-pack .cv-side { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16), inset 0 0 0 2px rgba(0, 0, 0, 0.35); }
+.cv-pack .cv-edge-label {
+  position: absolute; inset: 0; display: flex; align-items: center; padding-left: 4%; pointer-events: none;
+  color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7); text-transform: uppercase;
+  font: 900 calc(var(--case-h) * 0.07) / 1 Montserrat, 'Arial Black', 'Helvetica Neue', Arial, sans-serif; letter-spacing: 0.04em;
+}
 .cv-n64-jp .cv-edge-label { display: none; }
 /* La tranche, d'après les petits côtés des boîtes européennes : les couleurs de l'illustration
    (--n64-back, --n64-text, Spine.tsx), le titre en grand de haut en bas, et en haut le petit carré

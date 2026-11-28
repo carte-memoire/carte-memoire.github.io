@@ -23,6 +23,7 @@ import { CaseViewer, type Pulled } from '../components/CaseViewer';
 import { RoomBox, ShelfCabinet } from '../components/ShelfCabinet';
 import { ShelfFurniture } from '../components/ShelfFurniture';
 import { ALL_CONSOLES, cleanRoom, compareShelfTitles, distribute, startingRoom, type Meuble, type Room } from '../lib/room';
+import { isMultitapPack, MULTITAP_PLACES } from '../lib/cases';
 import { coverUrl } from '../lib/supabase';
 
 interface PublicProfile {
@@ -166,7 +167,8 @@ export function MemberPage() {
   const roomConsoles = useMemo(() => [...new Set(items.map((i) => i.platform))].sort()
     .map((code) => ({ code, name: platforms.find((p) => p.short_name === code)?.name ?? code })), [items, platforms]);
   const room = savedRoom ?? startingRoom(roomConsoles);
-  const furnished = useMemo(() => distribute(shelved, (i) => i.platform, room.meubles, (m) => perRows[m.id] ?? 20), [shelved, room.meubles, perRows]);
+  const furnished = useMemo(() => distribute(shelved, (i) => i.platform, room.meubles, (m) => perRows[m.id] ?? 20,
+    (i) => (isMultitapPack(i.platform, i.edition_type, i.edition_name) ? MULTITAP_PLACES : 1)), [shelved, room.meubles, perRows]);
 
   if (profile === undefined) return <MemberSkeleton />;
   if (profile === null) {
@@ -209,7 +211,7 @@ export function MemberPage() {
   // Une tranche de sa pièce : un clic sort le boîtier (d'une vitrine : la porte s'ouvre d'abord)
   function renderSpine(i: PublicItem, meuble?: Meuble) {
     const name = platformName(i.platform);
-    const release = { local_title: i.local_title, product_code: i.product_code ?? null, edition_type: i.edition_type, zone: i.zone, platform: { short_name: i.platform } };
+    const release = { local_title: i.local_title, product_code: i.product_code ?? null, edition_type: i.edition_type, edition_name: i.edition_name, zone: i.zone, platform: { short_name: i.platform } };
     return (
       <li key={i.item_id ?? `${i.release_id}-${i.local_title}`}>
         <button type="button" className={i.status === 'wanted' ? 'shelf-spine is-wanted' : 'shelf-spine'} title={i.local_title}

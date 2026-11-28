@@ -42,7 +42,7 @@ function ProposalBody({ release, gameTitle, hasCover, onClose }: {
 }) {
   const { session } = useAuth();
   const [step, setStep] = useState<Step>('choose');
-  const [format, setFormat] = useState<CaseFormat>(() => caseFormatFor(release.platform.short_name, release.edition_type, release.zone));
+  const [format, setFormat] = useState<CaseFormat>(() => caseFormatFor(release.platform.short_name, release.edition_type, release.zone, release.edition_name));
   const [photo, setPhoto] = useState<{ image: HTMLCanvasElement; quad?: Quad } | null>(null);
   const [link, setLink] = useState<string | null>(null);
   const [error, setError] = useState('');

@@ -32,10 +32,11 @@ export async function publishProposedCover(source: string, edited: Blob | null, 
 // Le modérateur peut l'agrandir pour l'examiner, et la recadrer s'il le faut : sa
 // version recadrée (`edited`) est alors celle publiée à l'acceptation. L'image
 // du membre, elle, n'est jamais modifiée.
-export function ProposedCover({ path, platform, editionType, zone, edited, onEdited, size = 'large' }: {
+export function ProposedCover({ path, platform, editionType, editionName, zone, edited, onEdited, size = 'large' }: {
   path: string;
   platform?: string | null;
   editionType?: string | null;
+  editionName?: string | null;
   zone?: string | null;
   edited: Blob | null;
   onEdited: (blob: Blob | null) => void;
@@ -45,7 +46,7 @@ export function ProposedCover({ path, platform, editionType, zone, edited, onEdi
   const [editedUrl, setEditedUrl] = useState('');
   const [zoom, setZoom] = useState(false);
   const [cropping, setCropping] = useState<HTMLCanvasElement | null>(null);
-  const [format, setFormat] = useState<CaseFormat>(() => caseFormatFor(platform, editionType, zone));
+  const [format, setFormat] = useState<CaseFormat>(() => caseFormatFor(platform, editionType, zone, editionName));
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -53,7 +54,7 @@ export function ProposedCover({ path, platform, editionType, zone, edited, onEdi
   }, [path]);
 
   // La console et l'édition arrivent avec la version (lue après coup) : le format suit
-  useEffect(() => { setFormat(caseFormatFor(platform, editionType, zone)); }, [platform, editionType, zone]);
+  useEffect(() => { setFormat(caseFormatFor(platform, editionType, zone, editionName)); }, [platform, editionType, zone, editionName]);
 
   useEffect(() => {
     if (!edited) return setEditedUrl('');

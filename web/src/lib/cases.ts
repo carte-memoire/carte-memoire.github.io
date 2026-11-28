@@ -6,7 +6,7 @@
 // boîtier CD et l'édition « Standard ».
 import { tr } from './i18n';
 
-export type CaseFormat = 'cd' | 'dvd' | 'carton' | 'carton-jp' | 'carton-snes' | 'carton-sfc' | 'carton-gb' | 'carton-gb-jp' | 'disquette' | 'boitier-md' | 'carton-n64-jp' | 'carton-gba-jp' | 'free';
+export type CaseFormat = 'cd' | 'dvd' | 'carton' | 'carton-jp' | 'carton-snes' | 'carton-sfc' | 'carton-gb' | 'carton-gb-jp' | 'disquette' | 'boitier-md' | 'carton-n64-jp' | 'carton-gba-jp' | 'carton-multitap' | 'free';
 export type BoxFormat = Exclude<CaseFormat, 'free'>;
 
 // Largeur / hauteur du recto : boîtier CD 120 × 120 mm, boîtier DVD 135 × 190 mm, boîte en
@@ -20,10 +20,12 @@ export type BoxFormat = Exclude<CaseFormat, 'free'>;
 // Nintendo en Amérique du Nord et en Europe (mêmes protections de collectionneurs, scans 1,43), et au
 // Japon la même boîte debout (127 × 179 mm, scans 0,715) ; Game Boy Advance : la petite boîte carrée
 // de la Game Boy en Amérique du Nord et en Europe (scans 1,0), une petite boîte couchée au Japon
-// (scans 1,57 ; environ 133 × 85 mm, à confirmer)
+// (scans 1,57 ; environ 133 × 85 mm, à confirmer) ; pack PlayStation avec Multitap : grande boîte
+// en carton couchée, 378 × 234 mm (mesurée sur celle de Crash Team Racing)
 export const CASE_RATIO: Record<BoxFormat, number> = {
   cd: 1, dvd: 135 / 190, carton: 127 / 178, 'carton-jp': 142 / 98, 'carton-snes': 179 / 127, 'carton-sfc': 105 / 190,
   'carton-gb': 1, 'carton-gb-jp': 98 / 114, disquette: 88 / 98, 'boitier-md': 133 / 187, 'carton-n64-jp': 127 / 179, 'carton-gba-jp': 1.57,
+  'carton-multitap': 378 / 234,
 };
 
 interface ConsoleTraits {
@@ -81,8 +83,18 @@ export const mediaName = (platform?: string | null): string =>
   (isCartridge(platform) ? tr('Cartouche') : CONSOLE_TRAITS[platform ?? '']?.diskette ? tr('Disquette') : tr('Disque'));
 export const hasSpineCard = (platform?: string | null): boolean => CONSOLE_TRAITS[platform ?? '']?.spineCard === true;
 
-// Une édition collector ou un bundle n'a pas forcément le boîtier standard : sans cadre
-export function caseFormatFor(platform?: string | null, editionType?: string | null, zone?: string | null): CaseFormat {
+// Pack PlayStation vendu avec l'adaptateur Multitap (Crash Team Racing, Speed Freaks, Le Monde
+// des Bleus) : le jeu dans une grande boîte en carton couchée, 378 × 234 × 45 mm, à côté de
+// l'adaptateur ; sur l'étagère, il prend la place de trois boîtiers
+export function isMultitapPack(platform?: string | null, editionType?: string | null, editionName?: string | null): boolean {
+  return platform === 'PS1' && editionType === 'bundle' && /multi\s*-?\s*tap/i.test(editionName ?? '');
+}
+export const MULTITAP_PLACES = 3;
+
+// Une édition collector ou un bundle n'a pas forcément le boîtier standard : sans cadre (sauf
+// les packs avec Multitap, tous dans la même boîte)
+export function caseFormatFor(platform?: string | null, editionType?: string | null, zone?: string | null, editionName?: string | null): CaseFormat {
+  if (isMultitapPack(platform, editionType, editionName)) return 'carton-multitap';
   if (editionType === 'collector' || editionType === 'bundle') return 'free';
   return platformCase(platform, zone) ?? 'cd';
 }

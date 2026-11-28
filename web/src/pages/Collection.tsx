@@ -4,7 +4,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { coverUrl, supabase } from '../lib/supabase';
 import { COLLECTION_FIELDS } from '../lib/queries';
 import { standInFor, type CoverSource, type StandIn } from '../lib/images';
-import { mediaName } from '../lib/cases';
+import { isMultitapPack, mediaName, MULTITAP_PLACES } from '../lib/cases';
 import {
   acquisitionLabel, CATALOG_ZONES, CONDITIONS, conditionLabel, editionClass, editionLabel, formatNumber, formatPrice, gamePath, languagesLong, languagesShort, searchKey, TRADE_STATUSES, tradeStatusLabel, zoneLabel, boxRegionName,
 } from '../lib/format';
@@ -393,7 +393,8 @@ export function Collection() {
   // Jeux par étage des meubles « auto » : selon la largeur affichée (mesurée par chaque meuble)
   const [perRows, setPerRows] = useState<Record<string, number>>({});
   const onPerRow = useCallback((id: string, n: number) => setPerRows((p) => (p[id] === n ? p : { ...p, [id]: n })), []);
-  const layout = useMemo(() => distribute(ordered, consoleOf, room.meubles, (m) => perRows[m.id] ?? 20), [ordered, room.meubles, perRows]);
+  const layout = useMemo(() => distribute(ordered, consoleOf, room.meubles, (m) => perRows[m.id] ?? 20,
+    (item) => (isMultitapPack(item.release.platform.short_name, item.release.edition_type, item.release.edition_name) ? MULTITAP_PLACES : 1)), [ordered, room.meubles, perRows]);
 
   function changeMeuble(id: string, changes: Partial<Meuble>) {
     saveRoom(updateMeuble(room, id, changes));

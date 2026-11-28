@@ -239,7 +239,7 @@ function SubmissionCard({ submission: s, onDone }: { submission: Submission; onD
     <article className="panel submission-card">
       <div className="submission-head">
         {s.data.cover_path ? (
-          <ProposedCover path={s.data.cover_path} platform={platforms.find((p) => p.id === r?.platform_id)?.short_name} editionType={r?.edition_type} zone={r?.zone}
+          <ProposedCover path={s.data.cover_path} platform={platforms.find((p) => p.id === r?.platform_id)?.short_name} editionType={r?.edition_type} editionName={r?.edition_name} zone={r?.zone}
             edited={edited} onEdited={setEdited} size="medium" />
         ) : (
           <div className={`cover cover-medium${s.data.no_cover ? ' cover-disabled' : ''}`}>
@@ -446,7 +446,7 @@ function CoverSubmissionCard({ submission: s, onDone }: { submission: Submission
         </figure>
         <figure>
           <figcaption className="field-label">{tr('Jaquette proposée')}</figcaption>
-          <ProposedCover path={coverPath} platform={release?.platform.short_name} editionType={release?.edition_type} zone={release?.zone} edited={edited} onEdited={setEdited} />
+          <ProposedCover path={coverPath} platform={release?.platform.short_name} editionType={release?.edition_type} editionName={release?.edition_name} zone={release?.zone} edited={edited} onEdited={setEdited} />
         </figure>
       </div>
       <label className="field">

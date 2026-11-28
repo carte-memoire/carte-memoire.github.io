@@ -1912,6 +1912,7 @@ export const EN: Record<string, string> = {
   "Boîte en carton, haute et étroite (Super Famicom)": "Cardboard box, tall and narrow (Super Famicom)",
   "Petite boîte carrée (Game Boy, Game Boy Color, Game Boy Advance)": "Small square box (Game Boy, Game Boy Color, Game Boy Advance)",
   "Petite boîte en largeur (Game Boy Advance japonaise)": "Small landscape box (Japanese Game Boy Advance)",
+  "Grande boîte en carton, en largeur (PlayStation avec Multitap)": "Large landscape cardboard box (PlayStation with Multitap)",
   "Boîtier en plastique (Mega Drive)": "Plastic case (Mega Drive)",
   "Automatique : Japon (sorti seulement au Japon)": "Automatic: Japan (released only in Japan)",
   "Petite boîte en hauteur (Game Boy japonaise)": "Small upright box (Japanese Game Boy)",

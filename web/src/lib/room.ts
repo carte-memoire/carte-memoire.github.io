@@ -82,8 +82,11 @@ export interface Distribution<T> {
 }
 
 // Répartir les jeux (déjà dans l'ordre de l'étagère) dans les meubles, dans l'ordre des meubles.
-// `perRow(meuble)` : nombre de jeux par étage quand il est « auto » (selon la largeur affichée).
-export function distribute<T>(items: T[], consoleOf: (item: T) => string, meubles: Meuble[], perRow: (m: Meuble) => number): Distribution<T> {
+// `perRow(meuble)` : nombre de places par étage quand il est « auto » (selon la largeur affichée).
+// `placesOf(jeu)` : les places qu'il prend sur l'étage (une ; trois pour la grande boîte d'un pack
+// PlayStation avec Multitap) ; un jeu qui ne tient plus sur l'étage passe au suivant.
+export function distribute<T>(items: T[], consoleOf: (item: T) => string, meubles: Meuble[], perRow: (m: Meuble) => number,
+  placesOf: (item: T) => number = () => 1): Distribution<T> {
   const queues = new Map<string, T[]>();
   for (const item of items) {
     const key = consoleOf(item);
@@ -96,17 +99,30 @@ export function distribute<T>(items: T[], consoleOf: (item: T) => string, meuble
     const width = Math.max(1, meuble.perLevel || perRow(meuble));
     const keys = meuble.content === ALL_CONSOLES ? consoles : [meuble.content];
     for (const key of keys) lastFor.set(key, meuble.id);
-    // Contenu : les consoles reçues, l'une après l'autre
-    const taken: T[] = [];
-    const capacity = meuble.levels ? meuble.levels * width : Infinity;
-    for (const key of keys) {
+    // Contenu : les consoles reçues, l'une après l'autre, étage par étage ; un meuble au nombre
+    // d'étages fixé s'arrête quand le jeu suivant ne tient plus sur son dernier étage
+    const rows: T[][] = [];
+    let row: T[] = [];
+    let used = 0;
+    const maxRows = meuble.levels || Infinity;
+    fill: for (const key of keys) {
       const queue = queues.get(key);
       if (!queue) continue;
-      const n = Math.min(queue.length, capacity - taken.length);
-      taken.push(...queue.splice(0, n));
+      while (queue.length > 0) {
+        const size = Math.min(width, Math.max(1, placesOf(queue[0])));
+        if (used + size > width) {
+          if (rows.length + 1 >= maxRows) break fill;
+          rows.push(row);
+          row = [];
+          used = 0;
+        }
+        row.push(queue.shift()!);
+        used += size;
+      }
     }
-    const count = meuble.levels || Math.max(1, Math.ceil(taken.length / width));
-    placed.push({ meuble, levels: Array.from({ length: count }, (_, i) => taken.slice(i * width, (i + 1) * width)) });
+    rows.push(row);
+    const count = meuble.levels || rows.length;
+    placed.push({ meuble, levels: Array.from({ length: count }, (_, i) => rows[i] ?? []) });
   }
   const boxes = consoles
     .filter((key) => queues.get(key)!.length > 0)

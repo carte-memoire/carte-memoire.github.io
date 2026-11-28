@@ -10,11 +10,13 @@
 // Les dimensions suivent les boîtiers PAL (styles.css) : PS1 17 × 130 mm, PS2 14 × 190 mm.
 
 import { useLayoutEffect, useRef, type CSSProperties } from 'react';
+import { isMultitapPack } from '../lib/cases';
 
 interface SpineRelease {
   local_title: string;
   product_code: string | null;
   edition_type: string;
+  edition_name?: string | null;
   platform: { short_name: string };
 }
 
@@ -78,6 +80,14 @@ const N64_SPINES = GB_SPINES.filter(([back]) => back !== '#f2f1ec');
 function n64Spine(title: string): CSSProperties {
   const [back, text] = N64_SPINES[titleHash(title) % N64_SPINES.length];
   return { ['--n64-back' as string]: back, ['--n64-text' as string]: text, ['--ink' as string]: nesInk(title) } as CSSProperties;
+}
+
+// Pack PlayStation avec Multitap : la grande boîte en carton (45 mm d'épaisseur) aux couleurs du
+// jeu, comme les autres boîtes en carton (un fond et un titre bien lisible, toujours les mêmes
+// pour un même titre), puis « + MULTI TAP » en bas, à la place du code produit
+function packSpine(title: string): CSSProperties {
+  const [back, text] = GB_SPINES[titleHash(title) % GB_SPINES.length];
+  return { ['--pack-back' as string]: back, ['--pack-text' as string]: text } as CSSProperties;
 }
 
 function titleFit(kind: string, title: string): { fit: number; twoLines: boolean } {
@@ -155,11 +165,12 @@ export function SpineFace({ release, region }: { release: SpineRelease; region?:
   const kind = spineKind(release.platform.short_name) ?? 'ps1';
   const code = splitCode(release.product_code);
   const reissue = release.edition_type === 'reissue';
+  const pack = isMultitapPack(release.platform.short_name, release.edition_type, release.edition_name);
   const { fit, twoLines } = titleFit(kind, release.local_title);
   const titleRef = useFittedTitle(release.local_title, fit, twoLines);
   return (
-    <span className={`spine-face spine-${kind}${release.platform.short_name === 'GBC' ? ' is-gbc' : ''}${release.platform.short_name === 'GBA' ? ' is-gba' : ''}${reissue ? ' is-reissue' : ''}${region ? ` spine-region-${region}` : ''}`} aria-hidden="true"
-      style={kind === 'gb' ? gbSpine(release.local_title) : kind === 'md' ? mdSpine(release.local_title) : kind === 'n64' ? n64Spine(release.local_title)
+    <span className={`spine-face spine-${kind}${release.platform.short_name === 'GBC' ? ' is-gbc' : ''}${release.platform.short_name === 'GBA' ? ' is-gba' : ''}${reissue ? ' is-reissue' : ''}${pack ? ' is-multitap' : ''}${region ? ` spine-region-${region}` : ''}`} aria-hidden="true"
+      style={pack ? packSpine(release.local_title) : kind === 'gb' ? gbSpine(release.local_title) : kind === 'md' ? mdSpine(release.local_title) : kind === 'n64' ? n64Spine(release.local_title)
         : kind === 'nes' || kind === 'snes' ? ({ ['--ink' as string]: nesInk(release.local_title) } as CSSProperties) : undefined}>
       <span className="spine-band">
         {/* Super Nintendo : le nom de la console en texte simple, à la place de son logo
@@ -171,9 +182,11 @@ export function SpineFace({ release, region }: { release: SpineRelease; region?:
         {kind === 'ps2' && <>{!region && <span className="spine-pal">PAL</span>}<span className="spine-console">PlayStation 2</span></>}
       </span>
       <span ref={titleRef} className={twoLines ? 'spine-title is-two-lines' : 'spine-title'} style={{ ['--fit' as string]: fit.toFixed(3) } as CSSProperties}>{release.local_title}</span>
+      {/* Pack avec Multitap : l'adaptateur nommé en bas (texte simple), sans code produit */}
+      {pack && <span className="spine-pack">+ Multi Tap</span>}
       {/* La place du code est toujours gardée en bas, même sans code (laissée vide) : le titre
           ne descend jamais dessus */}
-      {code
+      {pack ? null : code
         ? <span className="spine-code">{code[0]}<br />{code[1]}</span>
         : <span className="spine-code is-empty">SLES<br />00000</span>}
     </span>
